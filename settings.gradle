@@ -1,0 +1,2 @@
+rootProject.name='ribbon' // TEMPLATE: Change this
+include 'ribbon-core','ribbon-httpclient', 'ribbon-eureka'

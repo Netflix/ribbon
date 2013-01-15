@@ -1,0 +1,51 @@
+// Establish version and status
+ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
+
+buildscript {
+    repositories { mavenCentral() }
+    apply from: file('gradle/buildscript.gradle'), to: buildscript 
+}
+
+allprojects {
+    repositories { mavenCentral() }
+}
+
+apply from: file('gradle/convention.gradle')
+apply from: file('gradle/maven.gradle')
+apply from: file('gradle/check.gradle')
+apply from: file('gradle/license.gradle')
+apply from: file('gradle/release.gradle')
+
+subprojects {
+    group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
+
+    dependencies {
+        compile 'org.slf4j:slf4j-api:1.6.4'
+        compile 'com.netflix.servo:servo-core:0.4.32'
+        compile 'com.google.guava:guava:11.0.2'
+        compile 'com.netflix.archaius:archaius-core:0.5.3'
+        compile 'javax.ws.rs:jsr311-api:1.1.1' 
+        compile 'commons-collections:commons-collections:3.2.1'
+        testCompile 'junit:junit:4.10'
+        testCompile 'log4j:log4j:1.2.16'
+    }   
+}
+
+project(':ribbon-core') {
+}
+
+project(':ribbon-httpclient') {
+    dependencies {
+        compile project(':ribbon-core')
+        compile 'org.apache.httpcomponents:httpclient:4.1.2' 
+        compile 'com.sun.jersey:jersey-bundle:1.9.1'
+        compile 'com.sun.jersey.contribs:jersey-apache-client4:1.8'
+    }
+}
+
+project(':ribbon-eureka') {   
+    dependencies {
+        compile project(':ribbon-core')
+        compile 'com.netflix.eureka:eureka-core:1.1.37' 
+    }    
+}

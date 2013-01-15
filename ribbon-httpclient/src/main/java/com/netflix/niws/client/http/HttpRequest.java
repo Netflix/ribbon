@@ -1,0 +1,107 @@
+package com.netflix.niws.client.http;
+
+import java.net.URI;
+
+import javax.ws.rs.core.MultivaluedMap;
+
+import com.netflix.niws.client.ClientRequest;
+import com.netflix.niws.client.NiwsClientConfig;
+
+public class HttpRequest extends ClientRequest {
+        
+    public enum Verb {
+        GET("GET"),
+        PUT("PUT"),
+        POST("POST"),
+        DELETE("DELETE"),
+        OPTIONS("OPTIONS"),
+        HEAD("HEAD");
+
+        private final String verb; // http method
+
+        Verb(String verb) {
+            this.verb = verb;
+        }
+
+        public String verb() {
+            return verb;
+        }
+    }
+
+    private MultivaluedMap<String, String> headers;
+    private MultivaluedMap<String, String> queryParams;
+    private Object entity;
+    private Verb verb;
+    
+    private HttpRequest() {
+        this.verb = Verb.GET;
+    }
+    
+    public static class Builder {
+        
+        private HttpRequest request = new HttpRequest(); 
+        
+        public Builder setUri(URI uri) {
+            request.setUri(uri);
+            return this;
+        }
+        
+        public Builder setHeaders(MultivaluedMap<String, String> headers) {
+            request.headers = headers;
+            return this;
+        }
+        
+        public Builder setOverrideConfig(NiwsClientConfig config) {
+            request.setOverrideConfig(config);
+            return this;
+        }
+
+        public Builder setRetriable(boolean retriable) {
+            request.setRetriable(retriable);
+            return this;
+        }
+
+        public Builder setQueryParams(MultivaluedMap<String, String> queryParams) {
+            request.queryParams = queryParams;
+            return this;
+        }
+
+        public Builder setEntity(Object entity) {
+            request.entity = entity;
+            return this;
+        }
+
+        public Builder setVerb(Verb verb) {
+            request.verb = verb;
+            if (verb == Verb.GET) {
+                request.setRetriable(true);
+            }
+            return this;
+        }
+        
+        public HttpRequest build() {
+            return request;    
+        }
+    }
+    
+    public MultivaluedMap<String, String> getQueryParams() {
+        return queryParams;
+    }
+    
+    public Verb getVerb() {
+        return verb;
+    }
+    
+    public MultivaluedMap<String, String> getHeaders() {
+        return headers;
+    }
+    
+    public Object getEntity() {
+        return entity;
+    }
+    
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+    
+}

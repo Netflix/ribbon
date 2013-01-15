@@ -1,0 +1,232 @@
+package com.netflix.niws.client;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
+import com.netflix.config.DynamicBooleanProperty;
+import com.netflix.config.DynamicDoubleProperty;
+import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.loadbalancer.IRule;
+import com.netflix.loadbalancer.LoadBalancerStats;
+import com.netflix.loadbalancer.NFLoadBalancer;
+import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ZoneSnapshot;
+import com.netflix.servo.monitor.Monitors;
+import com.netflix.servo.monitor.Stopwatch;
+import com.netflix.servo.monitor.Timer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends NIWSDiscoveryLoadBalancer<T> {
+
+    private ConcurrentHashMap<String, NFLoadBalancer> balancers = new ConcurrentHashMap<String, NFLoadBalancer>();
+    
+    private static final Logger logger = LoggerFactory.getLogger(ZoneAwareNIWSDiscoveryLoadBalancer.class);
+    
+    private static final Random random = new Random();
+        
+    private volatile DynamicDoubleProperty triggeringLoad;
+
+    private volatile DynamicDoubleProperty triggeringBlackoutPercentage; 
+
+    private static final DynamicBooleanProperty ENABLED = DynamicPropertyFactory.getInstance().getBooleanProperty("ZoneAwareNIWSDiscoveryLoadBalancer.enabled", true);
+    
+    private Timer chooseServerTimer;
+        
+    String monitorId;
+        
+    void setUpServerList(List<Server> upServerList) {
+        this.upServerList = upServerList;
+    }
+    
+    @Override
+    protected void setServerListForZones(Map<String, List<Server>> zoneServersMap) {
+        super.setServerListForZones(zoneServersMap);
+        for (String zone: zoneServersMap.keySet()) {
+            zone = zone.toLowerCase();
+            getLoadBalancer(zone).setServersList(zoneServersMap.get(zone));
+        }
+    }    
+    
+    private Map<String, ZoneSnapshot> createSnapshot() {
+        Map<String, ZoneSnapshot> map = new HashMap<String, ZoneSnapshot>();
+        LoadBalancerStats lbStats = getLoadBalancerStats();
+        for (String zone: lbStats.getAvailableZones()) {    
+            ZoneSnapshot snapshot = lbStats.getZoneSnapshot(zone);
+            map.put(zone, snapshot);
+        }
+        return map;
+    }
+    
+    @Override
+    public Server chooseServer(Object key) {
+        Stopwatch stopWatch = chooseServerTimer.start();
+        try {
+            if (!ENABLED.get() || getLoadBalancerStats().getAvailableZones().size() <= 1) {
+                logger.debug("Zone aware logic disabled or there is only one zone");
+                return super.chooseServer(key);
+            }
+            Server server = null;
+            try {
+                LoadBalancerStats lbStats = getLoadBalancerStats();
+                Map<String, ZoneSnapshot> zoneSnapshot = ZoneAvoidanceRule.createSnapshot(lbStats);
+                logger.debug("Zone snapshots: {}", zoneSnapshot);
+                if (triggeringLoad == null) {
+                    triggeringLoad = DynamicPropertyFactory.getInstance().getDoubleProperty(
+                        "ZoneAwareNIWSDiscoveryLoadBalancer." + this.getName() + ".triggeringLoadPerServerThreshold", 0.2d);
+                }
+                
+                if (triggeringBlackoutPercentage == null) {
+                    triggeringBlackoutPercentage = DynamicPropertyFactory.getInstance().getDoubleProperty(
+                            "ZoneAwareNIWSDiscoveryLoadBalancer." + this.getName() + ".avoidZoneWithBlackoutPercetage", 0.99999d);
+                }
+                Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.get(), triggeringBlackoutPercentage.get());
+                logger.debug("Available zones: {}", availableZones);
+                if (availableZones != null &&  availableZones.size() < zoneSnapshot.keySet().size()) {
+                    String zone = ZoneAvoidanceRule.randomChooseZone(zoneSnapshot, availableZones);
+                    logger.debug("Zone chosen: {}", zone);
+                    if (zone != null) {
+                        NFLoadBalancer zoneLoadBalancer = getLoadBalancer(zone);
+                        server = zoneLoadBalancer.chooseServer(key);
+                    }
+                }
+            } catch (Throwable e) {
+                logger.error("Unexpected exception when choosing server using zone aware logic", e);
+            }
+            if (server != null) {
+                return server;
+            } else {
+                logger.debug("Zone avoidance logic is not invoked.");
+                return super.chooseServer(key);
+            }
+        }  finally {
+            stopWatch.stop();
+        }
+    }
+        
+    private NFLoadBalancer getLoadBalancer(String zone) {
+        zone = zone.toLowerCase();
+        NFLoadBalancer loadBalancer = balancers.get(zone);
+        if (loadBalancer == null) {
+            loadBalancer = new NFLoadBalancer(this.getName() + "_" + zone, this.getRule(), this.getLoadBalancerStats());
+            balancers.put(zone, loadBalancer);
+            return balancers.get(zone);
+        } else {
+            return loadBalancer;
+        }
+    }
+    
+    /**
+     * Choose a zone from a list of zones based on number of instances
+     * 
+     * @param snapshot
+     * @param chooseFrom
+     * @return
+     */
+    private static String randomChooseZone(Map<String, ZoneSnapshot> snapshot, Set<String> chooseFrom) {
+        if (chooseFrom == null || chooseFrom.size() == 0) {
+            return null;
+        }
+        String selectedZone = chooseFrom.iterator().next();
+        if (chooseFrom.size() == 1) {
+            return selectedZone;
+        }
+        int totalServerCount = 0;
+        for (String zone: chooseFrom) {
+            totalServerCount += snapshot.get(zone).getInstanceCount();
+        }
+        int index = random.nextInt(totalServerCount) + 1;
+        int sum = 0;
+        for (String zone: chooseFrom) {
+            sum += snapshot.get(zone).getInstanceCount();
+            if (index <= sum) {
+                selectedZone = zone;
+                break;
+            }
+        }
+        return selectedZone;            
+        
+    }
+       
+    private String chooseZone(Map<String, ZoneSnapshot> snapshot) {
+        // make a copy, this might be changed later
+        Set<String> availableZones = new HashSet<String>(snapshot.keySet());
+        if (availableZones == null || availableZones.size() == 0) {
+            return null;
+        }
+        if (availableZones.size() == 1) {
+            return availableZones.iterator().next();
+        }
+        Set<String> worstZones = new HashSet<String>();
+        double maxLoadPerServer = 0;
+        boolean limitedZoneAvailability = false;
+        if (triggeringLoad == null) {
+            triggeringLoad = DynamicPropertyFactory.getInstance().getDoubleProperty(
+                "ZoneAwareNIWSDiscoveryLoadBalancer." + this.getName() + ".triggeringLoadPerServerThreshold", 0.2d);
+        }
+        
+        if (triggeringBlackoutPercentage == null) {
+            triggeringBlackoutPercentage = DynamicPropertyFactory.getInstance().getDoubleProperty(
+                    "ZoneAwareNIWSDiscoveryLoadBalancer." + this.getName() + ".avoidZoneWithBlackoutPercetage", 0.99999d);
+        }
+
+        for (String zone: snapshot.keySet()) {
+            ZoneSnapshot zoneSnapshot = snapshot.get(zone);
+            int instanceCount = zoneSnapshot.getInstanceCount();
+            if (instanceCount == 0) {
+                availableZones.remove(zone);
+                limitedZoneAvailability = true;
+            } else {
+                double loadPerServer = zoneSnapshot.getLoadPerServer();
+                if (((double) zoneSnapshot.getCircuitTrippedCount()) / instanceCount >= triggeringBlackoutPercentage.get()
+                        || loadPerServer < 0) {
+                    availableZones.remove(zone);
+                    limitedZoneAvailability = true;
+                } else {                
+                    if (Math.abs(loadPerServer - maxLoadPerServer) < 0.000001d) {
+                        // they are the same considering double calculation round error
+                        worstZones.add(zone);
+                    } else if (loadPerServer > maxLoadPerServer) {
+                        maxLoadPerServer = loadPerServer;
+                        worstZones.clear();
+                        worstZones.add(zone);
+                    } 
+                }       
+            }
+        }
+                 
+        if (maxLoadPerServer < triggeringLoad.get() && !limitedZoneAvailability) {
+            // zone override is not needed here
+            return null;
+        }
+                   
+        String zoneToAvoid = randomChooseZone(snapshot, worstZones);
+        if (zoneToAvoid != null) {
+            availableZones.remove(zoneToAvoid);
+        }
+        return randomChooseZone(snapshot, availableZones);
+    }    
+
+    @Override
+    public void setRule(IRule rule) {
+        super.setRule(rule);
+        if (balancers != null) {
+            for (String zone: balancers.keySet()) {
+                balancers.get(zone).setRule(rule);
+            }
+        }
+    }
+    
+    @Override
+    public void init() {
+        chooseServerTimer = Monitors.newTimer("ZoneAwareLoadBalancer_" + getName() + "_chooseServerTimer", TimeUnit.MILLISECONDS);
+        super.init();
+    }
+}
