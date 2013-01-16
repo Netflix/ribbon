@@ -24,7 +24,7 @@ import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
-import com.netflix.util.concurrent.NFTimer;
+import com.netflix.util.concurrent.ShutdownEnabledTimer;
 
 /**
  * A Netflix Implementation of an ILoadBalancer 
@@ -188,7 +188,7 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
         if (lbTimer != null){
             lbTimer.cancel();
         }
-        lbTimer = new NFTimer("NFLoadBalancer-PingTimer-" + name, true);  
+        lbTimer = new ShutdownEnabledTimer("NFLoadBalancer-PingTimer-" + name, true);  
         lbTimer.schedule(new PingTask(), 0, pingIntervalSeconds*1000);
         forceQuickPing();
     }
