@@ -19,9 +19,9 @@ import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
 
-public abstract class AbstractClient<T extends ClientRequest> implements IClient<T>, NiwsClientConfigAware {    
+public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> implements IClient<S, T>, NiwsClientConfigAware {    
     
-    private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractLoadBalancerAwareClient.class);
 
     private String clientName;          
     
@@ -41,7 +41,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
     private Timer tracer;
 
     
-    public AbstractClient() {  
+    public AbstractLoadBalancerAwareClient() {  
     }
     
     @Override
@@ -72,7 +72,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         tracer = Monitors.newTimer(clientName + "_OperationTimer", TimeUnit.MILLISECONDS);
     }
     
-    public AbstractClient(NiwsClientConfig clientConfig) {
+    public AbstractLoadBalancerAwareClient(NiwsClientConfig clientConfig) {
         initWithNiwsConfig(clientConfig);        
     }
     
@@ -88,7 +88,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         this.lb = lb;
     }
 
-    protected Throwable getDeepestCause(Throwable e) {
+    private Throwable getDeepestCause(Throwable e) {
         if(e != null) {
             int infiniteLoopPreventionCounter = 10;
             while (e.getCause() != null && infiniteLoopPreventionCounter > 0) {
@@ -103,7 +103,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         
     protected abstract boolean isRetriableException(Exception e);
     
-    protected IResponse executeOnSingleServer(T task) throws NIWSClientException {
+    protected T executeOnSingleServer(S task) throws NIWSClientException {
         boolean done = false;
         int retries = 0;
 
@@ -127,7 +127,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
             }
         }
         
-        IResponse response = null;
+        T response = null;
         Exception lastException = null;
         if (tracer == null) {
            tracer = Monitors.newTimer(this.getClass().getName() + "_ExecutionTimer", TimeUnit.MILLISECONDS);
@@ -254,7 +254,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         return retries;
     }
 
-    protected void noteRequestCompletion(ServerStats stats, T task, IResponse response, Exception e, long responseTime) {        
+    protected void noteRequestCompletion(ServerStats stats, S task, IResponse response, Exception e, long responseTime) {        
         try {
             if (stats != null) {
                 stats.decrementActiveRequestsCount();
@@ -291,7 +291,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         }        
     }
 
-    protected void noteOpenConnection(ServerStats serverStats, T task) {
+    protected void noteOpenConnection(ServerStats serverStats, S task) {
         if (serverStats == null) {
             return;
         }
@@ -302,7 +302,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         }
     }
 
-    protected IResponse executeWithVirtualAddress(T task) throws NIWSClientException {
+    public T executeWithLoadBalancer(S task) throws NIWSClientException {
         int retries = 0;
         boolean done = false;
         boolean retryOkayOnOperation = okToRetryOnAllOperations;
@@ -334,11 +334,11 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
             }
         }
 
-        IResponse response = null;
+        T response = null;
 
         do {
             try {
-                T resolved = resolveTaskWithVirtualAddressAndLoadBalancer(task);
+                S resolved = computeFinalUriWithLoadBalancer(task);
                 response = executeOnSingleServer(resolved);
                 done = true;
             } catch (Exception e) {      
@@ -376,7 +376,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         return response;
     }
         
-    protected abstract Pair<String, Integer> getSchemeAndPort(T task);
+    protected abstract Pair<String, Integer> getSchemeAndPort(S task);
     
     protected abstract Pair<String, Integer> getHostAndPort(String vipAddress) throws URISyntaxException;
     
@@ -396,7 +396,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
         return false;
     }
     
-    protected T resolveTaskWithVirtualAddressAndLoadBalancer(T original) throws NIWSClientException{
+    protected S computeFinalUriWithLoadBalancer(S original) throws NIWSClientException{
         URI newURI;
         URI theUrl = original.getUri();
 
@@ -530,7 +530,7 @@ public abstract class AbstractClient<T extends ClientRequest> implements IClient
             }
             
             newURI = new URI(scheme, theUrl.getUserInfo(), host, port, urlPath, theUrl.getQuery(), theUrl.getFragment());
-            return (T) original.createWithNewUri(newURI);            
+            return (S) original.replaceUri(newURI);            
         } catch (URISyntaxException e) {
             throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL, e.getMessage());
         }

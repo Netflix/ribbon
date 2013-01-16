@@ -37,12 +37,12 @@ import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
 import com.netflix.loadbalancer.Server;
-import com.netflix.niws.client.AbstractClient;
+import com.netflix.niws.client.AbstractLoadBalancerAwareClient;
 import com.netflix.niws.client.NIWSClientException;
 import com.netflix.niws.client.NiwsClientConfig;
 import com.netflix.niws.client.URLSslContextFactory;
 import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
-import com.netflix.niws.client.http.HttpRequest.Verb;
+import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.netflix.util.Pair;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -53,7 +53,7 @@ import com.sun.jersey.client.apache4.ApacheHttpClient4Handler;
 import com.sun.jersey.client.apache4.config.ApacheHttpClient4Config;
 import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
 
-public class SimpleJerseyClient extends AbstractClient<HttpRequest> {
+public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClientRequest, HttpClientResponse> {
 
     private Client restClient;
     private HttpClient httpClient4;
@@ -417,13 +417,9 @@ public class SimpleJerseyClient extends AbstractClient<HttpRequest> {
         }
         return result;
     }
-
-    public HttpClientResponse executeWithVirtualAddress(HttpRequest task) throws NIWSClientException {
-        return (HttpClientResponse) super.executeWithVirtualAddress(task);
-    }
     
     @Override
-    public HttpClientResponse execute(HttpRequest task) throws Exception {
+    public HttpClientResponse execute(HttpClientRequest task) throws Exception {
         return execute(task.getVerb(), task.getUri(),
                 task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity());
     }
@@ -441,7 +437,7 @@ public class SimpleJerseyClient extends AbstractClient<HttpRequest> {
     }
 
     @Override
-    protected Pair<String, Integer> getSchemeAndPort(HttpRequest task) {
+    protected Pair<String, Integer> getSchemeAndPort(HttpClientRequest task) {
         URI theUrl = task.getUri();
         boolean isSecure = isSecure(task.getOverrideConfig());
         int port = -1;

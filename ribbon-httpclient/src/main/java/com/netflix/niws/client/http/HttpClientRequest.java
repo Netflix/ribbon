@@ -7,7 +7,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import com.netflix.niws.client.ClientRequest;
 import com.netflix.niws.client.NiwsClientConfig;
 
-public class HttpRequest extends ClientRequest {
+public class HttpClientRequest extends ClientRequest {
         
     public enum Verb {
         GET("GET"),
@@ -33,13 +33,13 @@ public class HttpRequest extends ClientRequest {
     private Object entity;
     private Verb verb;
     
-    private HttpRequest() {
+    private HttpClientRequest() {
         this.verb = Verb.GET;
     }
     
     public static class Builder {
         
-        private HttpRequest request = new HttpRequest(); 
+        private HttpClientRequest request = new HttpClientRequest(); 
         
         public Builder setUri(URI uri) {
             request.setUri(uri);
@@ -73,13 +73,15 @@ public class HttpRequest extends ClientRequest {
 
         public Builder setVerb(Verb verb) {
             request.verb = verb;
-            if (verb == Verb.GET) {
-                request.setRetriable(true);
-            }
             return this;
         }
         
-        public HttpRequest build() {
+        public Builder setLoadBalancerKey(Object loadBalancerKey) {
+            request.setLoadBalancerKey(loadBalancerKey);
+            return this;
+        }
+        
+        public HttpClientRequest build() {
             return request;    
         }
     }
@@ -103,5 +105,16 @@ public class HttpRequest extends ClientRequest {
     public static Builder newBuilder() {
         return new Builder();
     }
-    
+
+    @Override
+    public HttpClientRequest replaceUri(URI newURI) {
+        return (new Builder()).setUri(newURI)
+        .setEntity(this.getEntity())
+        .setHeaders(this.getHeaders())
+        .setOverrideConfig(this.getOverrideConfig())
+        .setQueryParams(this.getQueryParams())
+        .setRetriable(this.isRetriable())
+        .setLoadBalancerKey(this.getLoadBalancerKey())
+        .setVerb(this.getVerb()).build();        
+    }
 }

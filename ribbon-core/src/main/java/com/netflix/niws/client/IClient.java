@@ -1,7 +1,7 @@
 package com.netflix.niws.client;
 
 
-public interface IClient<T extends ClientRequest> {
+public interface IClient<S extends ClientRequest, T extends IResponse> {
 
-    public IResponse execute(T task) throws Exception; 
+    public T execute(S task) throws Exception; 
 }
