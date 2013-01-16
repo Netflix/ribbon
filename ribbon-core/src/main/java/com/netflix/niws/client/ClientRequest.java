@@ -16,6 +16,13 @@ public class ClientRequest implements Cloneable {
         this.uri = uri;
     }
 
+    public ClientRequest(URI uri, Object loadBalancerKey, boolean isRetriable, NiwsClientConfig overrideConfig) {
+        this.uri = uri;
+        this.loadBalancerKey = loadBalancerKey;
+        this.isRetriable = isRetriable;
+        this.overrideConfig = overrideConfig;
+    }
+
     public ClientRequest(ClientRequest request) {
         this.uri = request.uri;
         this.loadBalancerKey = request.loadBalancerKey;
@@ -28,7 +35,7 @@ public class ClientRequest implements Cloneable {
     }
     
 
-    public final ClientRequest setUri(URI uri) {
+    protected final ClientRequest setUri(URI uri) {
         this.uri = uri;
         return this;
     }
@@ -37,7 +44,7 @@ public class ClientRequest implements Cloneable {
         return loadBalancerKey;
     }
 
-    public final ClientRequest setLoadBalancerKey(Object loadBalancerKey) {
+    protected final ClientRequest setLoadBalancerKey(Object loadBalancerKey) {
         this.loadBalancerKey = loadBalancerKey;
         return this;
     }
@@ -46,7 +53,7 @@ public class ClientRequest implements Cloneable {
         return isRetriable;
     }
 
-    public final ClientRequest setRetriable(boolean isRetriable) {
+    protected final ClientRequest setRetriable(boolean isRetriable) {
         this.isRetriable = isRetriable;
         return this;
     }
@@ -55,12 +62,12 @@ public class ClientRequest implements Cloneable {
         return overrideConfig;
     }
 
-    public final ClientRequest setOverrideConfig(NiwsClientConfig overrideConfig) {
+    protected final ClientRequest setOverrideConfig(NiwsClientConfig overrideConfig) {
         this.overrideConfig = overrideConfig;
         return this;
     }
     
-    public ClientRequest createWithNewUri(URI newURI) {
+    public ClientRequest replaceUri(URI newURI) {
         ClientRequest req;
         try {
             req = (ClientRequest) this.clone();

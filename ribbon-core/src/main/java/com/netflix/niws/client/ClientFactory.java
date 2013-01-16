@@ -18,8 +18,8 @@ public class ClientFactory {
 
     private static Logger logger = LoggerFactory.getLogger(ClientFactory.class);
     
-    private static synchronized AbstractClient registerClientFromProperties(String restClientName, NiwsClientConfig niwsClientConfig) { 
-        AbstractClient client = null;
+    private static synchronized AbstractLoadBalancerAwareClient registerClientFromProperties(String restClientName, NiwsClientConfig niwsClientConfig) { 
+        AbstractLoadBalancerAwareClient client = null;
         AbstractLoadBalancer loadBalancer = null;
         try {
             if (simpleClientMap.get(restClientName) != null) {
@@ -29,7 +29,7 @@ public class ClientFactory {
             }
             try {
                 String clientClassName = (String) niwsClientConfig.getProperty(NiwsClientConfigKey.ClientClassName);
-                client = (AbstractClient) instantiateNiwsConfigAwareClassInstance(clientClassName, niwsClientConfig);
+                client = (AbstractLoadBalancerAwareClient) instantiateNiwsConfigAwareClassInstance(clientClassName, niwsClientConfig);
                 boolean initializeNFLoadBalancer = Boolean.valueOf("" + niwsClientConfig.getProperty(
                                                 NiwsClientConfigKey.InitializeNFLoadBalancer,
                                                 Boolean.valueOf(NiwsClientConfig.DEFAULT_ENABLE_LOADBALANCER)));
