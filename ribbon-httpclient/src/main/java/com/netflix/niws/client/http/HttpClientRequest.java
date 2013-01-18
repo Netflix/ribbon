@@ -101,8 +101,22 @@ public class HttpClientRequest extends ClientRequest {
     public Object getEntity() {
         return entity;
     }
-    
-    public static Builder newBuilder() {
+        
+    @Override
+	public boolean isRetriable() {
+    	if (this.verb == Verb.GET && isRetriable == null) {
+    		return true;
+    	}
+		return super.isRetriable();
+	}
+
+	@Override
+	protected Object clone() throws CloneNotSupportedException {
+		// TODO Auto-generated method stub
+		return super.clone();
+	}
+
+	public static Builder newBuilder() {
         return new Builder();
     }
 

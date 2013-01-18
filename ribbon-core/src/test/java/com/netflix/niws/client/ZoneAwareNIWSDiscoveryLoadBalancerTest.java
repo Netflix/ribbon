@@ -20,9 +20,6 @@ import static org.junit.Assert.fail;
 
 public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
 
-    // @Rule
-    // public RetryFailedTestRule retry = new RetryFailedTestRule(NUMBER_OF_ATTEMPTS);
-
     private Server createServer(String host, String zone) {
         return createServer(host, 7001, zone);    
     }
@@ -39,7 +36,6 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     }
     
     private void testChooseServer(ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer, String... expectedZones) {
-        System.out.println("=== LB Stats === " + balancer.getLoadBalancerStats());
         Set<String> result = new HashSet<String>();
         for (int i = 0; i < 100; i++) {
             Server server = balancer.chooseServer(null);
@@ -57,7 +53,6 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripTimeoutFactorSeconds", 5);
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 10);
         ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer = new ZoneAwareNIWSDiscoveryLoadBalancer<Server>();
-        balancer.setName("junit");
         balancer.init();
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
         assertNotNull(loadBalancerStats);
@@ -140,7 +135,6 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     	ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripMaxTimeoutSeconds", 100000);
         ConfigurationManager.getConfigInstance().clearProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds");
         ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer = new ZoneAwareNIWSDiscoveryLoadBalancer<Server>();
-        balancer.setName("junit");
         balancer.init();
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
         assertNotNull(loadBalancerStats);
@@ -211,7 +205,6 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
         //NetflixConfiguration.getConfigInstance().setProperty("niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit", 2);
     	ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripMaxTimeoutSeconds", 100000);
         ZoneAwareNIWSDiscoveryLoadBalancer balancer = new ZoneAwareNIWSDiscoveryLoadBalancer();
-        balancer.setName("junit");
         balancer.init();
         balancer.setRule(new AvailabilityFilteringRule());
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();

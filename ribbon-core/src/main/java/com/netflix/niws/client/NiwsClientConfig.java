@@ -20,6 +20,7 @@ import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
 import com.netflix.config.ExpandedConfigurationListenerAdapter;
 import com.netflix.config.util.HttpVerbUriRegexPropertyValue;
+import com.netflix.loadbalancer.DummyPing;
 import com.netflix.niws.VipAddressResolver;
 
 /**
@@ -31,7 +32,7 @@ public class NiwsClientConfig {
 
     public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = Boolean.TRUE;
 
-    public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = "com.netflix.niws.client.NIWSDiscoveryPing";
+    public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = DummyPing.class.getName();
 
     public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = com.netflix.niws.client.AvailabilityFilteringRule.class.getName();
 

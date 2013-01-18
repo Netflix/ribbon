@@ -103,14 +103,14 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         
     protected abstract boolean isRetriableException(Exception e);
     
-    protected T executeOnSingleServer(S task) throws NIWSClientException {
+    protected T executeOnSingleServer(S request) throws NIWSClientException {
         boolean done = false;
         int retries = 0;
 
         boolean retryOkayOnOperation = okToRetryOnAllOperations;
         
         int numRetries =  maxAutoRetries;
-        URI uri = task.getUri();
+        URI uri = request.getUri();
         Server server = new Server(uri.getHost(), uri.getPort());
         ServerStats serverStats = null;
         ILoadBalancer lb = this.getLoadBalancer();
@@ -118,7 +118,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             LoadBalancerStats lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
             serverStats = lbStats.getSingleServerStat(server);
         }
-        NiwsClientConfig overriddenClientConfig = task.getOverrideConfig();
+        NiwsClientConfig overriddenClientConfig = request.getOverrideConfig();
         if (overriddenClientConfig!=null){
             try {
                 numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(NiwsClientConfigKey.MaxAutoRetries,maxAutoRetries));
@@ -135,9 +135,9 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         do {            
             Stopwatch w = null;
             try {
-                noteOpenConnection(serverStats, task);
+                noteOpenConnection(serverStats, request);
                 w = tracer.start();
-                response = execute(task);        
+                response = execute(request);        
                 done = true;
             } catch (Exception e) {
                 lastException = e;
@@ -153,7 +153,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 }
             } finally {
                 w.stop();
-                noteRequestCompletion(serverStats, task, response, lastException, w.getDuration());
+                noteRequestCompletion(serverStats, request, response, lastException, w.getDuration());
             }
         } while (!done); 
         return response;
@@ -376,9 +376,34 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         return response;
     }
         
-    protected abstract Pair<String, Integer> getSchemeAndPort(S task);
+    protected abstract Pair<String, Integer> deriveSchemeAndPortFromPartialUri(S task);
     
-    protected abstract Pair<String, Integer> getHostAndPort(String vipAddress) throws URISyntaxException;
+    protected abstract int getDefaultPort();
+        
+    protected  Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
+    		throws URISyntaxException, NIWSClientException {
+        Pair<String, Integer> hostAndPort = new Pair<String, Integer>("",
+                new Integer(getDefaultPort()));
+        URI uri = new URI(vipAddress);
+        String scheme = uri.getScheme();
+        if (scheme == null) {
+        	uri = new URI("http://" + vipAddress);
+        }
+        String host = uri.getHost();
+        if (host == null) {
+        	throw new NIWSClientException("Unable to derive host/port from vip address " + vipAddress);
+        }
+        int port = uri.getPort();
+        if (port < 0) {
+        	port = getDefaultPort();
+        }
+        if (port < 0) {
+        	throw new NIWSClientException("Unable to derive host/port from vip address " + vipAddress);
+        }
+        hostAndPort.setFirst(host);
+        hostAndPort.setSecond(port);
+        return hostAndPort;
+    }
     
     protected boolean isVipRecognized(String vipEmbeddedInUri) {
         if (vipEmbeddedInUri == null) {
@@ -405,7 +430,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
 
         String host = theUrl.getHost();
-        Pair<String, Integer> schemeAndPort = getSchemeAndPort(original);
+        Pair<String, Integer> schemeAndPort = deriveSchemeAndPortFromPartialUri(original);
         String scheme = schemeAndPort.first();
         int port = schemeAndPort.second();
         // Various Supported Cases
@@ -455,7 +480,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                                     + "one vipAddress to complete this partial uri");
                 } else if (vipAddresses != null) {
                     try {
-                        Pair<String,Integer> hostAndPort = getHostAndPort(vipAddresses);
+                        Pair<String,Integer> hostAndPort = deriveHostAndPortFromVipAddress(vipAddresses);
                         host = hostAndPort.first();
                         port = hostAndPort.second();
                     } catch (URISyntaxException e) {

@@ -198,8 +198,7 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
      * immutable after initialization. Calling this method does not guarantee that all other data structures
      * that depend on this name will be changed accordingly.
      */
-    @Deprecated
-    public void setName(String name) {
+    void setName(String name) {
         // and register
         this.name = name;
         if (lbStats == null) {

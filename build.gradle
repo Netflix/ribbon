@@ -40,6 +40,8 @@ project(':ribbon-httpclient') {
         compile 'org.apache.httpcomponents:httpclient:4.1.2' 
         compile 'com.sun.jersey:jersey-bundle:1.9.1'
         compile 'com.sun.jersey.contribs:jersey-apache-client4:1.8'
+        testCompile 'asm:asm-all:3.2'
+        testCompile 'commons-io:commons-io:2.0.1'
     }
 }
 

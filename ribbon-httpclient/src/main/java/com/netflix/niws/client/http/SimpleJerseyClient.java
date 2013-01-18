@@ -24,6 +24,7 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HTTP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,7 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.WebResource.Builder;
+import com.sun.jersey.api.client.filter.LoggingFilter;
 import com.sun.jersey.client.apache4.ApacheHttpClient4;
 import com.sun.jersey.client.apache4.ApacheHttpClient4Handler;
 import com.sun.jersey.client.apache4.config.ApacheHttpClient4Config;
@@ -72,6 +74,7 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
     private int proxyPort;
     private boolean isSecure;
     private ApacheHttpClient4Config config;
+    private int chunkedEncodingSize = -1;
 
     boolean bFollowRedirects = NiwsClientConfig.DEFAULT_FOLLOW_REDIRECTS;
 
@@ -127,7 +130,7 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
         config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_READ_TIMEOUT,
                 Integer.parseInt(String.valueOf(ncc.getProperty(NiwsClientConfigKey.ReadTimeout))));
-
+        
         restClient = apacheHttpClientSpecificInitialization();
     }
 
@@ -362,6 +365,7 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
             }
         }
         ApacheHttpClient4Handler handler = new ApacheHttpClient4Handler(httpClient4, new BasicCookieStore(), false);
+       
         return new ApacheHttpClient4(handler, config);
     }
 
@@ -436,8 +440,13 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
         return isSecure;
     }
 
+	@Override
+	protected int getDefaultPort() {
+		return 80;
+	}
+
     @Override
-    protected Pair<String, Integer> getSchemeAndPort(HttpClientRequest task) {
+    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpClientRequest task) {
         URI theUrl = task.getUri();
         boolean isSecure = isSecure(task.getOverrideConfig());
         int port = -1;
@@ -458,23 +467,6 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
             }
         }
         return new Pair<String, Integer>(scheme, port);
-    }
-
-    @Override
-    protected Pair<String, Integer> getHostAndPort(String vipAddress)  throws URISyntaxException {
-        Pair<String, Integer> hostAndPort = new Pair<String, Integer>("",
-                new Integer(80));
-        if (!vipAddress.contains("http")){
-            vipAddress = "http://" + vipAddress;
-        }
-        URI uri = new URI(vipAddress);
-        if (uri.getHost() != null) {
-            hostAndPort.setFirst(uri.getHost());
-        }
-        if (uri.getPort() != -1) {
-            hostAndPort.setSecond(uri.getPort());
-        }
-        return hostAndPort;
     }
 
     private HttpClientResponse execute(Verb verb, URI uri,
@@ -642,6 +634,5 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
         }
         return readTimeout;
     }
-
 
 }

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.loadbalancer.IPing;
 import com.netflix.loadbalancer.IRule;
+import com.netflix.loadbalancer.NFLoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.google.common.util.concurrent.ThreadFactoryBuilder; 
@@ -24,7 +25,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * @author stonse
  *
  */
-public class NIWSDiscoveryLoadBalancer<T extends Server> extends AbstractNIWSLoadBalancer{
+public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer {
     private static final Logger LOGGER = LoggerFactory.getLogger(NIWSDiscoveryLoadBalancer.class);
 
 		

@@ -4,10 +4,10 @@ import java.net.URI;
 
 public class ClientRequest implements Cloneable {
 
-    private URI uri;
-    private Object loadBalancerKey = null;
-    private boolean isRetriable = false;
-    private NiwsClientConfig overrideConfig;
+    protected URI uri;
+    protected Object loadBalancerKey = null;
+    protected Boolean isRetriable = null;
+    protected NiwsClientConfig overrideConfig;
         
     public ClientRequest() {
     }
@@ -49,8 +49,8 @@ public class ClientRequest implements Cloneable {
         return this;
     }
 
-    public final boolean isRetriable() {
-        return isRetriable;
+    public boolean isRetriable() {
+        return (isRetriable == Boolean.TRUE);
     }
 
     protected final ClientRequest setRetriable(boolean isRetriable) {
