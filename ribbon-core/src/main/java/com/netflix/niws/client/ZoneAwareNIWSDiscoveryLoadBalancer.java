@@ -49,9 +49,9 @@ public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends NIWSDi
     @Override
     protected void setServerListForZones(Map<String, List<Server>> zoneServersMap) {
         super.setServerListForZones(zoneServersMap);
-        for (String zone: zoneServersMap.keySet()) {
-            zone = zone.toLowerCase();
-            getLoadBalancer(zone).setServersList(zoneServersMap.get(zone));
+        for (Map.Entry<String, List<Server>> entry: zoneServersMap.entrySet()) {
+        	String zone = entry.getKey().toLowerCase();
+            getLoadBalancer(zone).setServersList(entry.getValue());
         }
     }    
     
@@ -116,11 +116,13 @@ public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends NIWSDi
         NFLoadBalancer loadBalancer = balancers.get(zone);
         if (loadBalancer == null) {
             loadBalancer = new NFLoadBalancer(this.getName() + "_" + zone, this.getRule(), this.getLoadBalancerStats());
-            balancers.put(zone, loadBalancer);
-            return balancers.get(zone);
-        } else {
-            return loadBalancer;
-        }
+            NFLoadBalancer prev = balancers.putIfAbsent(zone, loadBalancer);
+            if (prev != null) {
+            	loadBalancer = prev;
+            }
+        } 
+        return loadBalancer;
+        
     }
     
     /**
@@ -177,8 +179,9 @@ public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends NIWSDi
                     "ZoneAwareNIWSDiscoveryLoadBalancer." + this.getName() + ".avoidZoneWithBlackoutPercetage", 0.99999d);
         }
 
-        for (String zone: snapshot.keySet()) {
-            ZoneSnapshot zoneSnapshot = snapshot.get(zone);
+        for (Map.Entry<String, ZoneSnapshot> entry: snapshot.entrySet()) {
+        	String zone = entry.getKey();
+            ZoneSnapshot zoneSnapshot = entry.getValue();
             int instanceCount = zoneSnapshot.getInstanceCount();
             if (instanceCount == 0) {
                 availableZones.remove(zone);

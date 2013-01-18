@@ -359,7 +359,7 @@ public class PrimeConnections {
             logger.debug("Sleeping for " + sleep + "ms ...");
             Thread.sleep(sleep); // making this seconds based is too slow
             // i.e. 200ms, 400 ms, 800ms, 1600ms etc.
-        } catch (Exception ex) {
+        } catch (InterruptedException ex) {
         }
     }
     

@@ -54,8 +54,6 @@ public class ServerStats {
     private AtomicLong totalCircuitBreakerBlackOutPeriod = new AtomicLong(0);
     private volatile long lastAccessedTimestamp;
     private volatile long firstConnectionTimestamp = 0;
-
-    private String serverId;
     
     public ServerStats() {
         connectionFailureThreshold = DynamicPropertyFactory.getInstance().getIntProperty(
@@ -85,19 +83,6 @@ public class ServerStats {
             publisher.start();
         }
         this.server = server;
-        this.serverId = server.getId();
-        // Do not register as monitor object since it will add hundreds of epic metric
-        // for RestClient which talks to a cluster with ~100 instances
-        // Also, metric on each individual server does not help too much
-        /*
-        try{
-            MonitorRegistry.getInstance().registerObject(this);
-        }catch(Throwable t){
-            // likely that the server was previously registered 
-            // and there is no easy way to find out if it already exists
-            // so just gulping this down
-        }
-        */
     }
     
     private int getBufferSize() {

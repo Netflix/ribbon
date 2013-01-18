@@ -106,14 +106,12 @@ public class ResponseTimeWeightedRule implements IRule {
 
     final static boolean availableOnly = false;
 
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
     public Server choose(NFLoadBalancer lb, Object key) {
         if (lb == null) {
             return null;
         }
         Server server = null;
-        if (lb == null) {
-            return null;
-        }
 
         while (server == null) {
             if (Thread.interrupted()) {

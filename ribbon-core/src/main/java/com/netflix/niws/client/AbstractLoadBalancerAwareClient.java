@@ -133,10 +133,9 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
            tracer = Monitors.newTimer(this.getClass().getName() + "_ExecutionTimer", TimeUnit.MILLISECONDS);
         }
         do {            
-            Stopwatch w = null;
+            noteOpenConnection(serverStats, request);
+            Stopwatch w = tracer.start();
             try {
-                noteOpenConnection(serverStats, request);
-                w = tracer.start();
                 response = execute(request);        
                 done = true;
             } catch (Exception e) {
@@ -382,8 +381,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         
     protected  Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
     		throws URISyntaxException, NIWSClientException {
-        Pair<String, Integer> hostAndPort = new Pair<String, Integer>("",
-                new Integer(getDefaultPort()));
+        Pair<String, Integer> hostAndPort = new Pair<String, Integer>(null, -1);
         URI uri = new URI(vipAddress);
         String scheme = uri.getScheme();
         if (scheme == null) {

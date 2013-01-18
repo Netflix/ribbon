@@ -298,7 +298,7 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
                 setupPingTask(); // since ping data changed
             }
         } else{
-            this.ping = ping;
+            this.ping = null;
             //cancel the timer task
             lbTimer.cancel();
         }

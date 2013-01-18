@@ -24,6 +24,7 @@ subprojects {
         compile 'com.netflix.servo:servo-core:0.4.32'
         compile 'com.google.guava:guava:11.0.2'
         compile 'com.netflix.archaius:archaius-core:0.5.3'
+        compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.0'
         compile 'javax.ws.rs:jsr311-api:1.1.1' 
         compile 'commons-collections:commons-collections:3.2.1'
         testCompile 'junit:junit:4.10'
@@ -32,6 +33,9 @@ subprojects {
 }
 
 project(':ribbon-core') {
+    dependencies {
+        compile 'com.netflix.netflix-commons:netflix-statistics:0.1.0'
+    }
 }
 
 project(':ribbon-httpclient') {

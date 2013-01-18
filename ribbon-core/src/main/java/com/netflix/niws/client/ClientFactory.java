@@ -30,9 +30,9 @@ public class ClientFactory {
             try {
                 String clientClassName = (String) niwsClientConfig.getProperty(NiwsClientConfigKey.ClientClassName);
                 client = (AbstractLoadBalancerAwareClient<?, ?>) instantiateNiwsConfigAwareClassInstance(clientClassName, niwsClientConfig);
-                boolean initializeNFLoadBalancer = Boolean.valueOf("" + niwsClientConfig.getProperty(
+                boolean initializeNFLoadBalancer = Boolean.parseBoolean(niwsClientConfig.getProperty(
                                                 NiwsClientConfigKey.InitializeNFLoadBalancer,
-                                                Boolean.valueOf(NiwsClientConfig.DEFAULT_ENABLE_LOADBALANCER)));
+                                                NiwsClientConfig.DEFAULT_ENABLE_LOADBALANCER).toString());
                 if (initializeNFLoadBalancer) {
                     loadBalancer  = (AbstractLoadBalancer) getNamedLoadBalancer(restClientName);
                 }

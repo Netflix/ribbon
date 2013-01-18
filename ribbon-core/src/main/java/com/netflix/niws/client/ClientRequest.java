@@ -50,7 +50,7 @@ public class ClientRequest implements Cloneable {
     }
 
     public boolean isRetriable() {
-        return (isRetriable == Boolean.TRUE);
+        return (Boolean.TRUE.equals(isRetriable));
     }
 
     protected final ClientRequest setRetriable(boolean isRetriable) {

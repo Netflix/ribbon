@@ -90,9 +90,9 @@ public class NiwsClientConfig {
     
     public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.niws.client.DiscoveryEnabledNIWSServerList";
     
-    public static int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30*1000; // every half minute (30 secs)
+    public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30*1000; // every half minute (30 secs)
     
-    public static int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30*1000; // all connections idle for 30 secs
+    public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30*1000; // all connections idle for 30 secs
 
 
     
@@ -253,6 +253,9 @@ public class NiwsClientConfig {
             
             @Override 
             public boolean equals(Object other){
+            	if (other == null) {
+            		return false;
+            	}
             	if (getClass() == other.getClass()) {
                     return toString().equals(other.toString());
                 }
@@ -456,6 +459,7 @@ public class NiwsClientConfig {
         }
     }
     
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "DC_DOUBLECHECK")
     private VipAddressResolver getVipAddressResolver() {
         if (resolver == null) {
             synchronized (this) {
@@ -668,8 +672,11 @@ public class NiwsClientConfig {
                                 Map<String, HttpVerbUriRegexPropertyValue> aliasMap = configMapForPrefix.get(getClientName());
                                 if (aliasMap == null) {
                                     aliasMap = new ConcurrentHashMap<String, HttpVerbUriRegexPropertyValue>();
-                                    configMapForPrefix.put(getClientName(),
+                                    Map<String, HttpVerbUriRegexPropertyValue> prev = configMapForPrefix.putIfAbsent(getClientName(),
                                             aliasMap);
+                                    if (prev != null) {
+                                    	aliasMap = prev;
+                                    }
                                 }
                                 aliasMap.put(alias.trim(),
                                         HttpVerbUriRegexPropertyValue
@@ -746,8 +753,11 @@ public class NiwsClientConfig {
                             if (aliasRuleMapForClient == null) {
                                 // no map exists so far, create one
                                 aliasRuleMapForClient = new ConcurrentHashMap<String, HttpVerbUriRegexPropertyValue>();
-                                dynamicConfigMap.get(prefix).put(clientName,
+                                Map<String, HttpVerbUriRegexPropertyValue> prev = dynamicConfigMap.get(prefix).putIfAbsent(clientName,
                                         aliasRuleMapForClient);
+                                if (prev != null) {
+                                	aliasRuleMapForClient = prev;
+                                }
                             }
 
                             String alias = name.substring(configPrefix.length());
