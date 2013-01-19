@@ -18,10 +18,10 @@ public class SimpleRoundRobinWithRetryLBTest {
 	
 	@BeforeClass
 	public static void setup(){
-		isAliveMap.put("dummyservice0.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice1.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice2.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice3.netflix.com:8080", new Boolean(true));
+		isAliveMap.put("dummyservice0.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice1.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice3.netflix.com:8080", Boolean.TRUE);
 		
 		IPing ping = new PingFake();
 		IRule rule = new RetryRule(new RoundRobinRule(), 200);
@@ -50,7 +50,7 @@ public class SimpleRoundRobinWithRetryLBTest {
 	 */
 	@Test
 	public void testRoundRobinWithAServerFailure(){
-		isAliveMap.put("dummyservice2.netflix.com:8080", new Boolean(false));
+		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.FALSE);
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {			

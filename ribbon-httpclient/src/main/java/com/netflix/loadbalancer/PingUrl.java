@@ -103,36 +103,32 @@ public class PingUrl implements IPing {
 
 				boolean isAlive = false;
 
+				HttpClient httpClient = new DefaultHttpClient();
+				HttpUriRequest getRequest = new HttpGet(urlStr);
+				String content=null;
 				try {
-					HttpClient httpClient = new DefaultHttpClient();
-					HttpUriRequest getRequest = new HttpGet(urlStr);
-			    	String content=null;
-		    	    try {
-		    	        HttpResponse response = httpClient.execute(getRequest);
-		    	        content = EntityUtils.toString(response.getEntity());
-		    	        isAlive = (response.getStatusLine().getStatusCode() == 200);
-						if (getExpectedContent()!=null){
-							  LOGGER.debug("content:" + content);
-							  if (content == null){
-								  isAlive = false;
-							  }else{
-								  if (content.equals(getExpectedContent())){
-									  isAlive = true;
-								  }else{
-									  isAlive = false;
-								  }
-							  }
+					HttpResponse response = httpClient.execute(getRequest);
+					content = EntityUtils.toString(response.getEntity());
+					isAlive = (response.getStatusLine().getStatusCode() == 200);
+					if (getExpectedContent()!=null){
+						LOGGER.debug("content:" + content);
+						if (content == null){
+							isAlive = false;
+						}else{
+							if (content.equals(getExpectedContent())){
+								isAlive = true;
+							}else{
+								isAlive = false;
+							}
 						}
-		    	    } catch (IOException e) {
-		    	        e.printStackTrace();
-		    	    }finally{
-		    	    	 // Release the connection.
-		    	    	getRequest.abort();
-		    	    }
-					
-				} catch (Exception e) {
-					isAlive = false;
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}finally{
+					// Release the connection.
+					getRequest.abort();
 				}
+
 				return isAlive;
 		}
 		

@@ -351,6 +351,7 @@ public class NiwsClientConfig {
         RequestSpecificRetryOn("RequestSpecificRetryOn"),
         ReceiveBuffferSize("ReceiveBuffferSize"),
         EnableNIWSEventLogging("EnableNIWSEventLogging"),
+        EnnableVerboseErrorLogging("EnableVerboseErrorLogging"),
         PercentageNIWSEventLogged("PercentageNIWSEventLogged"),
         EnableRequestThrottling("EnableRequestThrottling"),
         RequestThrottlingWindowInMSecs("RequestThrottlingWindowInMSecs"),
@@ -607,17 +608,12 @@ public class NiwsClientConfig {
     }
 
     public boolean isSecure() {
-        boolean isSecure = false;
         Object oo = getProperty(NiwsClientConfigKey.IsSecure);
-        if (oo!=null && oo instanceof String){
-            if(!StringUtils.isBlank((String)oo)){
-                String s = (String)oo;
-                if (s.equalsIgnoreCase("true") || s.equalsIgnoreCase("yes")){
-                    isSecure = true;
-                }
-            }
+        if (oo != null) {
+            return Boolean.parseBoolean(oo.toString());
+        } else {
+        	return false;
         }
-        return isSecure;
     }
 
     public boolean containsProperty(NiwsClientConfigKey key){

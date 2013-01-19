@@ -16,10 +16,10 @@ public class RandomLBTest {
 	
 	@BeforeClass
 	public static void setup(){
-		isAliveMap.put("dummyservice0.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice1.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice2.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice3.netflix.com:8080", new Boolean(true));
+		isAliveMap.put("dummyservice0.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice1.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice3.netflix.com:8080", Boolean.TRUE);
 		
 		IPing ping = new PingFake();
 		IRule rule = new RandomRule();

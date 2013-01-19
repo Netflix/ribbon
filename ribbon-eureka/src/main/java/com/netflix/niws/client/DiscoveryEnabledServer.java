@@ -11,6 +11,7 @@ import com.netflix.loadbalancer.Server;
  * @author stonse
  *
  */
+@edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS")
 public class DiscoveryEnabledServer extends Server{
 
     InstanceInfo instanceInfo;

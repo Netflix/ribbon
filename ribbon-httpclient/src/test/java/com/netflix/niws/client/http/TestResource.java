@@ -16,9 +16,7 @@ import org.apache.commons.io.IOUtils;
 @Produces({"application/xml"})
 @Path("/test")
 public class TestResource {
-	
-	static boolean lastCallChunked = false;
-	
+		
 	@Path("/getObject")
 	@GET
 	public Response getObject() {
@@ -38,12 +36,9 @@ public class TestResource {
     @Path("/postStream")
     @Consumes( { MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_XML})
     public Response handlePost(final InputStream in, @HeaderParam("Transfer-Encoding") String transferEncoding) {
-        if (transferEncoding != null) {
-            lastCallChunked = "chunked".equals(transferEncoding);
-        }
         try {
             byte[] bytes = IOUtils.toByteArray(in);
-            String entity = new String(bytes);
+            String entity = new String(bytes, "UTF-8");
             return Response.ok(entity).build();
         } catch (Exception e) {
             return Response.serverError().build();

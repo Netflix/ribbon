@@ -12,7 +12,6 @@ subprojects {
     tasks.withType(FindBugs) { 
         reports.html.enabled true 
         reports.xml.enabled false
-        ignoreFailures = true
     }
 
     // PMD
@@ -20,7 +19,6 @@ subprojects {
     tasks.withType(Pmd) { 
         reports.html.enabled true 
         reports.xml.enabled false
-        ignoreFailures = true
     }
 
     apply plugin: 'cobertura'

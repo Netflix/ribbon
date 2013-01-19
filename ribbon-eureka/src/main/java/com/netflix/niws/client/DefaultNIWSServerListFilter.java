@@ -28,9 +28,9 @@ public class DefaultNIWSServerListFilter extends
 
     private volatile boolean zoneAffinity = NiwsClientConfig.DEFAULT_ENABLE_ZONE_AFFINITY;
     private volatile boolean zoneExclusive = NiwsClientConfig.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
-    private static DynamicDoubleProperty activeReqeustsPerServerThreshold;
-    private static DynamicDoubleProperty blackOutServerPercentageThreshold;
-    private static DynamicIntProperty availableServersThreshold;
+    private DynamicDoubleProperty activeReqeustsPerServerThreshold;
+    private DynamicDoubleProperty blackOutServerPercentageThreshold;
+    private DynamicIntProperty availableServersThreshold;
     private Counter overrideCounter;
     
     private static Logger logger = LoggerFactory.getLogger(DefaultNIWSServerListFilter.class);
@@ -92,34 +92,33 @@ public class DefaultNIWSServerListFilter extends
         
     @Override
     public List<DiscoveryEnabledServer> getFilteredListOfServers(List<DiscoveryEnabledServer> servers) {
-        if ((zoneAffinity || zoneExclusive) && servers !=null && servers.size() > 0){
-            List<DiscoveryEnabledServer> filteredServers = new ArrayList<DiscoveryEnabledServer>();
-            if (datacenter != null && datacenter.contains("cloud")) {
-                for (DiscoveryEnabledServer s : servers) {
-                    if (DiscoveryEnabledServer.class.isAssignableFrom(s.getClass())) {
-                        DiscoveryEnabledServer ds = (DiscoveryEnabledServer) s;
-                        if (ds.getInstanceInfo() != null) {
-                            if (ds.getInstanceInfo().getDataCenterInfo() instanceof AmazonInfo) {
-                                AmazonInfo ai = (AmazonInfo) ds.getInstanceInfo()
-                                        .getDataCenterInfo();
-                                String az = ai.get(MetaDataKey.availabilityZone);
-                                if (az != null && zone != null && az.toLowerCase().equals(zone.toLowerCase())) {
-                                    filteredServers.add(s);
-                                }
-                            }
-                        }
-                    }
-                }
-                if (shouldEnableZoneAffinity(filteredServers)) {
-                    return filteredServers;
-                } else if (zoneAffinity) {
-                    overrideCounter.increment();
-                }
-            }
-        }
-        return servers;
+    	if ((zoneAffinity || zoneExclusive) && servers !=null && servers.size() > 0){
+    		List<DiscoveryEnabledServer> filteredServers = new ArrayList<DiscoveryEnabledServer>();
+    		if (zone != null) {
+    			for (DiscoveryEnabledServer s : servers) {
+    				if (DiscoveryEnabledServer.class.isAssignableFrom(s.getClass())) {
+    					DiscoveryEnabledServer ds = (DiscoveryEnabledServer) s;
+    					if (ds.getInstanceInfo() != null 
+    							&& ds.getInstanceInfo().getDataCenterInfo() instanceof AmazonInfo) {
+    						AmazonInfo ai = (AmazonInfo) ds.getInstanceInfo()
+    								.getDataCenterInfo();
+    						String az = ai.get(MetaDataKey.availabilityZone);
+    						if (az != null && zone != null && az.toLowerCase().equals(zone.toLowerCase())) {
+    							filteredServers.add(s);
+    						}
+    					}
+    				}
+    			}
+    			if (shouldEnableZoneAffinity(filteredServers)) {
+    				return filteredServers;
+    			} else if (zoneAffinity) {
+    				overrideCounter.increment();
+    			}
+    		}
+    	}
+    	return servers;
     }
-        
+
     @Override
     public String toString(){
         StringBuilder sb = new StringBuilder("DefaultNIWSServerListFilter:");

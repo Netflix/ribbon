@@ -16,18 +16,11 @@ import com.netflix.loadbalancer.Server;
  *
  */
 public class NIWSDiscoveryPing extends AbstractNIWSLoadBalancerPing {
-	
-        String clientName;
-        
+	        
 		NFLoadBalancer lb = null; 
 		
 
 		public NIWSDiscoveryPing() {
-			
-		}
-		
-        public NIWSDiscoveryPing(String identifier) {
-			this.clientName = identifier;
 		}
 		
 		public NFLoadBalancer getLb() {
@@ -60,7 +53,6 @@ public class NIWSDiscoveryPing extends AbstractNIWSLoadBalancerPing {
         @Override
         public void initWithNiwsConfig(
                 NiwsClientConfig niwsClientConfig) {
-           this.clientName = niwsClientConfig.getClientName();            
         }
 		
 }

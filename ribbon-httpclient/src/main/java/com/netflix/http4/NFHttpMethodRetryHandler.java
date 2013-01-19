@@ -38,6 +38,7 @@ public class NFHttpMethodRetryHandler extends DefaultHttpRequestRetryHandler {
 	}
 
 	@Override
+	@edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "ICAST_INTEGER_MULTIPLY_CAST_TO_LONG")
 	public boolean retryRequest(
 			final IOException exception, 
 			int executionCount, 

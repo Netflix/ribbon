@@ -149,7 +149,7 @@ public class NIWSClientException extends Exception{
             if (Modifier.isFinal(mods) && Modifier.isStatic(mods) && Modifier.isPublic(mods)) {
                 try {
                     map.put(flds[i].get(null), flds[i].getName());
-                } catch (Throwable t) {
+                } catch (Throwable t) { // NOPMD
                     // ignore this.
                 }
             }

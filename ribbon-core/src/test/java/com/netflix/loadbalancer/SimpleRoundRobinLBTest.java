@@ -19,10 +19,10 @@ public class SimpleRoundRobinLBTest {
 	
 	@BeforeClass
 	public static void setup(){
-		isAliveMap.put("dummyservice0.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice1.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice2.netflix.com:8080", new Boolean(true));
-		isAliveMap.put("dummyservice3.netflix.com:8080", new Boolean(true));
+		isAliveMap.put("dummyservice0.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice1.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.TRUE);
+		isAliveMap.put("dummyservice3.netflix.com:8080", Boolean.TRUE);
 		
 		IPing ping = new PingFake();
 		IRule rule = new RoundRobinRule();
@@ -63,7 +63,7 @@ public class SimpleRoundRobinLBTest {
 	@Test
 	public void testRoundRobinWithAServerFailure() throws Exception {
 		System.out.println("Round Robin Test With Server SERVER DOWN");
-		isAliveMap.put("dummyservice2.netflix.com:8080", new Boolean(false));
+		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.FALSE);
 		((NFLoadBalancer)lb).markServerDown("dummyservice2.netflix.com:8080");
 		Thread.sleep(3000);
 		for (int i=0; i < 12; i++){

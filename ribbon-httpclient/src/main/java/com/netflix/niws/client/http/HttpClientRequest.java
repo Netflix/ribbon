@@ -110,12 +110,6 @@ public class HttpClientRequest extends ClientRequest {
 		return super.isRetriable();
 	}
 
-	@Override
-	protected Object clone() throws CloneNotSupportedException {
-		// TODO Auto-generated method stub
-		return super.clone();
-	}
-
 	public static Builder newBuilder() {
         return new Builder();
     }

@@ -192,7 +192,7 @@ public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer 
 			if(_shutdownThread != null){
 				try{
 					Runtime.getRuntime().removeShutdownHook(_shutdownThread);
-				}catch(IllegalStateException ise){
+				}catch(IllegalStateException ise){ // NOPMD
 					// this can happen if we're in the middle of a real shutdown, 
 					// and that's 'ok'
 				}

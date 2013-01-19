@@ -128,11 +128,7 @@ public class ResponseTimeWeightedRule implements IRule {
             double randomIndex = 0;
 
             while (randomIndex == 0) {
-                try {
-                    randomIndex = random.nextDouble() * maxTotalWeight;
-                } catch (NumberFormatException e) {
-
-                }
+                randomIndex = random.nextDouble() * maxTotalWeight;
                 if (randomIndex != 0) {
                     break;
                 }
@@ -174,12 +170,8 @@ public class ResponseTimeWeightedRule implements IRule {
                 serverWeight.maintainWeights();
             } catch (Throwable t) {
                 String lbName = "unknown";
-                try {
-                    NFLoadBalancer nlb = (NFLoadBalancer) lb;
-                    lbName = nlb.getName();
-                } catch (Exception e) {
-
-                }
+                NFLoadBalancer nlb = (NFLoadBalancer) lb;
+                lbName = nlb.getName();
                 logger.error(
                         "Throwable caught while running DynamicServerWeightTask for "
                                 + lbName, t);

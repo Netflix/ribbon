@@ -66,15 +66,14 @@ public class GetPostTest {
     	assertTrue(response.getEntity(TestObject.class).name.equals("fromClient"));
     }
     
-    @Ignore
+    @Test
     public void testChunkedEncoding() throws Exception {
         String obj = "chunked encoded content";
     	URI postUri = new URI(SERVICE_URI + "test/postStream");
-    	InputStream input = new ByteArrayInputStream(obj.getBytes());
+    	InputStream input = new ByteArrayInputStream(obj.getBytes("UTF-8"));
     	HttpClientRequest request = HttpClientRequest.newBuilder().setVerb(Verb.POST).setUri(postUri).setEntity(input).build();
     	HttpClientResponse response = client.execute(request);
     	assertEquals(200, response.getStatus());
-    	assertTrue(TestResource.lastCallChunked);
     	assertTrue(response.getEntity(String.class).equals(obj));
     }
 }        

@@ -20,10 +20,7 @@ public class ZoneStats<T extends Server> {
         this.loadBalancerStats = loadBalancerStats;
         monitorId = name + ":" + zone;  
         counter = Monitors.newCounter(PREFIX + name + "_" + zone + "_Counter");
-        try {
-            Monitors.registerObject(monitorId, this);
-        } catch (Throwable e) {
-        }
+        Monitors.registerObject(monitorId, this);
     }
     
     public final String getZone() {

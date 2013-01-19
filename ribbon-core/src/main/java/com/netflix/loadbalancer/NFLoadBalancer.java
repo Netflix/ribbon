@@ -157,13 +157,11 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
             useTunnel = Boolean.valueOf(String.valueOf(clientConfig.getProperty(NiwsClientConfigKey.UseTunnel)));
         }
         
-        if (!useTunnel) {
-            if (clientConfig.getProperty(NiwsClientConfigKey.EnablePrimeConnections)!=null){
-                Boolean bEnablePrimeConnections = Boolean.valueOf(""+ clientConfig.getProperty(NiwsClientConfigKey.EnablePrimeConnections, "false"));
-                enablePrimeConnections = bEnablePrimeConnections.booleanValue();
-            }
+        if (!useTunnel && clientConfig.getProperty(NiwsClientConfigKey.EnablePrimeConnections)!=null){
+        	Boolean bEnablePrimeConnections = Boolean.valueOf(""+ clientConfig.getProperty(NiwsClientConfigKey.EnablePrimeConnections, "false"));
+        	enablePrimeConnections = bEnablePrimeConnections.booleanValue();
         }
-        
+
         if (enablePrimeConnections) {
             this.setEnablePrimingConnections(true);
             PrimeConnections primeConnections = new PrimeConnections(this.getName(), clientConfig);
@@ -600,12 +598,10 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
 
                     svr.setAlive(isAlive);
 
-                    if (oldIsAlive != isAlive) {
-                        if (logger.isDebugEnabled()){
-                            logger.debug("LoadBalancer:  Server [" + svr.getId()
-                                    + "] status changed to "
-                                    + (isAlive ? "ALIVE" : "DEAD"));
-                        }
+                    if (oldIsAlive != isAlive && logger.isDebugEnabled()){
+                    	logger.debug("LoadBalancer:  Server [" + svr.getId()
+                    			+ "] status changed to "
+                    			+ (isAlive ? "ALIVE" : "DEAD"));
                     }
 
                     if (isAlive) {
@@ -708,7 +704,7 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
         } finally {
             try {
                 writeLock.unlock();
-            } catch (Exception e) {
+            } catch (Exception e) { // NOPMD
             }
         }
     }

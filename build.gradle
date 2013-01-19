@@ -42,10 +42,12 @@ project(':ribbon-httpclient') {
     dependencies {
         compile project(':ribbon-core')
         compile 'org.apache.httpcomponents:httpclient:4.1.2' 
-        compile 'com.sun.jersey:jersey-bundle:1.9.1'
+        compile 'com.sun.jersey:jersey-core:1.9.1'
+        compile 'com.sun.jersey:jersey-client:1.9.1'        
         compile 'com.sun.jersey.contribs:jersey-apache-client4:1.8'
         testCompile 'asm:asm-all:3.2'
         testCompile 'commons-io:commons-io:2.0.1'
+        testCompile 'com.sun.jersey:jersey-server:1.9.1'        
     }
 }
 

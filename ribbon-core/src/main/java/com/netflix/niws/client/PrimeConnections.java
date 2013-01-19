@@ -281,7 +281,7 @@ public class PrimeConnections {
                     ftC = makeConnectionASync(s, listener);
                     ftList.add(ftC);
 
-                } catch (Throwable e) {
+                } catch (Throwable e) { // NOPMD
                     // It does not really matter if there was an exception,
                     // the goal here is to attempt "priming/opening" the route
                     // in ec2 .. actual http results do not matter
@@ -371,8 +371,7 @@ public class PrimeConnections {
 
         ASyncPrimeConnectionsThreadFactory(String name) {
             SecurityManager s = System.getSecurityManager();
-            group = (s != null) ? s.getThreadGroup() : Thread.currentThread()
-                    .getThreadGroup();
+            group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup(); // NOPMD
             namePrefix = "ASyncPrimeConnectionsThreadFactory-" + name + "-"
                     + groupNumber.getAndIncrement() + "-thread-";
         }

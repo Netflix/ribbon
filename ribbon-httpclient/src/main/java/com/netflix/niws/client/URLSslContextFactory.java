@@ -102,8 +102,7 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
 			} finally {
     			try {
     				is.close();
-    			} catch (IOException ignore) {
-    				// no op
+    			} catch (IOException ignore) { // NOPMD    				
     			}
     		}
     	}catch(KeyStoreException e){

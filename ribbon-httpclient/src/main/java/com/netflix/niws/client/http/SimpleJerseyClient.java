@@ -152,8 +152,8 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
         NFHttpClient nfHttpClient = (NFHttpClient) httpClient4;
         // should we enable connection cleanup for idle connections?
         try {
-            enableConnectionPoolCleanerTask = new Boolean(String.valueOf(ncc.getProperty(NiwsClientConfigKey.ConnectionPoolCleanerTaskEnabled,
-                    NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIMETASK_ENABLED))).booleanValue();
+            enableConnectionPoolCleanerTask = Boolean.parseBoolean(ncc.getProperty(NiwsClientConfigKey.ConnectionPoolCleanerTaskEnabled,
+                    NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIMETASK_ENABLED).toString());
             nfHttpClient.getConnPoolCleaner().setEnableConnectionPoolCleanerTask(enableConnectionPoolCleanerTask);
         } catch (Exception e1) {
             throw new IllegalArgumentException("Invalid value for property:"
@@ -290,11 +290,7 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
             try {
                 HttpConnectionParams
                 .setStaleCheckingEnabled(httpClientParams,
-                        new Boolean(
-                                ""
-                                + ncc
-                                .getProperty(NiwsClientConfigKey.StaleCheckingEnabled))
-                .booleanValue());
+                        Boolean.parseBoolean(ncc.getProperty(NiwsClientConfigKey.StaleCheckingEnabled, false).toString()));
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
@@ -394,7 +390,7 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
                 resourceName = URLDecoder.decode(resourceName, "UTF-8");
                 url = (new File(resourceName)).toURI().toURL();
             } catch (Exception e) {
-                
+            	logger.error("Problem loading resource", e);
             }
         }
         return url;
@@ -474,15 +470,13 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
             NiwsClientConfig overriddenClientConfig, Object requestEntity) throws Exception {
         HttpClientResponse thisResponse = null;
         boolean bbFollowRedirects = bFollowRedirects;
-        Server server = new Server(uri.getHost(), uri.getPort());
         // read overriden props
-        if (overriddenClientConfig!=null){
-            // set whether we should auto follow redirects
-            if (overriddenClientConfig.getProperty(NiwsClientConfigKey.FollowRedirects)!=null){
-                // use default directive from overall config
-                Boolean followRedirects = Boolean.valueOf(""+overriddenClientConfig.getProperty(NiwsClientConfigKey.FollowRedirects, bFollowRedirects));
-                bbFollowRedirects = followRedirects.booleanValue();
-            }
+        if (overriddenClientConfig != null 
+        		// set whether we should auto follow redirects
+        		&& overriddenClientConfig.getProperty(NiwsClientConfigKey.FollowRedirects)!=null){
+        	// use default directive from overall config
+        	Boolean followRedirects = Boolean.valueOf(""+overriddenClientConfig.getProperty(NiwsClientConfigKey.FollowRedirects, bFollowRedirects));
+        	bbFollowRedirects = followRedirects.booleanValue();
         }
         restClient.setFollowRedirects(bbFollowRedirects);
 
@@ -593,9 +587,10 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
                     .getMethodURIConfigMap();
             if (dynamicPropMap != null) {
                 String maxPropertyName = "";
-                for (String key : dynamicPropMap.keySet()) {
+                for (Map.Entry<String, HttpVerbUriRegexPropertyValue> entry: dynamicPropMap.entrySet()) {
                     // the key in the map is the alias. Let's check if a
                     // ReadTimeout has been configured for that alias
+                	String key = entry.getKey();
                     DynamicProperty fp = DynamicProperty.getInstance(NiwsClientConfig.getInstancePropName(restClientName,
                                     new StringBuilder(key)
                                             .append(".")
@@ -604,18 +599,17 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
                     Integer readTimeoutFromProp = fp
                             .getInteger(Integer.MIN_VALUE);
                     if (readTimeoutFromProp.intValue() != Integer.MIN_VALUE) {
-                        HttpVerbUriRegexPropertyValue value = dynamicPropMap
-                            .get(key);
+                        HttpVerbUriRegexPropertyValue value = entry.getValue();
                         if (value.getVerb() == HttpVerbUriRegexPropertyValue.Verb.ANY_VERB
                                 || HttpVerbUriRegexPropertyValue.Verb
                                         .get(httpMethod) == value.getVerb()) {
-                            if (uri.toString().matches(value.getUriRegex())) {
+                            if (uri.toString().matches(value.getUriRegex())) { // NOPMD
                                 // if the property key name is greater (comes
                                 // last in alphabetical order) than any previous
                                 // property names for same method/uri combination, 
                                 // then take the read timeout value for this 
                                 // property key name
-                                if (maxPropertyName.equals("")
+                                if (maxPropertyName.equals("")    // NOPMD
                                         || key.compareTo(maxPropertyName) > 0) {
                                     maxPropertyName = key;
                                     readTimeout = readTimeoutFromProp

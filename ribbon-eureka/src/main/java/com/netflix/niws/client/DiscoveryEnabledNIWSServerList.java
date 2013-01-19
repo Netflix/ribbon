@@ -19,7 +19,6 @@ public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<Disco
 
     String clientName;
     String vipAddresses;
-    NiwsClientConfig niwsClientConfig;
     boolean isSecure = false;
     
     boolean prioritizeVipAddressBasedServers = true;
@@ -29,7 +28,6 @@ public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<Disco
     @Override
     public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {
         this.clientName = niwsClientConfig.getClientName();
-        this.niwsClientConfig = niwsClientConfig;
         vipAddresses = niwsClientConfig.resolveDeploymentContextbasedVipAddresses();
         isSecure = Boolean.parseBoolean(""+niwsClientConfig.getProperty(NiwsClientConfig.NiwsClientConfigKey.IsSecure, "false"));
         prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+niwsClientConfig.getProperty(NiwsClientConfig.NiwsClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));
