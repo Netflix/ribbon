@@ -48,14 +48,18 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
 	
     volatile ServerListFilter<T> filter;  
 
-    NiwsClientConfig niwsClientConfig;
+	NiwsClientConfig niwsClientConfig;
     
     public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.niws.client.DiscoveryEnabledNIWSServerList";
     	 
 	public DynamicServerListLoadBalancer(){
     	super();  
 	}
-    
+
+	public DynamicServerListLoadBalancer(NiwsClientConfig niwsClientConfig){
+		initWithNiwsConfig(niwsClientConfig);
+	}
+
 
     @Override
     public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {        
@@ -136,6 +140,16 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     public void setRule(IRule rule){
     	this.rule = rule;
     }
+    
+    public ServerListFilter<T> getFilter() {
+		return filter;
+	}
+
+	public void setFilter(ServerListFilter<T> filter) {
+		this.filter = filter;
+	}
+
+
     
 	@Override
     /**
