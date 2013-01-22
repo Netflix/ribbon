@@ -14,8 +14,10 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.loadbalancer.IPing;
 import com.netflix.loadbalancer.IRule;
-import com.netflix.loadbalancer.NFLoadBalancer;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ServerList;
+import com.netflix.loadbalancer.ServerListFilter;
 import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.google.common.util.concurrent.ThreadFactoryBuilder; 
 
@@ -25,8 +27,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * @author stonse
  *
  */
-public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(NIWSDiscoveryLoadBalancer.class);
+public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBalancer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DynamicServerListLoadBalancer.class);
 
 		
 		
@@ -39,19 +41,18 @@ public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer 
 	
 	private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; //msecs;
 	private static long LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30*1000; //msecs; // every 30 secs
-	// this is okay - its an inmemory call to Disocvery Client's cache
 	
 	private ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
 	
-	volatile AbstractNIWSServerList<T> niwsServerList;
+	volatile ServerList<T> serverListImpl;
 	
-    volatile AbstractNIWSServerListFilter<T> filter;  
+    volatile ServerListFilter<T> filter;  
 
     NiwsClientConfig niwsClientConfig;
     
     public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.niws.client.DiscoveryEnabledNIWSServerList";
     	 
-	public NIWSDiscoveryLoadBalancer(){
+	public DynamicServerListLoadBalancer(){
     	super();  
 	}
     
@@ -66,11 +67,13 @@ public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer 
             Class<AbstractNIWSServerList <T>> niwsServerListClass = 
                 (Class<AbstractNIWSServerList<T>>) Class.forName(niwsServerListClassName);
             
-            niwsServerList = niwsServerListClass.newInstance();            
-            niwsServerList.initWithNiwsConfig(niwsClientConfig);
+            AbstractNIWSServerList<T> niwsServerListImpl = niwsServerListClass.newInstance();
+            niwsServerListImpl.initWithNiwsConfig(niwsClientConfig);
+            this.serverListImpl = niwsServerListImpl;
             
-            filter = niwsServerList.getFilterImpl(niwsClientConfig);
-            filter.setLoadBalancerStats(getLoadBalancerStats());
+            AbstractNIWSServerListFilter<T> niwsFilter = niwsServerListImpl.getFilterImpl(niwsClientConfig);             
+            niwsFilter.setLoadBalancerStats(getLoadBalancerStats());
+            this.filter = niwsFilter;
             
             enableAndInitLearnNewServersFeature();
             
@@ -109,20 +112,19 @@ public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer 
         setServerListForZones(serversInZones);
     }
 
-    // TODO: move zone server list to NIWSDiscoveryLoadBalancer
     protected void setServerListForZones(Map<String, List<Server>> zoneServersMap) {
         LOGGER.debug("Setting server list for zones: {}", zoneServersMap);
         getLoadBalancerStats().updateZoneServerMapping(zoneServersMap);
     }
             
-    public AbstractNIWSServerList<T> getNIWSServerList() {
-        return niwsServerList;
+    public ServerList<T> getServerListImpl() {
+        return serverListImpl;
     }
 
 
-    public void setNIWSServerList(
-            AbstractNIWSServerList<T> niwsServerList) {
-        this.niwsServerList = niwsServerList;
+    public void setServerListImpl(
+            ServerList<T> niwsServerList) {
+        this.serverListImpl = niwsServerList;
     }
     
     @Override
@@ -227,8 +229,8 @@ public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer 
 
 	private void updateListOfServers() {
 		List<T> servers = new ArrayList<T>();		
-		if (niwsServerList!=null){
-		    servers = niwsServerList.getUpdatedListOfServers();
+		if (serverListImpl!=null){
+		    servers = serverListImpl.getUpdatedListOfServers();
 		    LOGGER
             .debug("List of Servers obtained from Discovery client:"
                     + servers);
@@ -264,7 +266,7 @@ public class NIWSDiscoveryLoadBalancer<T extends Server> extends NFLoadBalancer 
 	public String toString(){
 	    StringBuilder sb = new StringBuilder("NIWSDiscoveryLoadBalancer:");
 	    sb.append(super.toString());
-	    sb.append("NIWSServerList:" + String.valueOf(niwsServerList));
+	    sb.append("NIWSServerList:" + String.valueOf(serverListImpl));
 	    return sb.toString();
 	}
 }

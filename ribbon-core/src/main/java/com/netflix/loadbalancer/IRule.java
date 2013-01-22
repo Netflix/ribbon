@@ -9,6 +9,6 @@ public interface IRule{
      *  server is available 
      */
 
-    Server choose(NFLoadBalancer lb, Object key);
+    Server choose(BaseLoadBalancer lb, Object key);
 }
  

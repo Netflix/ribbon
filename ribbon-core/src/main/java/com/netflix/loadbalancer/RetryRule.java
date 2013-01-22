@@ -43,7 +43,7 @@ public class RetryRule implements IRule {
 	 * subRule, because we're not spawning additional threads and returning
 	 * early.
 	 */
-	public Server choose(NFLoadBalancer lb, Object key) {
+	public Server choose(BaseLoadBalancer lb, Object key) {
 		long requestTime = System.currentTimeMillis();
 		long deadline = requestTime + maxRetryMillis;
 

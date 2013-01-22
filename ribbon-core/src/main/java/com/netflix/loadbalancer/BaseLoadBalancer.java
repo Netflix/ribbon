@@ -31,9 +31,9 @@ import com.netflix.util.concurrent.ShutdownEnabledTimer;
  * @author stonse
  *
  */
-public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnections.PrimeConnectionListener {
+public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConnections.PrimeConnectionListener {
 
-    private static Logger logger = LoggerFactory.getLogger(NFLoadBalancer.class);
+    private static Logger logger = LoggerFactory.getLogger(BaseLoadBalancer.class);
     private final static IRule DEFAULT_RULE = new RoundRobinRule();
     private static final String DEFAULT_NAME = "default";
     private static final String PREFIX = "LoadBalancer_";
@@ -77,7 +77,7 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
      * be followed by calling {@link #init()} or {@link #initWithNiwsConfig(NiwsClientConfig)} to complete initialization.
      * When constructing programatically, use other constructors.
      */
-    public NFLoadBalancer() {
+    public BaseLoadBalancer() {
         this.name = DEFAULT_NAME;
         this.ping = null;       
         setRule(DEFAULT_RULE);
@@ -86,15 +86,15 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
         counter = createCounter();
     }
 
-    public NFLoadBalancer(String lbName, IRule rule, LoadBalancerStats lbStats) {
+    public BaseLoadBalancer(String lbName, IRule rule, LoadBalancerStats lbStats) {
         this(lbName, rule, lbStats, null);
     }
 
-    public NFLoadBalancer(IPing ping, IRule rule) {
+    public BaseLoadBalancer(IPing ping, IRule rule) {
         this(DEFAULT_NAME, rule, new LoadBalancerStats(DEFAULT_NAME), ping);
     }
 
-    public NFLoadBalancer(String name, IRule rule, LoadBalancerStats stats, IPing ping) {
+    public BaseLoadBalancer(String name, IRule rule, LoadBalancerStats stats, IPing ping) {
         if (logger.isDebugEnabled()){
             logger.debug("LoadBalancer:  initialized");
         }
@@ -107,7 +107,7 @@ public class NFLoadBalancer extends AbstractLoadBalancer implements PrimeConnect
         init();
     }
 
-    public NFLoadBalancer(NiwsClientConfig config) {
+    public BaseLoadBalancer(NiwsClientConfig config) {
         initWithNiwsConfig(config);
     }
     

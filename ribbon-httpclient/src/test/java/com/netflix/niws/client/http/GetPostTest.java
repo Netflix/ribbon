@@ -23,7 +23,7 @@ public class GetPostTest {
 
     private static HttpServer server = null;
     private static String SERVICE_URI;
-	private static SimpleJerseyClient client;
+	private static RestClient client;
 
     @BeforeClass 
     public static void init() throws Exception {
@@ -38,7 +38,7 @@ public class GetPostTest {
             fail(e.getMessage());
         }
         ConfigurationManager.getConfigInstance().setProperty("GetPostTest.niws.client.ChunkedEncodingSize", "5");
-        client = (SimpleJerseyClient) ClientFactory.getNamedClient("GetPostTest");
+        client = (RestClient) ClientFactory.getNamedClient("GetPostTest");
     }
     
     @AfterClass

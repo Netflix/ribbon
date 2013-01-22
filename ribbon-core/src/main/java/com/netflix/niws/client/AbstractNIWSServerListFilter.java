@@ -1,9 +1,8 @@
 package com.netflix.niws.client;
 
-import java.util.List;
-
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ServerListFilter;
 
 /**
  * Class that is responsible to Filter out list of servers from the ones 
@@ -12,15 +11,9 @@ import com.netflix.loadbalancer.Server;
  *
  * @param <T>
  */
-public abstract class AbstractNIWSServerListFilter<T extends Server> {
+public abstract class AbstractNIWSServerListFilter<T extends Server> implements ServerListFilter<T> {
 
     private volatile LoadBalancerStats stats;
-    /**
-     * Opportunity to filter out the servers based on any criteria
-     * @param servers
-     * @return
-     */
-    public abstract List<T> getFilteredListOfServers(List<T> servers);
     
     public void setLoadBalancerStats(LoadBalancerStats stats) {
         this.stats = stats;

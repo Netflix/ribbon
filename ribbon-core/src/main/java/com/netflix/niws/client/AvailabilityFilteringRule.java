@@ -4,7 +4,7 @@ import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.loadbalancer.LoadBalancerStats;
-import com.netflix.loadbalancer.NFLoadBalancer;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 
@@ -18,7 +18,7 @@ public class AvailabilityFilteringRule extends NIWSRoundRobinRule {
 
         
     @Override
-    public Server choose(NFLoadBalancer lb, Object key) {
+    public Server choose(BaseLoadBalancer lb, Object key) {
         LoadBalancerStats lbStats = lb.getLoadBalancerStats();
         Server server = super.choose(lb, key);
         if (lbStats == null) {

@@ -10,7 +10,7 @@ import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.loadbalancer.LoadBalancerStats;
-import com.netflix.loadbalancer.NFLoadBalancer;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ZoneSnapshot;
 
@@ -24,7 +24,7 @@ public class ZoneAvoidanceRule extends AvailabilityFilteringRule {
     private static final Random random = new Random();
 
     @Override
-    public Server choose(NFLoadBalancer lb, Object key) {
+    public Server choose(BaseLoadBalancer lb, Object key) {
         LoadBalancerStats lbStats = lb.getLoadBalancerStats();
         Server server = super.choose(lb, key);
         if (lbStats == null || !ENABLED.get() || server.getZone() == null || lbStats.getAvailableZones().size() <= 1) {

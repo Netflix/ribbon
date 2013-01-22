@@ -55,7 +55,7 @@ import com.sun.jersey.client.apache4.ApacheHttpClient4Handler;
 import com.sun.jersey.client.apache4.config.ApacheHttpClient4Config;
 import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
 
-public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClientRequest, HttpClientResponse> {
+public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientRequest, HttpClientResponse> {
 
     private Client restClient;
     private HttpClient httpClient4;
@@ -78,7 +78,7 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
 
     boolean bFollowRedirects = NiwsClientConfig.DEFAULT_FOLLOW_REDIRECTS;
 
-    private static final Logger logger = LoggerFactory.getLogger(SimpleJerseyClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
 
     class SpecializedDynamicIntProperty {
 
@@ -102,15 +102,15 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
         }
     }
 
-    public SimpleJerseyClient() {
+    public RestClient() {
         restClientName = "default";
     }
 
-    public SimpleJerseyClient(NiwsClientConfig ncc) {
+    public RestClient(NiwsClientConfig ncc) {
         initWithNiwsConfig(ncc);
     }
 
-    public SimpleJerseyClient(Client jerseyClient) {
+    public RestClient(Client jerseyClient) {
         this.restClient = jerseyClient;
     }
     
@@ -629,4 +629,12 @@ public class SimpleJerseyClient extends AbstractLoadBalancerAwareClient<HttpClie
         return readTimeout;
     }
 
+	@Override
+	protected Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
+			throws URISyntaxException, NIWSClientException {
+		if (!vipAddress.contains("http")) {
+			vipAddress = "http://" + vipAddress;
+		}
+		return super.deriveHostAndPortFromVipAddress(vipAddress);
+	}
 }

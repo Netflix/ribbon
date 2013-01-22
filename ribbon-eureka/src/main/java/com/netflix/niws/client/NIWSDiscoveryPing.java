@@ -4,7 +4,7 @@ package com.netflix.niws.client;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
 import com.netflix.loadbalancer.IPing;
-import com.netflix.loadbalancer.NFLoadBalancer;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 
 
@@ -17,13 +17,13 @@ import com.netflix.loadbalancer.Server;
  */
 public class NIWSDiscoveryPing extends AbstractNIWSLoadBalancerPing {
 	        
-		NFLoadBalancer lb = null; 
+		BaseLoadBalancer lb = null; 
 		
 
 		public NIWSDiscoveryPing() {
 		}
 		
-		public NFLoadBalancer getLb() {
+		public BaseLoadBalancer getLb() {
 			return lb;
 		}
 
@@ -31,7 +31,7 @@ public class NIWSDiscoveryPing extends AbstractNIWSLoadBalancerPing {
 		 * Non IPing interface method - only set this if you care about the "newServers Feature"
 		 * @param lb
 		 */
-		public void setLb(NFLoadBalancer lb) {
+		public void setLb(BaseLoadBalancer lb) {
 			this.lb = lb;
 		}
 

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.AmazonInfo.MetaDataKey;
 import com.netflix.config.ConfigurationManager;
+import com.netflix.config.DeploymentContext.ContextKey;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
@@ -36,7 +37,6 @@ public class DefaultNIWSServerListFilter extends
     private static Logger logger = LoggerFactory.getLogger(DefaultNIWSServerListFilter.class);
     
     String zone;
-    String datacenter;
         
     public void init(NiwsClientConfig niwsClientConfig) {
         String sZoneAffinity = "" + niwsClientConfig.getProperty(NiwsClientConfigKey.EnableZoneAffinity, false);
@@ -48,9 +48,9 @@ public class DefaultNIWSServerListFilter extends
         if (sZoneExclusive != null){
             zoneExclusive = Boolean.parseBoolean(sZoneExclusive);
         }
-        
-        zone = ConfigurationManager.getConfigInstance().getString("EC2_AVAILABILITY_ZONE");// hopefully NAC has set it
-        datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
+        if (ConfigurationManager.getDeploymentContext() != null) {
+            zone = ConfigurationManager.getDeploymentContext().getValue(ContextKey.zone);
+        }
         activeReqeustsPerServerThreshold = DynamicPropertyFactory.getInstance().getDoubleProperty(niwsClientConfig.getClientName() + ".niws.client.zoneAffinity.maxLoadPerServer", 0.6d);
         logger.debug("activeReqeustsPerServerThreshold: {}", activeReqeustsPerServerThreshold.get());
         blackOutServerPercentageThreshold = DynamicPropertyFactory.getInstance().getDoubleProperty(niwsClientConfig.getClientName() + ".niws.client.zoneAffinity.maxBlackOutServesrPercentage", 0.8d);

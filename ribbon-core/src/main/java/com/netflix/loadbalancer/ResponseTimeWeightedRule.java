@@ -69,8 +69,8 @@ public class ResponseTimeWeightedRule implements IRule {
 
     public void setLoadBalancer(ILoadBalancer lb) {
         this.lb = lb;
-        if (lb instanceof NFLoadBalancer) {
-            name = ((NFLoadBalancer) lb).getName();
+        if (lb instanceof BaseLoadBalancer) {
+            name = ((BaseLoadBalancer) lb).getName();
         }
     }
 
@@ -107,7 +107,7 @@ public class ResponseTimeWeightedRule implements IRule {
     final static boolean availableOnly = false;
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
-    public Server choose(NFLoadBalancer lb, Object key) {
+    public Server choose(BaseLoadBalancer lb, Object key) {
         if (lb == null) {
             return null;
         }
@@ -170,7 +170,7 @@ public class ResponseTimeWeightedRule implements IRule {
                 serverWeight.maintainWeights();
             } catch (Throwable t) {
                 String lbName = "unknown";
-                NFLoadBalancer nlb = (NFLoadBalancer) lb;
+                BaseLoadBalancer nlb = (BaseLoadBalancer) lb;
                 lbName = nlb.getName();
                 logger.error(
                         "Throwable caught while running DynamicServerWeightTask for "
@@ -193,7 +193,7 @@ public class ResponseTimeWeightedRule implements IRule {
 
             try {
 
-                NFLoadBalancer nlb = (NFLoadBalancer) lb;
+                BaseLoadBalancer nlb = (BaseLoadBalancer) lb;
                 for (Server server : nlb.getServerList(availableOnly)) {
                     Double weight = 10.00;
                     if (nlb.getLoadBalancerStats() != null) {

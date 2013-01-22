@@ -433,12 +433,6 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         int port = schemeAndPort.second();
         // Various Supported Cases
         // The loadbalancer to use and the instances it has is based on how it was registered
-        // CASE 1: Registered using AppEnum:Version
-        // CASE 2: Registered using AppName:Version
-        // CASE 3: Registered using AppName:Version and overriden with vipAddress
-        // CASE 4: Registered using hostAndPort
-        // CASE 5: Default Client - plain vanilla registration
-
         // In each of these cases, the client might come in using Full Url or Partial URL
         ILoadBalancer lb = getLoadBalancer();
         Object loadBalancerKey = original.getLoadBalancerKey();

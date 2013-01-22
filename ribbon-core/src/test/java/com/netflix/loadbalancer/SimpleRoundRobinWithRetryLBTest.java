@@ -14,7 +14,7 @@ public class SimpleRoundRobinWithRetryLBTest {
 	static ServerComparator serverComparator = new ServerComparator();
 	static HashMap<String, Boolean> isAliveMap = new HashMap<String, Boolean>();
 	
-	static NFLoadBalancer lb;
+	static BaseLoadBalancer lb;
 	
 	@BeforeClass
 	public static void setup(){
@@ -25,7 +25,7 @@ public class SimpleRoundRobinWithRetryLBTest {
 		
 		IPing ping = new PingFake();
 		IRule rule = new RetryRule(new RoundRobinRule(), 200);
-		lb = new NFLoadBalancer(ping,rule);
+		lb = new BaseLoadBalancer(ping,rule);
 		lb.setPingInterval(1);
 		lb.setMaxTotalPingTime(5);
 		

@@ -1,7 +1,7 @@
 package com.netflix.niws.client;
 
 import com.netflix.loadbalancer.AbstractLoadBalancer;
-import com.netflix.loadbalancer.NFLoadBalancer;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.ResponseTimeWeightedRule;
 import com.netflix.loadbalancer.Server;
 
@@ -29,7 +29,7 @@ public class NIWSWeightedResponseTimeRule extends AbstractNIWSLoadBalancerRule{
     }
     
     @Override
-    public Server choose(NFLoadBalancer lb, Object key) {       
+    public Server choose(BaseLoadBalancer lb, Object key) {       
         if (rule!=null){
             return rule.choose(lb, key);
         }else{

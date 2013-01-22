@@ -38,7 +38,7 @@ public class NiwsClientConfig {
 
     public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = com.netflix.niws.client.ZoneAwareNIWSDiscoveryLoadBalancer.class.getName();
     
-    public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.SimpleJerseyClient";
+    public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
     
     public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = com.netflix.niws.SimpleVipAddressResolver.class.getName();
 

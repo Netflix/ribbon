@@ -14,7 +14,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class SimpleRoundRobinLBTest {
-	static NFLoadBalancer lb;
+	static BaseLoadBalancer lb;
     static Map<String, Boolean> isAliveMap = new ConcurrentHashMap<String, Boolean>();
 	
 	@BeforeClass
@@ -26,7 +26,7 @@ public class SimpleRoundRobinLBTest {
 		
 		IPing ping = new PingFake();
 		IRule rule = new RoundRobinRule();
-		lb = new NFLoadBalancer(ping,rule);
+		lb = new BaseLoadBalancer(ping,rule);
 		lb.setPingInterval(5);
 		lb.setMaxTotalPingTime(2);
 		
@@ -64,7 +64,7 @@ public class SimpleRoundRobinLBTest {
 	public void testRoundRobinWithAServerFailure() throws Exception {
 		System.out.println("Round Robin Test With Server SERVER DOWN");
 		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.FALSE);
-		((NFLoadBalancer)lb).markServerDown("dummyservice2.netflix.com:8080");
+		((BaseLoadBalancer)lb).markServerDown("dummyservice2.netflix.com:8080");
 		Thread.sleep(3000);
 		for (int i=0; i < 12; i++){
 			Server svc = lb.chooseServer("user1");

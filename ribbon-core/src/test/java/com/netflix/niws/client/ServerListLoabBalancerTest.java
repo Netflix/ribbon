@@ -37,15 +37,15 @@ public class ServerListLoabBalancerTest {
 		
 	}
 	
-	static NIWSDiscoveryLoadBalancer<Server> lb;
+	static DynamicServerListLoadBalancer<Server> lb;
 	
 	@BeforeClass
 	public static void init() {
 		Configuration config = ConfigurationManager.getConfigInstance();
 		config.setProperty("ServerListLoabBalancerTest.niws.client.NFLoadBalancerClassName", 
-				com.netflix.niws.client.NIWSDiscoveryLoadBalancer.class.getName());
+				com.netflix.niws.client.DynamicServerListLoadBalancer.class.getName());
 		config.setProperty("ServerListLoabBalancerTest.niws.client.NIWSServerListClassName", FixedServerList.class.getName());
-		lb = (NIWSDiscoveryLoadBalancer<Server>) ClientFactory.getNamedLoadBalancer("ServerListLoabBalancerTest");
+		lb = (DynamicServerListLoadBalancer<Server>) ClientFactory.getNamedLoadBalancer("ServerListLoabBalancerTest");
 	}
 	
     @Test

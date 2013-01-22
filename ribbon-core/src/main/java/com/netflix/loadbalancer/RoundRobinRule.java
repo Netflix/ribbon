@@ -21,7 +21,7 @@ public class RoundRobinRule implements IRule{
 		 * Rotate over all known servers.
      */
 		final static boolean availableOnly = false;
-		public Server choose(NFLoadBalancer lb, Object key) {
+		public Server choose(BaseLoadBalancer lb, Object key) {
 		    if (lb == null) {
 		        log.warn("no load balancer");
 		        return null;

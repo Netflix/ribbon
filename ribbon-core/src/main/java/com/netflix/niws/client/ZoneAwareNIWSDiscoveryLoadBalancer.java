@@ -14,7 +14,7 @@ import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.loadbalancer.IRule;
 import com.netflix.loadbalancer.LoadBalancerStats;
-import com.netflix.loadbalancer.NFLoadBalancer;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ZoneSnapshot;
 import com.netflix.servo.monitor.Monitors;
@@ -24,9 +24,9 @@ import com.netflix.servo.monitor.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends NIWSDiscoveryLoadBalancer<T> {
+public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends DynamicServerListLoadBalancer<T> {
 
-    private ConcurrentHashMap<String, NFLoadBalancer> balancers = new ConcurrentHashMap<String, NFLoadBalancer>();
+    private ConcurrentHashMap<String, BaseLoadBalancer> balancers = new ConcurrentHashMap<String, BaseLoadBalancer>();
     
     private static final Logger logger = LoggerFactory.getLogger(ZoneAwareNIWSDiscoveryLoadBalancer.class);
     
@@ -93,7 +93,7 @@ public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends NIWSDi
                     String zone = ZoneAvoidanceRule.randomChooseZone(zoneSnapshot, availableZones);
                     logger.debug("Zone chosen: {}", zone);
                     if (zone != null) {
-                        NFLoadBalancer zoneLoadBalancer = getLoadBalancer(zone);
+                        BaseLoadBalancer zoneLoadBalancer = getLoadBalancer(zone);
                         server = zoneLoadBalancer.chooseServer(key);
                     }
                 }
@@ -111,12 +111,12 @@ public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends NIWSDi
         }
     }
         
-    private NFLoadBalancer getLoadBalancer(String zone) {
+    private BaseLoadBalancer getLoadBalancer(String zone) {
         zone = zone.toLowerCase();
-        NFLoadBalancer loadBalancer = balancers.get(zone);
+        BaseLoadBalancer loadBalancer = balancers.get(zone);
         if (loadBalancer == null) {
-            loadBalancer = new NFLoadBalancer(this.getName() + "_" + zone, this.getRule(), this.getLoadBalancerStats());
-            NFLoadBalancer prev = balancers.putIfAbsent(zone, loadBalancer);
+            loadBalancer = new BaseLoadBalancer(this.getName() + "_" + zone, this.getRule(), this.getLoadBalancerStats());
+            BaseLoadBalancer prev = balancers.putIfAbsent(zone, loadBalancer);
             if (prev != null) {
             	loadBalancer = prev;
             }
