@@ -7,7 +7,7 @@ public class ClientRequest implements Cloneable {
     protected URI uri;
     protected Object loadBalancerKey = null;
     protected Boolean isRetriable = null;
-    protected NiwsClientConfig overrideConfig;
+    protected IClientConfig overrideConfig;
         
     public ClientRequest() {
     }
@@ -16,7 +16,7 @@ public class ClientRequest implements Cloneable {
         this.uri = uri;
     }
 
-    public ClientRequest(URI uri, Object loadBalancerKey, boolean isRetriable, NiwsClientConfig overrideConfig) {
+    public ClientRequest(URI uri, Object loadBalancerKey, boolean isRetriable, IClientConfig overrideConfig) {
         this.uri = uri;
         this.loadBalancerKey = loadBalancerKey;
         this.isRetriable = isRetriable;
@@ -58,11 +58,11 @@ public class ClientRequest implements Cloneable {
         return this;
     }
 
-    public final NiwsClientConfig getOverrideConfig() {
+    public final IClientConfig getOverrideConfig() {
         return overrideConfig;
     }
 
-    protected final ClientRequest setOverrideConfig(NiwsClientConfig overrideConfig) {
+    protected final ClientRequest setOverrideConfig(IClientConfig overrideConfig) {
         this.overrideConfig = overrideConfig;
         return this;
     }

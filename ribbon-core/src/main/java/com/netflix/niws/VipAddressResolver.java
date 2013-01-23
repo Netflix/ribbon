@@ -1,7 +1,7 @@
 package com.netflix.niws;
 
-import com.netflix.niws.client.NiwsClientConfig;
+import com.netflix.niws.client.IClientConfig;
 
 public interface VipAddressResolver {
-    public String resolve(String vipAddress, NiwsClientConfig niwsClientConfig);
+    public String resolve(String vipAddress, IClientConfig niwsClientConfig);
 }

@@ -6,7 +6,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.niws.client.NiwsClientConfig;
+import com.netflix.niws.client.IClientConfig;
 
 /**
  * A noOp Loadbalancer
@@ -44,10 +44,5 @@ public class NoOpLoadBalancer extends AbstractLoadBalancer {
     @Override
     public void markServerDown(Server server) {
         logger.info("markServerDown to NoOpLoadBalancer ignored");
-    }
-    
-    @Override
-    public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {
-    }
-
+    }    
 }

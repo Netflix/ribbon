@@ -1,8 +1,8 @@
 package com.netflix.loadbalancer;
 
 import com.netflix.niws.client.AbstractNIWSLoadBalancerPing;
-import com.netflix.niws.client.NiwsClientConfig;
-import com.netflix.niws.client.NiwsClientConfigAware;
+import com.netflix.niws.client.IClientConfig;
+import com.netflix.niws.client.IClientConfigAware;
 
 /**
  * Default simple implementation
@@ -21,6 +21,6 @@ public class DummyPing extends AbstractNIWSLoadBalancerPing {
 
 
 		@Override
-		public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {
+		public void initWithNiwsConfig(IClientConfig clientConfig) {
 		}
 }

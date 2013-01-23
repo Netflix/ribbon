@@ -15,7 +15,7 @@ public class NIWSRoundRobinRule extends AbstractNIWSLoadBalancerRule{
     
     @Override
     public void initWithNiwsConfig(
-            NiwsClientConfig niwsClientConfig) {
+            IClientConfig clientConfig) {
        rule = new RoundRobinRule();        
     }
 

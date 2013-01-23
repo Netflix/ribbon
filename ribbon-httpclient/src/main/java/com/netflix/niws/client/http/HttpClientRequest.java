@@ -5,7 +5,7 @@ import java.net.URI;
 import javax.ws.rs.core.MultivaluedMap;
 
 import com.netflix.niws.client.ClientRequest;
-import com.netflix.niws.client.NiwsClientConfig;
+import com.netflix.niws.client.IClientConfig;
 
 public class HttpClientRequest extends ClientRequest {
         
@@ -51,7 +51,7 @@ public class HttpClientRequest extends ClientRequest {
             return this;
         }
         
-        public Builder setOverrideConfig(NiwsClientConfig config) {
+        public Builder setOverrideConfig(IClientConfig config) {
             request.setOverrideConfig(config);
             return this;
         }

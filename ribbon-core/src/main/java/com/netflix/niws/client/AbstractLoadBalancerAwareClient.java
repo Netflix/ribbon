@@ -19,7 +19,7 @@ import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
 
-public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> implements IClient<S, T>, NiwsClientConfigAware {    
+public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> implements IClient<S, T>, IClientConfigAware {    
     
     private static final Logger logger = LoggerFactory.getLogger(AbstractLoadBalancerAwareClient.class);
 
@@ -45,25 +45,25 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     }
     
     @Override
-    public void initWithNiwsConfig(NiwsClientConfig clientConfig) {
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
         if (clientConfig == null) {
             return;    
         }
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
         clientName = clientConfig.getClientName();
         try {
-            maxAutoRetries = Integer.parseInt(""+ clientConfig.getProperty(NiwsClientConfigKey.MaxAutoRetries,maxAutoRetries));
+            maxAutoRetries = Integer.parseInt(""+ clientConfig.getProperty(CommonClientConfigKey.MaxAutoRetries,maxAutoRetries));
         } catch (Exception e) {
             logger.warn("Invalid maxRetries set for client:" + clientName);
         }
         try {
-            maxAutoRetriesNextServer = Integer.parseInt(""+ clientConfig.getProperty(NiwsClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer));
+            maxAutoRetriesNextServer = Integer.parseInt(""+ clientConfig.getProperty(CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer));
         } catch (Exception e) {
             logger.warn("Invalid maxRetriesNextServer set for client:" + clientName);
         }
         
         try {
-            Boolean bOkToRetryOnAllOperations = Boolean.valueOf(""+clientConfig.getProperty(NiwsClientConfigKey.OkToRetryOnAllOperations,
+            Boolean bOkToRetryOnAllOperations = Boolean.valueOf(""+clientConfig.getProperty(CommonClientConfigKey.OkToRetryOnAllOperations,
                     Boolean.valueOf(okToRetryOnAllOperations)));
             okToRetryOnAllOperations = bOkToRetryOnAllOperations.booleanValue();
         } catch (Exception e) {
@@ -72,7 +72,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         tracer = Monitors.newTimer(clientName + "_OperationTimer", TimeUnit.MILLISECONDS);
     }
     
-    public AbstractLoadBalancerAwareClient(NiwsClientConfig clientConfig) {
+    public AbstractLoadBalancerAwareClient(IClientConfig clientConfig) {
         initWithNiwsConfig(clientConfig);        
     }
     
@@ -118,10 +118,10 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             LoadBalancerStats lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
             serverStats = lbStats.getSingleServerStat(server);
         }
-        NiwsClientConfig overriddenClientConfig = request.getOverrideConfig();
+        IClientConfig overriddenClientConfig = request.getOverrideConfig();
         if (overriddenClientConfig!=null){
             try {
-                numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(NiwsClientConfigKey.MaxAutoRetries,maxAutoRetries));
+                numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(CommonClientConfigKey.MaxAutoRetries,maxAutoRetries));
             } catch (Exception e) {
                 logger.warn("Invalid maxRetries requested for RestClient:" + this.clientName);
             }
@@ -311,11 +311,11 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
 
         // see if maxRetries has been overriden
         int numRetries = maxAutoRetriesNextServer;
-        NiwsClientConfig overriddenClientConfig = task.getOverrideConfig();
+        IClientConfig overriddenClientConfig = task.getOverrideConfig();
         if (overriddenClientConfig != null) {
             try {
                 numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(
-                        NiwsClientConfigKey.MaxAutoRetriesNextServer,
+                        CommonClientConfigKey.MaxAutoRetriesNextServer,
                         maxAutoRetriesNextServer));
             } catch (Exception e) {
                 logger
@@ -325,7 +325,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             try {
                 // Retry operation can be forcefully turned on or off for this particular request
                 Boolean requestSpecificRetryOn = Boolean.valueOf(""+
-                        overriddenClientConfig.getProperty(NiwsClientConfigKey.RequestSpecificRetryOn,
+                        overriddenClientConfig.getProperty(CommonClientConfigKey.RequestSpecificRetryOn,
                         "false"));
                 retryOkayOnOperation = requestSpecificRetryOn.booleanValue();
             } catch (Exception e) {

@@ -26,11 +26,11 @@ public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<Disco
     String datacenter;
     
     @Override
-    public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {
-        this.clientName = niwsClientConfig.getClientName();
-        vipAddresses = niwsClientConfig.resolveDeploymentContextbasedVipAddresses();
-        isSecure = Boolean.parseBoolean(""+niwsClientConfig.getProperty(NiwsClientConfig.NiwsClientConfigKey.IsSecure, "false"));
-        prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+niwsClientConfig.getProperty(NiwsClientConfig.NiwsClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+        this.clientName = clientConfig.getClientName();
+        vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
+        isSecure = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.IsSecure, "false"));
+        prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));
         
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
     }
@@ -85,11 +85,11 @@ public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<Disco
     
     @Override
     public AbstractNIWSServerListFilter<DiscoveryEnabledServer> getFilterImpl(
-            NiwsClientConfig niwsClientConfig) throws NIWSClientException {
+            IClientConfig niwsClientConfig) throws NIWSClientException {
         try {
             String niwsServerListFilterClassName = niwsClientConfig
                     .getProperty(
-                            NiwsClientConfigKey.NIWSServerListFilterClassName,
+                            CommonClientConfigKey.NIWSServerListFilterClassName,
                             DefaultNIWSServerListFilter.class.getName())
                     .toString();
 
@@ -105,9 +105,9 @@ public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<Disco
         } catch (Throwable e) {
             throw new NIWSClientException(
                     NIWSClientException.ErrorType.CONFIGURATION,
-                    "Unable to get an instance of NiwsClientConfigKey.NIWSServerListFilterClassName. Configured class:"
+                    "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"
                             + niwsClientConfig
-                                    .getProperty(NiwsClientConfigKey.NIWSServerListFilterClassName));
+                                    .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName));
         }
 
     }

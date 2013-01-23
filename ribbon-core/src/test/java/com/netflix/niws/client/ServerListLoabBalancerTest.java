@@ -22,7 +22,7 @@ public class ServerListLoabBalancerTest {
 	public static class FixedServerList extends AbstractNIWSServerList<Server> {
 
 		@Override
-		public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {
+		public void initWithNiwsConfig(IClientConfig clientConfig) {
 		}
 
 		@Override

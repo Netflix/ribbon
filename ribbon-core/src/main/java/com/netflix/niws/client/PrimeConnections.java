@@ -91,26 +91,26 @@ public class PrimeConnections {
     private PrimeConnections() {
     }
 
-    public PrimeConnections(String name, NiwsClientConfig niwsClientConfig) {
+    public PrimeConnections(String name, IClientConfig niwsClientConfig) {
         int maxRetriesPerServerPrimeConnection = Integer.valueOf(NiwsClientConfig.DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION);
         long maxTotalTimeToPrimeConnections = Long.valueOf(NiwsClientConfig.DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS);
         String primeConnectionsURI = NiwsClientConfig.DEFAULT_PRIME_CONNECTIONS_URI;  
         String className = NiwsClientConfig.DEFAULT_PRIME_CONNECTIONS_CLASS;
         try {
             maxRetriesPerServerPrimeConnection = Integer.parseInt(String.valueOf(niwsClientConfig.getProperty(
-                    NiwsClientConfigKey.MaxRetriesPerServerPrimeConnection, maxRetriesPerServerPrimeConnection)));
+                    CommonClientConfigKey.MaxRetriesPerServerPrimeConnection, maxRetriesPerServerPrimeConnection)));
         } catch (Exception e) {
             logger.warn("Invalid maxRetriesPerServerPrimeConnection");
         }
         try {
             maxTotalTimeToPrimeConnections = Long.parseLong(String.valueOf(niwsClientConfig.getProperty(
-                    NiwsClientConfigKey.MaxTotalTimeToPrimeConnections,maxTotalTimeToPrimeConnections)));
+                    CommonClientConfigKey.MaxTotalTimeToPrimeConnections,maxTotalTimeToPrimeConnections)));
         } catch (Exception e) {
             logger.warn("Invalid maxTotalTimeToPrimeConnections");
         }
-        primeConnectionsURI = String.valueOf(niwsClientConfig.getProperty(NiwsClientConfigKey.PrimeConnectionsURI, primeConnectionsURI));
-        float primeRatio = Float.parseFloat(String.valueOf(niwsClientConfig.getProperty(NiwsClientConfigKey.MinPrimeConnectionsRatio)));
-        className = (String) niwsClientConfig.getProperty(NiwsClientConfigKey.PrimeConnectionsClassName, 
+        primeConnectionsURI = String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.PrimeConnectionsURI, primeConnectionsURI));
+        float primeRatio = Float.parseFloat(String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.MinPrimeConnectionsRatio)));
+        className = (String) niwsClientConfig.getProperty(CommonClientConfigKey.PrimeConnectionsClassName, 
                 NiwsClientConfig.DEFAULT_PRIME_CONNECTIONS_CLASS);
         try {
             connector = (IPrimeConnection) Class.forName(className).newInstance();

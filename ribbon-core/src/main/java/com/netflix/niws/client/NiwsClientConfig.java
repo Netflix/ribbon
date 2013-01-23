@@ -28,7 +28,7 @@ import com.netflix.niws.VipAddressResolver;
  * @author Sudhir Tonse <stonse@netflix.com>
  *
  */
-public class NiwsClientConfig {
+public class NiwsClientConfig implements IClientConfig {
 
     public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = Boolean.TRUE;
 
@@ -145,7 +145,7 @@ public class NiwsClientConfig {
 
     public NiwsClientConfig(Map<String, Object> properties) {
         if (properties != null) {
-            for (NiwsClientConfigKey niwsKey: NiwsClientConfigKey.values()) {
+            for (IClientConfigKey niwsKey: CommonClientConfigKey.values()) {
                 String key = niwsKey.key();
                 Object value = properties.get(key);
                 if (value != null) {
@@ -161,67 +161,67 @@ public class NiwsClientConfig {
         NiwsClientConfig config = new NiwsClientConfig();
         config.enableDynamicProperties = true;
         //Defaults
-        config.putBooleanProperty(NiwsClientConfigKey.UseHttpClient4, DEFAULT_USE_HTTP_CLIENT4);
-        config.putIntegerProperty(NiwsClientConfigKey.MaxHttpConnectionsPerHost, Integer.valueOf(DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST));
-        config.putIntegerProperty(NiwsClientConfigKey.MaxTotalHttpConnections, Integer.valueOf(DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS));
-        config.putIntegerProperty(NiwsClientConfigKey.ConnectTimeout, Integer.valueOf(DEFAULT_CONNECT_TIMEOUT));
-        config.putIntegerProperty(NiwsClientConfigKey.ConnectionManagerTimeout, Integer.valueOf(DEFAULT_CONNECTION_MANAGER_TIMEOUT));
-        config.putIntegerProperty(NiwsClientConfigKey.ReadTimeout, Integer.valueOf(DEFAULT_READ_TIMEOUT));
-        config.putIntegerProperty(NiwsClientConfigKey.MaxAutoRetries, Integer.valueOf(DEFAULT_MAX_AUTO_RETRIES));
-        config.putIntegerProperty(NiwsClientConfigKey.MaxAutoRetriesNextServer, Integer.valueOf(DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER));
-        config.putBooleanProperty(NiwsClientConfigKey.OkToRetryOnAllOperations, DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS);
-        config.putBooleanProperty(NiwsClientConfigKey.EnableNIWSEventLogging, DEFAULT_ENABLE_NIWS_EVENT_LOGGING);
-        config.putFloatProperty(NiwsClientConfigKey.PercentageNIWSEventLogged, Float.valueOf(DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED));  // 0=only log what the calling context suggests
-        config.putBooleanProperty(NiwsClientConfigKey.FollowRedirects, DEFAULT_FOLLOW_REDIRECTS);
-        config.putBooleanProperty(NiwsClientConfigKey.ConnectionPoolCleanerTaskEnabled, DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED); // default is true for RestClient
-        config.putIntegerProperty(NiwsClientConfigKey.ConnIdleEvictTimeMilliSeconds,
+        config.putBooleanProperty(CommonClientConfigKey.UseHttpClient4, DEFAULT_USE_HTTP_CLIENT4);
+        config.putIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, Integer.valueOf(DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST));
+        config.putIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, Integer.valueOf(DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS));
+        config.putIntegerProperty(CommonClientConfigKey.ConnectTimeout, Integer.valueOf(DEFAULT_CONNECT_TIMEOUT));
+        config.putIntegerProperty(CommonClientConfigKey.ConnectionManagerTimeout, Integer.valueOf(DEFAULT_CONNECTION_MANAGER_TIMEOUT));
+        config.putIntegerProperty(CommonClientConfigKey.ReadTimeout, Integer.valueOf(DEFAULT_READ_TIMEOUT));
+        config.putIntegerProperty(CommonClientConfigKey.MaxAutoRetries, Integer.valueOf(DEFAULT_MAX_AUTO_RETRIES));
+        config.putIntegerProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, Integer.valueOf(DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER));
+        config.putBooleanProperty(CommonClientConfigKey.OkToRetryOnAllOperations, DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS);
+        config.putBooleanProperty(CommonClientConfigKey.EnableNIWSEventLogging, DEFAULT_ENABLE_NIWS_EVENT_LOGGING);
+        config.putFloatProperty(CommonClientConfigKey.PercentageNIWSEventLogged, Float.valueOf(DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED));  // 0=only log what the calling context suggests
+        config.putBooleanProperty(CommonClientConfigKey.FollowRedirects, DEFAULT_FOLLOW_REDIRECTS);
+        config.putBooleanProperty(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED); // default is true for RestClient
+        config.putIntegerProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds,
             Integer.valueOf(DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS));
-        config.putIntegerProperty(NiwsClientConfigKey.ConnectionCleanerRepeatInterval,
+        config.putIntegerProperty(CommonClientConfigKey.ConnectionCleanerRepeatInterval,
             Integer.valueOf(DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS));
-        config.putBooleanProperty(NiwsClientConfigKey.EnableGZIPContentEncodingFilter, DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER);
-        config.putBooleanProperty(NiwsClientConfigKey.EnableRequestThrottling, DEFAULT_ENABLE_REQUEST_THROTTLING);
-        config.putIntegerProperty(NiwsClientConfigKey.RequestThrottlingWindowInMSecs, Integer.valueOf(DEFAULT_REQUEST_THROTTLING_WINDOW_IN_MILLIS));
-        config.putIntegerProperty(NiwsClientConfigKey.MaxRequestsAllowedPerWindow, Integer.valueOf(DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW));
-        String proxyHost = ConfigurationManager.getConfigInstance().getString(getDefaultPropName(NiwsClientConfigKey.ProxyHost.key()));
+        config.putBooleanProperty(CommonClientConfigKey.EnableGZIPContentEncodingFilter, DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER);
+        config.putBooleanProperty(CommonClientConfigKey.EnableRequestThrottling, DEFAULT_ENABLE_REQUEST_THROTTLING);
+        config.putIntegerProperty(CommonClientConfigKey.RequestThrottlingWindowInMSecs, Integer.valueOf(DEFAULT_REQUEST_THROTTLING_WINDOW_IN_MILLIS));
+        config.putIntegerProperty(CommonClientConfigKey.MaxRequestsAllowedPerWindow, Integer.valueOf(DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW));
+        String proxyHost = ConfigurationManager.getConfigInstance().getString(getDefaultPropName(CommonClientConfigKey.ProxyHost.key()));
         if (proxyHost != null && proxyHost.length() > 0) {
-            config.setProperty(NiwsClientConfigKey.ProxyHost, proxyHost);
+            config.setProperty(CommonClientConfigKey.ProxyHost, proxyHost);
         }
         Integer proxyPort = ConfigurationManager
                 .getConfigInstance()
                 .getInteger(
-                        getDefaultPropName(NiwsClientConfigKey.ProxyPort),
+                        getDefaultPropName(CommonClientConfigKey.ProxyPort),
                         (Integer.MIN_VALUE + 1)); // + 1 just to avoid potential clash with user setting
         if (proxyPort != (Integer.MIN_VALUE + 1)) {
-            config.setProperty(NiwsClientConfigKey.ProxyPort, proxyPort);
+            config.setProperty(CommonClientConfigKey.ProxyPort, proxyPort);
         }
-        config.putIntegerProperty(NiwsClientConfigKey.Port, Integer.valueOf(DEFAULT_PORT));
-        config.putBooleanProperty(NiwsClientConfigKey.EnablePrimeConnections, DEFAULT_ENABLE_PRIME_CONNECTIONS);
-        config.putIntegerProperty(NiwsClientConfigKey.MaxRetriesPerServerPrimeConnection, Integer.valueOf(DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION));
-        config.putIntegerProperty(NiwsClientConfigKey.MaxTotalTimeToPrimeConnections, Integer.valueOf(DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS));
-        config.putStringProperty(NiwsClientConfigKey.PrimeConnectionsURI, DEFAULT_PRIME_CONNECTIONS_URI);
-        config.putIntegerProperty(NiwsClientConfigKey.PoolMinThreads, Integer.valueOf(DEFAULT_POOL_MIN_THREADS));
-        config.putIntegerProperty(NiwsClientConfigKey.PoolMaxThreads, Integer.valueOf(DEFAULT_POOL_MAX_THREADS));
-        config.putLongProperty(NiwsClientConfigKey.PoolKeepAliveTime, Long.valueOf(DEFAULT_POOL_KEEP_ALIVE_TIME));
-        config.putTimeUnitProperty(NiwsClientConfigKey.PoolKeepAliveTimeUnits,DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS);
-        config.putBooleanProperty(NiwsClientConfigKey.EnableZoneAffinity, DEFAULT_ENABLE_ZONE_AFFINITY);
-        config.putBooleanProperty(NiwsClientConfigKey.EnableZoneExclusivity, DEFAULT_ENABLE_ZONE_EXCLUSIVITY);
-        config.putStringProperty(NiwsClientConfigKey.ClientClassName, DEFAULT_CLIENT_CLASSNAME);
-        config.putStringProperty(NiwsClientConfigKey.NFLoadBalancerClassName, DEFAULT_NFLOADBALANCER_CLASSNAME);
-        config.putStringProperty(NiwsClientConfigKey.NFLoadBalancerRuleClassName, DEFAULT_NFLOADBALANCER_RULE_CLASSNAME);
-        config.putStringProperty(NiwsClientConfigKey.NFLoadBalancerPingClassName, DEFAULT_NFLOADBALANCER_PING_CLASSNAME);
-        config.putBooleanProperty(NiwsClientConfigKey.PrioritizeVipAddressBasedServers, DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS);
-        config.putBooleanProperty(NiwsClientConfigKey.EnableNIWSStats, DEFAULT_ENABLE_NIWSSTATS);
-        config.putBooleanProperty(NiwsClientConfigKey.EnableNIWSErrorStats, DEFAULT_ENABLE_NIWSERRORSTATS);
-        config.putFloatProperty(NiwsClientConfigKey.MinPrimeConnectionsRatio, DEFAULT_MIN_PRIME_CONNECTIONS_RATIO);
-        config.putBooleanProperty(NiwsClientConfigKey.UseTunnel, Boolean.FALSE);
-        config.putStringProperty(NiwsClientConfigKey.PrimeConnectionsClassName, DEFAULT_PRIME_CONNECTIONS_CLASS);
-        // putBooleanProperty(NiwsClientConfigKey.PrioritizeIntStack, Boolean.FALSE);
-        config.putStringProperty(NiwsClientConfigKey.VipAddressResolverClassName, DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME);
+        config.putIntegerProperty(CommonClientConfigKey.Port, Integer.valueOf(DEFAULT_PORT));
+        config.putBooleanProperty(CommonClientConfigKey.EnablePrimeConnections, DEFAULT_ENABLE_PRIME_CONNECTIONS);
+        config.putIntegerProperty(CommonClientConfigKey.MaxRetriesPerServerPrimeConnection, Integer.valueOf(DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION));
+        config.putIntegerProperty(CommonClientConfigKey.MaxTotalTimeToPrimeConnections, Integer.valueOf(DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS));
+        config.putStringProperty(CommonClientConfigKey.PrimeConnectionsURI, DEFAULT_PRIME_CONNECTIONS_URI);
+        config.putIntegerProperty(CommonClientConfigKey.PoolMinThreads, Integer.valueOf(DEFAULT_POOL_MIN_THREADS));
+        config.putIntegerProperty(CommonClientConfigKey.PoolMaxThreads, Integer.valueOf(DEFAULT_POOL_MAX_THREADS));
+        config.putLongProperty(CommonClientConfigKey.PoolKeepAliveTime, Long.valueOf(DEFAULT_POOL_KEEP_ALIVE_TIME));
+        config.putTimeUnitProperty(CommonClientConfigKey.PoolKeepAliveTimeUnits,DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS);
+        config.putBooleanProperty(CommonClientConfigKey.EnableZoneAffinity, DEFAULT_ENABLE_ZONE_AFFINITY);
+        config.putBooleanProperty(CommonClientConfigKey.EnableZoneExclusivity, DEFAULT_ENABLE_ZONE_EXCLUSIVITY);
+        config.putStringProperty(CommonClientConfigKey.ClientClassName, DEFAULT_CLIENT_CLASSNAME);
+        config.putStringProperty(CommonClientConfigKey.NFLoadBalancerClassName, DEFAULT_NFLOADBALANCER_CLASSNAME);
+        config.putStringProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName, DEFAULT_NFLOADBALANCER_RULE_CLASSNAME);
+        config.putStringProperty(CommonClientConfigKey.NFLoadBalancerPingClassName, DEFAULT_NFLOADBALANCER_PING_CLASSNAME);
+        config.putBooleanProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS);
+        config.putBooleanProperty(CommonClientConfigKey.EnableNIWSStats, DEFAULT_ENABLE_NIWSSTATS);
+        config.putBooleanProperty(CommonClientConfigKey.EnableNIWSErrorStats, DEFAULT_ENABLE_NIWSERRORSTATS);
+        config.putFloatProperty(CommonClientConfigKey.MinPrimeConnectionsRatio, DEFAULT_MIN_PRIME_CONNECTIONS_RATIO);
+        config.putBooleanProperty(CommonClientConfigKey.UseTunnel, Boolean.FALSE);
+        config.putStringProperty(CommonClientConfigKey.PrimeConnectionsClassName, DEFAULT_PRIME_CONNECTIONS_CLASS);
+        // putBooleanProperty(CommonClientConfigKey.PrioritizeIntStack, Boolean.FALSE);
+        config.putStringProperty(CommonClientConfigKey.VipAddressResolverClassName, DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME);
         return config;
     }
     
     
-    private void setPropertyInternal(NiwsClientConfigKey propName, Object value) {
+    private void setPropertyInternal(IClientConfigKey propName, Object value) {
         setPropertyInternal(propName.key(), value);
     }
 
@@ -282,25 +282,25 @@ public class NiwsClientConfig {
 	// Helper methods which first check if a "default" (with rest client name)
 	// property exists. If so, that value is used, else the default value
 	// passed as argument is used to put into the properties member variable
-    private void putIntegerProperty(NiwsClientConfigKey propName, Integer defaultValue) {
+    private void putIntegerProperty(IClientConfigKey propName, Integer defaultValue) {
         Integer value = ConfigurationManager.getConfigInstance().getInteger(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
 
-    private void putLongProperty(NiwsClientConfigKey propName, Long defaultValue) {
+    private void putLongProperty(IClientConfigKey propName, Long defaultValue) {
         Long value = ConfigurationManager.getConfigInstance().getLong(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
     
-    private void putFloatProperty(NiwsClientConfigKey propName, Float defaultValue) {
+    private void putFloatProperty(IClientConfigKey propName, Float defaultValue) {
         Float value = ConfigurationManager.getConfigInstance().getFloat(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
     
-    private void putTimeUnitProperty(NiwsClientConfigKey propName, TimeUnit defaultValue) {
+    private void putTimeUnitProperty(IClientConfigKey propName, TimeUnit defaultValue) {
         TimeUnit value = defaultValue;
         String propValue = ConfigurationManager.getConfigInstance().getString(
                 getDefaultPropName(propName));
@@ -314,18 +314,18 @@ public class NiwsClientConfig {
         return PROPERTY_NAMESPACE + "." + propName;
     }
 
-    public static String getDefaultPropName(NiwsClientConfigKey propName) {
+    public static String getDefaultPropName(IClientConfigKey propName) {
         return getDefaultPropName(propName.key());
     }
 
     
-    private void putStringProperty(NiwsClientConfigKey propName, String defaultValue) {
+    private void putStringProperty(IClientConfigKey propName, String defaultValue) {
         String value = ConfigurationManager.getConfigInstance().getString(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
     
-    private void putBooleanProperty(NiwsClientConfigKey propName, Boolean defaultValue) {
+    private void putBooleanProperty(IClientConfigKey propName, Boolean defaultValue) {
         Boolean value = ConfigurationManager.getConfigInstance().getBoolean(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
@@ -336,10 +336,9 @@ public class NiwsClientConfig {
      * @author stonse
      *
      */
-    public enum NiwsClientConfigKey {
+    public enum NiwsClientConfigKey implements IClientConfigKey {
 
-        //NIWS RestClient related
-        AppName("AppName"),
+        AppName(CommonClientConfigKey.AppName.key()),
         Version("Version"),
         Port("Port"),
         SecurePort("SecurePort"),
@@ -425,7 +424,11 @@ public class NiwsClientConfig {
             this.configKey = configKey;
         }
 
-        public String key() {
+        /* (non-Javadoc)
+		 * @see com.netflix.niws.client.ClientConfig#key()
+		 */
+        @Override
+		public String key() {
             return configKey;
         }
     }
@@ -434,11 +437,19 @@ public class NiwsClientConfig {
         this.clientName  = clientName;
     }
 
-    public String getClientName() {
+    /* (non-Javadoc)
+	 * @see com.netflix.niws.client.CliengConfig#getClientName()
+	 */
+    @Override
+	public String getClientName() {
         return clientName;
     }
 
-    public void loadProperties(String restClientName){
+    /* (non-Javadoc)
+	 * @see com.netflix.niws.client.CliengConfig#loadProperties(java.lang.String)
+	 */
+    @Override
+	public void loadProperties(String restClientName){
         setClientName(restClientName);
         Configuration props = ConfigurationManager.getConfigInstance().subset(restClientName);        
         for (Iterator<String> keys = props.getKeys(); keys.hasNext(); ){
@@ -467,7 +478,7 @@ public class NiwsClientConfig {
                 if (resolver == null) {
                     try {
                         resolver = (VipAddressResolver) Class.forName(
-                                (String) getProperty(NiwsClientConfigKey.VipAddressResolverClassName)).newInstance();
+                                (String) getProperty(CommonClientConfigKey.VipAddressResolverClassName)).newInstance();
                     } catch (Throwable e) {
                         LOG.error("Cannot instantiate VipAddressResolver", e);
                     }
@@ -480,38 +491,13 @@ public class NiwsClientConfig {
 
     public String resolveDeploymentContextbasedVipAddresses(){
         
-        String deploymentContextBasedVipAddressesMacro = (String) getProperty(NiwsClientConfigKey.DeploymentContextBasedVipAddresses);
+        String deploymentContextBasedVipAddressesMacro = (String) getProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses);
         return getVipAddressResolver().resolve(deploymentContextBasedVipAddressesMacro, this);
-        /*
-        if (Strings.isNullOrEmpty(deploymentContextBasedVipAddressesMacro)) {
-            return null;
-        }
-
-        String appName = (String) this.getProperty(NiwsClientConfig.NiwsClientConfigKey.AppName);
-        Object p = this.getProperty(NiwsClientConfig.NiwsClientConfigKey.Port);
-        Integer port = null;
-        if (p instanceof Integer){
-            port = Integer.valueOf(""+p);
-        }else if (p instanceof String){
-            port = Integer.valueOf(p.toString());
-        }
-        Object sp = this.getProperty(NiwsClientConfig.NiwsClientConfigKey.SecurePort);
-        Integer securePort = null;
-        if (sp instanceof Integer){
-            securePort = Integer.valueOf(""+sp);
-        }else if (sp instanceof String){
-            securePort = Integer.valueOf(sp.toString());
-        }
-        String version = (String) this
-                .getProperty(NiwsClientConfig.NiwsClientConfigKey.Version);
-        boolean prioritizeIntStack = Boolean.valueOf(String.valueOf(this.getProperty(NiwsClientConfigKey.PrioritizeIntStack)));
-        return VipAddressUtils.resolveDeploymentContextBasedVipAddresses(deploymentContextBasedVipAddressesMacro, appName, port, securePort, version, prioritizeIntStack);
-        */
     }
 
     public String getAppName(){
         String appName = null;
-        Object an = getProperty(NiwsClientConfigKey.AppName);
+        Object an = getProperty(CommonClientConfigKey.AppName);
         if (an!=null){
             appName = "" + an;
         }
@@ -520,19 +506,18 @@ public class NiwsClientConfig {
 
     public String getVersion(){
         String version = null;
-        Object an = getProperty(NiwsClientConfigKey.Version);
+        Object an = getProperty(CommonClientConfigKey.Version);
         if (an!=null){
             version = "" + an;
         }
         return version;
     }
 
-    /**
-     *  Get the underlying properties cache. Directly adding or changing properties
-     *  in the returned properties may cause inconsistencies with dynamic properties.
-     *  Instead, use {@link #setProperty(NiwsClientConfigKey, Object)} to set property.
-     */
-    public  Map<String, Object> getProperties() {
+    /* (non-Javadoc)
+	 * @see com.netflix.niws.client.CliengConfig#getProperties()
+	 */
+    @Override
+	public  Map<String, Object> getProperties() {
         return properties;
     }
 
@@ -547,15 +532,19 @@ public class NiwsClientConfig {
         this.properties = (Map<String, Object>) properties;
     }
 
-    public void setProperty(NiwsClientConfigKey key, Object value){
+    /* (non-Javadoc)
+	 * @see com.netflix.niws.client.CliengConfig#setProperty(com.netflix.niws.client.ClientConfigKey, java.lang.Object)
+	 */
+    @Override
+	public void setProperty(IClientConfigKey key, Object value){
         setPropertyInternal(key.key(), value);
     }
 
-    public NiwsClientConfig applyOverride(NiwsClientConfig override) {
+    public IClientConfig applyOverride(IClientConfig override) {
         if (override == null) {
             return this;
         }
-        for (NiwsClientConfigKey key: NiwsClientConfigKey.values()) {
+        for (IClientConfigKey key: CommonClientConfigKey.values()) {
             Object value = override.getProperty(key);
             if (value != null) {
                 setProperty(key, value);
@@ -575,7 +564,11 @@ public class NiwsClientConfig {
         setPropertyInternal(key, value);
     }
 
-    public Object getProperty(NiwsClientConfigKey key){
+    /* (non-Javadoc)
+	 * @see com.netflix.niws.client.CliengConfig#getProperty(com.netflix.niws.client.ClientConfigKey)
+	 */
+    @Override
+	public Object getProperty(IClientConfigKey key){
         String propName = key.key();
         DynamicStringProperty dynamicProperty = dynamicProperties.get(propName);
         if (dynamicProperty != null) {
@@ -587,7 +580,11 @@ public class NiwsClientConfig {
         return properties.get(propName);
     }
 
-    public Object getProperty(NiwsClientConfigKey key, Object defaultVal){
+    /* (non-Javadoc)
+	 * @see com.netflix.niws.client.CliengConfig#getProperty(com.netflix.niws.client.ClientConfigKey, java.lang.Object)
+	 */
+    @Override
+	public Object getProperty(IClientConfigKey key, Object defaultVal){
         Object val = getProperty(key);
         if (val == null){
             return defaultVal;
@@ -595,7 +592,7 @@ public class NiwsClientConfig {
         return val;
     }
 
-    public static Object getProperty(Map<String, Object> config, NiwsClientConfigKey key, Object defaultVal) {
+    public static Object getProperty(Map<String, Object> config, IClientConfigKey key, Object defaultVal) {
         Object val = config.get(key.key());
         if (val == null) {
             return defaultVal;
@@ -603,12 +600,12 @@ public class NiwsClientConfig {
         return val;
     }
 
-    public static Object getProperty(Map<String, Object> config, NiwsClientConfigKey key) {
+    public static Object getProperty(Map<String, Object> config, IClientConfigKey key) {
         return getProperty(config, key, null);
     }
 
     public boolean isSecure() {
-        Object oo = getProperty(NiwsClientConfigKey.IsSecure);
+        Object oo = getProperty(CommonClientConfigKey.IsSecure);
         if (oo != null) {
             return Boolean.parseBoolean(oo.toString());
         } else {
@@ -616,7 +613,11 @@ public class NiwsClientConfig {
         }
     }
 
-    public boolean containsProperty(NiwsClientConfigKey key){
+    /* (non-Javadoc)
+	 * @see com.netflix.niws.client.CliengConfig#containsProperty(com.netflix.niws.client.ClientConfigKey)
+	 */
+    @Override
+	public boolean containsProperty(IClientConfigKey key){
         Object oo = getProperty(key);
         return oo!=null? true: false;
     }
@@ -627,7 +628,7 @@ public class NiwsClientConfig {
         String separator = "";
 
         sb.append("NiwsClientConfig:");
-        for (NiwsClientConfigKey key: NiwsClientConfigKey.values()) {
+        for (IClientConfigKey key: CommonClientConfigKey.values()) {
             final Object value = getProperty(key);
 
             sb.append(separator);
@@ -789,7 +790,7 @@ public class NiwsClientConfig {
     }
 
     public static String getInstancePropName(String restClientName,
-            NiwsClientConfigKey configKey) {
+            IClientConfigKey configKey) {
         return getInstancePropName(restClientName, configKey.key());
     }
 
@@ -798,7 +799,7 @@ public class NiwsClientConfig {
                 + key;
     }
     
-    public static NiwsClientConfig getNamedConfig(String name) {
+    public static IClientConfig getNamedConfig(String name) {
         NiwsClientConfig config = namedConfig.get(name);
         if (config != null) {
             return config;

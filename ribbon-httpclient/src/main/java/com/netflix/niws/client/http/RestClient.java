@@ -39,6 +39,9 @@ import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
 import com.netflix.loadbalancer.Server;
 import com.netflix.niws.client.AbstractLoadBalancerAwareClient;
+import com.netflix.niws.client.CommonClientConfigKey;
+import com.netflix.niws.client.IClientConfig;
+import com.netflix.niws.client.IClientConfigKey;
 import com.netflix.niws.client.NIWSClientException;
 import com.netflix.niws.client.NiwsClientConfig;
 import com.netflix.niws.client.URLSslContextFactory;
@@ -59,7 +62,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 
     private Client restClient;
     private HttpClient httpClient4;
-    private NiwsClientConfig ncc;
+    private IClientConfig ncc;
     private String restClientName;
 
     private boolean enableConnectionPoolCleanerTask = false;
@@ -69,12 +72,10 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     private int maxTotalConnections;
     private int connectionTimeout;
     private int readTimeout;
-    private SpecializedDynamicIntProperty readTimeoutFastProperty;
     private String proxyHost;
     private int proxyPort;
     private boolean isSecure;
     private ApacheHttpClient4Config config;
-    private int chunkedEncodingSize = -1;
 
     boolean bFollowRedirects = NiwsClientConfig.DEFAULT_FOLLOW_REDIRECTS;
 
@@ -85,7 +86,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         DynamicProperty instanceSpecificProperty;
         DynamicIntProperty defaultProperty;
 
-        public SpecializedDynamicIntProperty(NiwsClientConfigKey configKey) {
+        public SpecializedDynamicIntProperty(IClientConfigKey configKey) {
             instanceSpecificProperty = DynamicProperty.getInstance((NiwsClientConfig.getInstancePropName(restClientName, configKey)));
             defaultProperty = DynamicPropertyFactory.getInstance().getIntProperty(NiwsClientConfig.getDefaultPropName(configKey),
                     Integer.parseInt(ncc.getProperty(configKey).toString()));
@@ -106,7 +107,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         restClientName = "default";
     }
 
-    public RestClient(NiwsClientConfig ncc) {
+    public RestClient(IClientConfig ncc) {
         initWithNiwsConfig(ncc);
     }
 
@@ -115,21 +116,22 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
     
     @Override
-    public void initWithNiwsConfig(NiwsClientConfig clientConfig) {
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
         super.initWithNiwsConfig(clientConfig);
         this.ncc = clientConfig;
         restClientName = ncc.getClientName();
-        if (ncc.getProperty(NiwsClientConfigKey.FollowRedirects)!=null){
-            Boolean followRedirects = Boolean.valueOf(""+ncc.getProperty(NiwsClientConfigKey.FollowRedirects, "true"));
+        isSecure = isSecure(clientConfig);
+        if (ncc.getProperty(CommonClientConfigKey.FollowRedirects)!=null){
+            Boolean followRedirects = Boolean.valueOf(""+ncc.getProperty(CommonClientConfigKey.FollowRedirects, "true"));
             bFollowRedirects = followRedirects.booleanValue();
         }
         config = new DefaultApacheHttpClient4Config();
         config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_CONNECT_TIMEOUT,
-                Integer.parseInt(String.valueOf(ncc.getProperty(NiwsClientConfigKey.ConnectTimeout))));
+                Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ConnectTimeout))));
         config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_READ_TIMEOUT,
-                Integer.parseInt(String.valueOf(ncc.getProperty(NiwsClientConfigKey.ReadTimeout))));
+                Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ReadTimeout))));
         
         restClient = apacheHttpClientSpecificInitialization();
     }
@@ -152,30 +154,30 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         NFHttpClient nfHttpClient = (NFHttpClient) httpClient4;
         // should we enable connection cleanup for idle connections?
         try {
-            enableConnectionPoolCleanerTask = Boolean.parseBoolean(ncc.getProperty(NiwsClientConfigKey.ConnectionPoolCleanerTaskEnabled,
+            enableConnectionPoolCleanerTask = Boolean.parseBoolean(ncc.getProperty(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled,
                     NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIMETASK_ENABLED).toString());
             nfHttpClient.getConnPoolCleaner().setEnableConnectionPoolCleanerTask(enableConnectionPoolCleanerTask);
         } catch (Exception e1) {
             throw new IllegalArgumentException("Invalid value for property:"
-                    + NiwsClientConfigKey.ConnectionPoolCleanerTaskEnabled, e1);
+                    + CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, e1);
         }
         if (enableConnectionPoolCleanerTask) {
             try {
                 connectionCleanerRepeatInterval = Integer
-                .parseInt(String.valueOf(ncc.getProperty(NiwsClientConfigKey.ConnectionCleanerRepeatInterval,
+                .parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ConnectionCleanerRepeatInterval,
                         NFHttpClientConstants.DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS)));
                 nfHttpClient.getConnPoolCleaner().setConnectionCleanerRepeatInterval(connectionCleanerRepeatInterval);
             } catch (Exception e1) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
-                        + NiwsClientConfigKey.ConnectionCleanerRepeatInterval, e1);
+                        + CommonClientConfigKey.ConnectionCleanerRepeatInterval, e1);
             }
 
             try {
                 int iConnIdleEvictTimeMilliSeconds = Integer
                 .parseInt(""
                         + ncc
-                        .getProperty(NiwsClientConfigKey.ConnIdleEvictTimeMilliSeconds,
+                        .getProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds,
                                 NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS));
                 connIdleEvictTimeMilliSeconds = DynamicPropertyFactory.getInstance().getIntProperty(
                         restClientName
@@ -185,7 +187,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             } catch (Exception e1) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
-                        + NiwsClientConfigKey.ConnIdleEvictTimeMilliSeconds,
+                        + CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds,
                         e1);
             }
 
@@ -196,7 +198,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             maxConnectionsperHost = Integer
             .parseInt(""
                     + ncc
-                    .getProperty(NiwsClientConfigKey.MaxHttpConnectionsPerHost,
+                    .getProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost,
                             maxConnectionsperHost));
             ClientConnectionManager connMgr = httpClient4.getConnectionManager();
             if (connMgr instanceof ThreadSafeClientConnManager) {
@@ -205,14 +207,14 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             }
         } catch (Exception e1) {
             throw new IllegalArgumentException("Invalid value for property:"
-                    + NiwsClientConfigKey.MaxHttpConnectionsPerHost, e1);
+                    + CommonClientConfigKey.MaxHttpConnectionsPerHost, e1);
         }
 
         try {
             maxTotalConnections = Integer
             .parseInt(""
                     + ncc
-                    .getProperty(NiwsClientConfigKey.MaxTotalHttpConnections,
+                    .getProperty(CommonClientConfigKey.MaxTotalHttpConnections,
                             maxTotalConnections));
             ClientConnectionManager connMgr = httpClient4
             .getConnectionManager();
@@ -222,61 +224,59 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             }
         } catch (Exception e1) {
             throw new IllegalArgumentException("Invalid value for property:"
-                    + NiwsClientConfigKey.MaxTotalHttpConnections, e1);
+                    + CommonClientConfigKey.MaxTotalHttpConnections, e1);
         }
 
         try {
             connectionTimeout = Integer.parseInt(""
-                    + ncc.getProperty(NiwsClientConfigKey.ConnectTimeout,
+                    + ncc.getProperty(CommonClientConfigKey.ConnectTimeout,
                             connectionTimeout));
             HttpConnectionParams.setConnectionTimeout(httpClientParams,
                     connectionTimeout);
         } catch (Exception e1) {
             throw new IllegalArgumentException("Invalid value for property:"
-                    + NiwsClientConfigKey.ConnectTimeout, e1);
+                    + CommonClientConfigKey.ConnectTimeout, e1);
         }
 
         try {
             readTimeout = Integer.parseInt(""
-                    + ncc.getProperty(NiwsClientConfigKey.ReadTimeout,
+                    + ncc.getProperty(CommonClientConfigKey.ReadTimeout,
                             readTimeout));
-            readTimeoutFastProperty = new SpecializedDynamicIntProperty(
-                    NiwsClientConfigKey.ReadTimeout);
             HttpConnectionParams.setSoTimeout(httpClientParams, readTimeout);
         } catch (Exception e1) {
             throw new IllegalArgumentException("Invalid value for property:"
-                    + NiwsClientConfigKey.ReadTimeout, e1);
+                    + CommonClientConfigKey.ReadTimeout, e1);
         }
 
         // httpclient 4 seems to only have one buffer size controlling both
         // send/receive - so let's take the bigger of the two values and use
         // it as buffer size
         int bufferSize = Integer.MIN_VALUE;
-        if (ncc.getProperty(NiwsClientConfigKey.ReceiveBuffferSize) != null) {
+        if (ncc.getProperty(CommonClientConfigKey.ReceiveBuffferSize) != null) {
             try {
                 bufferSize = Integer
                 .parseInt(""
                         + ncc
-                        .getProperty(NiwsClientConfigKey.ReceiveBuffferSize));
+                        .getProperty(CommonClientConfigKey.ReceiveBuffferSize));
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
-                        + NiwsClientConfigKey.ReceiveBuffferSize,
+                        + CommonClientConfigKey.ReceiveBuffferSize,
                         e);
             }
-            if (ncc.getProperty(NiwsClientConfigKey.SendBufferSize) != null) {
+            if (ncc.getProperty(CommonClientConfigKey.SendBufferSize) != null) {
                 try {
                     int sendBufferSize = Integer
                     .parseInt(""
                             + ncc
-                            .getProperty(NiwsClientConfigKey.SendBufferSize));
+                            .getProperty(CommonClientConfigKey.SendBufferSize));
                     if (sendBufferSize > bufferSize) {
                         bufferSize = sendBufferSize;
                     }
                 } catch (Exception e) {
                     throw new IllegalArgumentException(
                             "Invalid value for property:"
-                            + NiwsClientConfigKey.SendBufferSize,
+                            + CommonClientConfigKey.SendBufferSize,
                             e);
                 }
             }
@@ -286,38 +286,38 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
                     bufferSize);
         }
 
-        if (ncc.getProperty(NiwsClientConfigKey.StaleCheckingEnabled) != null) {
+        if (ncc.getProperty(CommonClientConfigKey.StaleCheckingEnabled) != null) {
             try {
                 HttpConnectionParams
                 .setStaleCheckingEnabled(httpClientParams,
-                        Boolean.parseBoolean(ncc.getProperty(NiwsClientConfigKey.StaleCheckingEnabled, false).toString()));
+                        Boolean.parseBoolean(ncc.getProperty(CommonClientConfigKey.StaleCheckingEnabled, false).toString()));
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
-                        + NiwsClientConfigKey.StaleCheckingEnabled,
+                        + CommonClientConfigKey.StaleCheckingEnabled,
                         e);
             }
         }
 
-        if (ncc.getProperty(NiwsClientConfigKey.Linger) != null) {
+        if (ncc.getProperty(CommonClientConfigKey.Linger) != null) {
             try {
                 HttpConnectionParams.setLinger(httpClientParams,
                         Integer.parseInt(""
-                                + ncc.getProperty(NiwsClientConfigKey.Linger)));
+                                + ncc.getProperty(CommonClientConfigKey.Linger)));
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
-                        + NiwsClientConfigKey.Linger,
+                        + CommonClientConfigKey.Linger,
                         e);
             }
         }
 
-        if (ncc.getProperty(NiwsClientConfigKey.ProxyHost) != null) {
+        if (ncc.getProperty(CommonClientConfigKey.ProxyHost) != null) {
             try {
                 proxyHost = (String) ncc
-                .getProperty(NiwsClientConfigKey.ProxyHost);
+                .getProperty(CommonClientConfigKey.ProxyHost);
                 proxyPort = Integer.parseInt(""
-                        + ncc.getProperty(NiwsClientConfigKey.ProxyPort));
+                        + ncc.getProperty(CommonClientConfigKey.ProxyPort));
                 HttpHost proxy = new HttpHost(proxyHost, proxyPort);
                 httpClient4
                 .getParams()
@@ -325,14 +325,14 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
-                        + NiwsClientConfigKey.ProxyHost,
+                        + CommonClientConfigKey.ProxyHost,
                         e);
             }
         }
 
         if (isSecure) {
-            final URL trustStoreUrl = getResourceForOptionalProperty(NiwsClientConfigKey.TrustStore);
-            final URL keyStoreUrl = getResourceForOptionalProperty(NiwsClientConfigKey.KeyStore);
+            final URL trustStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.TrustStore);
+            final URL keyStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.KeyStore);
 
             if (trustStoreUrl != null || keyStoreUrl != null) {
                 try {
@@ -342,10 +342,10 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
                     SSLContext context = new URLSslContextFactory(
                             trustStoreUrl,
                             (String) ncc
-                            .getProperty(NiwsClientConfigKey.TrustStorePassword),
+                            .getProperty(CommonClientConfigKey.TrustStorePassword),
                             keyStoreUrl,
                             (String) ncc
-                            .getProperty(NiwsClientConfigKey.KeyStorePassword))
+                            .getProperty(CommonClientConfigKey.KeyStorePassword))
                     .getSSLContext();
                     currentManager.getSchemeRegistry().register(new Scheme(
                             "https",
@@ -404,7 +404,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         restClient = c;
     }
 
-    private URL getResourceForOptionalProperty(final NiwsClientConfigKey configKey) {
+    private URL getResourceForOptionalProperty(final IClientConfigKey configKey) {
         final String propValue = (String) ncc.getProperty(configKey);
         URL result = null;
 
@@ -424,15 +424,11 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
                 task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity());
     }
 
-    private boolean isSecure(NiwsClientConfig overriddenClientConfig) {
+    private boolean isSecure(IClientConfig overriddenClientConfig) {
         boolean isSecure = false;
-        if (overriddenClientConfig != null && overriddenClientConfig.containsProperty(NiwsClientConfigKey.IsSecure)){
-            isSecure = overriddenClientConfig.isSecure();
-        } else {// look at the default client config
-            if (ncc != null && ncc.containsProperty(NiwsClientConfigKey.IsSecure)){
-                isSecure = ncc.isSecure();
-            }
-        }
+        if (overriddenClientConfig != null && overriddenClientConfig.containsProperty(CommonClientConfigKey.IsSecure)){
+            isSecure = Boolean.parseBoolean(overriddenClientConfig.getProperty(CommonClientConfigKey.IsSecure).toString());
+        } 
         return isSecure;
     }
 
@@ -445,6 +441,9 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpClientRequest task) {
         URI theUrl = task.getUri();
         boolean isSecure = isSecure(task.getOverrideConfig());
+        if (theUrl.getScheme() != null && theUrl.getHost() != null) {
+            isSecure = 	theUrl.getScheme().equalsIgnoreCase("https");
+        }
         int port = -1;
         if (theUrl.getHost() != null) {
             port = theUrl.getPort();
@@ -467,15 +466,15 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 
     private HttpClientResponse execute(Verb verb, URI uri,
             MultivaluedMap<String, String> headers, MultivaluedMap<String, String> params,
-            NiwsClientConfig overriddenClientConfig, Object requestEntity) throws Exception {
+            IClientConfig overriddenClientConfig, Object requestEntity) throws Exception {
         HttpClientResponse thisResponse = null;
         boolean bbFollowRedirects = bFollowRedirects;
         // read overriden props
         if (overriddenClientConfig != null 
         		// set whether we should auto follow redirects
-        		&& overriddenClientConfig.getProperty(NiwsClientConfigKey.FollowRedirects)!=null){
+        		&& overriddenClientConfig.getProperty(CommonClientConfigKey.FollowRedirects)!=null){
         	// use default directive from overall config
-        	Boolean followRedirects = Boolean.valueOf(""+overriddenClientConfig.getProperty(NiwsClientConfigKey.FollowRedirects, bFollowRedirects));
+        	Boolean followRedirects = Boolean.valueOf(""+overriddenClientConfig.getProperty(CommonClientConfigKey.FollowRedirects, bFollowRedirects));
         	bbFollowRedirects = followRedirects.booleanValue();
         }
         restClient.setFollowRedirects(bbFollowRedirects);
@@ -498,11 +497,6 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
                 String value = headers.getFirst(name);
                 b = b.header(name, value);
             }
-        }
-        int readTimeout = getReadTimeout(verb.toString(), uri);
-        restClient.setReadTimeout(readTimeout);
-        if (httpClient4 != null) {
-            HttpConnectionParams.setSoTimeout(httpClient4.getParams(), readTimeout);
         }
         switch (verb) {
         case GET:
@@ -579,56 +573,6 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         return false;
     }
     
-    public int getReadTimeout(String httpMethod, URI uri) {
-        int readTimeout = readTimeoutFastProperty.get();
-        try {
-            // check if we have a Method + URI specific override
-            Map<String, HttpVerbUriRegexPropertyValue> dynamicPropMap = ncc
-                    .getMethodURIConfigMap();
-            if (dynamicPropMap != null) {
-                String maxPropertyName = "";
-                for (Map.Entry<String, HttpVerbUriRegexPropertyValue> entry: dynamicPropMap.entrySet()) {
-                    // the key in the map is the alias. Let's check if a
-                    // ReadTimeout has been configured for that alias
-                	String key = entry.getKey();
-                    DynamicProperty fp = DynamicProperty.getInstance(NiwsClientConfig.getInstancePropName(restClientName,
-                                    new StringBuilder(key)
-                                            .append(".")
-                                            .append(NiwsClientConfigKey.ReadTimeout)
-                                            .toString()));
-                    Integer readTimeoutFromProp = fp
-                            .getInteger(Integer.MIN_VALUE);
-                    if (readTimeoutFromProp.intValue() != Integer.MIN_VALUE) {
-                        HttpVerbUriRegexPropertyValue value = entry.getValue();
-                        if (value.getVerb() == HttpVerbUriRegexPropertyValue.Verb.ANY_VERB
-                                || HttpVerbUriRegexPropertyValue.Verb
-                                        .get(httpMethod) == value.getVerb()) {
-                            if (uri.toString().matches(value.getUriRegex())) { // NOPMD
-                                // if the property key name is greater (comes
-                                // last in alphabetical order) than any previous
-                                // property names for same method/uri combination, 
-                                // then take the read timeout value for this 
-                                // property key name
-                                if (maxPropertyName.equals("")    // NOPMD
-                                        || key.compareTo(maxPropertyName) > 0) {
-                                    maxPropertyName = key;
-                                    readTimeout = readTimeoutFromProp
-                                            .intValue();
-                                }
-                            }
-                        }
-                    }
-
-                }
-            }
-        } catch (Throwable t) {
-            logger.warn("Encountered exception while figuring out Method URI "
-                    + "based read timeout, will fallback to value for "
-                    + "the restclient as a whole (" + readTimeout + ")", t);
-        }
-        return readTimeout;
-    }
-
 	@Override
 	protected Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
 			throws URISyntaxException, NIWSClientException {

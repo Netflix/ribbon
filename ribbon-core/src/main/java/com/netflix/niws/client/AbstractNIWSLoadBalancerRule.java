@@ -5,7 +5,7 @@ import com.netflix.loadbalancer.IRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 
-public abstract class AbstractNIWSLoadBalancerRule implements IRule, NiwsClientConfigAware {
+public abstract class AbstractNIWSLoadBalancerRule implements IRule, IClientConfigAware {
 
     AbstractLoadBalancer lb;
     

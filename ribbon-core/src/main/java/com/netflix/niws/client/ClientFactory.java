@@ -18,7 +18,7 @@ public class ClientFactory {
 
     private static Logger logger = LoggerFactory.getLogger(ClientFactory.class);
     
-    private static synchronized AbstractLoadBalancerAwareClient<?, ?> registerClientFromProperties(String restClientName, NiwsClientConfig niwsClientConfig) { 
+    private static synchronized AbstractLoadBalancerAwareClient<?, ?> registerClientFromProperties(String restClientName, IClientConfig niwsClientConfig) { 
         AbstractLoadBalancerAwareClient<?, ?> client = null;
         AbstractLoadBalancer loadBalancer = null;
         try {
@@ -28,10 +28,10 @@ public class ClientFactory {
                         "A Rest Client with this name is already registered. Please use a different name");
             }
             try {
-                String clientClassName = (String) niwsClientConfig.getProperty(NiwsClientConfigKey.ClientClassName);
+                String clientClassName = (String) niwsClientConfig.getProperty(CommonClientConfigKey.ClientClassName);
                 client = (AbstractLoadBalancerAwareClient<?, ?>) instantiateNiwsConfigAwareClassInstance(clientClassName, niwsClientConfig);
                 boolean initializeNFLoadBalancer = Boolean.parseBoolean(niwsClientConfig.getProperty(
-                                                NiwsClientConfigKey.InitializeNFLoadBalancer,
+                                                CommonClientConfigKey.InitializeNFLoadBalancer,
                                                 NiwsClientConfig.DEFAULT_ENABLE_LOADBALANCER).toString());
                 if (initializeNFLoadBalancer) {
                     loadBalancer  = (AbstractLoadBalancer) getNamedLoadBalancer(restClientName);
@@ -57,7 +57,7 @@ public class ClientFactory {
 
     
     public static IClient getNamedClient(String name) {
-        NiwsClientConfig niwsClientConfig = NiwsClientConfig.getNamedConfig(name);
+        IClientConfig niwsClientConfig = NiwsClientConfig.getNamedConfig(name);
         return registerClientFromProperties(name, niwsClientConfig);        
     }
     
@@ -80,9 +80,9 @@ public class ClientFactory {
             throw new NIWSClientException("LoadBalancer for name " + name + " already exists");
         }
         AbstractLoadBalancer lb = null;
-        NiwsClientConfig clientConfig = NiwsClientConfig.getNamedConfig(name);
+        IClientConfig clientConfig = NiwsClientConfig.getNamedConfig(name);
         try {
-            String loadBalancerClassName = (String) clientConfig.getProperty(NiwsClientConfigKey.NFLoadBalancerClassName);
+            String loadBalancerClassName = (String) clientConfig.getProperty(CommonClientConfigKey.NFLoadBalancerClassName);
             lb = (AbstractLoadBalancer) ClientFactory.instantiateNiwsConfigAwareClassInstance(loadBalancerClassName, clientConfig);                                    
             namedLBMap.put(name, lb);            
             logger.info("Client:" + name
@@ -93,7 +93,7 @@ public class ClientFactory {
         }
     }    
 
-    public static <T extends NiwsClientConfigAware> T instantiateNiwsConfigAwareClassInstance(String className, NiwsClientConfig clientConfig)
+    public static <T extends IClientConfigAware> T instantiateNiwsConfigAwareClassInstance(String className, IClientConfig clientConfig)
             throws InstantiationException, IllegalAccessException,
             ClassNotFoundException {
         T t = null;

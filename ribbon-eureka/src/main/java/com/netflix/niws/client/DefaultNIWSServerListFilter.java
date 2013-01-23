@@ -16,6 +16,7 @@ import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.ZoneSnapshot;
 import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
+import com.netflix.niws.client.IClientConfig;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 
@@ -38,13 +39,13 @@ public class DefaultNIWSServerListFilter extends
     
     String zone;
         
-    public void init(NiwsClientConfig niwsClientConfig) {
-        String sZoneAffinity = "" + niwsClientConfig.getProperty(NiwsClientConfigKey.EnableZoneAffinity, false);
+    public void init(IClientConfig niwsClientConfig) {
+        String sZoneAffinity = "" + niwsClientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity, false);
         if (sZoneAffinity != null){
             zoneAffinity = Boolean.parseBoolean(sZoneAffinity);
             logger.debug("ZoneAffinity is set to {}", zoneAffinity);
         }
-        String sZoneExclusive = "" + niwsClientConfig.getProperty(NiwsClientConfigKey.EnableZoneExclusivity, false);
+        String sZoneExclusive = "" + niwsClientConfig.getProperty(CommonClientConfigKey.EnableZoneExclusivity, false);
         if (sZoneExclusive != null){
             zoneExclusive = Boolean.parseBoolean(sZoneExclusive);
         }

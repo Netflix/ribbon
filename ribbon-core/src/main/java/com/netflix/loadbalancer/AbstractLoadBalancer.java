@@ -3,27 +3,30 @@ package com.netflix.loadbalancer;
 import java.util.List;
 
 import com.netflix.niws.client.NiwsClientConfig;
-import com.netflix.niws.client.NiwsClientConfigAware;
+import com.netflix.niws.client.IClientConfigAware;
 
 /**
  * AbstractLoadBalancer that captures all the operations and methods needed 
- * from a load balancer pov
+ * from a load balancer point of view.
+ * 
  * @author stonse
  *
  */
-public abstract class AbstractLoadBalancer implements ILoadBalancer, NiwsClientConfigAware {
+public abstract class AbstractLoadBalancer implements ILoadBalancer {
     
     public enum ServerGroup{
         ALL,
         STATUS_UP,
         STATUS_NOT_UP        
     }
-    
-    public abstract void addServers(List<Server> newServers);
+        
+    /**
+     * delegate to {@link #chooseServer(Object)} with parameter null.
+     */
+    public Server chooseServer() {
+    	return chooseServer(null);
+    }
 
-    public abstract Server chooseServer(Object key);
-
-    public abstract void markServerDown(Server server);
     
     /**
      * List of servers that this Loadbalancer knows about
@@ -38,8 +41,4 @@ public abstract class AbstractLoadBalancer implements ILoadBalancer, NiwsClientC
      * @return
      */
     public abstract LoadBalancerStats getLoadBalancerStats();
-
-    @Override
-    public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {
-    }
 }

@@ -8,13 +8,13 @@ package com.netflix.niws.client;
  * @author stonse
  *
  */
-public interface NiwsClientConfigAware {
+public interface IClientConfigAware {
 
     /**
      * Concrete implementation should implement this method so that the configuration set via 
      * NIWSClientConfig (which in turn were set via NC properties) will be taken into consideration
-     * @param niwsClientConfig
+     * @param clientConfig
      */
-    public abstract void initWithNiwsConfig(NiwsClientConfig niwsClientConfig);
+    public abstract void initWithNiwsConfig(IClientConfig clientConfig);
     
 }

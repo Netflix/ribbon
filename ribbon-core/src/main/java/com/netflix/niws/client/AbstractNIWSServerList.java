@@ -10,7 +10,7 @@ import com.netflix.loadbalancer.ServerList;
  * @author stonse
  *
  */
-public abstract class AbstractNIWSServerList<T extends Server> implements ServerList<T>, NiwsClientConfigAware {   
+public abstract class AbstractNIWSServerList<T extends Server> implements ServerList<T>, IClientConfigAware {   
            
     /**
      * This will be called ONLY ONCE to obtain the Filter class instance
@@ -18,7 +18,7 @@ public abstract class AbstractNIWSServerList<T extends Server> implements Server
      * @param niwsClientConfig
      * @return
      */
-    public AbstractNIWSServerListFilter<T> getFilterImpl(NiwsClientConfig niwsClientConfig) throws NIWSClientException{
+    public AbstractNIWSServerListFilter<T> getFilterImpl(IClientConfig niwsClientConfig) throws NIWSClientException{
         return new AbstractNIWSServerListFilter<T>(){
 
             @Override

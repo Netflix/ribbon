@@ -15,6 +15,9 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.niws.client.AbstractNIWSLoadBalancerPing;
 import com.netflix.niws.client.AbstractNIWSLoadBalancerRule;
+import com.netflix.niws.client.CommonClientConfigKey;
+import com.netflix.niws.client.IClientConfig;
+import com.netflix.niws.client.IClientConfigAware;
 import com.netflix.niws.client.ClientFactory;
 import com.netflix.niws.client.NIWSClientException;
 import com.netflix.niws.client.NiwsClientConfig;
@@ -27,11 +30,14 @@ import com.netflix.servo.monitor.Monitors;
 import com.netflix.util.concurrent.ShutdownEnabledTimer;
 
 /**
- * A Netflix Implementation of an ILoadBalancer 
+ * A basic implementation of the load balancer where an arbitrary list of servers can be set as the server pool.
+ * A ping can be set to determine the liveness of a server. Internally, this class maintains an "all" server list and
+ * an "up" server list and use them depending on what the caller asks for. 
+ *  
  * @author stonse
  *
  */
-public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConnections.PrimeConnectionListener {
+public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConnections.PrimeConnectionListener, IClientConfigAware {
 
     private static Logger logger = LoggerFactory.getLogger(BaseLoadBalancer.class);
     private final static IRule DEFAULT_RULE = new RoundRobinRule();
@@ -44,7 +50,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     protected IPing ping = null;
 
 
-    // TODO: server list should be updated at runtime
     @Monitor(name=PREFIX + "AllServerList", type=DataSourceType.INFORMATIONAL)
     protected volatile List<Server> allServerList = Collections.synchronizedList(new ArrayList<Server>());
     @Monitor(name=PREFIX + "UpServerList", type=DataSourceType.INFORMATIONAL)
@@ -73,9 +78,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     private boolean enablePrimingConnections = false;
     
     /**
-     * Default constructor. This constructor is mainly used by {@link ClientFactory}. Calling this constructor must 
+     * Default constructor which sets name as "default", sets null ping, and {@link RoundRobinRule} as the rule.
+     * <p>
+     * This constructor is mainly used by {@link ClientFactory}. Calling this constructor must 
      * be followed by calling {@link #init()} or {@link #initWithNiwsConfig(NiwsClientConfig)} to complete initialization.
-     * When constructing programatically, use other constructors.
+     * This constructor is provided for reflection. 
+     * When constructing programatically, it is recommended to use other constructors.
      */
     public BaseLoadBalancer() {
         this.name = DEFAULT_NAME;
@@ -107,17 +115,17 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         init();
     }
 
-    public BaseLoadBalancer(NiwsClientConfig config) {
+    public BaseLoadBalancer(IClientConfig config) {
         initWithNiwsConfig(config);
     }
     
     @Override
-    public void initWithNiwsConfig(NiwsClientConfig clientConfig)  {
+    public void initWithNiwsConfig(IClientConfig clientConfig)  {
         String clientName = clientConfig.getClientName();
         String ruleClassName = (String) clientConfig.getProperty(
-                    NiwsClientConfigKey.NFLoadBalancerRuleClassName);
+                    CommonClientConfigKey.NFLoadBalancerRuleClassName);
         String pingClassName = (String) clientConfig.getProperty(
-                    NiwsClientConfigKey.NFLoadBalancerPingClassName);
+                    CommonClientConfigKey.NFLoadBalancerPingClassName);
 
         AbstractNIWSLoadBalancerRule rule;
         AbstractNIWSLoadBalancerPing ping;
@@ -131,11 +139,11 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         this.name = clientName;
         int pingIntervalTime = Integer.parseInt(""
                 + clientConfig.getProperty(
-                        NiwsClientConfigKey.NFLoadBalancerPingInterval, Integer
+                        CommonClientConfigKey.NFLoadBalancerPingInterval, Integer
                                 .parseInt("30")));
         int maxTotalPingTime = Integer.parseInt(""
                 + clientConfig.getProperty(
-                        NiwsClientConfigKey.NFLoadBalancerMaxTotalPingTime,
+                        CommonClientConfigKey.NFLoadBalancerMaxTotalPingTime,
                         Integer.parseInt("2")));
 
         setPingInterval(pingIntervalTime);
@@ -153,12 +161,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                 + " instantiated a LoadBalancer:" + toString());        
         boolean useTunnel = false;
         boolean enablePrimeConnections = false;
-        if (clientConfig.getProperty(NiwsClientConfigKey.UseTunnel) != null) {
-            useTunnel = Boolean.valueOf(String.valueOf(clientConfig.getProperty(NiwsClientConfigKey.UseTunnel)));
+        if (clientConfig.getProperty(CommonClientConfigKey.UseTunnel) != null) {
+            useTunnel = Boolean.valueOf(String.valueOf(clientConfig.getProperty(CommonClientConfigKey.UseTunnel)));
         }
         
-        if (!useTunnel && clientConfig.getProperty(NiwsClientConfigKey.EnablePrimeConnections)!=null){
-        	Boolean bEnablePrimeConnections = Boolean.valueOf(""+ clientConfig.getProperty(NiwsClientConfigKey.EnablePrimeConnections, "false"));
+        if (!useTunnel && clientConfig.getProperty(CommonClientConfigKey.EnablePrimeConnections)!=null){
+        	Boolean bEnablePrimeConnections = Boolean.valueOf(""+ clientConfig.getProperty(CommonClientConfigKey.EnablePrimeConnections, "false"));
         	enablePrimeConnections = bEnablePrimeConnections.booleanValue();
         }
 
@@ -219,7 +227,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         this.lbStats = lbStats;
     }
 
-    /* Don't forget to unlock. */
     public Lock lockAllServerList(boolean write) {
         Lock aproposLock = write ? allServerLock.writeLock() : allServerLock
                 .readLock();
@@ -227,7 +234,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         return aproposLock;
     }
 
-    /* Don't forget to unlock. */
     public Lock lockUpServerList(boolean write) {
         Lock aproposLock = write ? upServerLock.writeLock() : upServerLock
                 .readLock();
@@ -235,7 +241,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         return aproposLock;
     }
 
-    /* How often do we ping the servers? */
     public void setPingInterval(int pingIntervalSeconds) {
         if (pingIntervalSeconds < 1) {
             return;
@@ -312,10 +317,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
             this.rule = new RoundRobinRule();
         }
     }
-
-    /*
-     * Does not lock, so might be inconsistent with reality depending on list
-     * implementation and what's going on
+    
+    /**
+     * get the count of servers.
+     * 
+     * @param onlyAvailable if true, return only up servers.
+     * @return
      */
     public int getServerCount(boolean onlyAvailable) {
         if (onlyAvailable) {
@@ -325,7 +332,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         }
     }
 
-    /*
+    /**
      * Add a server to the 'allServer' list; does not verify uniqueness, so you
      * could give a server a greater share by adding it more than once.
      */
@@ -343,11 +350,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         }
     }
 
-    /*
+    /**
      * Add a list of servers to the 'allServer' list; does not verify
      * uniqueness, so you could give a server a greater share by adding it more
      * than once
      */
+    @Override
     public void addServers(List<Server> newServers) {
         if (newServers != null && newServers.size() > 0) {			
             try {
@@ -389,7 +397,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         }
     }
 
-    /* List form. SETS, does not add */
+    /**
+     * Set the list of servers used as the server pool. This overrides existing server list.
+     */
     public void setServersList(List lsrv) {
         Lock writeLock = allServerLock.writeLock();
         if (logger.isDebugEnabled()){
@@ -474,9 +484,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         }
     }
 
-
-
-    /* Non-locking version; get a server by 0-based index in list */
+    
+    /**
+     * return the server 
+     * @param index
+     * @param availableOnly
+     * @return
+     */
     public Server getServerByIndex(int index, boolean availableOnly) {
         try {
             return (availableOnly ? upServerList.get(index) : allServerList
@@ -737,6 +751,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         return sb.toString();
     }
 
+    /**
+     * Register with monitors and start priming connections if it is set. 
+     */
     protected void init() {
         Monitors.registerObject("LoadBalancer_" + name, this);
         if (enablePrimingConnections && primeConnections != null) {

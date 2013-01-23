@@ -52,7 +52,7 @@ public class NIWSDiscoveryPing extends AbstractNIWSLoadBalancerPing {
 
         @Override
         public void initWithNiwsConfig(
-                NiwsClientConfig niwsClientConfig) {
+                IClientConfig clientConfig) {
         }
 		
 }

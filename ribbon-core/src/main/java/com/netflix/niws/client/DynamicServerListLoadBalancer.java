@@ -48,7 +48,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
 	
     volatile ServerListFilter<T> filter;  
 
-	NiwsClientConfig niwsClientConfig;
+	IClientConfig niwsClientConfig;
     
     public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.niws.client.DiscoveryEnabledNIWSServerList";
     	 
@@ -56,26 +56,26 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     	super();  
 	}
 
-	public DynamicServerListLoadBalancer(NiwsClientConfig niwsClientConfig){
+	public DynamicServerListLoadBalancer(IClientConfig niwsClientConfig){
 		initWithNiwsConfig(niwsClientConfig);
 	}
 
 
     @Override
-    public void initWithNiwsConfig(NiwsClientConfig niwsClientConfig) {        
+    public void initWithNiwsConfig(IClientConfig clientConfig) {        
         try {
-            super.initWithNiwsConfig(niwsClientConfig);
-            this.niwsClientConfig = niwsClientConfig;
-            String niwsServerListClassName = niwsClientConfig.getProperty(NiwsClientConfigKey.NIWSServerListClassName,
+            super.initWithNiwsConfig(clientConfig);
+            this.niwsClientConfig = clientConfig;
+            String niwsServerListClassName = clientConfig.getProperty(CommonClientConfigKey.NIWSServerListClassName,
                     DEFAULT_SEVER_LIST_CLASS).toString();
             Class<AbstractNIWSServerList <T>> niwsServerListClass = 
                 (Class<AbstractNIWSServerList<T>>) Class.forName(niwsServerListClassName);
             
             AbstractNIWSServerList<T> niwsServerListImpl = niwsServerListClass.newInstance();
-            niwsServerListImpl.initWithNiwsConfig(niwsClientConfig);
+            niwsServerListImpl.initWithNiwsConfig(clientConfig);
             this.serverListImpl = niwsServerListImpl;
             
-            AbstractNIWSServerListFilter<T> niwsFilter = niwsServerListImpl.getFilterImpl(niwsClientConfig);             
+            AbstractNIWSServerListFilter<T> niwsFilter = niwsServerListImpl.getFilterImpl(clientConfig);             
             niwsFilter.setLoadBalancerStats(getLoadBalancerStats());
             this.filter = niwsFilter;
             
@@ -89,8 +89,8 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
         } catch (Exception e) {
             throw new RuntimeException(
                     "Exception while initializing NIWSDiscoveryLoadBalancer:"
-                            + niwsClientConfig.getClientName() + ", niwsClientConfig:"
-                            + niwsClientConfig, e);
+                            + clientConfig.getClientName() + ", niwsClientConfig:"
+                            + clientConfig, e);
         }
     } 
 	 

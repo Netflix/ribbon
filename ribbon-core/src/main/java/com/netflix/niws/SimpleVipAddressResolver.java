@@ -3,14 +3,14 @@ package com.netflix.niws;
 import java.util.regex.Pattern;
 
 import com.netflix.config.ConfigurationManager;
-import com.netflix.niws.client.NiwsClientConfig;
+import com.netflix.niws.client.IClientConfig;
 
 public class SimpleVipAddressResolver implements VipAddressResolver {
 
     private static final Pattern VAR_PATTERN = Pattern.compile("\\$\\{(.*?)\\}");
 
     @Override
-    public String resolve(String vipAddressMacro, NiwsClientConfig niwsClientConfig) {
+    public String resolve(String vipAddressMacro, IClientConfig niwsClientConfig) {
         if (vipAddressMacro == null || vipAddressMacro.length() == 0) {
             return vipAddressMacro;
         }

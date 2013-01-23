@@ -4,7 +4,7 @@ import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.IPing;
 import com.netflix.loadbalancer.Server;
 
-public abstract class AbstractNIWSLoadBalancerPing implements IPing, NiwsClientConfigAware{
+public abstract class AbstractNIWSLoadBalancerPing implements IPing, IClientConfigAware{
 
     AbstractLoadBalancer lb;
     
