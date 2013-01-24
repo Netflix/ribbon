@@ -22,21 +22,21 @@ import java.util.List;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
-import com.netflix.client.NIWSClientException;
+import com.netflix.client.ClientException;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
-import com.netflix.loadbalancer.AbstractNIWSServerList;
-import com.netflix.loadbalancer.AbstractNIWSServerListFilter;
+import com.netflix.loadbalancer.AbstractServerList;
+import com.netflix.loadbalancer.AbstractServerListFilter;
 
 /**
  * Class to hold a list of servers that NIWS RestClient can use
  * @author stonse
  *
  */
-public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<DiscoveryEnabledServer>{
+public class DiscoveryEnabledNIWSServerList extends AbstractServerList<DiscoveryEnabledServer>{
 
     String clientName;
     String vipAddresses;
@@ -105,8 +105,8 @@ public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<Disco
     }
     
     @Override
-    public AbstractNIWSServerListFilter<DiscoveryEnabledServer> getFilterImpl(
-            IClientConfig niwsClientConfig) throws NIWSClientException {
+    public AbstractServerListFilter<DiscoveryEnabledServer> getFilterImpl(
+            IClientConfig niwsClientConfig) throws ClientException {
         try {
             String niwsServerListFilterClassName = niwsClientConfig
                     .getProperty(
@@ -114,18 +114,18 @@ public class DiscoveryEnabledNIWSServerList extends AbstractNIWSServerList<Disco
                             DefaultNIWSServerListFilter.class.getName())
                     .toString();
 
-            Class<AbstractNIWSServerListFilter<DiscoveryEnabledServer>> abstractNIWSServerListFilterClass = (Class<AbstractNIWSServerListFilter<DiscoveryEnabledServer>>) Class
+            Class<AbstractServerListFilter<DiscoveryEnabledServer>> abstractNIWSServerListFilterClass = (Class<AbstractServerListFilter<DiscoveryEnabledServer>>) Class
                     .forName(niwsServerListFilterClassName);
 
-            AbstractNIWSServerListFilter<DiscoveryEnabledServer> abstractNIWSServerListFilter = abstractNIWSServerListFilterClass.newInstance();
+            AbstractServerListFilter<DiscoveryEnabledServer> abstractNIWSServerListFilter = abstractNIWSServerListFilterClass.newInstance();
             if (abstractNIWSServerListFilter instanceof DefaultNIWSServerListFilter){
                 abstractNIWSServerListFilter = (DefaultNIWSServerListFilter) abstractNIWSServerListFilter;
                 ((DefaultNIWSServerListFilter) abstractNIWSServerListFilter).init(niwsClientConfig);
             }
             return abstractNIWSServerListFilter;
         } catch (Throwable e) {
-            throw new NIWSClientException(
-                    NIWSClientException.ErrorType.CONFIGURATION,
+            throw new ClientException(
+                    ClientException.ErrorType.CONFIGURATION,
                     "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"
                             + niwsClientConfig
                                     .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName));

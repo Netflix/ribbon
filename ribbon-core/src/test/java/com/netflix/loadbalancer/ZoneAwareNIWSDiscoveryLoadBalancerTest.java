@@ -29,7 +29,7 @@ import java.util.Set;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ZoneAwareNIWSDiscoveryLoadBalancer;
+import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
 
 import org.junit.Test;
 
@@ -54,7 +54,7 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
         return createServer(zoneSuffix + "-" + "server" + hostId, "us-eAst-1" + zoneSuffix);
     }
     
-    private void testChooseServer(ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer, String... expectedZones) {
+    private void testChooseServer(ZoneAwareLoadBalancer<Server> balancer, String... expectedZones) {
         Set<String> result = new HashSet<String>();
         for (int i = 0; i < 100; i++) {
             Server server = balancer.chooseServer(null);
@@ -70,7 +70,7 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     @Test
     public void testChooseZone() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 10);
-        ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer = new ZoneAwareNIWSDiscoveryLoadBalancer<Server>();
+        ZoneAwareLoadBalancer<Server> balancer = new ZoneAwareLoadBalancer<Server>();
         balancer.init();
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
         assertNotNull(loadBalancerStats);
@@ -149,7 +149,7 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     @Test
     public void testZoneOutage() throws Exception {
         ConfigurationManager.getConfigInstance().clearProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds");
-        ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer = new ZoneAwareNIWSDiscoveryLoadBalancer<Server>();
+        ZoneAwareLoadBalancer<Server> balancer = new ZoneAwareLoadBalancer<Server>();
         balancer.init();
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
         assertNotNull(loadBalancerStats);
@@ -181,7 +181,7 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     
     @Test
     public void testNonZoneOverride() {
-        ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer = new ZoneAwareNIWSDiscoveryLoadBalancer<Server>();
+        ZoneAwareLoadBalancer<Server> balancer = new ZoneAwareLoadBalancer<Server>();
         balancer.init();
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
         assertNotNull(loadBalancerStats);
@@ -216,7 +216,7 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     
     @Test
     public void testAvailabilityFiltering() {
-        ZoneAwareNIWSDiscoveryLoadBalancer balancer = new ZoneAwareNIWSDiscoveryLoadBalancer();
+        ZoneAwareLoadBalancer balancer = new ZoneAwareLoadBalancer();
         balancer.init();
         balancer.setRule(new AvailabilityFilteringRule());
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();

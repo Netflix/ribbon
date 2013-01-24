@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.client.IResponse;
-import com.netflix.client.NIWSClientException;
+import com.netflix.client.ClientException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
@@ -35,20 +35,20 @@ public class HttpClientResponse implements IResponse {
         * Returns the raw entity if available from the response 
         * @return
         * @throws IllegalArgumentException
-        * @throws NIWSClientException
+        * @throws ClientException
         */
-    public InputStream getRawEntity() throws NIWSClientException{
+    public InputStream getRawEntity() throws ClientException{
         return bcr.getEntityInputStream();
     }
        
     
     public <T> T getEntity(Class<T> c) throws IllegalArgumentException,
-            NIWSClientException {
+            ClientException {
         T t = null;
         try {
             t = this.bcr.getEntity(c);
         } catch (UniformInterfaceException e) {
-            throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL, e.getMessage(), e.getCause());
+            throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage(), e.getCause());
         } 
         return t;
     }
@@ -84,7 +84,7 @@ public class HttpClientResponse implements IResponse {
     }
 
     @Override
-    public Object getPayload() throws NIWSClientException {
+    public Object getPayload() throws ClientException {
         if (hasEntity()) {
             return getRawEntity();
         } else {

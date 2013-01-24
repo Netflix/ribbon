@@ -17,24 +17,23 @@
 */
 package com.netflix.loadbalancer;
 
+import com.netflix.client.IClientConfigAware;
 
-/**
- * Class that is responsible to Filter out list of servers from the ones 
- * currently available in the Load Balancer
- * @author stonse
- *
- * @param <T>
- */
-public abstract class AbstractNIWSServerListFilter<T extends Server> implements ServerListFilter<T> {
+public abstract class AbstractLoadBalancerPing implements IPing, IClientConfigAware{
 
-    private volatile LoadBalancerStats stats;
+    AbstractLoadBalancer lb;
     
-    public void setLoadBalancerStats(LoadBalancerStats stats) {
-        this.stats = stats;
+    @Override
+    public boolean isAlive(Server server) {
+        return true;
     }
     
-    public LoadBalancerStats getLoadBalancerStats() {
-        return stats;
+    public void setLoadBalancer(AbstractLoadBalancer lb){
+        this.lb = lb;
+    }
+    
+    public AbstractLoadBalancer getLoadBalancer(){
+        return lb;
     }
 
 }

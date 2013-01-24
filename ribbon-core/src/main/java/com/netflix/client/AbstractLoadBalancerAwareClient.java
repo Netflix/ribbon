@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.client.NIWSClientException.ErrorType;
+import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -123,7 +123,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         
     protected abstract boolean isRetriableException(Exception e);
     
-    protected T executeOnSingleServer(S request) throws NIWSClientException {
+    protected T executeOnSingleServer(S request) throws ClientException {
         boolean done = false;
         int retries = 0;
 
@@ -167,7 +167,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 if (shouldRetry) {
                     retries = handleRetry(uri.toString(), retries, numRetries, e);
                 } else {
-                    NIWSClientException niwsClientException = generateNIWSException(uri.toString(), e);
+                    ClientException niwsClientException = generateNIWSException(uri.toString(), e);
                     throw niwsClientException;
                 }
             } finally {
@@ -198,30 +198,30 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         return null;
     }
 
-    private NIWSClientException generateNIWSException(String uri, Exception e){
-        NIWSClientException niwsClientException;
+    private ClientException generateNIWSException(String uri, Exception e){
+        ClientException niwsClientException;
         if (isPresentAsCause(e, java.net.SocketTimeoutException.class)) {
             niwsClientException = generateTimeoutNIWSException(uri, e);
         }else if (e.getCause() instanceof java.net.UnknownHostException){
-            niwsClientException = new NIWSClientException(
-                    NIWSClientException.ErrorType.UNKNOWN_HOST_EXCEPTION,
+            niwsClientException = new ClientException(
+                    ClientException.ErrorType.UNKNOWN_HOST_EXCEPTION,
                     "Unable to execute RestClient request for URI:" + uri,
                     e);
         }else if (e.getCause() instanceof java.net.ConnectException){
-            niwsClientException = new NIWSClientException(
-                    NIWSClientException.ErrorType.CONNECT_EXCEPTION,
+            niwsClientException = new ClientException(
+                    ClientException.ErrorType.CONNECT_EXCEPTION,
                     "Unable to execute RestClient request for URI:" + uri,
                     e);
         }else if (e.getCause() instanceof java.net.NoRouteToHostException){
-            niwsClientException = new NIWSClientException(
-                    NIWSClientException.ErrorType.NO_ROUTE_TO_HOST_EXCEPTION,
+            niwsClientException = new ClientException(
+                    ClientException.ErrorType.NO_ROUTE_TO_HOST_EXCEPTION,
                     "Unable to execute RestClient request for URI:" + uri,
                     e);
-        }else if (e instanceof NIWSClientException){
-            niwsClientException = (NIWSClientException)e;
+        }else if (e instanceof ClientException){
+            niwsClientException = (ClientException)e;
         }else {
-            niwsClientException = new NIWSClientException(
-                NIWSClientException.ErrorType.GENERAL,
+            niwsClientException = new ClientException(
+                ClientException.ErrorType.GENERAL,
                 "Unable to execute RestClient request for URI:" + uri,
                 e);
         }
@@ -236,17 +236,17 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
         return false;
     }
-    private NIWSClientException generateTimeoutNIWSException(String uri, Exception e){
-        NIWSClientException niwsClientException;
+    private ClientException generateTimeoutNIWSException(String uri, Exception e){
+        ClientException niwsClientException;
         if (isPresentAsCause(e, java.net.SocketTimeoutException.class,
                 "Read timed out")) {
-            niwsClientException = new NIWSClientException(
-                    NIWSClientException.ErrorType.READ_TIMEOUT_EXCEPTION,
+            niwsClientException = new ClientException(
+                    ClientException.ErrorType.READ_TIMEOUT_EXCEPTION,
                     "Unable to execute RestClient request for URI:" + uri + ":"
                             + getDeepestCause(e).getMessage(), e);
         } else {
-            niwsClientException = new NIWSClientException(
-                    NIWSClientException.ErrorType.SOCKET_TIMEOUT_EXCEPTION,
+            niwsClientException = new ClientException(
+                    ClientException.ErrorType.SOCKET_TIMEOUT_EXCEPTION,
                     "Unable to execute RestClient request for URI:" + uri + ":"
                             + getDeepestCause(e).getMessage(), e);
         }
@@ -254,11 +254,11 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     }
 
     private int handleRetry(String uri, int retries, int numRetries,
-            Exception e) throws NIWSClientException {
+            Exception e) throws ClientException {
         retries++;
 
         if (retries > numRetries) {
-            throw new NIWSClientException(NIWSClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
+            throw new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
                     "NUMBEROFRETRIESEXEEDED :" + numRetries + " retries, while making a RestClient call for:" + uri,
                     e !=null? e: new RuntimeException());
         }
@@ -321,7 +321,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
     }
 
-    public T executeWithLoadBalancer(S task) throws NIWSClientException {
+    public T executeWithLoadBalancer(S task) throws ClientException {
         int retries = 0;
         boolean done = false;
         boolean retryOkayOnOperation = okToRetryOnAllOperations;
@@ -362,15 +362,15 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 done = true;
             } catch (Exception e) {      
                 boolean shouldRetry = false;
-                if (e instanceof NIWSClientException) {
+                if (e instanceof ClientException) {
                     // we dont want to retry for PUT/POST and DELETE, we can for GET
                     shouldRetry = retryOkayOnOperation && numRetries>0;
                 }
                 if (shouldRetry) {
                     retries++;
                     if (retries > numRetries) {
-                        throw new NIWSClientException(
-                                NIWSClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
+                        throw new ClientException(
+                                ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
                                 "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
                                 + numRetries
                                 + " retries, while making a RestClient call for:"
@@ -381,11 +381,11 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                             + ", URI tried:"
                             + task.getUri());
                 } else {
-                    if (e instanceof NIWSClientException) {
-                        throw (NIWSClientException) e;
+                    if (e instanceof ClientException) {
+                        throw (ClientException) e;
                     } else {
-                        throw new NIWSClientException(
-                                NIWSClientException.ErrorType.GENERAL,
+                        throw new ClientException(
+                                ClientException.ErrorType.GENERAL,
                                 "Unable to execute request for URI:" + task.getUri(),
                                 e);
                     }
@@ -400,7 +400,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     protected abstract int getDefaultPort();
         
     protected  Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
-    		throws URISyntaxException, NIWSClientException {
+    		throws URISyntaxException, ClientException {
         Pair<String, Integer> hostAndPort = new Pair<String, Integer>(null, -1);
         URI uri = new URI(vipAddress);
         String scheme = uri.getScheme();
@@ -409,14 +409,14 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
         String host = uri.getHost();
         if (host == null) {
-        	throw new NIWSClientException("Unable to derive host/port from vip address " + vipAddress);
+        	throw new ClientException("Unable to derive host/port from vip address " + vipAddress);
         }
         int port = uri.getPort();
         if (port < 0) {
         	port = getDefaultPort();
         }
         if (port < 0) {
-        	throw new NIWSClientException("Unable to derive host/port from vip address " + vipAddress);
+        	throw new ClientException("Unable to derive host/port from vip address " + vipAddress);
         }
         hostAndPort.setFirst(host);
         hostAndPort.setSecond(port);
@@ -439,12 +439,12 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         return false;
     }
     
-    protected S computeFinalUriWithLoadBalancer(S original) throws NIWSClientException{
+    protected S computeFinalUriWithLoadBalancer(S original) throws ClientException{
         URI newURI;
         URI theUrl = original.getUri();
 
         if (theUrl == null){
-            throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL, "NULL URL passed in");
+            throw new ClientException(ClientException.ErrorType.GENERAL, "NULL URL passed in");
         }
 
         String host = theUrl.getHost();
@@ -462,14 +462,14 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             if (lb != null){
                 Server svc = lb.chooseServer(loadBalancerKey);
                 if (svc == null){
-                    throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL,
+                    throw new ClientException(ClientException.ErrorType.GENERAL,
                             "LoadBalancer returned null Server for :"
                             + clientName);
                 }
                 host = svc.getHost();
                 port = svc.getPort();
                 if (host == null){
-                    throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL,
+                    throw new ClientException(ClientException.ErrorType.GENERAL,
                             "Invalid Server for :" + svc);
                 }
                 if (logger.isDebugEnabled()){
@@ -482,8 +482,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 // can use that else we
                 // bail out
                 if (vipAddresses != null && vipAddresses.contains(",")) {
-                    throw new NIWSClientException(
-                            NIWSClientException.ErrorType.GENERAL,
+                    throw new ClientException(
+                            ClientException.ErrorType.GENERAL,
                             this.clientName
                                     + "Partial URI of ("
                                     + theUrl
@@ -496,8 +496,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                         host = hostAndPort.first();
                         port = hostAndPort.second();
                     } catch (URISyntaxException e) {
-                        throw new NIWSClientException(
-                                NIWSClientException.ErrorType.GENERAL,
+                        throw new ClientException(
+                                ClientException.ErrorType.GENERAL,
                                 this.clientName
                                         + "Partial URI of ("
                                         + theUrl
@@ -505,8 +505,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                                         + " Also, the configured/registered vipAddress is unparseable (to determine host and port)");
                     }
                 }else{
-                    throw new NIWSClientException(
-                            NIWSClientException.ErrorType.GENERAL,
+                    throw new ClientException(
+                            ClientException.ErrorType.GENERAL,
                             this.clientName
                                     + " has no LoadBalancer registered and passed in a partial URL request (with no host:port)."
                                     + " Also has no vipAddress registered");
@@ -532,7 +532,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                     host = svc.getHost();
                     port = svc.getPort();
                     if (host == null){
-                        throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL,
+                        throw new ClientException(ClientException.ErrorType.GENERAL,
                                 "Invalid Server for :" + svc);
                     }
                     if (logger.isDebugEnabled()){
@@ -554,7 +554,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
         // end of creating final URL
         if (host == null){
-            throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL,"Request contains no HOST to talk to");
+            throw new ClientException(ClientException.ErrorType.GENERAL,"Request contains no HOST to talk to");
         }
         // just verify that at this point we have a full URL
 
@@ -569,7 +569,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             newURI = new URI(scheme, theUrl.getUserInfo(), host, port, urlPath, theUrl.getQuery(), theUrl.getFragment());
             return (S) original.replaceUri(newURI);            
         } catch (URISyntaxException e) {
-            throw new NIWSClientException(NIWSClientException.ErrorType.GENERAL, e.getMessage());
+            throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage());
         }
     }
 }

@@ -20,7 +20,7 @@ package com.netflix.loadbalancer;
 import java.util.List;
 
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.NIWSClientException;
+import com.netflix.client.ClientException;
 import com.netflix.client.config.IClientConfig;
 
 /**
@@ -28,7 +28,7 @@ import com.netflix.client.config.IClientConfig;
  * @author stonse
  *
  */
-public abstract class AbstractNIWSServerList<T extends Server> implements ServerList<T>, IClientConfigAware {   
+public abstract class AbstractServerList<T extends Server> implements ServerList<T>, IClientConfigAware {   
            
     /**
      * This will be called ONLY ONCE to obtain the Filter class instance
@@ -36,8 +36,8 @@ public abstract class AbstractNIWSServerList<T extends Server> implements Server
      * @param niwsClientConfig
      * @return
      */
-    public AbstractNIWSServerListFilter<T> getFilterImpl(IClientConfig niwsClientConfig) throws NIWSClientException{
-        return new AbstractNIWSServerListFilter<T>(){
+    public AbstractServerListFilter<T> getFilterImpl(IClientConfig niwsClientConfig) throws ClientException{
+        return new AbstractServerListFilter<T>(){
 
             @Override
             public List<T> getFilteredListOfServers(List<T> servers) {

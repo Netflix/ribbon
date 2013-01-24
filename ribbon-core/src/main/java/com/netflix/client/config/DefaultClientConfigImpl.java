@@ -32,7 +32,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = com.netflix.loadbalancer.AvailabilityFilteringRule.class.getName();
 
-    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = com.netflix.loadbalancer.ZoneAwareNIWSDiscoveryLoadBalancer.class.getName();
+    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = com.netflix.loadbalancer.ZoneAwareLoadBalancer.class.getName();
     
     public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
     

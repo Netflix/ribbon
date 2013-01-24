@@ -24,7 +24,7 @@ import com.netflix.client.config.IClientConfig;
  * @author stonse
  *
  */
-public class DummyPing extends AbstractNIWSLoadBalancerPing {
+public class DummyPing extends AbstractLoadBalancerPing {
 		
 		public DummyPing() {
 		}

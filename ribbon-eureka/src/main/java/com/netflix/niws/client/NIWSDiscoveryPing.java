@@ -21,7 +21,7 @@ package com.netflix.niws.client;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.AbstractNIWSLoadBalancerPing;
+import com.netflix.loadbalancer.AbstractLoadBalancerPing;
 import com.netflix.loadbalancer.IPing;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
@@ -34,7 +34,7 @@ import com.netflix.loadbalancer.Server;
  * @author stonse
  *
  */
-public class NIWSDiscoveryPing extends AbstractNIWSLoadBalancerPing {
+public class NIWSDiscoveryPing extends AbstractLoadBalancerPing {
 	        
 		BaseLoadBalancer lb = null; 
 		

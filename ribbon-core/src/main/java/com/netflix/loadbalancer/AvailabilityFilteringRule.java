@@ -21,7 +21,7 @@ import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 
-public class AvailabilityFilteringRule extends NIWSRoundRobinRule {
+public class AvailabilityFilteringRule extends ClientConfigEnabledRoundRobinRule {
     
     private static final DynamicBooleanProperty CIRCUIT_BREAKER_FILTERING =
         DynamicPropertyFactory.getInstance().getBooleanProperty("niws.loadbalancer.availabilityFilteringRule.filterCircuitTripped", true);

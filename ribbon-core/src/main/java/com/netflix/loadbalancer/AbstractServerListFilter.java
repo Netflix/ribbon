@@ -17,25 +17,24 @@
 */
 package com.netflix.loadbalancer;
 
-import com.netflix.client.IClientConfigAware;
 
-public abstract class AbstractNIWSLoadBalancerRule implements IRule, IClientConfigAware {
+/**
+ * Class that is responsible to Filter out list of servers from the ones 
+ * currently available in the Load Balancer
+ * @author stonse
+ *
+ * @param <T>
+ */
+public abstract class AbstractServerListFilter<T extends Server> implements ServerListFilter<T> {
 
-    AbstractLoadBalancer lb;
+    private volatile LoadBalancerStats stats;
     
-    @Override
-    public Server choose(BaseLoadBalancer lb, Object key) {
-        // TODO Auto-generated method stub
-        return null;
+    public void setLoadBalancerStats(LoadBalancerStats stats) {
+        this.stats = stats;
     }
     
-    public void setLoadBalancer(AbstractLoadBalancer lb){
-        this.lb = lb;
+    public LoadBalancerStats getLoadBalancerStats() {
+        return stats;
     }
-    
-    public AbstractLoadBalancer getLoadBalancer(){
-        return lb;
-    }
-    
 
 }

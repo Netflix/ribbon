@@ -19,13 +19,14 @@ package com.netflix.loadbalancer;
 
 import com.netflix.client.IClientConfigAware;
 
-public abstract class AbstractNIWSLoadBalancerPing implements IPing, IClientConfigAware{
+public abstract class AbstractLoadBalancerRule implements IRule, IClientConfigAware {
 
     AbstractLoadBalancer lb;
     
     @Override
-    public boolean isAlive(Server server) {
-        return true;
+    public Server choose(BaseLoadBalancer lb, Object key) {
+        // TODO Auto-generated method stub
+        return null;
     }
     
     public void setLoadBalancer(AbstractLoadBalancer lb){
@@ -35,5 +36,6 @@ public abstract class AbstractNIWSLoadBalancerPing implements IPing, IClientConf
     public AbstractLoadBalancer getLoadBalancer(){
         return lb;
     }
+    
 
 }

@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.NIWSClientException;
+import com.netflix.client.ClientException;
 import com.netflix.client.PrimeConnections;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
@@ -141,8 +141,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         String pingClassName = (String) clientConfig.getProperty(
                     CommonClientConfigKey.NFLoadBalancerPingClassName);
 
-        AbstractNIWSLoadBalancerRule rule;
-        AbstractNIWSLoadBalancerPing ping;
+        AbstractLoadBalancerRule rule;
+        AbstractLoadBalancerPing ping;
         try {
             rule = ClientFactory.instantiateNiwsConfigAwareClassInstance(ruleClassName, clientConfig);
             ping = ClientFactory.instantiateNiwsConfigAwareClassInstance(pingClassName, clientConfig);

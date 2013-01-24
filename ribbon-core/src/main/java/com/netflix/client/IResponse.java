@@ -36,9 +36,9 @@ public interface IResponse
     * Returns the raw entity if available from the response 
     * @return
     * @throws IllegalArgumentException
-    * @throws NIWSClientException
+    * @throws ClientException
     */
-   public Object getPayload() throws NIWSClientException;
+   public Object getPayload() throws ClientException;
       
    /**
     * A "peek" kinda API. Use to check if your service returned a response with an Entity

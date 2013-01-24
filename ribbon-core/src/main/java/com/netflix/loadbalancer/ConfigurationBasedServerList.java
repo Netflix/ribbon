@@ -6,7 +6,7 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicListProperty;
 
-public class ConfigurationBasedServerList extends AbstractNIWSServerList<Server>  {
+public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 
 	public static final String PROP_NAME = "listOfServers";
 	private String propertyName = DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + "." + PROP_NAME;

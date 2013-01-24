@@ -36,11 +36,11 @@ import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
 
-public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends DynamicServerListLoadBalancer<T> {
+public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLoadBalancer<T> {
 
     private ConcurrentHashMap<String, BaseLoadBalancer> balancers = new ConcurrentHashMap<String, BaseLoadBalancer>();
     
-    private static final Logger logger = LoggerFactory.getLogger(ZoneAwareNIWSDiscoveryLoadBalancer.class);
+    private static final Logger logger = LoggerFactory.getLogger(ZoneAwareLoadBalancer.class);
     
     private static final Random random = new Random();
         

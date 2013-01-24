@@ -79,14 +79,14 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
             this.niwsClientConfig = clientConfig;
             String niwsServerListClassName = clientConfig.getProperty(CommonClientConfigKey.NIWSServerListClassName,
                     DefaultClientConfigImpl.DEFAULT_SEVER_LIST_CLASS).toString();
-            Class<AbstractNIWSServerList <T>> niwsServerListClass = 
-                (Class<AbstractNIWSServerList<T>>) Class.forName(niwsServerListClassName);
+            Class<AbstractServerList <T>> niwsServerListClass = 
+                (Class<AbstractServerList<T>>) Class.forName(niwsServerListClassName);
             
-            AbstractNIWSServerList<T> niwsServerListImpl = niwsServerListClass.newInstance();
+            AbstractServerList<T> niwsServerListImpl = niwsServerListClass.newInstance();
             niwsServerListImpl.initWithNiwsConfig(clientConfig);
             this.serverListImpl = niwsServerListImpl;
             
-            AbstractNIWSServerListFilter<T> niwsFilter = niwsServerListImpl.getFilterImpl(clientConfig);             
+            AbstractServerListFilter<T> niwsFilter = niwsServerListImpl.getFilterImpl(clientConfig);             
             niwsFilter.setLoadBalancerStats(getLoadBalancerStats());
             this.filter = niwsFilter;
             

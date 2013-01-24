@@ -24,7 +24,7 @@ import com.netflix.client.config.IClientConfig;
  * @author stonse
  *
  */
-public class NIWSWeightedResponseTimeRule extends AbstractNIWSLoadBalancerRule{
+public class WeightedResponseTimeRule extends AbstractLoadBalancerRule{
 
     ResponseTimeWeightedRule rule = new ResponseTimeWeightedRule();
     

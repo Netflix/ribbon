@@ -22,7 +22,7 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 
 
-public class NIWSClientException extends Exception{
+public class ClientException extends Exception{
 	/**
 	 * 
 	 */
@@ -60,44 +60,44 @@ public class NIWSClientException extends Exception{
     protected Object errorObject;
     protected ErrorType errorType = ErrorType.GENERAL;
 
-    public NIWSClientException(String message) {
+    public ClientException(String message) {
         this(0, message, null);
     }
 
-    public NIWSClientException(int errorCode) {
+    public ClientException(int errorCode) {
         this(errorCode, null, null);
     }
 
-    public NIWSClientException(int errorCode, String message) {
+    public ClientException(int errorCode, String message) {
         this(errorCode, message, null);
     }
 
-    public NIWSClientException(Throwable chainedException) {
+    public ClientException(Throwable chainedException) {
         this(0, null, chainedException);
     }
 
-    public NIWSClientException(String message, Throwable chainedException) {
+    public ClientException(String message, Throwable chainedException) {
         this(0, message, chainedException);
     }
 
-    public NIWSClientException(int errorCode, String message, Throwable chainedException) {
+    public ClientException(int errorCode, String message, Throwable chainedException) {
         super((message == null && errorCode != 0) ? ", code=" + errorCode + "->" + ErrorType.getName(errorCode): message,
               chainedException);
         this.errorCode = errorCode;
         this.message = message;
     }
     
-    public NIWSClientException(ErrorType error) {
+    public ClientException(ErrorType error) {
         this(error.ordinal(), null, null);
         this.errorType = error;
     }
 
-    public NIWSClientException(ErrorType error, String message) {
+    public ClientException(ErrorType error, String message) {
         this(error.ordinal(), message, null);
         this.errorType = error;
     }
     
-    public NIWSClientException( ErrorType error, String message, Throwable chainedException) {
+    public ClientException( ErrorType error, String message, Throwable chainedException) {
         super((message == null && error.ordinal() != 0) ? ", code=" + error.ordinal() + "->" + error.name() : message,
               chainedException);
         this.errorCode = error.ordinal();
@@ -172,13 +172,5 @@ public class NIWSClientException extends Exception{
             }
         }
         return map;
-    }
-    
-    public static void main(String args[]){
-        NIWSClientException ne = new NIWSClientException(ErrorType.SERVER_THROTTLED);
-        System.out.println("Error Type:" + ne.getErrorType().getName(1000));
-        ne.printStackTrace();
-    }
-
-    
+    }    
 }

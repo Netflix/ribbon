@@ -24,7 +24,7 @@ import com.netflix.client.config.IClientConfig;
  * @author stonse
  *
  */
-public class NIWSRoundRobinRule extends AbstractNIWSLoadBalancerRule{
+public class ClientConfigEnabledRoundRobinRule extends AbstractLoadBalancerRule{
 
     RoundRobinRule rule = new RoundRobinRule();
     

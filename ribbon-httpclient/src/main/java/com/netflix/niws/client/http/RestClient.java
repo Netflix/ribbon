@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.client.AbstractLoadBalancerAwareClient;
-import com.netflix.client.NIWSClientException;
+import com.netflix.client.ClientException;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -489,15 +489,15 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             jerseyResponse = b.options(ClientResponse.class);
             break;
         default:
-            throw new NIWSClientException(
-                    NIWSClientException.ErrorType.GENERAL,
+            throw new ClientException(
+                    ClientException.ErrorType.GENERAL,
                     "You have to one of the REST verbs such as GET, POST etc.");
         }
 
         thisResponse = new HttpClientResponse(jerseyResponse);
         thisResponse.setRequestedURI(uri);
         if (thisResponse.getStatus() == 503){
-            throw new NIWSClientException(NIWSClientException.ErrorType.SERVER_THROTTLED);
+            throw new ClientException(ClientException.ErrorType.SERVER_THROTTLED);
         }
         return thisResponse;
     }
@@ -505,8 +505,8 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     @Override
     protected boolean isRetriableException(Exception e) {
         boolean shouldRetry = isConnectException(e) || isSocketException(e);
-        if (e instanceof NIWSClientException 
-                && ((NIWSClientException)e).getErrorType() == NIWSClientException.ErrorType.SERVER_THROTTLED){
+        if (e instanceof ClientException 
+                && ((ClientException)e).getErrorType() == ClientException.ErrorType.SERVER_THROTTLED){
             shouldRetry = true;
         }
         return shouldRetry;
@@ -546,7 +546,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     
 	@Override
 	protected Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
-			throws URISyntaxException, NIWSClientException {
+			throws URISyntaxException, ClientException {
 		if (!vipAddress.contains("http")) {
 			vipAddress = "http://" + vipAddress;
 		}

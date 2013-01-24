@@ -33,7 +33,7 @@ import com.netflix.config.DeploymentContext.ContextKey;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.loadbalancer.AbstractNIWSServerListFilter;
+import com.netflix.loadbalancer.AbstractServerListFilter;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.ZoneSnapshot;
 import com.netflix.servo.monitor.Counter;
@@ -45,7 +45,7 @@ import com.netflix.servo.monitor.Monitors;
  *
  */
 public class DefaultNIWSServerListFilter extends
-        AbstractNIWSServerListFilter<DiscoveryEnabledServer> {
+        AbstractServerListFilter<DiscoveryEnabledServer> {
 
     private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
     private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;

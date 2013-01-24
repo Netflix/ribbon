@@ -39,7 +39,7 @@ public class ServerListLoabBalancerTest {
 	static Server[] servers = {new Server("abc", 80), new Server("xyz", 90), new Server("www.netflix.com", 80)};
 	static List<Server> serverList = Arrays.asList(servers);
 	
-	public static class FixedServerList extends AbstractNIWSServerList<Server> {
+	public static class FixedServerList extends AbstractServerList<Server> {
 
 		@Override
 		public void initWithNiwsConfig(IClientConfig clientConfig) {
