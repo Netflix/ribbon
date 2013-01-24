@@ -20,9 +20,7 @@ import com.netflix.niws.client.IClientConfig;
 import com.netflix.niws.client.IClientConfigAware;
 import com.netflix.niws.client.ClientFactory;
 import com.netflix.niws.client.NIWSClientException;
-import com.netflix.niws.client.NiwsClientConfig;
 import com.netflix.niws.client.PrimeConnections;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
@@ -76,7 +74,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     private PrimeConnections primeConnections;
     
     private boolean enablePrimingConnections = false;
-    
+        
     /**
      * Default constructor which sets name as "default", sets null ping, and {@link RoundRobinRule} as the rule.
      * <p>
@@ -159,13 +157,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         ping.setLoadBalancer(this);
         logger.info("Client:" + name
                 + " instantiated a LoadBalancer:" + toString());        
-        boolean useTunnel = false;
         boolean enablePrimeConnections = false;
-        if (clientConfig.getProperty(CommonClientConfigKey.UseTunnel) != null) {
-            useTunnel = Boolean.valueOf(String.valueOf(clientConfig.getProperty(CommonClientConfigKey.UseTunnel)));
-        }
         
-        if (!useTunnel && clientConfig.getProperty(CommonClientConfigKey.EnablePrimeConnections)!=null){
+        if (clientConfig.getProperty(CommonClientConfigKey.EnablePrimeConnections)!=null){
         	Boolean bEnablePrimeConnections = Boolean.valueOf(""+ clientConfig.getProperty(CommonClientConfigKey.EnablePrimeConnections, "false"));
         	enablePrimeConnections = bEnablePrimeConnections.booleanValue();
         }

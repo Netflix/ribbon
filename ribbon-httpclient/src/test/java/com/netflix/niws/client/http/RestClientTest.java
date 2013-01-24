@@ -60,8 +60,8 @@ public class RestClientTest {
     
     @Test
     public void testVipAsURI()  throws Exception {
-    	ConfigurationManager.getConfigInstance().setProperty("test1.niws.client.DeploymentContextBasedVipAddresses", "google.com:80");
-    	ConfigurationManager.getConfigInstance().setProperty("test1.niws.client.InitializeNFLoadBalancer", "false");
+    	ConfigurationManager.getConfigInstance().setProperty("test1.ribbon.DeploymentContextBasedVipAddresses", "google.com:80");
+    	ConfigurationManager.getConfigInstance().setProperty("test1.ribbon.InitializeNFLoadBalancer", "false");
         RestClient client = (RestClient) ClientFactory.getNamedClient("test1");
         assertNull(client.getLoadBalancer());
         HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("/")).build();
@@ -72,7 +72,7 @@ public class RestClientTest {
     
     @Test
     public void testSecureClient()  throws Exception {
-    	ConfigurationManager.getConfigInstance().setProperty("test2.niws.client.IsSecure", "true");
+    	ConfigurationManager.getConfigInstance().setProperty("test2.ribbon.IsSecure", "true");
     	RestClient client = (RestClient) ClientFactory.getNamedClient("test2");
         HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("https://www.google.com/")).build();
         HttpClientResponse response = client.executeWithLoadBalancer(request);

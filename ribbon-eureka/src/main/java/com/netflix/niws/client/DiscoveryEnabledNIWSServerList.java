@@ -8,7 +8,6 @@ import com.netflix.appinfo.InstanceInfo.InstanceStatus;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 
 /**
  * Class to hold a list of servers that NIWS RestClient can use

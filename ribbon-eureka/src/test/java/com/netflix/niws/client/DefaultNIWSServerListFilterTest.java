@@ -46,9 +46,11 @@ public class DefaultNIWSServerListFilterTest {
 
     @Test
     public void testZoneAffinityEnabled() throws Exception {
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.niws.client.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.niws.client.NFLoadBalancerClassName", DynamicServerListLoadBalancer.class.getName());
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.niws.client.EnableZoneAffinity", "true");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.ribbon.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.ribbon.NFLoadBalancerClassName", DynamicServerListLoadBalancer.class.getName());
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
+
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.ribbon.EnableZoneAffinity", "true");
         DynamicServerListLoadBalancer lb = (DynamicServerListLoadBalancer) ClientFactory.getNamedLoadBalancer("DefaultNIWSServerListFilterTest1");
         assertTrue(lb.getRule() instanceof AvailabilityFilteringRule);
         DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.filter;
@@ -86,9 +88,10 @@ public class DefaultNIWSServerListFilterTest {
     
     @Test
     public void testZoneExclusivity() throws Exception {
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.niws.client.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.niws.client.NFLoadBalancerClassName", DynamicServerListLoadBalancer.class.getName());
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.niws.client.EnableZoneExclusivity", "true");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.ribbon.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.ribbon.NFLoadBalancerClassName", DynamicServerListLoadBalancer.class.getName());
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.ribbon.EnableZoneExclusivity", "true");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
         DynamicServerListLoadBalancer lb = (DynamicServerListLoadBalancer) ClientFactory.getNamedLoadBalancer("DefaultNIWSServerListFilterTest2");
         DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.filter;
         LoadBalancerStats loadBalancerStats = lb.getLoadBalancerStats();
@@ -123,10 +126,11 @@ public class DefaultNIWSServerListFilterTest {
     
     @Test
     public void testZoneAffinityOverride() throws Exception {
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.niws.client.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.niws.client.NFLoadBalancerClassName", DynamicServerListLoadBalancer.class.getName());
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.niws.client.EnableZoneAffinity", "true");
-        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.niws.client.zoneAffinity.minAvailableServers", "3");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.NFLoadBalancerClassName", DynamicServerListLoadBalancer.class.getName());
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.EnableZoneAffinity", "true");
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
+        ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.zoneAffinity.minAvailableServers", "3");
         DynamicServerListLoadBalancer lb = (DynamicServerListLoadBalancer) ClientFactory.getNamedLoadBalancer("DefaultNIWSServerListFilterTest3");
         DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.filter;
         LoadBalancerStats loadBalancerStats = lb.getLoadBalancerStats();

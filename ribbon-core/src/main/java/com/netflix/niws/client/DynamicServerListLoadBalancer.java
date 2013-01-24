@@ -12,13 +12,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.loadbalancer.IPing;
 import com.netflix.loadbalancer.IRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerList;
 import com.netflix.loadbalancer.ServerListFilter;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.google.common.util.concurrent.ThreadFactoryBuilder; 
 
 /**
@@ -49,9 +49,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     volatile ServerListFilter<T> filter;  
 
 	IClientConfig niwsClientConfig;
-    
-    public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.niws.client.DiscoveryEnabledNIWSServerList";
-    	 
+        	 
 	public DynamicServerListLoadBalancer(){
     	super();  
 	}
@@ -67,7 +65,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
             super.initWithNiwsConfig(clientConfig);
             this.niwsClientConfig = clientConfig;
             String niwsServerListClassName = clientConfig.getProperty(CommonClientConfigKey.NIWSServerListClassName,
-                    DEFAULT_SEVER_LIST_CLASS).toString();
+                    DefaultClientConfigImpl.DEFAULT_SEVER_LIST_CLASS).toString();
             Class<AbstractNIWSServerList <T>> niwsServerListClass = 
                 (Class<AbstractNIWSServerList<T>>) Class.forName(niwsServerListClassName);
             

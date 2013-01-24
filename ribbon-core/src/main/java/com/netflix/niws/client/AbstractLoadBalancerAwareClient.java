@@ -8,12 +8,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
@@ -27,11 +27,11 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     
     private String vipAddresses;
     
-    private int maxAutoRetriesNextServer = NiwsClientConfig.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
-    private int maxAutoRetries = NiwsClientConfig.DEFAULT_MAX_AUTO_RETRIES;
+    private int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
+    private int maxAutoRetries = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES;
 
 
-    boolean okToRetryOnAllOperations = NiwsClientConfig.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
+    boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
     
     AtomicLong numRetriesOnNextServer = new AtomicLong(0);
     

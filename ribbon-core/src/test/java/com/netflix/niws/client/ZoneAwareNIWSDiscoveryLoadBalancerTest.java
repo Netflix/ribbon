@@ -50,7 +50,6 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     
     @Test
     public void testChooseZone() throws Exception {
-        ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripTimeoutFactorSeconds", 5);
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 10);
         ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer = new ZoneAwareNIWSDiscoveryLoadBalancer<Server>();
         balancer.init();
@@ -130,9 +129,6 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
 
     @Test
     public void testZoneOutage() throws Exception {
-    	ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripTimeoutFactorSeconds", 3000);
-        //NetflixConfiguration.getConfigInstance().setProperty("niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit", 2);
-    	ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripMaxTimeoutSeconds", 100000);
         ConfigurationManager.getConfigInstance().clearProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds");
         ZoneAwareNIWSDiscoveryLoadBalancer<Server> balancer = new ZoneAwareNIWSDiscoveryLoadBalancer<Server>();
         balancer.init();
@@ -201,9 +197,6 @@ public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
     
     @Test
     public void testAvailabilityFiltering() {
-    	ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripTimeoutFactorSeconds", 3000);
-        //NetflixConfiguration.getConfigInstance().setProperty("niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit", 2);
-    	ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.junit.circuitTripMaxTimeoutSeconds", 100000);
         ZoneAwareNIWSDiscoveryLoadBalancer balancer = new ZoneAwareNIWSDiscoveryLoadBalancer();
         balancer.init();
         balancer.setRule(new AvailabilityFilteringRule());

@@ -7,7 +7,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Iterator;
-import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.core.MultivaluedMap;
@@ -24,35 +23,29 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.HTTP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicProperty;
 import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.config.util.HttpVerbUriRegexPropertyValue;
 import com.netflix.http4.NFHttpClient;
 import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
-import com.netflix.loadbalancer.Server;
 import com.netflix.niws.client.AbstractLoadBalancerAwareClient;
 import com.netflix.niws.client.CommonClientConfigKey;
 import com.netflix.niws.client.IClientConfig;
 import com.netflix.niws.client.IClientConfigKey;
 import com.netflix.niws.client.NIWSClientException;
-import com.netflix.niws.client.NiwsClientConfig;
 import com.netflix.niws.client.URLSslContextFactory;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.netflix.util.Pair;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.WebResource.Builder;
-import com.sun.jersey.api.client.filter.LoggingFilter;
 import com.sun.jersey.client.apache4.ApacheHttpClient4;
 import com.sun.jersey.client.apache4.ApacheHttpClient4Handler;
 import com.sun.jersey.client.apache4.config.ApacheHttpClient4Config;
@@ -77,31 +70,9 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     private boolean isSecure;
     private ApacheHttpClient4Config config;
 
-    boolean bFollowRedirects = NiwsClientConfig.DEFAULT_FOLLOW_REDIRECTS;
+    boolean bFollowRedirects = DefaultClientConfigImpl.DEFAULT_FOLLOW_REDIRECTS;
 
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
-
-    class SpecializedDynamicIntProperty {
-
-        DynamicProperty instanceSpecificProperty;
-        DynamicIntProperty defaultProperty;
-
-        public SpecializedDynamicIntProperty(IClientConfigKey configKey) {
-            instanceSpecificProperty = DynamicProperty.getInstance((NiwsClientConfig.getInstancePropName(restClientName, configKey)));
-            defaultProperty = DynamicPropertyFactory.getInstance().getIntProperty(NiwsClientConfig.getDefaultPropName(configKey),
-                    Integer.parseInt(ncc.getProperty(configKey).toString()));
-        }
-
-        int get() {
-            return instanceSpecificProperty.getInteger(defaultProperty.get()).intValue();
-        }
-
-        // For JMX Monitored Resource
-        @Override
-        public String toString() {
-            return Integer.toString(get());
-        }
-    }
 
     public RestClient() {
         restClientName = "default";

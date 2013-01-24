@@ -45,7 +45,7 @@ public class ZoneAwareNIWSDiscoveryLoadBalancer<T extends Server> extends Dynami
     void setUpServerList(List<Server> upServerList) {
         this.upServerList = upServerList;
     }
-    
+        
     @Override
     protected void setServerListForZones(Map<String, List<Server>> zoneServersMap) {
         super.setServerListForZones(zoneServersMap);

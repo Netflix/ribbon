@@ -2,8 +2,8 @@ package com.netflix.niws.client;
 
 import static org.junit.Assert.*;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -34,7 +34,8 @@ public class NiwsClientConfigTest {
 
     @Test
     public void testNiwsConfigViaProperties() throws Exception {
-        IClientConfig clientConfig = NiwsClientConfig.getConfigWithDefaultProperties();
+    	DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+    	clientConfig.loadDefaultProperties();
         Properties props = new Properties();
         
         final String restClientName = "testRestClient";
@@ -44,13 +45,13 @@ public class NiwsClientConfigTest {
         
         props.setProperty("appname", "movieservice");
         
-        NiwsClientConfig.setProperty(props, restClientName, CommonClientConfigKey.AppName.key(), "movieservice");
-        NiwsClientConfig.setProperty(props, restClientName, CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(),
+        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.AppName.key(), "movieservice");
+        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(),
                 "${appname}-${netflix.appinfo.stack}-${netflix.environment},movieservice--${netflix.environment}");
-        NiwsClientConfig.setProperty(props, restClientName, CommonClientConfigKey.EnableZoneAffinity.key(), "false");
+        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.EnableZoneAffinity.key(), "false");
         
         ConfigurationManager.loadProperties(props);
-        ConfigurationManager.getConfigInstance().setProperty("testRestClient.niws.client.customProperty", "abc");
+        ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.customProperty", "abc");
         
         clientConfig.loadProperties(restClientName);
         
@@ -60,24 +61,25 @@ public class NiwsClientConfigTest {
         assertEquals("abc", clientConfig.getProperties().get("customProperty"));
         System.out.println("AutoVipAddress:" + clientConfig.resolveDeploymentContextbasedVipAddresses());
         
-        ConfigurationManager.getConfigInstance().setProperty("testRestClient.niws.client.EnableZoneAffinity", "true");
-        ConfigurationManager.getConfigInstance().setProperty("testRestClient.niws.client.customProperty", "xyz");
+        ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.EnableZoneAffinity", "true");
+        ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.customProperty", "xyz");
         assertEquals("true", clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));
         assertEquals("xyz", clientConfig.getProperties().get("customProperty"));        
     }
     
     @Test
     public void testresolveDeploymentContextbasedVipAddresses() throws Exception {
-        IClientConfig clientConfig = NiwsClientConfig.getConfigWithDefaultProperties();
+    	DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+    	clientConfig.loadDefaultProperties();
         Properties props = new Properties();
         
         final String restClientName = "testRestClient2";
         
-        NiwsClientConfig.setProperty(props, restClientName,CommonClientConfigKey.AppName.key(), "movieservice");
-        NiwsClientConfig.setProperty(props, restClientName, CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(),
+        clientConfig.setProperty(props, restClientName,CommonClientConfigKey.AppName.key(), "movieservice");
+        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(),
                 "${<appname>}-${netflix.appinfo.stack}-${netflix.environment}:${<port>},${<appname>}--${netflix.environment}:${<port>}");
-        NiwsClientConfig.setProperty(props, restClientName, CommonClientConfigKey.Port.key(), "7001");
-        NiwsClientConfig.setProperty(props, restClientName, CommonClientConfigKey.EnableZoneAffinity.key(), "true");        
+        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.Port.key(), "7001");
+        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.EnableZoneAffinity.key(), "true");        
         ConfigurationManager.loadProperties(props);
         
         clientConfig.loadProperties(restClientName);
@@ -85,10 +87,10 @@ public class NiwsClientConfigTest {
         Assert.assertEquals("movieservice", clientConfig.getProperty(CommonClientConfigKey.AppName));
         Assert.assertEquals("true", clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));
         
-        ConfigurationManager.getConfigInstance().setProperty("testRestClient2.niws.client.DeploymentContextBasedVipAddresses", "movieservice-xbox-test:7001");
+        ConfigurationManager.getConfigInstance().setProperty("testRestClient2.ribbon.DeploymentContextBasedVipAddresses", "movieservice-xbox-test:7001");
         assertEquals("movieservice-xbox-test:7001", clientConfig.getProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses));
         
-        ConfigurationManager.getConfigInstance().clearProperty("testRestClient2.niws.client.EnableZoneAffinity");
+        ConfigurationManager.getConfigInstance().clearProperty("testRestClient2.ribbon.EnableZoneAffinity");
         assertNull(clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));
     }
 }

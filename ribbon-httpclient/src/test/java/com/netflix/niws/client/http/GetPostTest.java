@@ -37,7 +37,6 @@ public class GetPostTest {
             e.printStackTrace();
             fail(e.getMessage());
         }
-        ConfigurationManager.getConfigInstance().setProperty("GetPostTest.niws.client.ChunkedEncodingSize", "5");
         client = (RestClient) ClientFactory.getNamedClient("GetPostTest");
     }
     

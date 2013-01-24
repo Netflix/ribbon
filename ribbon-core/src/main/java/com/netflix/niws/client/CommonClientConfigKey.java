@@ -13,12 +13,6 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     OkToRetryOnAllOperations("OkToRetryOnAllOperations"),
     RequestSpecificRetryOn("RequestSpecificRetryOn"),
     ReceiveBuffferSize("ReceiveBuffferSize"),
-    EnableNIWSEventLogging("EnableNIWSEventLogging"),
-    EnnableVerboseErrorLogging("EnableVerboseErrorLogging"),
-    PercentageNIWSEventLogged("PercentageNIWSEventLogged"),
-    EnableRequestThrottling("EnableRequestThrottling"),
-    RequestThrottlingWindowInMSecs("RequestThrottlingWindowInMSecs"),
-    MaxRequestsAllowedPerWindow("MaxRequestsAllowedPerWindow"),        
     EnablePrimeConnections("EnablePrimeConnections"),
     PrimeConnectionsClassName("PrimeConnectionsClassName"),
     MaxRetriesPerServerPrimeConnection("MaxRetriesPerServerPrimeConnection"),
@@ -29,14 +23,8 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     PoolMinThreads("PoolMinThreads"),
     PoolKeepAliveTime("PoolKeepAliveTime"),
     PoolKeepAliveTimeUnits("PoolKeepAliveTimeUnits"),
-    SLA("SLA"),
-    SLAMinFailureResponseCode("SLAMinFailureResponseCode"),
-    EnableNIWSStats("EnableNIWSStats"), // enable the feature of collecting request stats
-    EnableNIWSErrorStats("EnableNIWSErrorStats"), // capture numErrors and other stats per Error Code
-    NIWSStats("NIWSStats"), // The property key used per request stat alias
 
     //HTTP Client Related
-    UseHttpClient4("UseHttpClient4"),
     MaxHttpConnectionsPerHost("MaxHttpConnectionsPerHost"),
     MaxTotalHttpConnections("MaxTotalHttpConnections"),
     IsSecure("IsSecure"),
@@ -77,10 +65,7 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     EnableZoneAffinity("EnableZoneAffinity"),
     EnableZoneExclusivity("EnableZoneExclusivity"),
     PrioritizeVipAddressBasedServers("PrioritizeVipAddressBasedServers"),
-    VipAddressResolverClassName("VipAddressResolverClassName"),
-
-    //Tunnelling
-    UseTunnel("UseTunnel");
+    VipAddressResolverClassName("VipAddressResolverClassName");
 
     private final String configKey;
 

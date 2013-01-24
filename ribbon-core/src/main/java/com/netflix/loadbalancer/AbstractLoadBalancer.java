@@ -2,7 +2,6 @@ package com.netflix.loadbalancer;
 
 import java.util.List;
 
-import com.netflix.niws.client.NiwsClientConfig;
 import com.netflix.niws.client.IClientConfigAware;
 
 /**

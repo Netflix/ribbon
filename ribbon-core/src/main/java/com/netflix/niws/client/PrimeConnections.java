@@ -17,8 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.loadbalancer.Server;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
@@ -92,10 +92,10 @@ public class PrimeConnections {
     }
 
     public PrimeConnections(String name, IClientConfig niwsClientConfig) {
-        int maxRetriesPerServerPrimeConnection = Integer.valueOf(NiwsClientConfig.DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION);
-        long maxTotalTimeToPrimeConnections = Long.valueOf(NiwsClientConfig.DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS);
-        String primeConnectionsURI = NiwsClientConfig.DEFAULT_PRIME_CONNECTIONS_URI;  
-        String className = NiwsClientConfig.DEFAULT_PRIME_CONNECTIONS_CLASS;
+        int maxRetriesPerServerPrimeConnection = Integer.valueOf(DefaultClientConfigImpl.DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION);
+        long maxTotalTimeToPrimeConnections = Long.valueOf(DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS);
+        String primeConnectionsURI = DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_URI;  
+        String className = DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_CLASS;
         try {
             maxRetriesPerServerPrimeConnection = Integer.parseInt(String.valueOf(niwsClientConfig.getProperty(
                     CommonClientConfigKey.MaxRetriesPerServerPrimeConnection, maxRetriesPerServerPrimeConnection)));
@@ -111,7 +111,7 @@ public class PrimeConnections {
         primeConnectionsURI = String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.PrimeConnectionsURI, primeConnectionsURI));
         float primeRatio = Float.parseFloat(String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.MinPrimeConnectionsRatio)));
         className = (String) niwsClientConfig.getProperty(CommonClientConfigKey.PrimeConnectionsClassName, 
-                NiwsClientConfig.DEFAULT_PRIME_CONNECTIONS_CLASS);
+        		DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_CLASS);
         try {
             connector = (IPrimeConnection) Class.forName(className).newInstance();
             connector.initWithNiwsConfig(niwsClientConfig);
@@ -124,7 +124,7 @@ public class PrimeConnections {
         
     public PrimeConnections(String name, int maxRetries, 
             long maxTotalTimeToPrimeConnections, String primeConnectionsURI) {
-        setUp(name, maxRetries, maxTotalTimeToPrimeConnections, primeConnectionsURI, NiwsClientConfig.DEFAULT_MIN_PRIME_CONNECTIONS_RATIO);
+        setUp(name, maxRetries, maxTotalTimeToPrimeConnections, primeConnectionsURI, DefaultClientConfigImpl.DEFAULT_MIN_PRIME_CONNECTIONS_RATIO);
     }
 
     public PrimeConnections(String name, int maxRetries, 
@@ -159,37 +159,6 @@ public class PrimeConnections {
         Monitors.registerObject(name + "_PrimeConnection", this);
     }
     
-    /**
-     * Prime the connections to the servers
-     * 
-     * @return
-     */
-    /*
-    public void primeConnections() {
-        // makeConnectionsASync();
-        makeConnections();
-
-        long startTime = System.currentTimeMillis();
-        while (totalTimeTaken <= maxTotalTimeToPrimeConnections) {
-            try {
-                try {
-                    if (isDone()) {
-                        break;
-                    }
-                } catch (Exception e) {
-                 
-                }
-                logger.debug("numServersLeft:" + numServersLeft);
-                Thread.sleep(100);
-                totalTimeTaken = System.currentTimeMillis() - startTime;
-            } catch (Exception e) {
-
-            }
-        }
-        // shutdown();
-        printStats();
-    }
-   */
     public void primeConnections(List<Server> servers) {
         if (servers == null || servers.size() == 0) {
             logger.debug("No server to prime");
@@ -293,15 +262,6 @@ public class PrimeConnections {
         return ftList;
     }
     
-    /*
-    private void makeConnections() {
-        List<Server> allServers = new ArrayList<Server>(); 
-        if (lb !=null){
-            allServers.addAll(lb.getServerList(true));
-        }
-        primeConnectionsAsync(allServers, null);
-    } */
-
     private Future<Boolean> makeConnectionASync(final Server s, 
             final PrimeConnectionListener listener) throws InterruptedException, ExecutionException {
         Callable<Boolean> ftConn = new Callable<Boolean>() {

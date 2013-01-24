@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.AmazonInfo.MetaDataKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DeploymentContext.ContextKey;
 import com.netflix.config.DynamicDoubleProperty;
@@ -15,7 +16,6 @@ import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.ZoneSnapshot;
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 import com.netflix.niws.client.IClientConfig;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
@@ -28,8 +28,8 @@ import com.netflix.servo.monitor.Monitors;
 public class DefaultNIWSServerListFilter extends
         AbstractNIWSServerListFilter<DiscoveryEnabledServer> {
 
-    private volatile boolean zoneAffinity = NiwsClientConfig.DEFAULT_ENABLE_ZONE_AFFINITY;
-    private volatile boolean zoneExclusive = NiwsClientConfig.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
+    private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
+    private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
     private DynamicDoubleProperty activeReqeustsPerServerThreshold;
     private DynamicDoubleProperty blackOutServerPercentageThreshold;
     private DynamicIntProperty availableServersThreshold;
@@ -39,6 +39,13 @@ public class DefaultNIWSServerListFilter extends
     
     String zone;
         
+    public DefaultNIWSServerListFilter() {    	
+    }
+    
+    public DefaultNIWSServerListFilter(IClientConfig niwsClientConfig) {
+    	init(niwsClientConfig);
+    }
+    
     public void init(IClientConfig niwsClientConfig) {
         String sZoneAffinity = "" + niwsClientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity, false);
         if (sZoneAffinity != null){
@@ -52,11 +59,11 @@ public class DefaultNIWSServerListFilter extends
         if (ConfigurationManager.getDeploymentContext() != null) {
             zone = ConfigurationManager.getDeploymentContext().getValue(ContextKey.zone);
         }
-        activeReqeustsPerServerThreshold = DynamicPropertyFactory.getInstance().getDoubleProperty(niwsClientConfig.getClientName() + ".niws.client.zoneAffinity.maxLoadPerServer", 0.6d);
+        activeReqeustsPerServerThreshold = DynamicPropertyFactory.getInstance().getDoubleProperty(niwsClientConfig.getClientName() + "." + niwsClientConfig.getNameSpace() + ".zoneAffinity.maxLoadPerServer", 0.6d);
         logger.debug("activeReqeustsPerServerThreshold: {}", activeReqeustsPerServerThreshold.get());
-        blackOutServerPercentageThreshold = DynamicPropertyFactory.getInstance().getDoubleProperty(niwsClientConfig.getClientName() + ".niws.client.zoneAffinity.maxBlackOutServesrPercentage", 0.8d);
+        blackOutServerPercentageThreshold = DynamicPropertyFactory.getInstance().getDoubleProperty(niwsClientConfig.getClientName() + "." + niwsClientConfig.getNameSpace() + ".zoneAffinity.maxBlackOutServesrPercentage", 0.8d);
         logger.debug("blackOutServerPercentageThreshold: {}", blackOutServerPercentageThreshold.get());
-        availableServersThreshold = DynamicPropertyFactory.getInstance().getIntProperty(niwsClientConfig.getClientName() + ".niws.client.zoneAffinity.minAvailableServers", 2);
+        availableServersThreshold = DynamicPropertyFactory.getInstance().getIntProperty(niwsClientConfig.getClientName() + "." + niwsClientConfig.getNameSpace() + ".zoneAffinity.minAvailableServers", 2);
         logger.debug("availableServersThreshold: {}", availableServersThreshold.get());
         overrideCounter = Monitors.newCounter("ZoneAffinity_OverrideCounter");
         Monitors.registerObject("NIWSServerListFilter_" + niwsClientConfig.getClientName());

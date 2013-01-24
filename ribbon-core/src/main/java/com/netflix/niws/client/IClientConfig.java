@@ -2,11 +2,12 @@ package com.netflix.niws.client;
 
 import java.util.Map;
 
-import com.netflix.niws.client.NiwsClientConfig.NiwsClientConfigKey;
 
 public interface IClientConfig {
 
-	public abstract String getClientName();
+	public String getClientName();
+		
+	public String getNameSpace();
 
 	public abstract void loadProperties(String restClientName);
 
