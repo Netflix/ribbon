@@ -1,3 +1,20 @@
+/*
+*
+* Copyright 2013 Netflix, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*/
 package com.netflix.loadbalancer;
 
 import java.util.ArrayList;
@@ -10,15 +27,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.niws.client.AbstractNIWSLoadBalancerPing;
 import com.netflix.niws.client.AbstractNIWSLoadBalancerRule;
+import com.netflix.niws.client.ClientFactory;
 import com.netflix.niws.client.CommonClientConfigKey;
 import com.netflix.niws.client.IClientConfig;
 import com.netflix.niws.client.IClientConfigAware;
-import com.netflix.niws.client.ClientFactory;
 import com.netflix.niws.client.NIWSClientException;
 import com.netflix.niws.client.PrimeConnections;
 import com.netflix.servo.annotations.DataSourceType;

@@ -23,8 +23,8 @@ import com.netflix.niws.cert.AbstractSslContextFactory;
  * Secure socket factory that is used the NIWS code if a non-standard key store or trust store
  * is specified.
  *
- * @author dyuan@netflix.com (Danny Yuan) - Original implementation for AKMS
- * @author pstout@netflix.com (Peter D. Stout) - Generalization for use in NIWS code
+ * @author dyuan@netflix.com (Danny Yuan) 
+ * @author pstout@netflix.com (Peter D. Stout)
  */
 public class URLSslContextFactory extends AbstractSslContextFactory{
     private final static Logger LOGGER = LoggerFactory.getLogger(URLSslContextFactory.class);

@@ -1,3 +1,20 @@
+/*
+*
+* Copyright 2013 Netflix, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*/
 package com.netflix.niws.client;
 
 import java.util.ArrayList;
@@ -25,10 +42,10 @@ import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
 
 /**
- * Prime the Http Connections for a given RestClient (Of course for those
- * RestClient that have a LoadBalancer that knows the set of Servers it will
- * connect to) This is mainly done to address those deployment environments
- * (Read EC2) which have slow firewall connection/path set up
+ * Prime the Http Connections for a given RestClient (For those RestClient that
+ * have a LoadBalancer that knows the set of Servers it will connect to) This is
+ * mainly done to address those deployment environments (Read EC2) which benefit
+ * from a firewall connection/path warmup prior to actual use for live requests
  * 
  * @author stonse
  * 

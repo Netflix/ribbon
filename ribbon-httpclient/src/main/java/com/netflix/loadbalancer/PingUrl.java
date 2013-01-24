@@ -1,3 +1,20 @@
+/*
+*
+* Copyright 2013 Netflix, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*/
 package com.netflix.loadbalancer;
 
 import java.io.IOException;
@@ -13,21 +30,20 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Use this Ping implementation if you want to do a "health check"
- * kind of Ping.
- * This will be a a "real" ping. As in a real http/s call is made to this url
- * e.g. http://ec2-75-101-231-85.compute-1.amazonaws.com:7101/cs/hostRunning
+ * Ping implementation if you want to do a "health check" kind of Ping. This
+ * will be a "real" ping. As in a real http/s call is made to this url e.g.
+ * http://ec2-75-101-231-85.compute-1.amazonaws.com:7101/cs/hostRunning
  * 
- * Some services/clients choose PingDiscovery - which is quick but is not a real 
- * ping. As in - it just asks discovery in-memory cache if the server is present in 
- * its Roster
- * PingUrl on the other hand, makes a real call. This is more expensive - but its the
- * "standard" way most VIPs and other services perform HealthChecks.
+ * Some services/clients choose PingDiscovery - which is quick but is not a real
+ * ping. i.e It just asks discovery (eureka) in-memory cache if the server is present
+ * in its Roster PingUrl on the other hand, makes an actual call. This is more
+ * expensive - but its the "standard" way most VIPs and other services perform
+ * HealthChecks.
  * 
  * Choose your Ping based on your needs.
  * 
  * @author stonse
- *
+ * 
  */
 public class PingUrl implements IPing {
     private static final Logger LOGGER = LoggerFactory.getLogger(PingUrl.class);
