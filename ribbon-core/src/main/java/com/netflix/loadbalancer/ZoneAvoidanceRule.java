@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,10 +26,6 @@ import java.util.Set;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.loadbalancer.LoadBalancerStats;
-import com.netflix.loadbalancer.BaseLoadBalancer;
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ZoneSnapshot;
 
 public class ZoneAvoidanceRule extends AvailabilityFilteringRule {
     

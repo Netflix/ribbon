@@ -15,7 +15,9 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client;
+
+import com.netflix.client.config.IClientConfig;
 
 /**
  * There are multiple classes (and components) that need access to the configuration.

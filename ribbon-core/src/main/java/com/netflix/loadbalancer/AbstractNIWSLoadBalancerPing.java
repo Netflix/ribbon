@@ -15,21 +15,17 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
-import com.netflix.loadbalancer.AbstractLoadBalancer;
-import com.netflix.loadbalancer.BaseLoadBalancer;
-import com.netflix.loadbalancer.IRule;
-import com.netflix.loadbalancer.Server;
+import com.netflix.client.IClientConfigAware;
 
-public abstract class AbstractNIWSLoadBalancerRule implements IRule, IClientConfigAware {
+public abstract class AbstractNIWSLoadBalancerPing implements IPing, IClientConfigAware{
 
     AbstractLoadBalancer lb;
     
     @Override
-    public Server choose(BaseLoadBalancer lb, Object key) {
-        // TODO Auto-generated method stub
-        return null;
+    public boolean isAlive(Server server) {
+        return true;
     }
     
     public void setLoadBalancer(AbstractLoadBalancer lb){
@@ -39,6 +35,5 @@ public abstract class AbstractNIWSLoadBalancerRule implements IRule, IClientConf
     public AbstractLoadBalancer getLoadBalancer(){
         return lb;
     }
-    
 
 }

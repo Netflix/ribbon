@@ -15,12 +15,13 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
 import java.util.List;
 
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ServerList;
+import com.netflix.client.IClientConfigAware;
+import com.netflix.client.NIWSClientException;
+import com.netflix.client.config.IClientConfig;
 
 /**
  * The class that defines how a list of servers are obtained, updated and filtered for use by NIWS

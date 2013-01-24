@@ -15,9 +15,10 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client.config;
 
 import java.util.Map;
+
 
 
 public interface IClientConfig {

@@ -15,10 +15,27 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws;
+package com.netflix.loadbalancer;
 
-import com.netflix.niws.client.IClientConfig;
+import com.netflix.client.IClientConfigAware;
 
-public interface VipAddressResolver {
-    public String resolve(String vipAddress, IClientConfig niwsClientConfig);
+public abstract class AbstractNIWSLoadBalancerRule implements IRule, IClientConfigAware {
+
+    AbstractLoadBalancer lb;
+    
+    @Override
+    public Server choose(BaseLoadBalancer lb, Object key) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    public void setLoadBalancer(AbstractLoadBalancer lb){
+        this.lb = lb;
+    }
+    
+    public AbstractLoadBalancer getLoadBalancer(){
+        return lb;
+    }
+    
+
 }

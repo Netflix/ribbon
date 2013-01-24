@@ -22,9 +22,14 @@ import java.util.List;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
+import com.netflix.client.NIWSClientException;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
+import com.netflix.loadbalancer.AbstractNIWSServerList;
+import com.netflix.loadbalancer.AbstractNIWSServerListFilter;
 
 /**
  * Class to hold a list of servers that NIWS RestClient can use

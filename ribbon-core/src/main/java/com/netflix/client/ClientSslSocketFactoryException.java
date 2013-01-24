@@ -15,10 +15,19 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client;
 
+/**
+ * Reports problems detected by the ClientSslSocketFactory class.
+ *
+ * @author pstout@netflix.com (Peter D. Stout)
+ */
+public class ClientSslSocketFactoryException extends Exception {
+    /** Serial version identifier for this class. */
+    private static final long serialVersionUID = 1L;
 
-public interface IClient<S extends ClientRequest, T extends IResponse> {
-
-    public T execute(S task) throws Exception; 
+    /** Constructs a new instance with the specified message and cause. */
+    public ClientSslSocketFactoryException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }

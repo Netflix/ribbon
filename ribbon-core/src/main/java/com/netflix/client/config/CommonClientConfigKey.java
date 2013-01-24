@@ -15,7 +15,8 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client.config;
+
 
 public enum CommonClientConfigKey implements IClientConfigKey {
 

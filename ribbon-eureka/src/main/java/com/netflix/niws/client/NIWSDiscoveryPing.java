@@ -20,6 +20,8 @@ package com.netflix.niws.client;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.loadbalancer.AbstractNIWSLoadBalancerPing;
 import com.netflix.loadbalancer.IPing;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;

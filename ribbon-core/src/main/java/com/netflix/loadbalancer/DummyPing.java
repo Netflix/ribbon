@@ -17,8 +17,7 @@
 */
 package com.netflix.loadbalancer;
 
-import com.netflix.niws.client.AbstractNIWSLoadBalancerPing;
-import com.netflix.niws.client.IClientConfig;
+import com.netflix.client.config.IClientConfig;
 
 /**
  * Default simple implementation

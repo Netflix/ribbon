@@ -21,8 +21,8 @@ import java.net.URI;
 
 import javax.ws.rs.core.MultivaluedMap;
 
-import com.netflix.niws.client.ClientRequest;
-import com.netflix.niws.client.IClientConfig;
+import com.netflix.client.ClientRequest;
+import com.netflix.client.config.IClientConfig;
 
 public class HttpClientRequest extends ClientRequest {
         

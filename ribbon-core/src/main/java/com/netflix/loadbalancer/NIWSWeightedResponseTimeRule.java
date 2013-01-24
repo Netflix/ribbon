@@ -15,27 +15,33 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
-import com.netflix.loadbalancer.BaseLoadBalancer;
-import com.netflix.loadbalancer.RoundRobinRule;
-import com.netflix.loadbalancer.Server;
+import com.netflix.client.config.IClientConfig;
 
 /**
- * This class essentially contains the RoundRobinRule class defined in the loadbalancer package
+ * This class essentially contains the ResponseTimeWeightedRule class defined in the loadbalancer package
  * @author stonse
  *
  */
-public class NIWSRoundRobinRule extends AbstractNIWSLoadBalancerRule{
+public class NIWSWeightedResponseTimeRule extends AbstractNIWSLoadBalancerRule{
 
-    RoundRobinRule rule = new RoundRobinRule();
+    ResponseTimeWeightedRule rule = new ResponseTimeWeightedRule();
     
     @Override
     public void initWithNiwsConfig(
             IClientConfig clientConfig) {
-       rule = new RoundRobinRule();        
+       rule = new ResponseTimeWeightedRule();       
     }
 
+    @Override
+    //TODO(stonse): Consider refactoring this so that we dont need to override this
+    public void setLoadBalancer(AbstractLoadBalancer lb){
+       super.setLoadBalancer(lb);
+       rule.setLoadBalancer(lb);// set it for the contained Rule class
+       rule.initialize(lb);
+    }
+    
     @Override
     public Server choose(BaseLoadBalancer lb, Object key) {       
         if (rule!=null){

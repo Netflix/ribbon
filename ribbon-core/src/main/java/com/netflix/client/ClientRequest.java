@@ -15,9 +15,11 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client;
 
 import java.net.URI;
+
+import com.netflix.client.config.IClientConfig;
 
 public class ClientRequest implements Cloneable {
 

@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,11 +32,6 @@ import org.slf4j.LoggerFactory;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.loadbalancer.BaseLoadBalancer;
-import com.netflix.loadbalancer.IRule;
-import com.netflix.loadbalancer.LoadBalancerStats;
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ZoneSnapshot;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;

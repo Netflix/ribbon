@@ -15,10 +15,11 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client;
 
-public interface IClientConfigKey {
 
-	public abstract String key();
 
+public interface IClient<S extends ClientRequest, T extends IResponse> {
+
+    public T execute(S task) throws Exception; 
 }

@@ -15,12 +15,12 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws;
+package com.netflix.client;
 
 import java.util.regex.Pattern;
 
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
-import com.netflix.niws.client.IClientConfig;
 
 public class SimpleVipAddressResolver implements VipAddressResolver {
 

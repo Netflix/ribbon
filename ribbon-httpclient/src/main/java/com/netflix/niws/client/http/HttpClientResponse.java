@@ -8,8 +8,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.niws.client.IResponse;
-import com.netflix.niws.client.NIWSClientException;
+import com.netflix.client.IResponse;
+import com.netflix.client.NIWSClientException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 

@@ -15,11 +15,12 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client;
 
 import java.net.URI;
 
 import javax.ws.rs.core.MultivaluedMap;
+
 
 /**
  * Response interface for the NIWS client framework.  Use this in your client proxy interface method return type

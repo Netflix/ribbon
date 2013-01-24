@@ -3,9 +3,8 @@ package com.netflix.loadbalancer;
 import java.util.List;
 
 import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicListProperty;
-import com.netflix.niws.client.AbstractNIWSServerList;
-import com.netflix.niws.client.IClientConfig;
 
 public class ConfigurationBasedServerList extends AbstractNIWSServerList<Server>  {
 

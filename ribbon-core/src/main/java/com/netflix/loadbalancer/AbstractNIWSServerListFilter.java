@@ -15,27 +15,26 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
-import com.netflix.loadbalancer.AbstractLoadBalancer;
-import com.netflix.loadbalancer.IPing;
-import com.netflix.loadbalancer.Server;
 
-public abstract class AbstractNIWSLoadBalancerPing implements IPing, IClientConfigAware{
+/**
+ * Class that is responsible to Filter out list of servers from the ones 
+ * currently available in the Load Balancer
+ * @author stonse
+ *
+ * @param <T>
+ */
+public abstract class AbstractNIWSServerListFilter<T extends Server> implements ServerListFilter<T> {
 
-    AbstractLoadBalancer lb;
+    private volatile LoadBalancerStats stats;
     
-    @Override
-    public boolean isAlive(Server server) {
-        return true;
+    public void setLoadBalancerStats(LoadBalancerStats stats) {
+        this.stats = stats;
     }
     
-    public void setLoadBalancer(AbstractLoadBalancer lb){
-        this.lb = lb;
-    }
-    
-    public AbstractLoadBalancer getLoadBalancer(){
-        return lb;
+    public LoadBalancerStats getLoadBalancerStats() {
+        return stats;
     }
 
 }

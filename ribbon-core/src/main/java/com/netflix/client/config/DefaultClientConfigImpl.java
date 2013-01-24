@@ -12,15 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
+import com.netflix.client.VipAddressResolver;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
 import com.netflix.config.util.HttpVerbUriRegexPropertyValue;
 import com.netflix.loadbalancer.DummyPing;
-import com.netflix.niws.VipAddressResolver;
-import com.netflix.niws.client.CommonClientConfigKey;
-import com.netflix.niws.client.IClientConfig;
-import com.netflix.niws.client.IClientConfigKey;
 
 /**
  * Class that holds the NIWS Client Configuration to be used for <code>{@link RestClient}</code>)
@@ -33,13 +30,13 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 	public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = DummyPing.class.getName();
 
-    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = com.netflix.niws.client.AvailabilityFilteringRule.class.getName();
+    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = com.netflix.loadbalancer.AvailabilityFilteringRule.class.getName();
 
-    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = com.netflix.niws.client.ZoneAwareNIWSDiscoveryLoadBalancer.class.getName();
+    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = com.netflix.loadbalancer.ZoneAwareNIWSDiscoveryLoadBalancer.class.getName();
     
     public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
     
-    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = com.netflix.niws.SimpleVipAddressResolver.class.getName();
+    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = com.netflix.client.SimpleVipAddressResolver.class.getName();
 
     public static final String DEFAULT_PRIME_CONNECTIONS_URI = "/";
 

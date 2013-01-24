@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +29,8 @@ import java.util.Set;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ZoneAwareNIWSDiscoveryLoadBalancer;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

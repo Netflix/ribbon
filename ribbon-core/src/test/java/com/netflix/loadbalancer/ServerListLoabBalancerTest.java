@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.loadbalancer;
 
 import static org.junit.Assert.*;
 
@@ -28,7 +28,10 @@ import org.apache.commons.configuration.Configuration;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.netflix.client.ClientFactory;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
+import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.Server;
 
 public class ServerListLoabBalancerTest {
@@ -60,7 +63,7 @@ public class ServerListLoabBalancerTest {
 	public static void init() {
 		Configuration config = ConfigurationManager.getConfigInstance();
 		config.setProperty("ServerListLoabBalancerTest.ribbon.NFLoadBalancerClassName", 
-				com.netflix.niws.client.DynamicServerListLoadBalancer.class.getName());
+				com.netflix.loadbalancer.DynamicServerListLoadBalancer.class.getName());
 		config.setProperty("ServerListLoabBalancerTest.ribbon.NIWSServerListClassName", FixedServerList.class.getName());
 		lb = (DynamicServerListLoadBalancer<Server>) ClientFactory.getNamedLoadBalancer("ServerListLoabBalancerTest");
 	}

@@ -18,7 +18,8 @@
 package com.netflix.loadbalancer;
 
 import java.util.List;
-import com.netflix.niws.client.IClientConfigAware;
+
+import com.netflix.client.IClientConfigAware;
 
 /**
  * AbstractLoadBalancer that contains the base common features 

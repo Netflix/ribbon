@@ -25,15 +25,17 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.AmazonInfo.MetaDataKey;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DeploymentContext.ContextKey;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.loadbalancer.AbstractNIWSServerListFilter;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.ZoneSnapshot;
-import com.netflix.niws.client.IClientConfig;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 

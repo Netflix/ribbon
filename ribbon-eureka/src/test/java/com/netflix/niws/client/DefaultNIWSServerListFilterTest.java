@@ -22,6 +22,7 @@ import static org.junit.Assert.*;
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.Builder;
+import com.netflix.client.ClientFactory;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DeploymentContext.ContextKey;
 
@@ -31,6 +32,8 @@ import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.netflix.loadbalancer.AvailabilityFilteringRule;
+import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerStats;
 
 public class DefaultNIWSServerListFilterTest {
@@ -70,7 +73,7 @@ public class DefaultNIWSServerListFilterTest {
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.ribbon.EnableZoneAffinity", "true");
         DynamicServerListLoadBalancer lb = (DynamicServerListLoadBalancer) ClientFactory.getNamedLoadBalancer("DefaultNIWSServerListFilterTest1");
         assertTrue(lb.getRule() instanceof AvailabilityFilteringRule);
-        DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.filter;
+        DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.getFilter();
         LoadBalancerStats loadBalancerStats = lb.getLoadBalancerStats();
         List<DiscoveryEnabledServer> servers = new ArrayList<DiscoveryEnabledServer>();        
         servers.add(createServer(1, "a"));
@@ -110,7 +113,7 @@ public class DefaultNIWSServerListFilterTest {
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.ribbon.EnableZoneExclusivity", "true");
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
         DynamicServerListLoadBalancer lb = (DynamicServerListLoadBalancer) ClientFactory.getNamedLoadBalancer("DefaultNIWSServerListFilterTest2");
-        DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.filter;
+        DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.getFilter();
         LoadBalancerStats loadBalancerStats = lb.getLoadBalancerStats();
         List<DiscoveryEnabledServer> servers = new ArrayList<DiscoveryEnabledServer>();        
         servers.add(createServer(1, "a"));
@@ -149,7 +152,7 @@ public class DefaultNIWSServerListFilterTest {
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.zoneAffinity.minAvailableServers", "3");
         DynamicServerListLoadBalancer lb = (DynamicServerListLoadBalancer) ClientFactory.getNamedLoadBalancer("DefaultNIWSServerListFilterTest3");
-        DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.filter;
+        DefaultNIWSServerListFilter filter = (DefaultNIWSServerListFilter) lb.getFilter();
         LoadBalancerStats loadBalancerStats = lb.getLoadBalancerStats();
         List<DiscoveryEnabledServer> servers = new ArrayList<DiscoveryEnabledServer>();        
         servers.add(createServer(1, "a"));
