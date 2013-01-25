@@ -96,7 +96,6 @@ public class ZoneStats<T extends Server> {
         sb.append("\tInstance count:" + getInstanceCount() + ";");
         sb.append("\tActive connections count: " + getActiveRequestsCount() + ";");
         sb.append("\tCircuit breaker tripped count: " + getCircuitBreakerTrippedCount() + ";");
-        sb.append("\tRequests made in last 5 minutes: " + getMeasuredZoneHits() + ";");
         sb.append("\tActive connections per server: " + getActiveRequestsPerServer() + ";");        
         sb.append("]\n");        
         return sb.toString();

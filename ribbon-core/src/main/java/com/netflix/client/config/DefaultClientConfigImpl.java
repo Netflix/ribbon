@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
+import com.netflix.client.ClientFactory;
 import com.netflix.client.VipAddressResolver;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
@@ -37,8 +38,11 @@ import com.netflix.config.util.HttpVerbUriRegexPropertyValue;
 import com.netflix.loadbalancer.DummyPing;
 
 /**
- * Class that holds the NIWS Client Configuration to be used for <code>{@link RestClient}</code>)
- * @author Sudhir Tonse <stonse@netflix.com>
+ * Class that holds the  Client Configuration to be used by {@link ClientFactory}, client and load balancers for
+ * initialization.
+ * 
+ * @author Sudhir Tonse 
+ * @author awang
  *
  */
 public class DefaultClientConfigImpl implements IClientConfig {
