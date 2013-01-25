@@ -39,7 +39,7 @@ import com.netflix.niws.client.http.RestClient;
 public class RestClientTest {    
     @Test
     public void testExecuteWithoutLB() throws Exception {
-        RestClient client = (RestClient) ClientFactory.getNamedClient("google");
+        RestClient client = (RestClient) ClientFactory.getNamedClient("google");        
         HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("http://www.google.com/")).build();
         HttpClientResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());

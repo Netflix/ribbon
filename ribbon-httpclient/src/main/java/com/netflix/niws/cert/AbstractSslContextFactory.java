@@ -32,7 +32,7 @@ import javax.net.ssl.TrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.client.ClientSslSocketFactoryException;
+import com.netflix.niws.client.ClientSslSocketFactoryException;
 
 /**
  * 

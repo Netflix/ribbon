@@ -177,7 +177,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
 	 * Call this method if you want this feature enabled
 	 */
 	public void enableAndInitLearnNewServersFeature(){
-		String threadName = "NIWSDiscoveryLoadBalancer-" 
+		String threadName = "DynamicServerListLoadBalancer-" 
 			+ getIdentifier();
 		ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true).setNameFormat(threadName).build();
 		_serverListRefreshExecutor = new ScheduledThreadPoolExecutor(1, factory);

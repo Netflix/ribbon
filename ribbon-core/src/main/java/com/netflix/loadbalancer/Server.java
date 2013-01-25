@@ -17,6 +17,8 @@
 */
 package com.netflix.loadbalancer;
 
+import com.netflix.util.Pair;
+
 /**
  * Class that represents a typical Server i.e. a Host:port identifier
  * 
@@ -65,6 +67,15 @@ public class Server {
 	}
 
 	static public String normalizeId(String id) {
+		Pair<String, Integer> hostPort = getHostPort(id);
+		if (hostPort == null) {
+			return null;
+		} else {
+			return hostPort.first() + ":" + hostPort.second();
+		}
+	}
+	
+	static Pair<String, Integer> getHostPort(String id) {
 		if (id != null) {
 			String host = null;
 			int port = 80;
@@ -98,14 +109,22 @@ public class Server {
 				return null;
 			}
 
-			return (host + ":" + port);
+			return new Pair<String, Integer>(host, port);
 		} else {
 			return null;
 		}
+		
 	}
 
 	public void setId(String id) {
-		this.id = normalizeId(id);
+		Pair<String, Integer> hostPort = getHostPort(id);
+		if (hostPort != null) {
+			this.id = hostPort.first() + ":" + hostPort.second();
+			this.host = hostPort.first();
+			this.port = hostPort.second();
+		} else {
+			this.id = null;
+		}
 	}
 
 	public void setPort(int port) {
