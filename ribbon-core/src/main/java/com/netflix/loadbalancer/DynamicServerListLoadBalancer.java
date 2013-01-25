@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -79,16 +80,15 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
             this.niwsClientConfig = clientConfig;
             String niwsServerListClassName = clientConfig.getProperty(CommonClientConfigKey.NIWSServerListClassName,
                     DefaultClientConfigImpl.DEFAULT_SEVER_LIST_CLASS).toString();
-            Class<AbstractServerList <T>> niwsServerListClass = 
-                (Class<AbstractServerList<T>>) Class.forName(niwsServerListClassName);
             
-            AbstractServerList<T> niwsServerListImpl = niwsServerListClass.newInstance();
-            niwsServerListImpl.initWithNiwsConfig(clientConfig);
+            ServerList<T> niwsServerListImpl = (ServerList<T>) ClientFactory.instantiateInstanceWithClientConfig(niwsServerListClassName, clientConfig);            
             this.serverListImpl = niwsServerListImpl;
             
-            AbstractServerListFilter<T> niwsFilter = niwsServerListImpl.getFilterImpl(clientConfig);             
-            niwsFilter.setLoadBalancerStats(getLoadBalancerStats());
-            this.filter = niwsFilter;
+            if (niwsServerListImpl instanceof AbstractServerList) {
+                AbstractServerListFilter<T> niwsFilter = ((AbstractServerList) niwsServerListImpl).getFilterImpl(clientConfig);
+                niwsFilter.setLoadBalancerStats(getLoadBalancerStats());
+                this.filter = niwsFilter;
+            }
             
             enableAndInitLearnNewServersFeature();
             

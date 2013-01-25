@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.AmazonInfo.MetaDataKey;
+import com.netflix.client.IClientConfigAware;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -45,7 +46,7 @@ import com.netflix.servo.monitor.Monitors;
  *
  */
 public class DefaultNIWSServerListFilter extends
-        AbstractServerListFilter<DiscoveryEnabledServer> {
+        AbstractServerListFilter<DiscoveryEnabledServer> implements IClientConfigAware {
 
     private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
     private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
@@ -62,10 +63,11 @@ public class DefaultNIWSServerListFilter extends
     }
     
     public DefaultNIWSServerListFilter(IClientConfig niwsClientConfig) {
-    	init(niwsClientConfig);
+    	initWithNiwsConfig(niwsClientConfig);
     }
     
-    public void init(IClientConfig niwsClientConfig) {
+    @Override
+    public void initWithNiwsConfig(IClientConfig niwsClientConfig) {
         String sZoneAffinity = "" + niwsClientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity, false);
         if (sZoneAffinity != null){
             zoneAffinity = Boolean.parseBoolean(sZoneAffinity);
@@ -154,6 +156,5 @@ public class DefaultNIWSServerListFilter extends
         return sb.toString();
         
     }
-        
-        
+
 }

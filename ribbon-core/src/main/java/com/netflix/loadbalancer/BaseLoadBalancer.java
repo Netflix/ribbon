@@ -141,11 +141,11 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         String pingClassName = (String) clientConfig.getProperty(
                     CommonClientConfigKey.NFLoadBalancerPingClassName);
 
-        AbstractLoadBalancerRule rule;
-        AbstractLoadBalancerPing ping;
+        IRule rule;
+        IPing ping;
         try {
-            rule = ClientFactory.instantiateNiwsConfigAwareClassInstance(ruleClassName, clientConfig);
-            ping = ClientFactory.instantiateNiwsConfigAwareClassInstance(pingClassName, clientConfig);
+            rule = (IRule) ClientFactory.instantiateInstanceWithClientConfig(ruleClassName, clientConfig);
+            ping = (IPing) ClientFactory.instantiateInstanceWithClientConfig(pingClassName, clientConfig);
         } catch (Exception e) {
             throw new RuntimeException("Error initializing load balancer", e);
         }
@@ -168,9 +168,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         // LB, these are your Ping and Rule guys ...
         setRule(rule);
         setPing(ping);
-        setLoadBalancerStats(new LoadBalancerStats(clientName));                
-        rule.setLoadBalancer(this);
-        ping.setLoadBalancer(this);
+        setLoadBalancerStats(new LoadBalancerStats(clientName));       
+        if (rule instanceof AbstractLoadBalancerRule) {
+            ((AbstractLoadBalancerRule) rule).setLoadBalancer(this);
+        }
+        if (ping instanceof AbstractLoadBalancerPing) {
+        	((AbstractLoadBalancerPing) ping).setLoadBalancer(this);
+        }
         logger.info("Client:" + name
                 + " instantiated a LoadBalancer:" + toString());        
         boolean enablePrimeConnections = false;

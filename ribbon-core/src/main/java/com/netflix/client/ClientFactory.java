@@ -23,11 +23,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.servo.monitor.Monitors;
 
@@ -39,9 +37,9 @@ public class ClientFactory {
     
     private static Logger logger = LoggerFactory.getLogger(ClientFactory.class);
     
-    public static synchronized AbstractLoadBalancerAwareClient<?, ?> registerClientFromProperties(String restClientName, IClientConfig niwsClientConfig) { 
-        AbstractLoadBalancerAwareClient<?, ?> client = null;
-        AbstractLoadBalancer loadBalancer = null;
+    public static synchronized IClient<?, ?> registerClientFromProperties(String restClientName, IClientConfig niwsClientConfig) { 
+        IClient<?, ?> client = null;
+        ILoadBalancer loadBalancer = null;
         try {
             if (simpleClientMap.get(restClientName) != null) {
                 throw new ClientException(
@@ -50,13 +48,15 @@ public class ClientFactory {
             }
             try {
                 String clientClassName = (String) niwsClientConfig.getProperty(CommonClientConfigKey.ClientClassName);
-                client = (AbstractLoadBalancerAwareClient<?, ?>) instantiateNiwsConfigAwareClassInstance(clientClassName, niwsClientConfig);
+                client = (IClient<?, ?>) instantiateInstanceWithClientConfig(clientClassName, niwsClientConfig);
                 boolean initializeNFLoadBalancer = Boolean.parseBoolean(niwsClientConfig.getProperty(
                                                 CommonClientConfigKey.InitializeNFLoadBalancer, DefaultClientConfigImpl.DEFAULT_ENABLE_LOADBALANCER).toString());
                 if (initializeNFLoadBalancer) {
                     loadBalancer  = registerNamedLoadBalancerFromclientConfig(restClientName, niwsClientConfig);
                 }
-                client.setLoadBalancer(loadBalancer);
+                if (client instanceof AbstractLoadBalancerAwareClient) {
+                	((AbstractLoadBalancerAwareClient) client).setLoadBalancer(loadBalancer);
+                }
             } catch (Throwable e) {
                 String message = "Unable to InitializeAndAssociateNFLoadBalancer set for RestClient:"
                     + restClientName;
@@ -104,11 +104,11 @@ public class ClientFactory {
         }
     }
 
-    public static AbstractLoadBalancer registerNamedLoadBalancerFromclientConfig(String name, IClientConfig clientConfig) throws ClientException {
-        AbstractLoadBalancer lb = null;
+    public static ILoadBalancer registerNamedLoadBalancerFromclientConfig(String name, IClientConfig clientConfig) throws ClientException {
+    	ILoadBalancer lb = null;
         try {
             String loadBalancerClassName = (String) clientConfig.getProperty(CommonClientConfigKey.NFLoadBalancerClassName);
-            lb = (AbstractLoadBalancer) ClientFactory.instantiateNiwsConfigAwareClassInstance(loadBalancerClassName, clientConfig);                                    
+            lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, clientConfig);                                    
             namedLBMap.put(name, lb);            
             logger.info("Client:" + name
                     + " instantiated a LoadBalancer:" + lb.toString());
@@ -118,7 +118,7 @@ public class ClientFactory {
         }    	
     }
     
-    public static synchronized AbstractLoadBalancer registerNamedLoadBalancerFromProperties(String name, Class<? extends IClientConfig> configClass) throws ClientException {
+    public static synchronized ILoadBalancer registerNamedLoadBalancerFromProperties(String name, Class<? extends IClientConfig> configClass) throws ClientException {
         if (namedLBMap.get(name) != null) {
             throw new ClientException("LoadBalancer for name " + name + " already exists");
         }
@@ -126,20 +126,26 @@ public class ClientFactory {
         return registerNamedLoadBalancerFromclientConfig(name, clientConfig);
     }    
 
-    public static <T extends IClientConfigAware> T instantiateNiwsConfigAwareClassInstance(String className, IClientConfig clientConfig)
-            throws InstantiationException, IllegalAccessException,
-            ClassNotFoundException {
-        T t = null;
-        Class<T> clazz = (Class<T>) Class.forName(className);
-        t = (T) clazz.newInstance();
-        if (t!=null){
-            t.initWithNiwsConfig(clientConfig);
-        }else{
-            logger.warn("Unable to instantiate class:" + className);
-        }
-        return t;
+    @SuppressWarnings("unchecked")
+	public static Object instantiateInstanceWithClientConfig(String className, IClientConfig clientConfig) 
+    		throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    	Class clazz = Class.forName(className);
+    	if (IClientConfigAware.class.isAssignableFrom(clazz)) {
+    		IClientConfigAware obj = (IClientConfigAware) clazz.newInstance();
+    		obj.initWithNiwsConfig(clientConfig);
+    		return obj;
+    	} else {
+    		try {
+    		    if (clazz.getConstructor(IClientConfig.class) != null) {
+    		    	return clazz.getConstructor(IClientConfig.class).newInstance(clientConfig);
+    		    }
+    		} catch (Throwable e) { // NOPMD   			
+    		}    		
+    	}
+    	logger.warn("Class " + className + " neither implements IClientConfigAware nor provides a constructor with IClientConfig as the parameter. Only default constructor will be used.");
+    	return clazz.newInstance();
     }
-
+    
     public static IClientConfig getNamedConfig(String name) {
         return 	getNamedConfig(name, DefaultClientConfigImpl.class);
     }

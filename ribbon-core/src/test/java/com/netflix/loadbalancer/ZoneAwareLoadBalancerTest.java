@@ -37,7 +37,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class ZoneAwareNIWSDiscoveryLoadBalancerTest {
+public class ZoneAwareLoadBalancerTest {
 
     private Server createServer(String host, String zone) {
         return createServer(host, 7001, zone);    
