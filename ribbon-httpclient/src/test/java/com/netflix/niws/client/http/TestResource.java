@@ -25,6 +25,7 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -36,9 +37,9 @@ public class TestResource {
 		
 	@Path("/getObject")
 	@GET
-	public Response getObject() {
+	public Response getObject(@QueryParam ("name") String name) {
 		TestObject obj = new TestObject();
-		obj.name = "test";
+		obj.name = name;
 		return Response.ok(obj).build();
 	}
 	

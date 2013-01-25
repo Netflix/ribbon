@@ -77,6 +77,7 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     NFLoadBalancerMaxTotalPingTime("NFLoadBalancerMaxTotalPingTime"),
     NIWSServerListClassName("NIWSServerListClassName"),
     NIWSServerListFilterClassName("NIWSServerListFilterClassName"),
+    ServerListRefreshInterval("ServerListRefreshInterval"),
     EnableMarkingServerDownOnReachingFailureLimit("EnableMarkingServerDownOnReachingFailureLimit"),
     ServerDownFailureLimit("ServerDownFailureLimit"),
     ServerDownStatWindowInMillis("ServerDownStatWindowInMillis"),

@@ -172,7 +172,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 }
             } finally {
                 w.stop();
-                noteRequestCompletion(serverStats, request, response, lastException, w.getDuration());
+                noteRequestCompletion(serverStats, request, response, lastException, w.getDuration(TimeUnit.MILLISECONDS));
             }
         } while (!done); 
         return response;

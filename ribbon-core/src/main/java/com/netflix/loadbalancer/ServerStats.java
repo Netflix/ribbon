@@ -476,7 +476,6 @@ public class ServerStats {
             sb.append("\tLast connection failure: " + new Date(lastConnectionFailedTimestamp)  + ";");
         }
         sb.append("\tFirst connection made: " + new Date(firstConnectionTimestamp)  + ";");
-        sb.append("\tConnections made in last 5 minutes:" + requestCountInWindow.getCount()  + ";");
         sb.append("\tActive Connections:" + getMonitoredActiveRequestsCount()  + ";");
         sb.append("\ttotal failure count in last (" + failureCountSlidingWindowInterval + ") msecs:" + getFailureCount()  + ";");
         sb.append("\taverage resp time:" + getResponseTimeAvg()  + ";");

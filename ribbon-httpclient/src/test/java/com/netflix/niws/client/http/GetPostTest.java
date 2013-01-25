@@ -34,6 +34,7 @@ import com.netflix.config.ConfigurationManager;
 import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 import com.sun.net.httpserver.HttpServer;
 
 public class GetPostTest {
@@ -65,7 +66,9 @@ public class GetPostTest {
     @Test
     public void testGet() throws Exception {
     	URI getUri = new URI(SERVICE_URI + "test/getObject");
-    	HttpClientRequest request = HttpClientRequest.newBuilder().setUri(getUri).build();
+    	MultivaluedMapImpl params = new MultivaluedMapImpl();
+    	params.add("name", "test");
+    	HttpClientRequest request = HttpClientRequest.newBuilder().setUri(getUri).setQueryParams(params).build();
     	HttpClientResponse response = client.execute(request);
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(TestObject.class).name.equals("test"));

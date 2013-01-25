@@ -54,9 +54,11 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
 	protected AtomicBoolean serverListUpdateInProgress = new AtomicBoolean(false);
 	
 	private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; //msecs;
-	private static long LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30*1000; //msecs; // every 30 secs
+	private static long LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 *1000; //msecs; // every 30 secs
 	
 	private ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
+	
+	private long refeshIntervalMills = LISTOFSERVERS_CACHE_REPEAT_INTERVAL;
 	
 	volatile ServerList<T> serverListImpl;
 	
@@ -89,6 +91,9 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
                 niwsFilter.setLoadBalancerStats(getLoadBalancerStats());
                 this.filter = niwsFilter;
             }
+            
+            refeshIntervalMills = Integer.valueOf(
+            		clientConfig.getProperty(CommonClientConfigKey.ServerListRefreshInterval, LISTOFSERVERS_CACHE_REPEAT_INTERVAL).toString());
             
             enableAndInitLearnNewServersFeature();
             
@@ -208,7 +213,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
 	private void keepServerListUpdated() {
 		_serverListRefreshExecutor.scheduleAtFixedRate(
 				new ServerListRefreshExecutorThread(), 
-				LISTOFSERVERS_CACHE_UPDATE_DELAY, LISTOFSERVERS_CACHE_REPEAT_INTERVAL,
+				LISTOFSERVERS_CACHE_UPDATE_DELAY, refeshIntervalMills,
 				TimeUnit.MILLISECONDS);
 	}
 	
@@ -289,9 +294,9 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
 	}		
 	
 	public String toString(){
-	    StringBuilder sb = new StringBuilder("NIWSDiscoveryLoadBalancer:");
+	    StringBuilder sb = new StringBuilder("DynamicServerListLoadBalancer:");
 	    sb.append(super.toString());
-	    sb.append("NIWSServerList:" + String.valueOf(serverListImpl));
+	    sb.append("ServerList:" + String.valueOf(serverListImpl));
 	    return sb.toString();
 	}
 }

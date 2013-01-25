@@ -474,6 +474,9 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 
 
         WebResource xResource = restClient.resource(uri.toString());
+        if (params != null) {
+        	xResource = xResource.queryParams(params);
+        }
         ClientResponse jerseyResponse;
 
         Builder b = xResource.getRequestBuilder();
