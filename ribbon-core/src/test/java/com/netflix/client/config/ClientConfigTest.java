@@ -1,4 +1,4 @@
-/*s
+/*
 *
 * Copyright 2013 Netflix, Inc.
 *
