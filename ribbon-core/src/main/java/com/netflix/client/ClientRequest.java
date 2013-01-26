@@ -20,7 +20,15 @@ package com.netflix.client;
 import java.net.URI;
 
 import com.netflix.client.config.IClientConfig;
+import com.netflix.loadbalancer.ILoadBalancer;
 
+/**
+ * An object that represents a common client request that is suitable for all communication protocol. 
+ * It is expected that this object is immutable.
+ * 
+ * @author awang
+ *
+ */
 public class ClientRequest implements Cloneable {
 
     protected URI uri;
@@ -35,6 +43,14 @@ public class ClientRequest implements Cloneable {
         this.uri = uri;
     }
 
+    /**
+     * Constructor to set all fields. 
+     * 
+     * @param uri  URI to set
+     * @param loadBalancerKey the object that is used by {@link ILoadBalancer#chooseServer(Object)}, can be null
+     * @param isRetriable if the operation is retriable on failures
+     * @param overrideConfig client configuration that is used for this specific request. can be null. 
+     */
     public ClientRequest(URI uri, Object loadBalancerKey, boolean isRetriable, IClientConfig overrideConfig) {
         this.uri = uri;
         this.loadBalancerKey = loadBalancerKey;
@@ -86,6 +102,13 @@ public class ClientRequest implements Cloneable {
         return this;
     }
     
+    /**
+     * Create a client request using a new URI. This is used by {@link AbstractLoadBalancerAwareClient#computeFinalUriWithLoadBalancer(ClientRequest)}.
+     * It first tries to clone the request and if that fails it will use the copy constructor {@link #ClientRequest(ClientRequest)}.
+     * Sub classes are recommended to override this method to provide more efficient implementation.
+     * @param newURI
+     * @return
+     */
     public ClientRequest replaceUri(URI newURI) {
         ClientRequest req;
         try {

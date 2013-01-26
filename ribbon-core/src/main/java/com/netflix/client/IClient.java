@@ -19,13 +19,16 @@ package com.netflix.client;
 
 
 /**
- * A client that can execute a single request. It is expected that there is no retry and all exceptions
- * are thrown directly.
+ * A client that can execute a single request. 
  * 
  * @author awang
  *
  */
 public interface IClient<S extends ClientRequest, T extends IResponse> {
 
-    public T execute(S task) throws Exception; 
+	/**
+	 * Execute the request and return the response. It is expected that there is no retry and all exceptions
+     * are thrown directly.
+	 */
+    public T execute(S request) throws Exception; 
 }

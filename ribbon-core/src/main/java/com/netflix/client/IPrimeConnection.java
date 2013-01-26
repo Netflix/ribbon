@@ -19,8 +19,23 @@ package com.netflix.client;
 
 import com.netflix.loadbalancer.Server;
 
+/**
+ * Interface that defines operation for priming a connection.
+ * 
+ * @author awang
+ *
+ */
 public interface IPrimeConnection extends IClientConfigAware {
 
+	/**
+	 * Sub classes should implement protocol specific operation to connect
+	 * to a server.
+	 * 
+	 * @param server Server to connect
+	 * @param uriPath URI to use in server connection
+	 * @return if the priming is successful
+	 * @throws Exception Any network errors
+	 */
     public boolean connect(Server server, String uriPath) throws Exception;
 
 }

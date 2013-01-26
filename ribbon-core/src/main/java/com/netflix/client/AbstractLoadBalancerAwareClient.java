@@ -25,11 +25,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
+import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
@@ -39,6 +39,12 @@ import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
 
+/**
+ * Abstract class that provides the integration of client with load balancers.
+ * 
+ * @author awang
+ *
+ */
 public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> implements IClient<S, T>, IClientConfigAware {    
     
     private static final Logger logger = LoggerFactory.getLogger(AbstractLoadBalancerAwareClient.class);
@@ -52,11 +58,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
 
 
     boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
-    
-    AtomicLong numRetriesOnNextServer = new AtomicLong(0);
-    
-    AtomicLong numRetriesOnNextServerExceeded = new AtomicLong(0);
-    
+        
     private ILoadBalancer lb;
     private Timer tracer;
 
@@ -64,6 +66,9 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     public AbstractLoadBalancerAwareClient() {  
     }
     
+    /**
+     * Set necessary parameters from client configuration and register with Servo monitors.
+     */
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         if (clientConfig == null) {
@@ -71,27 +76,37 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
         clientName = clientConfig.getClientName();
+        if (clientName == null) {
+        	clientName = "default";
+        }
         try {
-            maxAutoRetries = Integer.parseInt(""+ clientConfig.getProperty(CommonClientConfigKey.MaxAutoRetries,maxAutoRetries));
+            maxAutoRetries = Integer.parseInt(clientConfig.getProperty(
+            		CommonClientConfigKey.MaxAutoRetries,maxAutoRetries).toString());
         } catch (Exception e) {
             logger.warn("Invalid maxRetries set for client:" + clientName);
         }
         try {
-            maxAutoRetriesNextServer = Integer.parseInt(""+ clientConfig.getProperty(CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer));
+            maxAutoRetriesNextServer = Integer.parseInt(clientConfig.getProperty(
+            		CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer).toString());
         } catch (Exception e) {
             logger.warn("Invalid maxRetriesNextServer set for client:" + clientName);
         }
         
         try {
-            Boolean bOkToRetryOnAllOperations = Boolean.valueOf(""+clientConfig.getProperty(CommonClientConfigKey.OkToRetryOnAllOperations,
-                    Boolean.valueOf(okToRetryOnAllOperations)));
+            Boolean bOkToRetryOnAllOperations = Boolean.valueOf(clientConfig.getProperty(CommonClientConfigKey.OkToRetryOnAllOperations,
+                    okToRetryOnAllOperations).toString());
             okToRetryOnAllOperations = bOkToRetryOnAllOperations.booleanValue();
         } catch (Exception e) {
             logger.warn("Invalid OkToRetryOnAllOperations set for client:" + clientName);
         }
         tracer = Monitors.newTimer(clientName + "_OperationTimer", TimeUnit.MILLISECONDS);
+        Monitors.registerObject("Client_" + clientName, this);
     }
     
+    /**
+     * Delegate to {@link #initWithNiwsConfig(IClientConfig)}
+     * @param clientConfig
+     */
     public AbstractLoadBalancerAwareClient(IClientConfig clientConfig) {
         initWithNiwsConfig(clientConfig);        
     }
@@ -119,16 +134,34 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         return e;
     }
 
+    /**
+     * Determine if an exception should contribute to circuit breaker trip. If such exceptions happen consecutively
+     * on a server, it will be deemed as circuit breaker tripped and enter into a time out when it will be
+     * skipped by the {@link AvailabilityFilteringRule}, which is the default rule for load balancers.
+     */
     protected abstract boolean isCircuitBreakerException(Exception e);
         
+    /**
+     * Determine if operation can be retried if an exception is thrown. For example, connect 
+     * timeout related exceptions
+     * are typically retriable.
+     * 
+     */
     protected abstract boolean isRetriableException(Exception e);
     
+    /**
+     * Execute the request on single server after the final URI is calculated. This method takes care of
+     * retries and update server stats.
+     *  
+     */
     protected T executeOnSingleServer(S request) throws ClientException {
         boolean done = false;
         int retries = 0;
 
         boolean retryOkayOnOperation = okToRetryOnAllOperations;
-        
+        if (request.isRetriable()) {
+        	retryOkayOnOperation = true;
+        }
         int numRetries =  maxAutoRetries;
         URI uri = request.getUri();
         Server server = new Server(uri.getHost(), uri.getPort());
@@ -273,6 +306,10 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         return retries;
     }
 
+    /**
+     * This is called after a response is received or an exception is thrown from the {@link #execute(ClientRequest)}
+     * to update related stats.  
+     */
     protected void noteRequestCompletion(ServerStats stats, S task, IResponse response, Exception e, long responseTime) {        
         try {
             if (stats != null) {
@@ -288,6 +325,9 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }            
     }
         
+    /**
+     * This method is called after a response (either success or not) is received to update certain stats.
+     */
     protected void noteResponseReceived(ServerStats stats, T task, IResponse response) {
         if (stats == null) {
             return;
@@ -298,18 +338,10 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             logger.info("Unable to note Server Stats:", e);
         }        
     }
-        
-    protected void noteConnectException(ServerStats serverStats) {
-        if (serverStats == null) {
-            return;
-        }
-        try {
-            serverStats.incrementSuccessiveConnectionFailureCount();
-        } catch (Throwable e) {
-            logger.info("Unable to note Server Stats:", e);
-        }        
-    }
-
+       
+    /**
+     * Called just before {@link #execute(ClientRequest)} call.
+     */
     protected void noteOpenConnection(ServerStats serverStats, S task) {
         if (serverStats == null) {
             return;
@@ -321,17 +353,26 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
     }
 
-    public T executeWithLoadBalancer(S task) throws ClientException {
+    /**
+     * This method should be used when the caller wants to dispatch the request to a server chosen by
+     * the load balancer, instead of specifying the server in the request's URI. 
+     * It calculates the final URI by calling {@link #computeFinalUriWithLoadBalancer(ClientRequest)}
+     * and then calls {@link #execute(ClientRequest)}.
+     * 
+     * @param request request to be dispatched to a server chosen by the load balancer. The URI can be a partial
+     * URI which does not contain the host name or the protocol.
+     */
+    public T executeWithLoadBalancer(S request) throws ClientException {
         int retries = 0;
         boolean done = false;
         boolean retryOkayOnOperation = okToRetryOnAllOperations;
 
-        retryOkayOnOperation = task.isRetriable();
+        retryOkayOnOperation = request.isRetriable();
         // Is it okay to retry for this particular operation?
 
         // see if maxRetries has been overriden
         int numRetries = maxAutoRetriesNextServer;
-        IClientConfig overriddenClientConfig = task.getOverrideConfig();
+        IClientConfig overriddenClientConfig = request.getOverrideConfig();
         if (overriddenClientConfig != null) {
             try {
                 numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(
@@ -357,7 +398,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
 
         do {
             try {
-                S resolved = computeFinalUriWithLoadBalancer(task);
+                S resolved = computeFinalUriWithLoadBalancer(request);
                 response = executeOnSingleServer(resolved);
                 done = true;
             } catch (Exception e) {      
@@ -374,19 +415,19 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                                 "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
                                 + numRetries
                                 + " retries, while making a RestClient call for:"
-                                + task.getUri() + ":" +  getDeepestCause(e).getMessage(), e);
+                                + request.getUri() + ":" +  getDeepestCause(e).getMessage(), e);
                     }
                     logger.error("Exception while executing request which is deemed retry-able, retrying ..., Next Server Retry Attempt#:"
                             + retries
                             + ", URI tried:"
-                            + task.getUri());
+                            + request.getUri());
                 } else {
                     if (e instanceof ClientException) {
                         throw (ClientException) e;
                     } else {
                         throw new ClientException(
                                 ClientException.ErrorType.GENERAL,
-                                "Unable to execute request for URI:" + task.getUri(),
+                                "Unable to execute request for URI:" + request.getUri(),
                                 e);
                     }
                 }
@@ -394,11 +435,34 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         } while (!done);
         return response;
     }
-        
+      
+    /**
+     * Derive scheme and port from a partial URI. For example, for HTTP based client, the URI with 
+     * only path "/" should return "http" and 80, whereas the URI constructed with scheme "https" and
+     * path "/" should return
+     * "https" and 443. This method is called by {@link #computeFinalUriWithLoadBalancer(ClientRequest)}
+     * to get the complete executable URI.
+     * 
+     */
     protected abstract Pair<String, Integer> deriveSchemeAndPortFromPartialUri(S task);
     
+    /**
+     * Get the default port which is protocol specific if port is missing in the request URI.
+     * 
+     */
     protected abstract int getDefaultPort();
         
+    /**
+     * Derive the host and port from virtual address if virtual address is indeed contains the actual host 
+     * and port of the server. This is the final resort to compute the final URI in {@link #computeFinalUriWithLoadBalancer(ClientRequest)}
+     * if there is no load balancer available and the request URI is incomplete. Sub classes can override this method
+     * to be more accurate or throws ClientException if it does not want to support virtual address to be the
+     * same as physical server address.
+     * <p>
+     *  The virtual address is used by certain load balancers to filter the servers of the same function 
+     *  to form the server pool. 
+     *  
+     */
     protected  Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
     		throws URISyntaxException, ClientException {
         Pair<String, Integer> hostAndPort = new Pair<String, Integer>(null, -1);
@@ -423,7 +487,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         return hostAndPort;
     }
     
-    protected boolean isVipRecognized(String vipEmbeddedInUri) {
+    private boolean isVipRecognized(String vipEmbeddedInUri) {
         if (vipEmbeddedInUri == null) {
             return false;
         }
@@ -439,6 +503,19 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         return false;
     }
     
+    /**
+     * Compute the final URI from a partial URI in the request. The following steps are performed:
+     * 
+     * <li> if host is missing and there is a load balancer, get the host/port from server chosen from load balancer
+     * <li> if host is missing and there is no load balancer, try to derive host/port from virtual address set with the client
+     * <li> if host is present and the authority part of the URI is a virtual address set for the client, 
+     * and there is a load balancer, get the host/port from server chosen from load balancer
+     * <li> if host is present but none of the above applies, interpret the host as the actual physical address
+     * <li> if host is missing but none of the above applies, throws ClientException
+     * 
+     * @param original Original URI passed from caller
+     * @return new request with the final URI  
+     */
     protected S computeFinalUriWithLoadBalancer(S original) throws ClientException{
         URI newURI;
         URI theUrl = original.getUri();

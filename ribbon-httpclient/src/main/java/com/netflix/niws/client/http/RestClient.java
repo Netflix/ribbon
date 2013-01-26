@@ -429,19 +429,16 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpClientRequest task) {
         URI theUrl = task.getUri();
         boolean isSecure = isSecure(task.getOverrideConfig());
-        if (theUrl.getScheme() != null && theUrl.getHost() != null) {
-            isSecure = 	theUrl.getScheme().equalsIgnoreCase("https");
+        String scheme = theUrl.getScheme();
+        if (scheme != null) {
+            isSecure = 	scheme.equalsIgnoreCase("https");
         }
-        int port = -1;
-        if (theUrl.getHost() != null) {
-            port = theUrl.getPort();
-        }
+        int port = theUrl.getPort();
         if (port < 0 && !isSecure){
             port = 80;
         } else if (port < 0 && isSecure){
             port = 443;
         }
-        String scheme = theUrl.getScheme();
         if (scheme == null){
             if (isSecure) {
                 scheme = "https";
