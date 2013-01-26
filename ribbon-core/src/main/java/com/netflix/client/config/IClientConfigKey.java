@@ -17,8 +17,19 @@
 */
 package com.netflix.client.config;
 
+/**
+ * Defines the key used in {@link IClientConfig}
+ * 
+ * @author awang
+ *
+ */
 public interface IClientConfigKey {
 
-	public abstract String key();
+	/**
+	 * The string representation of the key.
+	 * 
+	 * @return
+	 */
+	public String key();
 
 }

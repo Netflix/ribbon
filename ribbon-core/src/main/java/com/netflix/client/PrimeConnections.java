@@ -44,12 +44,17 @@ import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
 
 /**
- * Prime the Http Connections for a given RestClient (For those RestClient that
+ * Prime the connections for a given Client (For those Client that
  * have a LoadBalancer that knows the set of Servers it will connect to) This is
  * mainly done to address those deployment environments (Read EC2) which benefit
- * from a firewall connection/path warmup prior to actual use for live requests
+ * from a firewall connection/path warmup prior to actual use for live requests.
+ * <p>
+ * This class is not protocol specific. Actual priming operation is delegated to 
+ * instance of {@link IPrimeConnection}, which is instantiated using reflection
+ * according to property {@link CommonClientConfigKey#PrimeConnectionsClassName}.
  * 
  * @author stonse
+ * @author awang
  * 
  */
 public class PrimeConnections {
@@ -178,6 +183,14 @@ public class PrimeConnections {
         Monitors.registerObject(name + "_PrimeConnection", this);
     }
     
+    /**
+     * Prime connections, blocking until configured percentage (default is 100%) of target servers are primed 
+     * or max time is reached.
+     * 
+     * @see CommonClientConfigKey#MinPrimeConnectionsRatio
+     * @see CommonClientConfigKey#MaxTotalTimeToPrimeConnections
+     * 
+     */
     public void primeConnections(List<Server> servers) {
         if (servers == null || servers.size() == 0) {
             logger.debug("No server to prime");
@@ -244,7 +257,13 @@ public class PrimeConnections {
     }
     */
     
-    
+    /**
+     * Prime servers asynchronously.
+     * 
+     * @param servers
+     * @param listener
+     * @return
+     */
     public List<Future<Boolean>> primeConnectionsAsync(final List<Server> servers, final PrimeConnectionListener listener) {
         if (servers == null) {
             return Collections.emptyList();

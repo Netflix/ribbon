@@ -23,7 +23,6 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,12 +33,47 @@ import com.netflix.client.VipAddressResolver;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
-import com.netflix.config.util.HttpVerbUriRegexPropertyValue;
 import com.netflix.loadbalancer.DummyPing;
 
 /**
- * Class that holds the  Client Configuration to be used by {@link ClientFactory}, client and load balancers for
- * initialization.
+ * Default client configuration that loads properties from Archaius's ConfigurationManager. 
+ * <p>
+ * The easiest way to configure client and load balancer is through loading properties into Archaius that conform to the specific format:
+
+<pre>{@code
+<clientName>.<nameSpace>.<propertyName>=<value>
+}</pre>
+<p>
+You can define properties in a file on classpath or as system properties. If former, ConfigurationManager.loadPropertiesFromResources() API should be called to load the file.
+<p>
+By default, "ribbon" should be the nameSpace. 
+<p>
+If there is no property specified for a named client, {@link ClientFactory} will still create the client and 
+load balancer with default values for all necessary properties. The default 
+values are specified in this class as constants.
+<p>
+If a property is missing the clientName, it is interpreted as a property that applies to all clients. For example
+
+<pre>{@code
+ribbon.ReadTimeout=1000
+}</pre>
+
+This will establish the default ReadTimeout property for all clients. 
+<p>
+You can also programmatically set properties by constructing instance of DefaultClientConfigImpl. Follow these steps:
+
+<li> Get an instance by calling {@link #getClientConfigWithDefaultValues(String)} to load default values, 
+and any properties that are already defined with Configuration in Archaius
+<li> Set all desired properties by calling {@link #setProperty(IClientConfigKey, Object)} API. 
+<li> Pass this instance together with client name to {@link ClientFactory} API. 
+<p><p>
+If it is desired to have properties defined in a different name space, for example, "foo"
+
+<pre>{@code
+myclient.foo.ReadTimeout=1000
+}</pre>
+
+You should use {@link #getClientConfigWithDefaultValues(String, String)} - in the first step above.
  * 
  * @author Sudhir Tonse 
  * @author awang
@@ -316,18 +350,24 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS;
 	}
 
-            
+        
+	/**
+	 * Create instance with no properties in default name space {@link #DEFAULT_PROPERTY_NAME_SPACE}
+	 */
     public DefaultClientConfigImpl() {
         this.dynamicProperties.clear();
         this.enableDynamicProperties = false;
     }
 
+	/**
+	 * Create instance with no properties in the specified name space
+	 */    
     public DefaultClientConfigImpl(String nameSpace) {
     	this();
     	this.propertyNameSpace = nameSpace;
     }
         
-    public void loadDefaultValues() {
+    protected void loadDefaultValues() {
         putIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
         putIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
         putIntegerProperty(CommonClientConfigKey.ConnectTimeout, getDefaultConnectTimeout());
@@ -497,9 +537,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
         return clientName;
     }
 
-    /* (non-Javadoc)
-	 * @see com.netflix.niws.client.CliengConfig#loadProperties(java.lang.String)
-	 */
+    /**
+     * Load properties for a given client. It first loads the default values for all properties,
+     * and any properties already defined with Archaius ConfigurationManager.
+     */
     @Override
 	public void loadProperties(String restClientName){
         enableDynamicProperties = true;
@@ -666,53 +707,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         }
         return sb.toString();
     }
-
-    
-    private void initializeDynamicConfig(String prefix, 
-            ConcurrentHashMap<String, Map<String, HttpVerbUriRegexPropertyValue>> configMapForPrefix) {
-        AbstractConfiguration configInstance = ConfigurationManager.getConfigInstance();
-        // load any pre-configured dynamic properties
-        String niwsPropertyPrefix = getClientName() + "."
-        + getNameSpace();
-        String prefixWithNoDot = niwsPropertyPrefix + "." + prefix;
-        String configPrefix = prefixWithNoDot + ".";
-
-        if (configInstance != null) {
-            Configuration c = configInstance.subset(prefixWithNoDot);
-            if (c != null) {
-                Iterator<?> it = c.getKeys();
-                if (it != null) {
-                    while (it.hasNext()) {
-                        String alias = (String) it.next();
-                        if (alias != null) {
-                            // we have a property of interest - add it to
-                            // our
-                            // map
-                            String value = configInstance.getString(configPrefix + alias);
-                            if (value != null) {
-                                Map<String, HttpVerbUriRegexPropertyValue> aliasMap = configMapForPrefix.get(getClientName());
-                                if (aliasMap == null) {
-                                    aliasMap = new ConcurrentHashMap<String, HttpVerbUriRegexPropertyValue>();
-                                    Map<String, HttpVerbUriRegexPropertyValue> prev = configMapForPrefix.putIfAbsent(getClientName(),
-                                            aliasMap);
-                                    if (prev != null) {
-                                    	aliasMap = prev;
-                                    }
-                                }
-                                aliasMap.put(alias.trim(),
-                                        HttpVerbUriRegexPropertyValue
-                                                .getVerbUriRegex(value
-                                                        .toString()));
-
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-        
+            
     public void setProperty(Properties props, String restClientName, String key, String value){
         props.setProperty( getInstancePropName(restClientName, key), value);
     }
@@ -730,7 +725,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 	@Override
 	public String getNameSpace() {
-		// TODO Auto-generated method stub
 		return propertyNameSpace;
 	}	
+
+	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
+		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
+	}
+
+	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {
+		DefaultClientConfigImpl config = new DefaultClientConfigImpl(nameSpace);
+		config.loadProperties(clientName);
+		return config;
+	}
 }
