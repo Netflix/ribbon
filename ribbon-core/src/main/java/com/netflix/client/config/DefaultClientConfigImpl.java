@@ -327,7 +327,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     	this.propertyNameSpace = nameSpace;
     }
         
-    public void loadDefaultProperties() {
+    public void loadDefaultValues() {
         putIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
         putIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
         putIntegerProperty(CommonClientConfigKey.ConnectTimeout, getDefaultConnectTimeout());
@@ -504,7 +504,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public void loadProperties(String restClientName){
         enableDynamicProperties = true;
         setClientName(restClientName);
-        loadDefaultProperties();
+        loadDefaultValues();
         Configuration props = ConfigurationManager.getConfigInstance().subset(restClientName);        
         for (Iterator<String> keys = props.getKeys(); keys.hasNext(); ){
             String key = keys.next();

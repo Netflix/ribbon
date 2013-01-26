@@ -36,7 +36,7 @@ import java.util.Properties;
  * @author stonse
  * 
  */
-public class NiwsClientConfigTest {
+public class ClientConfigTest {
 
 
 
@@ -52,7 +52,7 @@ public class NiwsClientConfigTest {
     @Test
     public void testNiwsConfigViaProperties() throws Exception {
     	DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
-    	clientConfig.loadDefaultProperties();
+    	clientConfig.loadDefaultValues();
         Properties props = new Properties();
         
         final String restClientName = "testRestClient";
@@ -87,7 +87,7 @@ public class NiwsClientConfigTest {
     @Test
     public void testresolveDeploymentContextbasedVipAddresses() throws Exception {
     	DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
-    	clientConfig.loadDefaultProperties();
+    	clientConfig.loadDefaultValues();
         Properties props = new Properties();
         
         final String restClientName = "testRestClient2";
