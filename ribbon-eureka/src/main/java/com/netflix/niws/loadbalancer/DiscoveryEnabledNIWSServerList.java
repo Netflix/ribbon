@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.niws.loadbalancer;
 
 import java.util.ArrayList;
 import java.util.List;

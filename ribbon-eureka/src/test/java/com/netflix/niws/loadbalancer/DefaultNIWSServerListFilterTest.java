@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.niws.loadbalancer;
 
 import static org.junit.Assert.*;
 
@@ -35,6 +35,9 @@ import org.junit.Test;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerStats;
+import com.netflix.niws.loadbalancer.DefaultNIWSServerListFilter;
+import com.netflix.niws.loadbalancer.DiscoveryEnabledNIWSServerList;
+import com.netflix.niws.loadbalancer.DiscoveryEnabledServer;
 
 public class DefaultNIWSServerListFilterTest {
     @BeforeClass
