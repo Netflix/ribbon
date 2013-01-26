@@ -83,19 +83,19 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = Boolean.TRUE;
 
-	public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = DummyPing.class.getName();
+	public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = "com.netflix.loadbalancer.DummyPing"; // DummyPing.class.getName();
 
-    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = com.netflix.loadbalancer.AvailabilityFilteringRule.class.getName();
+    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = "com.netflix.loadbalancer.AvailabilityFilteringRule";
 
-    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = com.netflix.loadbalancer.ZoneAwareLoadBalancer.class.getName();
+    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = "com.netflix.loadbalancer.ZoneAwareLoadBalancer";
     
     public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
     
-    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = com.netflix.client.SimpleVipAddressResolver.class.getName();
+    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = "com.netflix.client.SimpleVipAddressResolver";
 
     public static final String DEFAULT_PRIME_CONNECTIONS_URI = "/";
 
-    public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = 30*1000;
+    public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = 30000;
 
     public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = 2;
 
@@ -103,7 +103,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW = Integer.MAX_VALUE;
 
-    public static final int DEFAULT_REQUEST_THROTTLING_WINDOW_IN_MILLIS = 60*1000;
+    public static final int DEFAULT_REQUEST_THROTTLING_WINDOW_IN_MILLIS = 60000;
 
     public static final Boolean DEFAULT_ENABLE_REQUEST_THROTTLING = Boolean.FALSE;
 
@@ -139,11 +139,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
     
     public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = "com.netflix.niws.client.HttpPrimeConnection";
     
-    public static final String DEFAULT_SEVER_LIST_CLASS = com.netflix.loadbalancer.ConfigurationBasedServerList.class.getName();
+    public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.loadbalancer.ConfigurationBasedServerList";
     
-    public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30*1000; // every half minute (30 secs)
+    public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
     
-    public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30*1000; // all connections idle for 30 secs
+    public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
 
     volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
     

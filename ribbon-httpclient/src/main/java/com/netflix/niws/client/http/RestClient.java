@@ -68,6 +68,13 @@ import com.sun.jersey.client.apache4.ApacheHttpClient4Handler;
 import com.sun.jersey.client.apache4.config.ApacheHttpClient4Config;
 import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
 
+/**
+ * A client that is essentially a wrapper around Jersey client. By default, it uses HttpClient for underlying HTTP communication.
+ * Application can set its own Jersey client with this class, but doing so will void all client configurations set in {@link IClientConfig}.
+ *  
+ * @author awang
+ *
+ */
 public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientRequest, HttpClientResponse> {
 
     private Client restClient;
