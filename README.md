@@ -1,7 +1,7 @@
 ribbon
 ======
 
-Ribbon plays an critical role in supporting inter-process communication in the cloud. The library includes the Netflix' client side load balancers and clients for middle tier services. 
+Ribbon plays an critical role in supporting inter-process communication in the cloud. The library includes Netflix's client side load balancers and clients for middle tier services. 
 
 Ribbon provides the following features:
 
