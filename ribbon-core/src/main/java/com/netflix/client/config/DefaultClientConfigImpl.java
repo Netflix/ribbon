@@ -129,12 +129,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = 200;
     
-    public static final Boolean DEFAULT_ENABLE_NIWSSTATS = Boolean.TRUE;
-    
-    public static final Boolean DEFAULT_ENABLE_NIWSERRORSTATS = Boolean.TRUE;
-    
-    public static final Boolean DEFAULT_USE_HTTP_CLIENT4 = Boolean.FALSE;
-    
+        
     public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = 1.0f;
     
     public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = "com.netflix.niws.client.HttpPrimeConnection";
@@ -271,18 +266,6 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 	public int getDefaultMaxTotalHttpConnections() {
 		return DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS;
-	}
-
-	public Boolean getDefaultEnableNiwsstats() {
-		return DEFAULT_ENABLE_NIWSSTATS;
-	}
-
-	public Boolean getDefaultEnableNiwserrorstats() {
-		return DEFAULT_ENABLE_NIWSERRORSTATS;
-	}
-
-	public Boolean getDefaultUseHttpClient4() {
-		return DEFAULT_USE_HTTP_CLIENT4;
 	}
 
 	public float getDefaultMinPrimeConnectionsRatio() {
