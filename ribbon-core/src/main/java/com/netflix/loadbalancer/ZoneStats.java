@@ -22,7 +22,14 @@ import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 
-
+/**
+ * Class that stores Statistics per Zone (where Zone is typically a Amazon
+ * Availability Zone)
+ * 
+ * @author awang
+ * 
+ * @param <T>
+ */
 public class ZoneStats<T extends Server> {
 
     private final LoadBalancerStats loadBalancerStats;
