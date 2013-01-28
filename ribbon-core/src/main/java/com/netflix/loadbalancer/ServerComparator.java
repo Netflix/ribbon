@@ -20,6 +20,12 @@ package com.netflix.loadbalancer;
 import java.io.Serializable;
 import java.util.Comparator;
 
+/**
+ * Class to help establishing equality for Hash/Key operations.
+ * 
+ * @author stonse
+ * 
+ */
 public class ServerComparator implements Comparator<Server>, Serializable {
     /**
 	 * 

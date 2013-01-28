@@ -23,6 +23,13 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicListProperty;
 
+/**
+ * Utility class that can load the List of Servers from a Configuration (i.e
+ * properties available via Archaius)
+ * 
+ * @author awang
+ * 
+ */
 public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 
 	public static final String PROP_NAME = "listOfServers";

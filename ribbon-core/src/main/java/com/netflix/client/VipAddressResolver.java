@@ -19,6 +19,12 @@ package com.netflix.client;
 
 import com.netflix.client.config.IClientConfig;
 
+/**
+ * A "VipAddress" is a logical name for a Target Server farm.
+ *
+ * @author stonse
+ *
+ */
 public interface VipAddressResolver {
     public String resolve(String vipAddress, IClientConfig niwsClientConfig);
 }

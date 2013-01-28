@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A noOp Loadbalancer
  * i.e. doesnt do anything "loadbalancer like"
+ * 
  * @author stonse
  *
  */
@@ -36,7 +37,6 @@ public class NoOpLoadBalancer extends AbstractLoadBalancer {
     
     @Override
     public void addServers(List<Server> newServers) {
-        // TODO Auto-generated method stub
         logger.info("addServers to NoOpLoadBalancer ignored");
     }
 

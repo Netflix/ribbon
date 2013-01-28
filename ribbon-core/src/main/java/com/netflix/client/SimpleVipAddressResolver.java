@@ -22,6 +22,32 @@ import java.util.regex.Pattern;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 
+/**
+ * A "VipAddress" in Ribbon terminology is a logical name used for a target
+ * server farm. This class helps interpret and resolve a "macro" and obtain a
+ * finalized vipAddress.
+ * 
+ * Ribbon supports a comma separated set of logcial addresses for a Ribbon
+ * Client. Typical/default implementation uses the list of servers obtained from
+ * the first of the comma separated list and progresses down the list only when
+ * the priorr vipAddress contains no servers.
+ * 
+ * e.g. vipAddress settings
+ * 
+ * <code>
+ * ${foo}.bar:${port},${foobar}:80,localhost:8080
+ * 
+ * The above list will be resolved by this class as 
+ * 
+ * apple.bar:80,limebar:80,localhost:8080
+ * 
+ * provided that the Configuration library resolves the property foo=apple,port=80 and foobar=limebar
+ * 
+ * </code>
+ * 
+ * @author stonse
+ * 
+ */
 public class SimpleVipAddressResolver implements VipAddressResolver {
 
     private static final Pattern VAR_PATTERN = Pattern.compile("\\$\\{(.*?)\\}");

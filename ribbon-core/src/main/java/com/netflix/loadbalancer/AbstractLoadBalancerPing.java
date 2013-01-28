@@ -19,6 +19,13 @@ package com.netflix.loadbalancer;
 
 import com.netflix.client.IClientConfigAware;
 
+/**
+ * Class that provides the basic implementation of detmerining the "liveness" or
+ * suitability of a Server (a node)
+ * 
+ * @author stonse
+ * 
+ */
 public abstract class AbstractLoadBalancerPing implements IPing, IClientConfigAware{
 
     AbstractLoadBalancer lb;

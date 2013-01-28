@@ -19,6 +19,15 @@ package com.netflix.loadbalancer;
 
 import java.util.List;
 
+/**
+ * Interface that defines the operations for a software loadbalancer. A typical
+ * loadbalancer minimally need a set of servers to loadbalance for, a method to
+ * mark a particular server to be out of rotation and a call that will choose a
+ * server from the existing list of server.
+ * 
+ * @author stonse
+ * 
+ */
 public interface ILoadBalancer {
 
 	/**

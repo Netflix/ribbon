@@ -40,9 +40,15 @@ import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Monitors;
 
 /**
- * Utility class that can be used to store loadbalancer stats such as Failure counts per server
+ * Class that acts as a repository of operational charateristics and statistics
+ * of every Node/Server in the LaodBalancer.
+ * 
+ * This information can be used to just observe and understand the runtime
+ * behavior of the loadbalancer or more importantly for the basis that
+ * determines the loadbalacing strategy
+ * 
  * @author stonse
- *
+ * 
  */
 public class LoadBalancerStats {
     

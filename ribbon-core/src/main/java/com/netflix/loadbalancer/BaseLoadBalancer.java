@@ -1,20 +1,20 @@
 /*
-*
-* Copyright 2013 Netflix, Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
+ *
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.loadbalancer;
 
 import java.util.ArrayList;
@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.ClientException;
 import com.netflix.client.PrimeConnections;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
@@ -44,16 +43,19 @@ import com.netflix.servo.monitor.Monitors;
 import com.netflix.util.concurrent.ShutdownEnabledTimer;
 
 /**
- * A basic implementation of the load balancer where an arbitrary list of servers can be set as the server pool.
- * A ping can be set to determine the liveness of a server. Internally, this class maintains an "all" server list and
- * an "up" server list and use them depending on what the caller asks for. 
- *  
+ * A basic implementation of the load balancer where an arbitrary list of
+ * servers can be set as the server pool. A ping can be set to determine the
+ * liveness of a server. Internally, this class maintains an "all" server list
+ * and an "up" server list and use them depending on what the caller asks for.
+ * 
  * @author stonse
- *
+ * 
  */
-public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConnections.PrimeConnectionListener, IClientConfigAware {
+public class BaseLoadBalancer extends AbstractLoadBalancer implements
+        PrimeConnections.PrimeConnectionListener, IClientConfigAware {
 
-    private static Logger logger = LoggerFactory.getLogger(BaseLoadBalancer.class);
+    private static Logger logger = LoggerFactory
+            .getLogger(BaseLoadBalancer.class);
     private final static IRule DEFAULT_RULE = new RoundRobinRule();
     private static final String DEFAULT_NAME = "default";
     private static final String PREFIX = "LoadBalancer_";
@@ -63,18 +65,17 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
 
     protected IPing ping = null;
 
-
-    @Monitor(name=PREFIX + "AllServerList", type=DataSourceType.INFORMATIONAL)
-    protected volatile List<Server> allServerList = Collections.synchronizedList(new ArrayList<Server>());
-    @Monitor(name=PREFIX + "UpServerList", type=DataSourceType.INFORMATIONAL)
-    protected volatile List<Server> upServerList = Collections.synchronizedList(new ArrayList<Server>());
+    @Monitor(name = PREFIX + "AllServerList", type = DataSourceType.INFORMATIONAL)
+    protected volatile List<Server> allServerList = Collections
+            .synchronizedList(new ArrayList<Server>());
+    @Monitor(name = PREFIX + "UpServerList", type = DataSourceType.INFORMATIONAL)
+    protected volatile List<Server> upServerList = Collections
+            .synchronizedList(new ArrayList<Server>());
 
     protected ReadWriteLock allServerLock = new ReentrantReadWriteLock();
     protected ReadWriteLock upServerLock = new ReentrantReadWriteLock();
 
-
     protected String name = DEFAULT_NAME;
-
 
     protected Timer lbTimer = null;
     protected int pingIntervalSeconds = 10;
@@ -86,22 +87,24 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     protected LoadBalancerStats lbStats;
 
     private volatile Counter counter;
-    
+
     private PrimeConnections primeConnections;
-    
+
     private boolean enablePrimingConnections = false;
-        
+
     /**
-     * Default constructor which sets name as "default", sets null ping, and {@link RoundRobinRule} as the rule.
+     * Default constructor which sets name as "default", sets null ping, and
+     * {@link RoundRobinRule} as the rule.
      * <p>
-     * This constructor is mainly used by {@link ClientFactory}. Calling this constructor must 
-     * be followed by calling {@link #init()} or {@link #initWithNiwsConfig(NiwsClientConfig)} to complete initialization.
-     * This constructor is provided for reflection. 
-     * When constructing programatically, it is recommended to use other constructors.
+     * This constructor is mainly used by {@link ClientFactory}. Calling this
+     * constructor must be followed by calling {@link #init()} or
+     * {@link #initWithNiwsConfig(NiwsClientConfig)} to complete initialization.
+     * This constructor is provided for reflection. When constructing
+     * programatically, it is recommended to use other constructors.
      */
     public BaseLoadBalancer() {
         this.name = DEFAULT_NAME;
-        this.ping = null;       
+        this.ping = null;
         setRule(DEFAULT_RULE);
         setupPingTask();
         lbStats = new LoadBalancerStats(DEFAULT_NAME);
@@ -116,12 +119,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         this(DEFAULT_NAME, rule, new LoadBalancerStats(DEFAULT_NAME), ping);
     }
 
-    public BaseLoadBalancer(String name, IRule rule, LoadBalancerStats stats, IPing ping) {
-        if (logger.isDebugEnabled()){
+    public BaseLoadBalancer(String name, IRule rule, LoadBalancerStats stats,
+            IPing ping) {
+        if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  initialized");
         }
         this.name = name;
-        this.ping = ping;       
+        this.ping = ping;
         setRule(rule);
         setupPingTask();
         lbStats = stats;
@@ -132,29 +136,31 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     public BaseLoadBalancer(IClientConfig config) {
         initWithNiwsConfig(config);
     }
-    
+
     @Override
-    public void initWithNiwsConfig(IClientConfig clientConfig)  {
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
         String clientName = clientConfig.getClientName();
-        String ruleClassName = (String) clientConfig.getProperty(
-                    CommonClientConfigKey.NFLoadBalancerRuleClassName);
-        String pingClassName = (String) clientConfig.getProperty(
-                    CommonClientConfigKey.NFLoadBalancerPingClassName);
+        String ruleClassName = (String) clientConfig
+                .getProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName);
+        String pingClassName = (String) clientConfig
+                .getProperty(CommonClientConfigKey.NFLoadBalancerPingClassName);
 
         IRule rule;
         IPing ping;
         try {
-            rule = (IRule) ClientFactory.instantiateInstanceWithClientConfig(ruleClassName, clientConfig);
-            ping = (IPing) ClientFactory.instantiateInstanceWithClientConfig(pingClassName, clientConfig);
+            rule = (IRule) ClientFactory.instantiateInstanceWithClientConfig(
+                    ruleClassName, clientConfig);
+            ping = (IPing) ClientFactory.instantiateInstanceWithClientConfig(
+                    pingClassName, clientConfig);
         } catch (Exception e) {
             throw new RuntimeException("Error initializing load balancer", e);
         }
-        
+
         this.name = clientName;
         int pingIntervalTime = Integer.parseInt(""
                 + clientConfig.getProperty(
-                        CommonClientConfigKey.NFLoadBalancerPingInterval, Integer
-                                .parseInt("30")));
+                        CommonClientConfigKey.NFLoadBalancerPingInterval,
+                        Integer.parseInt("30")));
         int maxTotalPingTime = Integer.parseInt(""
                 + clientConfig.getProperty(
                         CommonClientConfigKey.NFLoadBalancerMaxTotalPingTime,
@@ -162,61 +168,69 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
 
         setPingInterval(pingIntervalTime);
         setMaxTotalPingTime(maxTotalPingTime);
-        
-        //cross associate with each other
+
+        // cross associate with each other
         // i.e. Rule,Ping meet your container LB
         // LB, these are your Ping and Rule guys ...
         setRule(rule);
         setPing(ping);
-        setLoadBalancerStats(new LoadBalancerStats(clientName));       
+        setLoadBalancerStats(new LoadBalancerStats(clientName));
         if (rule instanceof AbstractLoadBalancerRule) {
             ((AbstractLoadBalancerRule) rule).setLoadBalancer(this);
         }
         if (ping instanceof AbstractLoadBalancerPing) {
-        	((AbstractLoadBalancerPing) ping).setLoadBalancer(this);
+            ((AbstractLoadBalancerPing) ping).setLoadBalancer(this);
         }
-        logger.info("Client:" + name
-                + " instantiated a LoadBalancer:" + toString());        
+        logger.info("Client:" + name + " instantiated a LoadBalancer:"
+                + toString());
         boolean enablePrimeConnections = false;
-        
-        if (clientConfig.getProperty(CommonClientConfigKey.EnablePrimeConnections)!=null){
-        	Boolean bEnablePrimeConnections = Boolean.valueOf(""+ clientConfig.getProperty(CommonClientConfigKey.EnablePrimeConnections, "false"));
-        	enablePrimeConnections = bEnablePrimeConnections.booleanValue();
+
+        if (clientConfig
+                .getProperty(CommonClientConfigKey.EnablePrimeConnections) != null) {
+            Boolean bEnablePrimeConnections = Boolean.valueOf(""
+                    + clientConfig.getProperty(
+                            CommonClientConfigKey.EnablePrimeConnections,
+                            "false"));
+            enablePrimeConnections = bEnablePrimeConnections.booleanValue();
         }
 
         if (enablePrimeConnections) {
             this.setEnablePrimingConnections(true);
-            PrimeConnections primeConnections = new PrimeConnections(this.getName(), clientConfig);
+            PrimeConnections primeConnections = new PrimeConnections(
+                    this.getName(), clientConfig);
             this.setPrimeConnections(primeConnections);
         }
         init();
     }
 
     private boolean canSkipPing() {
-        if (ping == null || ping.getClass().getName().equals(DummyPing.class.getName())) {
-            // default ping, no need to set up timer 
+        if (ping == null
+                || ping.getClass().getName().equals(DummyPing.class.getName())) {
+            // default ping, no need to set up timer
             return true;
         } else {
             return false;
-        }        
+        }
     }
-    
+
     private void setupPingTask() {
         if (canSkipPing()) {
             return;
         }
-        if (lbTimer != null){
+        if (lbTimer != null) {
             lbTimer.cancel();
         }
-        lbTimer = new ShutdownEnabledTimer("NFLoadBalancer-PingTimer-" + name, true);  
-        lbTimer.schedule(new PingTask(), 0, pingIntervalSeconds*1000);
+        lbTimer = new ShutdownEnabledTimer("NFLoadBalancer-PingTimer-" + name,
+                true);
+        lbTimer.schedule(new PingTask(), 0, pingIntervalSeconds * 1000);
         forceQuickPing();
     }
 
     /**
-     * Set the name for the load balancer. This should not be called since name should be 
-     * immutable after initialization. Calling this method does not guarantee that all other data structures
-     * that depend on this name will be changed accordingly.
+     * Set the name for the load balancer. This should not be called since name
+     * should be immutable after initialization. Calling this method does not
+     * guarantee that all other data structures that depend on this name will be
+     * changed accordingly.
      */
     void setName(String name) {
         // and register
@@ -261,7 +275,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         }
 
         this.pingIntervalSeconds = pingIntervalSeconds;
-        if (logger.isDebugEnabled()){
+        if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  pingIntervalSeconds set to "
                     + this.pingIntervalSeconds);
         }
@@ -273,15 +287,14 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     }
 
     /*
-     * How long until 'pencils down'? That is, how long can each ping cycle last
-     * before ALL remaining pings are declared 'dead' ?
+     * Maximum time allowed for the ping cycle
      */
     public void setMaxTotalPingTime(int maxTotalPingTimeSeconds) {
         if (maxTotalPingTimeSeconds < 1) {
             return;
         }
         this.maxTotalPingTimeSeconds = maxTotalPingTimeSeconds;
-        if (logger.isDebugEnabled()){
+        if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer: maxTotalPingTime set to "
                     + this.maxTotalPingTimeSeconds);
         }
@@ -292,11 +305,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         return maxTotalPingTimeSeconds;
     }
 
-
     public IPing getPing() {
         return ping;
     }
-
 
     public IRule getRule() {
         return rule;
@@ -310,13 +321,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
 
     public void setPing(IPing ping) {
         if (ping != null) {
-            if (!ping.equals(this.ping)){
+            if (!ping.equals(this.ping)) {
                 this.ping = ping;
                 setupPingTask(); // since ping data changed
             }
-        } else{
+        } else {
             this.ping = null;
-            //cancel the timer task
+            // cancel the timer task
             lbTimer.cancel();
         }
     }
@@ -331,11 +342,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
             this.rule = new RoundRobinRule();
         }
     }
-    
+
     /**
      * get the count of servers.
      * 
-     * @param onlyAvailable if true, return only up servers.
+     * @param onlyAvailable
+     *            if true, return only up servers.
      * @return
      */
     public int getServerCount(boolean onlyAvailable) {
@@ -358,7 +370,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                 newList.addAll(allServerList);
                 newList.add(newServer);
                 setServersList(newList);
-            } catch (Exception e){
+            } catch (Exception e) {
                 logger.error("Exception while adding a newServer", e);
             }
         }
@@ -371,11 +383,11 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
      */
     @Override
     public void addServers(List<Server> newServers) {
-        if (newServers != null && newServers.size() > 0) {			
+        if (newServers != null && newServers.size() > 0) {
             try {
-                newServers.addAll(allServerList);				
+                newServers.addAll(allServerList);
                 setServersList(newServers);
-            } catch (Exception e){
+            } catch (Exception e) {
                 logger.error("Exception while adding Servers", e);
             }
         }
@@ -384,8 +396,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     /*
      * Add a list of servers to the 'allServer' list; does not verify
      * uniqueness, so you could give a server a greater share by adding it more
-     * than once
-     * USED by Test Cases only for legacy reason. DO NOT USE!!
+     * than once USED by Test Cases only for legacy reason. DO NOT USE!!
      */
     void addServers(Object[] newServers) {
         if ((newServers != null) && (newServers.length > 0)) {
@@ -405,18 +416,19 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                     }
                 }
                 setServersList(newList);
-            } catch (Exception e){
+            } catch (Exception e) {
                 logger.error("Exception while adding Servers", e);
             }
         }
     }
 
     /**
-     * Set the list of servers used as the server pool. This overrides existing server list.
+     * Set the list of servers used as the server pool. This overrides existing
+     * server list.
      */
     public void setServersList(List lsrv) {
         Lock writeLock = allServerLock.writeLock();
-        if (logger.isDebugEnabled()){
+        if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  clearing server list (SET op)");
         }
         ArrayList<Server> newServers = new ArrayList<Server>();
@@ -433,22 +445,24 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                 }
 
                 if (server instanceof Server) {
-                    if (logger.isDebugEnabled()){
+                    if (logger.isDebugEnabled()) {
                         logger.debug("LoadBalancer:  addServer ["
                                 + ((Server) server).getId() + "]");
                     }
                     allServers.add((Server) server);
-                }else{
-                    throw new IllegalArgumentException("Type String or Server expected, instead found:" + server.getClass());
+                } else {
+                    throw new IllegalArgumentException(
+                            "Type String or Server expected, instead found:"
+                                    + server.getClass());
                 }
 
             }
             boolean listChanged = false;
-            if (!allServerList.equals(allServers)){
+            if (!allServerList.equals(allServers)) {
                 listChanged = true;
             }
             if (enablePrimingConnections) {
-                for (Server server: allServers) {
+                for (Server server : allServers) {
                     if (!allServerList.contains(server)) {
                         server.setReadyToServe(false);
                         newServers.add((Server) server);
@@ -458,11 +472,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                     primeConnections.primeConnectionsAsync(newServers, this);
                 }
             }
-            // This will reset readyToServe flag to true on all servers regardless whether 
+            // This will reset readyToServe flag to true on all servers
+            // regardless whether
             // previous priming connections are success or not
             allServerList = allServers;
             if (canSkipPing()) {
-                for (Server s: allServerList) {
+                for (Server s : allServerList) {
                     s.setAlive(true);
                 }
                 upServerList = allServerList;
@@ -473,7 +488,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
             writeLock.unlock();
         }
     }
-    
+
     /* List in string form. SETS, does not add. */
     void setServers(String srvString) {
         if (srvString != null) {
@@ -498,9 +513,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         }
     }
 
-    
     /**
-     * return the server 
+     * return the server
+     * 
      * @param index
      * @param availableOnly
      * @return
@@ -514,13 +529,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         }
     }
 
-
     public List<Server> getServerList(boolean availableOnly) {
         return (availableOnly ? upServerList : allServerList);
     }
 
     @Override
-    public List<Server> getServerList(ServerGroup serverGroup) {	    
+    public List<Server> getServerList(ServerGroup serverGroup) {
         switch (serverGroup) {
         case ALL:
             return allServerList;
@@ -536,17 +550,18 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         return new ArrayList<Server>();
     }
 
-    public void cancelPingTask(){
-        if(lbTimer != null){
+    public void cancelPingTask() {
+        if (lbTimer != null) {
             lbTimer.cancel();
         }
     }
 
     /**
-     * TimerTask that keeps runs every X seconds to check the status of each server/node
-     * in the Server List	
+     * TimerTask that keeps runs every X seconds to check the status of each
+     * server/node in the Server List
+     * 
      * @author stonse
-     *
+     * 
      */
     class PingTask extends TimerTask {
         public void run() {
@@ -554,19 +569,25 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
             try {
                 ping.runPinger();
             } catch (Throwable t) {
-                logger.error("Throwable caught while running extends for " + name, t);
+                logger.error("Throwable caught while running extends for "
+                        + name, t);
             }
         }
     }
 
+    /**
+     * Class that contains the mechanism to "ping" all the instances
+     * 
+     * @author stonse
+     *
+     */
+    class Pinger {
 
-    class Pinger{
+        public void runPinger() {
 
-        public void runPinger(){
-
-            if (pingInProgress.get()){
+            if (pingInProgress.get()) {
                 return; // Ping in progress - nothing to do
-            }else{
+            } else {
                 pingInProgress.set(true);
             }
 
@@ -576,7 +597,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
             boolean[] results = null;
 
             Lock allLock = null;
-            Lock upLock = null;     
+            Lock upLock = null;
 
             try {
                 /*
@@ -591,7 +612,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                 int numCandidates = allServers.length;
                 results = new boolean[numCandidates];
 
-                if (logger.isDebugEnabled()){
+                if (logger.isDebugEnabled()) {
                     logger.debug("LoadBalancer:  PingTask executing ["
                             + numCandidates + "] servers configured");
                 }
@@ -601,19 +622,22 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                     try {
                         // NOTE: IFF we were doing a real ping
                         // assuming we had a large set of servers (say 15)
-                        // the logic below will run them serially 
+                        // the logic below will run them serially
                         // hence taking 15 times the amount of time it takes
                         // to ping each server
-                        // A better method would be to put this in an executor pool
+                        // A better method would be to put this in an executor
+                        // pool
                         // But, at the time of this writing, we dont REALLY
-                        // use a Real Ping (its mostly in memory discovery call)
-                        // hence we can afford to simplify this design and run this 
+                        // use a Real Ping (its mostly in memory eureka call)
+                        // hence we can afford to simplify this design and run
+                        // this
                         // serially
-                        if (ping!=null){
+                        if (ping != null) {
                             results[i] = ping.isAlive((Server) allServers[i]);
                         }
                     } catch (Throwable t) {
-                        logger.error("Exception while pinging Server:" + allServers[i], t);
+                        logger.error("Exception while pinging Server:"
+                                + allServers[i], t);
                     }
                 }
 
@@ -626,10 +650,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
 
                     svr.setAlive(isAlive);
 
-                    if (oldIsAlive != isAlive && logger.isDebugEnabled()){
-                    	logger.debug("LoadBalancer:  Server [" + svr.getId()
-                    			+ "] status changed to "
-                    			+ (isAlive ? "ALIVE" : "DEAD"));
+                    if (oldIsAlive != isAlive && logger.isDebugEnabled()) {
+                        logger.debug("LoadBalancer:  Server [" + svr.getId()
+                                + "] status changed to "
+                                + (isAlive ? "ALIVE" : "DEAD"));
                     }
 
                     if (isAlive) {
@@ -642,9 +666,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
                 upServerList = newUpList;
                 upLock.unlock();
             } catch (Throwable t) {
-                logger.error("Throwable caught while running the Pinger-" + name, t);
-            } finally {               
-                pingInProgress.set(false);               
+                logger.error("Throwable caught while running the Pinger-"
+                        + name, t);
+            } finally {
+                pingInProgress.set(false);
             }
         }
     }
@@ -652,11 +677,11 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
     private final Counter createCounter() {
         return Monitors.newCounter("LoadBalancer_ChooseServer");
     }
-    
+
     /*
      * Get the alive server dedicated to key
      * 
-     * @return the decicated server
+     * @return the dedicated server
      */
     public Server chooseServer(Object key) {
         if (counter == null) {
@@ -700,7 +725,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         logger.error("LoadBalancer:  markServerDown called on ["
                 + server.getId() + "]");
         server.setAlive(false);
-        //forceQuickPing();
+        // forceQuickPing();
     }
 
     public void markServerDown(String id) {
@@ -724,9 +749,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
             }
 
             if (triggered) {
-                logger.error("LoadBalancer:  markServerDown called on ["
-                        + id + "]");
-                //forceQuickPing();
+                logger.error("LoadBalancer:  markServerDown called on [" + id
+                        + "]");
             }
 
         } finally {
@@ -745,28 +769,29 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         if (canSkipPing()) {
             return;
         }
-        if (logger.isDebugEnabled()){
+        if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  forceQuickPing invoked");
         }
         Pinger ping = new Pinger();
         try {
             ping.runPinger();
         } catch (Throwable t) {
-            logger.error("Throwable caught while running forceQuickPing() for " + name, t);
+            logger.error("Throwable caught while running forceQuickPing() for "
+                    + name, t);
         }
     }
 
-    public String toString(){
+    public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("{NFLoadBalancer:name=").append(this.getName()).
-        append(",current list of Servers=").append(this.allServerList).
-        append(",Load balancer stats=").append(this.lbStats.toString()).
-        append("}");
+        sb.append("{NFLoadBalancer:name=").append(this.getName())
+                .append(",current list of Servers=").append(this.allServerList)
+                .append(",Load balancer stats=")
+                .append(this.lbStats.toString()).append("}");
         return sb.toString();
     }
 
     /**
-     * Register with monitors and start priming connections if it is set. 
+     * Register with monitors and start priming connections if it is set.
      */
     protected void init() {
         Monitors.registerObject("LoadBalancer_" + name, this);
@@ -792,7 +817,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements PrimeConne
         return enablePrimingConnections;
     }
 
-    public final void setEnablePrimingConnections(boolean enablePrimingConnections) {
+    public final void setEnablePrimingConnections(
+            boolean enablePrimingConnections) {
         this.enablePrimingConnections = enablePrimingConnections;
     }
 }

@@ -19,13 +19,19 @@ package com.netflix.loadbalancer;
 
 import java.util.List;
 
-import com.netflix.client.IClientConfigAware;
-
 /**
- * AbstractLoadBalancer that contains the base common features 
+ * AbstractLoadBalancer contains features required for most loadbalancing
+ * implementations.
+ * 
+ * An anatomy of a typical LoadBalancer consists of 1. A List of Servers (nodes)
+ * that are potentially bucketed based on a specific criteria. 2. A Class that
+ * defines and implements a LoadBalacing Strategy via <code>IRule</code> 3. A
+ * Class that defines and implements a mechanism to determine the
+ * suitability/availability of the nodes/servers in the List.
+ * 
  * 
  * @author stonse
- *
+ * 
  */
 public abstract class AbstractLoadBalancer implements ILoadBalancer {
     
@@ -45,8 +51,10 @@ public abstract class AbstractLoadBalancer implements ILoadBalancer {
     
     /**
      * List of servers that this Loadbalancer knows about
-     * @param availableOnly if true will only return the subset of servers that are in the list as marked as "up"
-     * a null value will send all servers
+     * 
+     * @param availableOnly
+     *            if true will only return the subset of servers that are in the
+     *            list as marked as "up" a null value will send all servers
      * @return
      */
     public abstract List<Server> getServerList(ServerGroup serverGroup);

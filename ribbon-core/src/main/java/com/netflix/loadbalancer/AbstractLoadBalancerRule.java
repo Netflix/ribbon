@@ -19,13 +19,17 @@ package com.netflix.loadbalancer;
 
 import com.netflix.client.IClientConfigAware;
 
+/**
+ * Class that provides a 
+ * @author stonse
+ *
+ */
 public abstract class AbstractLoadBalancerRule implements IRule, IClientConfigAware {
 
     AbstractLoadBalancer lb;
     
     @Override
     public Server choose(BaseLoadBalancer lb, Object key) {
-        // TODO Auto-generated method stub
         return null;
     }
     

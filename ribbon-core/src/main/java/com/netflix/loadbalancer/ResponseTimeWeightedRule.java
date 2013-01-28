@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/* 
+/** 
  * Rule that use the average/percentile response times
  * to assign dynamic "weights" per Server which is then used in 
  * the "Weighted Round Robin" fashion

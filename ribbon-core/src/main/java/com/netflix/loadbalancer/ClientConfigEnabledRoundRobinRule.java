@@ -20,26 +20,28 @@ package com.netflix.loadbalancer;
 import com.netflix.client.config.IClientConfig;
 
 /**
- * This class essentially contains the RoundRobinRule class defined in the loadbalancer package
+ * This class essentially contains the RoundRobinRule class defined in the
+ * loadbalancer package
+ * 
  * @author stonse
- *
+ * 
  */
-public class ClientConfigEnabledRoundRobinRule extends AbstractLoadBalancerRule{
+public class ClientConfigEnabledRoundRobinRule extends AbstractLoadBalancerRule {
 
     RoundRobinRule rule = new RoundRobinRule();
-    
+
     @Override
-    public void initWithNiwsConfig(
-            IClientConfig clientConfig) {
-       rule = new RoundRobinRule();        
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+        rule = new RoundRobinRule();
     }
 
     @Override
-    public Server choose(BaseLoadBalancer lb, Object key) {       
-        if (rule!=null){
+    public Server choose(BaseLoadBalancer lb, Object key) {
+        if (rule != null) {
             return rule.choose(lb, key);
-        }else{
-            throw new IllegalArgumentException("This class has not been initialized with the RoundRobinRule class");
+        } else {
+            throw new IllegalArgumentException(
+                    "This class has not been initialized with the RoundRobinRule class");
         }
     }
 

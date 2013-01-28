@@ -17,6 +17,14 @@
 */
 package com.netflix.loadbalancer;
 
+/**
+ * Interface that defines a "Rule" for a LoadBalancer. A Rule can be thought of
+ * as a Strategy for loadbalacing. Well known loadbalancing strategies include
+ * Round Robin, Response Time based etc.
+ * 
+ * @author stonse
+ * 
+ */
 public interface IRule{
     /*
      * choose one alive server from lb.allServers or

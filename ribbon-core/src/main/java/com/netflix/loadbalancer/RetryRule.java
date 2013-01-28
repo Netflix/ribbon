@@ -17,7 +17,13 @@
 */
 package com.netflix.loadbalancer;
 
-
+/**
+ * Given that
+ * <code>IRule<code> can be cascaded, this RetryRule class allows adding a retry logic to an existing Rule.
+ * 
+ * @author stonse
+ * 
+ */
 public class RetryRule implements IRule {
 	IRule subRule = new RoundRobinRule();
 	long maxRetryMillis = 500;
