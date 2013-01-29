@@ -132,7 +132,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         
     public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = 1.0f;
     
-    public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = "com.netflix.niws.client.HttpPrimeConnection";
+    public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = "com.netflix.niws.client.http.HttpPrimeConnection";
     
     public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.loadbalancer.ConfigurationBasedServerList";
     
