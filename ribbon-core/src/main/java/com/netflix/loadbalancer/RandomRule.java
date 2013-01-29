@@ -33,7 +33,7 @@ public class RandomRule implements IRule {
         rand = new Random();
     }
 
-    /*
+    /**
      * Randomly choose from all living servers
      */
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
