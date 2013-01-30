@@ -140,7 +140,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
 
-    volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
+    protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
     
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
 
@@ -406,7 +406,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         return (clientName == null) ? getDefaultPropName(propName) : getInstancePropName(clientName, propName);
     }
     
-    private void setPropertyInternal(final String propName, Object value) {
+    protected void setPropertyInternal(final String propName, Object value) {
         String stringValue = (value == null) ? "" : String.valueOf(value);
         properties.put(propName, stringValue);
         if (!enableDynamicProperties) {
