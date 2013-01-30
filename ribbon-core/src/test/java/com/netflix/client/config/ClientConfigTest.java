@@ -52,6 +52,7 @@ public class ClientConfigTest {
     @Test
     public void testNiwsConfigViaProperties() throws Exception {
     	DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+    	DefaultClientConfigImpl override = new DefaultClientConfigImpl();
     	clientConfig.loadDefaultValues();
         Properties props = new Properties();
         
@@ -71,10 +72,17 @@ public class ClientConfigTest {
         ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.customProperty", "abc");
         
         clientConfig.loadProperties(restClientName);
+        clientConfig.setProperty(CommonClientConfigKey.ConnectTimeout, "1000");
+        override.setProperty(CommonClientConfigKey.Port, "8000");
+        override.setProperty(CommonClientConfigKey.ConnectTimeout, "5000");
+        clientConfig.applyOverride(override);
         
         Assert.assertEquals("movieservice", clientConfig.getProperty(CommonClientConfigKey.AppName));
         Assert.assertEquals("false", clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));        
         Assert.assertEquals("movieservice-xbox-test,movieservice--test", clientConfig.resolveDeploymentContextbasedVipAddresses());
+        Assert.assertEquals("5000", clientConfig.getProperty(CommonClientConfigKey.ConnectTimeout));
+
+        Assert.assertEquals("8000", clientConfig.getProperty(CommonClientConfigKey.Port));
         assertEquals("abc", clientConfig.getProperties().get("customProperty"));
         System.out.println("AutoVipAddress:" + clientConfig.resolveDeploymentContextbasedVipAddresses());
         

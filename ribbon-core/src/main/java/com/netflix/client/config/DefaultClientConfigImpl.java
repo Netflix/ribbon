@@ -140,7 +140,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
 
-    volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
+    protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
     
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
 
@@ -351,19 +351,19 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
         
     protected void loadDefaultValues() {
-        putIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
-        putIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
-        putIntegerProperty(CommonClientConfigKey.ConnectTimeout, getDefaultConnectTimeout());
-        putIntegerProperty(CommonClientConfigKey.ConnectionManagerTimeout, getDefaultConnectionManagerTimeout());
-        putIntegerProperty(CommonClientConfigKey.ReadTimeout, getDefaultReadTimeout());
-        putIntegerProperty(CommonClientConfigKey.MaxAutoRetries, getDefaultMaxAutoRetries());
-        putIntegerProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, getDefaultMaxAutoRetriesNextServer());
-        putBooleanProperty(CommonClientConfigKey.OkToRetryOnAllOperations, getDefaultOkToRetryOnAllOperations());
-        putBooleanProperty(CommonClientConfigKey.FollowRedirects, getDefaultFollowRedirects());
-        putBooleanProperty(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, getDefaultConnectionPoolCleanerTaskEnabled()); 
-        putIntegerProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, getDefaultConnectionidleTimeInMsecs());
-        putIntegerProperty(CommonClientConfigKey.ConnectionCleanerRepeatInterval, getDefaultConnectionIdleTimertaskRepeatInMsecs());
-        putBooleanProperty(CommonClientConfigKey.EnableGZIPContentEncodingFilter, getDefaultEnableGzipContentEncodingFilter());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
+        putDefaultIntegerProperty(CommonClientConfigKey.ConnectTimeout, getDefaultConnectTimeout());
+        putDefaultIntegerProperty(CommonClientConfigKey.ConnectionManagerTimeout, getDefaultConnectionManagerTimeout());
+        putDefaultIntegerProperty(CommonClientConfigKey.ReadTimeout, getDefaultReadTimeout());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxAutoRetries, getDefaultMaxAutoRetries());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, getDefaultMaxAutoRetriesNextServer());
+        putDefaultBooleanProperty(CommonClientConfigKey.OkToRetryOnAllOperations, getDefaultOkToRetryOnAllOperations());
+        putDefaultBooleanProperty(CommonClientConfigKey.FollowRedirects, getDefaultFollowRedirects());
+        putDefaultBooleanProperty(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, getDefaultConnectionPoolCleanerTaskEnabled()); 
+        putDefaultIntegerProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, getDefaultConnectionidleTimeInMsecs());
+        putDefaultIntegerProperty(CommonClientConfigKey.ConnectionCleanerRepeatInterval, getDefaultConnectionIdleTimertaskRepeatInMsecs());
+        putDefaultBooleanProperty(CommonClientConfigKey.EnableGZIPContentEncodingFilter, getDefaultEnableGzipContentEncodingFilter());
         String proxyHost = ConfigurationManager.getConfigInstance().getString(getDefaultPropName(CommonClientConfigKey.ProxyHost.key()));
         if (proxyHost != null && proxyHost.length() > 0) {
             setProperty(CommonClientConfigKey.ProxyHost, proxyHost);
@@ -376,29 +376,29 @@ public class DefaultClientConfigImpl implements IClientConfig {
         if (proxyPort != (Integer.MIN_VALUE + 1)) {
             setProperty(CommonClientConfigKey.ProxyPort, proxyPort);
         }
-        putIntegerProperty(CommonClientConfigKey.Port, getDefaultPort());
-        putBooleanProperty(CommonClientConfigKey.EnablePrimeConnections, getDefaultEnablePrimeConnections());
-        putIntegerProperty(CommonClientConfigKey.MaxRetriesPerServerPrimeConnection, getDefaultMaxRetriesPerServerPrimeConnection());
-        putIntegerProperty(CommonClientConfigKey.MaxTotalTimeToPrimeConnections, getDefaultMaxTotalTimeToPrimeConnections());
-        putStringProperty(CommonClientConfigKey.PrimeConnectionsURI, getDefaultPrimeConnectionsUri());
-        putIntegerProperty(CommonClientConfigKey.PoolMinThreads, getDefaultPoolMinThreads());
-        putIntegerProperty(CommonClientConfigKey.PoolMaxThreads, getDefaultPoolMaxThreads());
-        putLongProperty(CommonClientConfigKey.PoolKeepAliveTime, getDefaultPoolKeepAliveTime());
-        putTimeUnitProperty(CommonClientConfigKey.PoolKeepAliveTimeUnits, getDefaultPoolKeepAliveTimeUnits());
-        putBooleanProperty(CommonClientConfigKey.EnableZoneAffinity, getDefaultEnableZoneAffinity());
-        putBooleanProperty(CommonClientConfigKey.EnableZoneExclusivity, getDefaultEnableZoneExclusivity());
-        putStringProperty(CommonClientConfigKey.ClientClassName, getDefaultClientClassname());
-        putStringProperty(CommonClientConfigKey.NFLoadBalancerClassName, getDefaultNfloadbalancerClassname());
-        putStringProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName, getDefaultNfloadbalancerRuleClassname());
-        putStringProperty(CommonClientConfigKey.NFLoadBalancerPingClassName, getDefaultNfloadbalancerPingClassname());
-        putBooleanProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, getDefaultPrioritizeVipAddressBasedServers());
-        putFloatProperty(CommonClientConfigKey.MinPrimeConnectionsRatio, getDefaultMinPrimeConnectionsRatio());
-        putStringProperty(CommonClientConfigKey.PrimeConnectionsClassName, getDefaultPrimeConnectionsClass());
-        putStringProperty(CommonClientConfigKey.NIWSServerListClassName, getDefaultSeverListClass());
-        putStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());    	
+        putDefaultIntegerProperty(CommonClientConfigKey.Port, getDefaultPort());
+        putDefaultBooleanProperty(CommonClientConfigKey.EnablePrimeConnections, getDefaultEnablePrimeConnections());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxRetriesPerServerPrimeConnection, getDefaultMaxRetriesPerServerPrimeConnection());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalTimeToPrimeConnections, getDefaultMaxTotalTimeToPrimeConnections());
+        putDefaultStringProperty(CommonClientConfigKey.PrimeConnectionsURI, getDefaultPrimeConnectionsUri());
+        putDefaultIntegerProperty(CommonClientConfigKey.PoolMinThreads, getDefaultPoolMinThreads());
+        putDefaultIntegerProperty(CommonClientConfigKey.PoolMaxThreads, getDefaultPoolMaxThreads());
+        putDefaultLongProperty(CommonClientConfigKey.PoolKeepAliveTime, getDefaultPoolKeepAliveTime());
+        putDefaultTimeUnitProperty(CommonClientConfigKey.PoolKeepAliveTimeUnits, getDefaultPoolKeepAliveTimeUnits());
+        putDefaultBooleanProperty(CommonClientConfigKey.EnableZoneAffinity, getDefaultEnableZoneAffinity());
+        putDefaultBooleanProperty(CommonClientConfigKey.EnableZoneExclusivity, getDefaultEnableZoneExclusivity());
+        putDefaultStringProperty(CommonClientConfigKey.ClientClassName, getDefaultClientClassname());
+        putDefaultStringProperty(CommonClientConfigKey.NFLoadBalancerClassName, getDefaultNfloadbalancerClassname());
+        putDefaultStringProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName, getDefaultNfloadbalancerRuleClassname());
+        putDefaultStringProperty(CommonClientConfigKey.NFLoadBalancerPingClassName, getDefaultNfloadbalancerPingClassname());
+        putDefaultBooleanProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, getDefaultPrioritizeVipAddressBasedServers());
+        putDefaultFloatProperty(CommonClientConfigKey.MinPrimeConnectionsRatio, getDefaultMinPrimeConnectionsRatio());
+        putDefaultStringProperty(CommonClientConfigKey.PrimeConnectionsClassName, getDefaultPrimeConnectionsClass());
+        putDefaultStringProperty(CommonClientConfigKey.NIWSServerListClassName, getDefaultSeverListClass());
+        putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());    	
     }
     
-    private void setPropertyInternal(IClientConfigKey propName, Object value) {
+    protected void setPropertyInternal(IClientConfigKey propName, Object value) {
         setPropertyInternal(propName.key(), value);
     }
 
@@ -406,7 +406,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         return (clientName == null) ? getDefaultPropName(propName) : getInstancePropName(clientName, propName);
     }
     
-    private void setPropertyInternal(final String propName, Object value) {
+    protected void setPropertyInternal(final String propName, Object value) {
         String stringValue = (value == null) ? "" : String.valueOf(value);
         properties.put(propName, stringValue);
         if (!enableDynamicProperties) {
@@ -459,25 +459,25 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	// Helper methods which first check if a "default" (with rest client name)
 	// property exists. If so, that value is used, else the default value
 	// passed as argument is used to put into the properties member variable
-    private void putIntegerProperty(IClientConfigKey propName, Integer defaultValue) {
+    protected void putDefaultIntegerProperty(IClientConfigKey propName, Integer defaultValue) {
         Integer value = ConfigurationManager.getConfigInstance().getInteger(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
 
-    private void putLongProperty(IClientConfigKey propName, Long defaultValue) {
+    protected void putDefaultLongProperty(IClientConfigKey propName, Long defaultValue) {
         Long value = ConfigurationManager.getConfigInstance().getLong(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
     
-    private void putFloatProperty(IClientConfigKey propName, Float defaultValue) {
+    protected void putDefaultFloatProperty(IClientConfigKey propName, Float defaultValue) {
         Float value = ConfigurationManager.getConfigInstance().getFloat(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
     
-    private void putTimeUnitProperty(IClientConfigKey propName, TimeUnit defaultValue) {
+    protected void putDefaultTimeUnitProperty(IClientConfigKey propName, TimeUnit defaultValue) {
         TimeUnit value = defaultValue;
         String propValue = ConfigurationManager.getConfigInstance().getString(
                 getDefaultPropName(propName));
@@ -496,13 +496,13 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     
-    private void putStringProperty(IClientConfigKey propName, String defaultValue) {
+    protected void putDefaultStringProperty(IClientConfigKey propName, String defaultValue) {
         String value = ConfigurationManager.getConfigInstance().getString(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
     
-    private void putBooleanProperty(IClientConfigKey propName, Boolean defaultValue) {
+    protected void putDefaultBooleanProperty(IClientConfigKey propName, Boolean defaultValue) {
         Boolean value = ConfigurationManager.getConfigInstance().getBoolean(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
@@ -603,13 +603,26 @@ public class DefaultClientConfigImpl implements IClientConfig {
         if (override == null) {
             return this;
         }
-        for (IClientConfigKey key: CommonClientConfigKey.values()) {
-            Object value = override.getProperty(key);
-            if (value != null) {
-                setProperty(key, value);
-            }
+        Map<String, Object> props = override.getProperties();
+        for (Map.Entry<String, Object> entry: props.entrySet()) {
+        	String key = entry.getKey();
+        	Object value = entry.getValue();
+        	if (key != null && value != null) {
+        	    setPropertyInternal(key, value);
+        	}
         }
         return this;
+    }
+    
+    protected Object getProperty(String key) {
+        DynamicStringProperty dynamicProperty = dynamicProperties.get(key);
+        if (dynamicProperty != null) {
+            String dynamicValue = dynamicProperty.get();
+            if (dynamicValue != null) {
+                return dynamicValue;
+            }
+        }
+        return properties.get(key);    	
     }
     
     /* (non-Javadoc)
@@ -618,14 +631,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @Override
 	public Object getProperty(IClientConfigKey key){
         String propName = key.key();
-        DynamicStringProperty dynamicProperty = dynamicProperties.get(propName);
-        if (dynamicProperty != null) {
-            String dynamicValue = dynamicProperty.get();
-            if (dynamicValue != null) {
-                return dynamicValue;
-            }
-        }
-        return properties.get(propName);
+        return getProperty(propName);
     }
 
     /* (non-Javadoc)
