@@ -38,16 +38,16 @@ public class WeightedResponseTimeRule extends AbstractLoadBalancerRule {
     @Override
     // TODO(stonse): Consider refactoring this so that we dont need to override
     // this
-    public void setLoadBalancer(AbstractLoadBalancer lb) {
+    public void setLoadBalancer(ILoadBalancer lb) {
         super.setLoadBalancer(lb);
         rule.setLoadBalancer(lb);// set it for the contained Rule class
         rule.initialize(lb);
     }
 
     @Override
-    public Server choose(BaseLoadBalancer lb, Object key) {
+    public Server choose(Object key) {
         if (rule != null) {
-            return rule.choose(lb, key);
+            return rule.choose(key);
         } else {
             throw new IllegalArgumentException(
                     "This class has not been initialized with the RoundRobinRule class");

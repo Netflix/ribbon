@@ -175,9 +175,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         setRule(rule);
         setPing(ping);
         setLoadBalancerStats(new LoadBalancerStats(clientName));
-        if (rule instanceof AbstractLoadBalancerRule) {
-            ((AbstractLoadBalancerRule) rule).setLoadBalancer(this);
-        }
+        rule.setLoadBalancer(this);
         if (ping instanceof AbstractLoadBalancerPing) {
             ((AbstractLoadBalancerPing) ping).setLoadBalancer(this);
         }
@@ -340,6 +338,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         } else {
             /* default rule */
             this.rule = new RoundRobinRule();
+        }
+        if (this.rule.getLoadBalancer() != this) {
+            this.rule.setLoadBalancer(this);
         }
     }
 
@@ -529,8 +530,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         }
     }
 
+    @Override
     public List<Server> getServerList(boolean availableOnly) {
-        return (availableOnly ? upServerList : allServerList);
+        return (availableOnly ? Collections.unmodifiableList(upServerList) : 
+        	Collections.unmodifiableList(allServerList));
     }
 
     @Override
@@ -692,7 +695,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             return null;
         } else {
             try {
-                return rule.choose(this, key);
+                return rule.choose(key);
             } catch (Throwable t) {
                 return null;
             }
@@ -705,7 +708,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             return null;
         } else {
             try {
-                Server svr = rule.choose(this, key);
+                Server svr = rule.choose(key);
                 return ((svr == null) ? null : svr.getId());
             } catch (Throwable t) {
                 return null;

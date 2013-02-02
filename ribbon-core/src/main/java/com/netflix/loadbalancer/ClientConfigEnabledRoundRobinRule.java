@@ -36,9 +36,15 @@ public class ClientConfigEnabledRoundRobinRule extends AbstractLoadBalancerRule 
     }
 
     @Override
-    public Server choose(BaseLoadBalancer lb, Object key) {
+    public void setLoadBalancer(ILoadBalancer lb) {
+    	super.setLoadBalancer(lb);
+    	rule.setLoadBalancer(lb);
+    }
+    
+    @Override
+    public Server choose(Object key) {
         if (rule != null) {
-            return rule.choose(lb, key);
+            return rule.choose(key);
         } else {
             throw new IllegalArgumentException(
                     "This class has not been initialized with the RoundRobinRule class");

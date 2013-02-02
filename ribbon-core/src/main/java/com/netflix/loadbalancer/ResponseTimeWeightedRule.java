@@ -29,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.config.IClientConfig;
+
 /** 
  * Rule that use the average/percentile response times
  * to assign dynamic "weights" per Server which is then used in 
@@ -53,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author stonse
  */
-public class ResponseTimeWeightedRule implements IRule {
+public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
 
     private static final int serverWeightTaskTimerInterval = 30 * 1000;
 
@@ -124,7 +126,7 @@ public class ResponseTimeWeightedRule implements IRule {
     final static boolean availableOnly = false;
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
-    public Server choose(BaseLoadBalancer lb, Object key) {
+    public Server choose(ILoadBalancer lb, Object key) {
         if (lb == null) {
             return null;
         }
@@ -134,9 +136,11 @@ public class ResponseTimeWeightedRule implements IRule {
             if (Thread.interrupted()) {
                 return null;
             }
+            List<Server> upList = lb.getServerList(true);
+            List<Server> allList = lb.getServerList(false);
 
-            int upCount = lb.getServerCount(true);
-            int serverCount = lb.getServerCount(availableOnly);
+            int upCount = upList.size();
+            int serverCount = allList.size();
 
             if ((upCount == 0) || (serverCount == 0)) {
                 return null;
@@ -162,7 +166,7 @@ public class ResponseTimeWeightedRule implements IRule {
                 }
             }
 
-            server = lb.getServerByIndex(serverIndex, availableOnly);
+            server = allList.get(serverIndex);
 
             if (server == null) {
                 /* Transient. */
@@ -244,5 +248,14 @@ public class ResponseTimeWeightedRule implements IRule {
 
         }
     }
+
+	@Override
+	public Server choose(Object key) {
+		return choose(getLoadBalancer(), key);
+	}
+
+	@Override
+	public void initWithNiwsConfig(IClientConfig clientConfig) {
+	}
 
 }

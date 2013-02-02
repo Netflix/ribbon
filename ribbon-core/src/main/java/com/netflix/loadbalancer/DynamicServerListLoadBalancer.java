@@ -168,11 +168,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         this.ping = ping;
     }
 
-    @Override
-    public void setRule(IRule rule) {
-        this.rule = rule;
-    }
-
     public ServerListFilter<T> getFilter() {
         return filter;
     }

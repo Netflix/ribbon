@@ -31,9 +31,14 @@ public class AvailabilityFilteringRule extends ClientConfigEnabledRoundRobinRule
 
         
     @Override
-    public Server choose(BaseLoadBalancer lb, Object key) {
-        LoadBalancerStats lbStats = lb.getLoadBalancerStats();
-        Server server = super.choose(lb, key);
+    public Server choose(Object key) {
+    	ILoadBalancer lb = getLoadBalancer();
+        Server server = super.choose(key);
+        LoadBalancerStats lbStats = null;
+        
+        if (lb instanceof AbstractLoadBalancer) {
+        	lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
+        }
         if (lbStats == null) {
             return server;
         }
@@ -43,7 +48,7 @@ public class AvailabilityFilteringRule extends ClientConfigEnabledRoundRobinRule
             if ((CIRCUIT_BREAKER_FILTERING.get() && stats.isCircuitBreakerTripped()) 
                     || stats.getActiveRequestsCount() >= ACTIVE_CONNECTIONS_LIMIT.get()) {
                 // try again 
-                server = super.choose(lb, key);
+                server = super.choose(key);
                 count--;                
             } else {
                 break;
