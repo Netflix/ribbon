@@ -17,7 +17,10 @@
  */
 package com.netflix.loadbalancer;
 
+import java.util.List;
 import java.util.Random;
+
+import com.netflix.client.config.IClientConfig;
 
 /**
  * A loadbalacing strategy that randomly distributes traffic amongst existing
@@ -26,7 +29,7 @@ import java.util.Random;
  * @author stonse
  * 
  */
-public class RandomRule implements IRule {
+public class RandomRule extends AbstractLoadBalancerRule {
     Random rand;
 
     public RandomRule() {
@@ -37,7 +40,7 @@ public class RandomRule implements IRule {
      * Randomly choose from all living servers
      */
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
-    public Server choose(BaseLoadBalancer lb, Object key) {
+    public Server choose(ILoadBalancer lb, Object key) {
         if (lb == null) {
             return null;
         }
@@ -47,8 +50,10 @@ public class RandomRule implements IRule {
             if (Thread.interrupted()) {
                 return null;
             }
+            List<Server> upList = lb.getServerList(true);
+            List<Server> allList = lb.getServerList(false);
 
-            int serverCount = lb.getServerCount(true);
+            int serverCount = allList.size();
             if (serverCount == 0) {
                 /*
                  * No servers. End regardless of pass, because subsequent passes
@@ -58,7 +63,7 @@ public class RandomRule implements IRule {
             }
 
             int index = rand.nextInt(serverCount);
-            server = lb.getServerByIndex(index, true);
+            server = upList.get(index);
 
             if (server == null) {
                 /*
@@ -82,4 +87,15 @@ public class RandomRule implements IRule {
         return server;
 
     }
+
+	@Override
+	public Server choose(Object key) {
+		return choose(getLoadBalancer(), key);
+	}
+
+	@Override
+	public void initWithNiwsConfig(IClientConfig clientConfig) {
+		// TODO Auto-generated method stub
+		
+	}
 }

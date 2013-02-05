@@ -17,10 +17,13 @@
  */
 package com.netflix.loadbalancer;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.netflix.client.config.IClientConfig;
 
 /**
  * The most well known and basic loadbalacing strategy, i.e. Round Robin Rule.
@@ -28,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * @author stonse
  * 
  */
-public class RoundRobinRule implements IRule {
+public class RoundRobinRule extends AbstractLoadBalancerRule {
     AtomicInteger nextIndexAI;
 
     private static Logger log = LoggerFactory.getLogger(RoundRobinRule.class);
@@ -37,12 +40,17 @@ public class RoundRobinRule implements IRule {
         nextIndexAI = new AtomicInteger(0);
     }
 
+    public RoundRobinRule(ILoadBalancer lb) {
+    	this();
+    	setLoadBalancer(lb);
+    }
+
     /*
      * Rotate over all known servers.
      */
     final static boolean availableOnly = false;
 
-    public Server choose(BaseLoadBalancer lb, Object key) {
+    public Server choose(ILoadBalancer lb, Object key) {
         if (lb == null) {
             log.warn("no load balancer");
             return null;
@@ -52,8 +60,10 @@ public class RoundRobinRule implements IRule {
 
         int count = 0;
         while (server == null && count++ < 10) {
-            int upCount = lb.getServerCount(true);
-            int serverCount = lb.getServerCount(availableOnly);
+            List<Server> upList = lb.getServerList(true);
+            List<Server> allList = lb.getServerList(false);
+            int upCount = upList.size();
+            int serverCount = allList.size();
 
             if ((upCount == 0) || (serverCount == 0)) {
                 log.warn("No up servers available from load balancer: " + lb);
@@ -61,7 +71,7 @@ public class RoundRobinRule implements IRule {
             }
 
             index = nextIndexAI.incrementAndGet() % serverCount;
-            server = lb.getServerByIndex(index, availableOnly);
+            server = allList.get(index);
 
             if (server == null) {
                 /* Transient. */
@@ -69,9 +79,7 @@ public class RoundRobinRule implements IRule {
                 continue;
             }
 
-            if (server.isAlive()
-                    && (!lb.isEnablePrimingConnections() || server
-                            .isReadyToServe())) {
+            if (server.isAlive() && (server.isReadyToServe())) {
                 return (server);
             }
 
@@ -85,4 +93,13 @@ public class RoundRobinRule implements IRule {
         }
         return server;
     }
+
+	@Override
+	public Server choose(Object key) {
+		return choose(getLoadBalancer(), key);
+	}
+
+	@Override
+	public void initWithNiwsConfig(IClientConfig clientConfig) {
+	}
 }

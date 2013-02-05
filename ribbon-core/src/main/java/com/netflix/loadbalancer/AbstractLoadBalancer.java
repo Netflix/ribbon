@@ -63,5 +63,5 @@ public abstract class AbstractLoadBalancer implements ILoadBalancer {
      * Obtain LoadBalancer related Statistics
      * @return
      */
-    public abstract LoadBalancerStats getLoadBalancerStats();
+    public abstract LoadBalancerStats getLoadBalancerStats();    
 }

@@ -59,5 +59,11 @@ public class NoOpLoadBalancer extends AbstractLoadBalancer {
     @Override
     public void markServerDown(Server server) {
         logger.info("markServerDown to NoOpLoadBalancer ignored");
-    }    
+    }
+
+	@Override
+	public List<Server> getServerList(boolean availableOnly) {
+		// TODO Auto-generated method stub
+		return null;
+	}    
 }

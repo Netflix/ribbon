@@ -47,9 +47,13 @@ public class ZoneAvoidanceRule extends AvailabilityFilteringRule {
     private static final Random random = new Random();
 
     @Override
-    public Server choose(BaseLoadBalancer lb, Object key) {
-        LoadBalancerStats lbStats = lb.getLoadBalancerStats();
-        Server server = super.choose(lb, key);
+    public Server choose(Object key) {
+    	ILoadBalancer lb = getLoadBalancer();
+        Server server = super.choose(key);
+        LoadBalancerStats lbStats = null;        
+        if (lb instanceof AbstractLoadBalancer) {
+        	lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
+        }
         if (lbStats == null || !ENABLED.get() || server.getZone() == null
                 || lbStats.getAvailableZones().size() <= 1) {
             return server;
@@ -62,7 +66,7 @@ public class ZoneAvoidanceRule extends AvailabilityFilteringRule {
                 int count = lb.getServerList(false).size();
                 while (!availableZones.contains(server.getZone())
                         && (--count >= 0)) {
-                    server = super.choose(lb, key);
+                    server = super.choose(key);
                 }
                 return server;
             }
