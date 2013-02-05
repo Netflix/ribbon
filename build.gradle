@@ -34,7 +34,7 @@ subprojects {
 
 project(':ribbon-core') {
     dependencies {
-        compile 'com.netflix.netflix-commons:netflix-statistics:0.1.0'
+        compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
     }
 }
 
