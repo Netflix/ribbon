@@ -57,4 +57,6 @@ public interface ILoadBalancer {
 	 * @param server Server to mark as down
 	 */
 	public void markServerDown(Server server);
+	
+	public List<Server> getServerList(boolean availableOnly);
 }

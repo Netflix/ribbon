@@ -34,6 +34,9 @@ public interface IRule{
      *  server is available 
      */
 
-    Server choose(BaseLoadBalancer lb, Object key);
+    public Server choose(Object key);
+    
+    public void setLoadBalancer(ILoadBalancer lb);
+    
+    public ILoadBalancer getLoadBalancer();    
 }
- 

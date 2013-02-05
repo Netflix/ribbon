@@ -17,6 +17,8 @@
 */
 package com.netflix.loadbalancer;
 
+import com.netflix.client.config.IClientConfig;
+
 /**
  * Given that
  * <code>IRule<code> can be cascaded, this RetryRule class allows adding a retry logic to an existing Rule.
@@ -24,7 +26,7 @@ package com.netflix.loadbalancer;
  * @author stonse
  * 
  */
-public class RetryRule implements IRule {
+public class RetryRule extends AbstractLoadBalancerRule {
 	IRule subRule = new RoundRobinRule();
 	long maxRetryMillis = 500;
 
@@ -60,18 +62,26 @@ public class RetryRule implements IRule {
 		return maxRetryMillis;
 	}
 
+	
+	
+	@Override
+	public void setLoadBalancer(ILoadBalancer lb) {		
+		super.setLoadBalancer(lb);
+		subRule.setLoadBalancer(lb);
+	}
+
 	/*
 	 * Loop if necessary. Note that the time CAN be exceeded depending on the
 	 * subRule, because we're not spawning additional threads and returning
 	 * early.
 	 */
-	public Server choose(BaseLoadBalancer lb, Object key) {
+	public Server choose(ILoadBalancer lb, Object key) {
 		long requestTime = System.currentTimeMillis();
 		long deadline = requestTime + maxRetryMillis;
 
 		Server answer = null;
 
-		answer = subRule.choose(lb, key);
+		answer = subRule.choose(key);
 
 		if (((answer == null) || (!answer.isAlive()))
 				&& (System.currentTimeMillis() < deadline)) {
@@ -80,7 +90,7 @@ public class RetryRule implements IRule {
 					- System.currentTimeMillis());
 
 			while (!Thread.interrupted()) {
-				answer = subRule.choose(lb, key);
+				answer = subRule.choose(key);
 
 				if (((answer == null) || (!answer.isAlive()))
 						&& (System.currentTimeMillis() < deadline)) {
@@ -99,5 +109,14 @@ public class RetryRule implements IRule {
 		} else {
 			return answer;
 		}
+	}
+
+	@Override
+	public Server choose(Object key) {
+		return choose(getLoadBalancer(), key);
+	}
+
+	@Override
+	public void initWithNiwsConfig(IClientConfig clientConfig) {
 	}
 }

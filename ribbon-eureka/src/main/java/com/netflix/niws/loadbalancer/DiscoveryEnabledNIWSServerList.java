@@ -124,7 +124,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                     ClientException.ErrorType.CONFIGURATION,
                     "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"
                             + niwsClientConfig
-                                    .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName));
+                                    .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName), e);
         }
 
     }

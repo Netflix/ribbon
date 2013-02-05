@@ -144,7 +144,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         zone = zone.toLowerCase();
         BaseLoadBalancer loadBalancer = balancers.get(zone);
         if (loadBalancer == null) {
-            loadBalancer = new BaseLoadBalancer(this.getName() + "_" + zone, this.getRule(), this.getLoadBalancerStats());
+            loadBalancer = new BaseLoadBalancer(this.getName() + "_" + zone, new AvailabilityFilteringRule(), this.getLoadBalancerStats());
             BaseLoadBalancer prev = balancers.putIfAbsent(zone, loadBalancer);
             if (prev != null) {
             	loadBalancer = prev;
