@@ -60,7 +60,9 @@ public class SimpleVipAddressResolver implements VipAddressResolver {
 
     /**
      * Resolve the vip address by replacing macros with actual values in configuration. 
-     * If there is no macro, the passed in string will be returned.
+     * If there is no macro, the passed in string will be returned. If a macro is found but
+     * there is no property defined in configuration, the same macro is returned as part of the
+     * result.
      */
     @Override
     public String resolve(String vipAddressMacro, IClientConfig niwsClientConfig) {
@@ -78,8 +80,8 @@ public class SimpleVipAddressResolver implements VipAddressResolver {
             String value = ConfigurationManager.getConfigInstance().getString(key);
             if (value != null) {
                 result = result.replaceAll("\\$\\{" + key + "\\}", value);
+                matcher = VAR_PATTERN.matcher(result);
             }
-            matcher = VAR_PATTERN.matcher(result);
         }        
         return result.trim();        
     }
