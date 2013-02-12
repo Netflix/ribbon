@@ -58,5 +58,10 @@ public interface ILoadBalancer {
 	 */
 	public void markServerDown(Server server);
 	
+	/**
+	 * Get the current list of servers.
+	 * 
+	 * @param availableOnly if true, only live and available servers should be returned
+	 */
 	public List<Server> getServerList(boolean availableOnly);
 }
