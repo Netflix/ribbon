@@ -17,15 +17,24 @@
 */
 package com.netflix.loadbalancer;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicListProperty;
+import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.config.DynamicStringProperty;
 
 /**
  * Utility class that can load the List of Servers from a Configuration (i.e
- * properties available via Archaius)
+ * properties available via Archaius). The property name be defined in this format:
+ * 
+ * <pre>{@code
+<clientName>.<nameSpace>.listOfServers=<comma delimited hostname:port strings>
+}</pre>
  * 
  * @author awang
  * 
@@ -34,26 +43,42 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 
 	public static final String PROP_NAME = "listOfServers";
 	private String propertyName = DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + "." + PROP_NAME;
-	private DynamicListProperty<Server> dynamicProp;
+	private DynamicStringProperty dynamicProp;
+	private volatile List<Server> list = Collections.emptyList();
 		
 	@Override
 	public List<Server> getInitialListOfServers() {
-		return dynamicProp.get();
+		return list;
 	}
 
 	@Override
 	public List<Server> getUpdatedListOfServers() {
-		return dynamicProp.get();
+		return list;
 	}
 
 	@Override
 	public void initWithNiwsConfig(IClientConfig clientConfig) {
 		propertyName = clientConfig.getClientName() + "." + clientConfig.getNameSpace() + "." +  PROP_NAME;
-		dynamicProp = new DynamicListProperty<Server>(propertyName, "") {
+		dynamicProp = DynamicPropertyFactory.getInstance().getStringProperty(propertyName, null);
+		derive();
+		dynamicProp.addCallback(new Runnable() {
 			@Override
-			protected Server from(String value) {
-				return new Server(value);
+			public void run() {
+				derive();
 			}			
-		};
+		});
+	}
+	
+	private void derive() {
+		String value = dynamicProp.get();
+		if (Strings.isNullOrEmpty(value)) {
+			list = Collections.emptyList();
+		} else {
+			List<Server> newList = new ArrayList<Server>();
+			for (String s: value.split(",")) {
+				newList.add(new Server(s.trim()));
+			}
+			list = newList;
+		}
 	}
 }
