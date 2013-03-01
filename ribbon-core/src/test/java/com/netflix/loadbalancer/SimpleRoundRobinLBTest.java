@@ -44,7 +44,7 @@ public class SimpleRoundRobinLBTest {
 		IPing ping = new PingFake();
 		IRule rule = new RoundRobinRule();
 		lb = new BaseLoadBalancer(ping,rule);
-		lb.setPingInterval(5);
+		lb.setPingInterval(1);
 		lb.setMaxTotalPingTime(2);
 		
 		// the setting of servers is done by a call to DiscoveryService
@@ -54,10 +54,12 @@ public class SimpleRoundRobinLBTest {
 		}		
 		lb.addServers(servers);
 		
+		// make sure the ping cycle has kicked in and all servers are set to alive
 		try {
-			Thread.sleep(2000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 		}
+		System.out.println(lb.getServerList(true));
 	}
 	
 	/**
