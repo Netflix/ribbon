@@ -20,7 +20,7 @@ package com.netflix.loadbalancer;
 import com.netflix.client.IClientConfigAware;
 
 /**
- * Class that provides a 
+ * Class that provides a default implementation for setting and getting load balancer
  * @author stonse
  *
  */
@@ -36,5 +36,5 @@ public abstract class AbstractLoadBalancerRule implements IRule, IClientConfigAw
     @Override
     public ILoadBalancer getLoadBalancer(){
         return lb;
-    }    
+    }      
 }

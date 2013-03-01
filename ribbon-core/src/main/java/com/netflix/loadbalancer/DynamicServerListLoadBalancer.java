@@ -73,8 +73,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
     volatile ServerListFilter<T> filter;
 
-    IClientConfig niwsClientConfig;
-
     public DynamicServerListLoadBalancer() {
         super();
     }
@@ -87,7 +85,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         try {
             super.initWithNiwsConfig(clientConfig);
-            this.niwsClientConfig = clientConfig;
             String niwsServerListClassName = clientConfig.getProperty(
                     CommonClientConfigKey.NIWSServerListClassName,
                     DefaultClientConfigImpl.DEFAULT_SEVER_LIST_CLASS)
@@ -109,14 +106,17 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
                     CommonClientConfigKey.ServerListRefreshInterval,
                     LISTOFSERVERS_CACHE_REPEAT_INTERVAL).toString());
 
+            boolean primeConnection = this.isEnablePrimingConnections();
+            // turn this off to avoid duplicated asynchronous priming done in BaseLoadBalancer.setServerList()
+            this.setEnablePrimingConnections(false);
             enableAndInitLearnNewServersFeature();
 
             updateListOfServers();
-            if (this.isEnablePrimingConnections()
-                    && this.getPrimeConnections() != null) {
+            if (primeConnection && this.getPrimeConnections() != null) {
                 this.getPrimeConnections()
                         .primeConnections(getServerList(true));
             }
+            this.setEnablePrimingConnections(primeConnection);
 
         } catch (Exception e) {
             throw new RuntimeException(
@@ -214,7 +214,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     }
 
     private String getIdentifier() {
-        return niwsClientConfig.getClientName();
+        return this.getClientConfig().getClientName();
     }
 
     private void keepServerListUpdated() {

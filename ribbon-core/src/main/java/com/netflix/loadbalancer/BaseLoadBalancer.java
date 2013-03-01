@@ -90,7 +90,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
     private PrimeConnections primeConnections;
 
-    private boolean enablePrimingConnections = false;
+    private volatile boolean enablePrimingConnections = false;
+    
+    private IClientConfig config;
 
     /**
      * Default constructor which sets name as "default", sets null ping, and
@@ -139,6 +141,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
+    	this.config = clientConfig;
         String clientName = clientConfig.getClientName();
         String ruleClassName = (String) clientConfig
                 .getProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName);
@@ -201,6 +204,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         init();
     }
 
+    public IClientConfig getClientConfig() {
+    	return config;
+    }
+    
     private boolean canSkipPing() {
         if (ping == null
                 || ping.getClass().getName().equals(DummyPing.class.getName())) {
@@ -462,7 +469,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             if (!allServerList.equals(allServers)) {
                 listChanged = true;
             }
-            if (enablePrimingConnections) {
+            if (isEnablePrimingConnections()) {
                 for (Server server : allServers) {
                     if (!allServerList.contains(server)) {
                         server.setReadyToServe(false);
@@ -816,7 +823,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         s.setReadyToServe(true);
     }
 
-    public final boolean isEnablePrimingConnections() {
+    public boolean isEnablePrimingConnections() {
         return enablePrimingConnections;
     }
 
