@@ -73,8 +73,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
     volatile ServerListFilter<T> filter;
 
-    IClientConfig niwsClientConfig;
-
     public DynamicServerListLoadBalancer() {
         super();
     }
@@ -87,7 +85,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         try {
             super.initWithNiwsConfig(clientConfig);
-            this.niwsClientConfig = clientConfig;
             String niwsServerListClassName = clientConfig.getProperty(
                     CommonClientConfigKey.NIWSServerListClassName,
                     DefaultClientConfigImpl.DEFAULT_SEVER_LIST_CLASS)
@@ -217,7 +214,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     }
 
     private String getIdentifier() {
-        return niwsClientConfig.getClientName();
+        return this.getClientConfig().getClientName();
     }
 
     private void keepServerListUpdated() {
