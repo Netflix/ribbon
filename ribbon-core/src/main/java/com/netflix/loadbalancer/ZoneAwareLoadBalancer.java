@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.ClientFactory;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicPropertyFactory;
@@ -144,7 +145,19 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         zone = zone.toLowerCase();
         BaseLoadBalancer loadBalancer = balancers.get(zone);
         if (loadBalancer == null) {
-            loadBalancer = new BaseLoadBalancer(this.getName() + "_" + zone, new AvailabilityFilteringRule(), this.getLoadBalancerStats());
+        	IRule rule = null;
+        	// We need to create rule object for load balancer for each zone
+        	if (this.getRule() == null) {
+        		rule = new AvailabilityFilteringRule();
+        	} else {
+        		String ruleClass = this.getRule().getClass().getName();        		
+        		try {
+					rule = (IRule) ClientFactory.instantiateInstanceWithClientConfig(ruleClass, this.getClientConfig());
+				} catch (Exception e) {
+					throw new RuntimeException("Unexpected exception creating rule for ZoneAwareLoadBalancer for each zone", e);
+				}
+        	}
+            loadBalancer = new BaseLoadBalancer(this.getName() + "_" + zone, rule, this.getLoadBalancerStats());
             BaseLoadBalancer prev = balancers.putIfAbsent(zone, loadBalancer);
             if (prev != null) {
             	loadBalancer = prev;

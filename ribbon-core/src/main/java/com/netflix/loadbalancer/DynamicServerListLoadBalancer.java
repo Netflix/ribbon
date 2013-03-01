@@ -109,14 +109,17 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
                     CommonClientConfigKey.ServerListRefreshInterval,
                     LISTOFSERVERS_CACHE_REPEAT_INTERVAL).toString());
 
+            boolean primeConnection = this.isEnablePrimingConnections();
+            // turn this off to avoid duplicated asynchronous priming done in BaseLoadBalancer.setServerList()
+            this.setEnablePrimingConnections(false);
             enableAndInitLearnNewServersFeature();
 
             updateListOfServers();
-            if (this.isEnablePrimingConnections()
-                    && this.getPrimeConnections() != null) {
+            if (primeConnection && this.getPrimeConnections() != null) {
                 this.getPrimeConnections()
                         .primeConnections(getServerList(true));
             }
+            this.setEnablePrimingConnections(primeConnection);
 
         } catch (Exception e) {
             throw new RuntimeException(
