@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,6 +39,7 @@ public class SimpleRoundRobinLBTest {
 	
 	@BeforeClass
 	public static void setup(){
+		LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
 		isAliveMap.put("dummyservice0.netflix.com:8080", Boolean.TRUE);
 		isAliveMap.put("dummyservice1.netflix.com:8080", Boolean.TRUE);
 		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.TRUE);
@@ -62,6 +66,10 @@ public class SimpleRoundRobinLBTest {
 		System.out.println(lb.getServerList(true));
 	}
 	
+	@AfterClass
+	public static void cleanup() {
+		LogManager.getRootLogger().setLevel((Level)Level.INFO);
+	}
 	/**
 	 * Simulate a single user who should just round robin among the available servers
 	 */
