@@ -82,24 +82,20 @@ public class SimpleRoundRobinLBTest {
 			servers.add(svc.getId());
 		}
 		assertEquals(isAliveMap.keySet(), servers);
-	}
-	
-	/**
-	 * Simulate a single user who should just round robin among the available servers
-	 */
-	@Test
-	public void testRoundRobinWithAServerFailure() throws Exception {
 		System.out.println("Round Robin Test With Server SERVER DOWN");
 		isAliveMap.put("dummyservice2.netflix.com:8080", Boolean.FALSE);
 		((BaseLoadBalancer)lb).markServerDown("dummyservice2.netflix.com:8080");
-		Thread.sleep(3000);
+		try {
+		    Thread.sleep(3000);
+		} catch (Exception e) { // NOPMD			
+		}
 		for (int i=0; i < 12; i++){
 			Server svc = lb.chooseServer("user1");
 			assertNotNull(svc);
 			System.out.println("server: " + svc.getHost());
 			assertFalse(svc.getId().equals("dummyservice2.netflix.com:8080"));
 		}
-	}
+	}	
 	
 	static class PingFake implements IPing {
 		public boolean isAlive(Server server) {
