@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.client.ClientFactory;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
@@ -140,8 +141,9 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
             stopWatch.stop();
         }
     }
-        
-    private BaseLoadBalancer getLoadBalancer(String zone) {
+     
+    @VisibleForTesting
+    BaseLoadBalancer getLoadBalancer(String zone) {
         zone = zone.toLowerCase();
         BaseLoadBalancer loadBalancer = balancers.get(zone);
         if (loadBalancer == null) {
@@ -153,8 +155,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
             	loadBalancer = prev;
             }
         } 
-        return loadBalancer;
-        
+        return loadBalancer;        
     }
 
     private IRule cloneRule(IRule toClone) {
