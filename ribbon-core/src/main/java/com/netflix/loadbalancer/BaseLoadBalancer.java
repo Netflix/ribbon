@@ -805,6 +805,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      */
     protected void init() {
         Monitors.registerObject("LoadBalancer_" + name, this);
+        // register the rule as it contains metric for available servers count
+        Monitors.registerObject("Rule_" + name, this.getRule());
         if (enablePrimingConnections && primeConnections != null) {
             primeConnections.primeConnections(getServerList(true));
         }
