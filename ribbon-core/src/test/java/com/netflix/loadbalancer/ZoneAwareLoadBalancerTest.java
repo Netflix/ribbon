@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.netflix.client.ClientFactory;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
@@ -33,6 +34,7 @@ import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
 
 import org.junit.Test;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -72,6 +74,8 @@ public class ZoneAwareLoadBalancerTest {
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 10);
         ZoneAwareLoadBalancer<Server> balancer = new ZoneAwareLoadBalancer<Server>();
         balancer.init();
+        IRule globalRule = new RoundRobinRule();
+        balancer.setRule(globalRule);        
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
         assertNotNull(loadBalancerStats);
         List<Server> servers = new ArrayList<Server>();
@@ -89,6 +93,8 @@ public class ZoneAwareLoadBalancerTest {
         servers.add(createServer(4, "c"));
         balancer.setServersList(servers);
         balancer.setUpServerList(servers);
+        assertTrue(balancer.getLoadBalancer("us-east-1a").getRule() instanceof RoundRobinRule);
+        assertNotSame(globalRule, balancer.getLoadBalancer("us-east-1a").getRule());
         // System.out.println("=== LB Stats at testChooseZone 1: " + loadBalancerStats);
         testChooseServer(balancer, "us-east-1a", "us-east-1b", "us-east-1c");
 
@@ -270,4 +276,74 @@ public class ZoneAwareLoadBalancerTest {
         }
         assertEquals(expected, result);
     }
+    
+    @Test
+    public void testConstruction() {
+        ConfigurationManager.getConfigInstance().setProperty("mylb.ribbon.NFLoadBalancerRuleClassName", RandomRule.class.getName());
+        ZoneAwareLoadBalancer lb = (ZoneAwareLoadBalancer) ClientFactory.getNamedLoadBalancer("mylb");
+        assertTrue(lb.getLoadBalancer("myzone").getRule() instanceof RandomRule);
+    }
+    
+    @Test
+    public void testActiveConnectionsLimit() {
+        ConfigurationManager.getConfigInstance().clearProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds");
+        ConfigurationManager.getConfigInstance().setProperty("testlb.ribbon.ActiveConnectionsLimit", 1);
+
+    	ZoneAwareLoadBalancer balancer = (ZoneAwareLoadBalancer) ClientFactory.getNamedLoadBalancer("testlb");
+        LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
+        assertNotNull(loadBalancerStats);
+        List<Server> servers = new ArrayList<Server>();        
+        servers.add(createServer(1, "a"));
+        servers.add(createServer(2, "a"));
+        servers.add(createServer(3, "a"));
+        servers.add(createServer(4, "a"));
+        servers.add(createServer(5, "a"));
+        servers.add(createServer(6, "a"));
+        servers.add(createServer(1, "b"));
+        servers.add(createServer(2, "b"));
+        servers.add(createServer(3, "b"));
+        servers.add(createServer(4, "b"));
+        servers.add(createServer(5, "b"));
+        servers.add(createServer(6, "b"));
+        servers.add(createServer(7, "b"));
+        servers.add(createServer(8, "b"));
+        balancer.setServersList(servers);
+        balancer.setUpServerList(servers);
+        // cause both zone a and b outage 
+        Server server = servers.get(0);
+        loadBalancerStats.getSingleServerStat(server).incrementActiveRequestsCount();
+        server = servers.get(8);
+        loadBalancerStats.getSingleServerStat(server).incrementActiveRequestsCount();
+        
+        server = servers.get(servers.size() - 1);
+        for (int j = 0; j < 3; j++) {
+            loadBalancerStats.getSingleServerStat(server).incrementSuccessiveConnectionFailureCount();
+        }
+
+        Set<Server> expected = new HashSet<Server>();
+        expected.add(createServer(2, "a"));
+        expected.add(createServer(3, "a"));
+        expected.add(createServer(4, "a"));
+        expected.add(createServer(5, "a"));
+        expected.add(createServer(6, "a"));
+        expected.add(createServer(1, "b"));
+        expected.add(createServer(2, "b"));
+        expected.add(createServer(4, "b"));
+        expected.add(createServer(5, "b"));
+        expected.add(createServer(6, "b"));
+        expected.add(createServer(7, "b"));
+        AvailabilityFilteringRule rule = (AvailabilityFilteringRule) balancer.getRule();
+        assertEquals(expected.size(), rule.getAvailableServersCount());
+        AvailabilityFilteringRule rule1 = (AvailabilityFilteringRule) balancer.getLoadBalancer("us-east-1a").getRule();
+        assertEquals(5, rule1.getAvailableServersCount());
+        AvailabilityFilteringRule rule2 = (AvailabilityFilteringRule) balancer.getLoadBalancer("us-east-1b").getRule();
+        assertEquals(6, rule2.getAvailableServersCount());
+        
+        Set<Server> result = new HashSet<Server>();
+        for (int i = 0; i < 100; i++) {            
+            result.add(balancer.chooseServer(null));
+        }
+        assertEquals(expected, result);
+    }
+
 }
