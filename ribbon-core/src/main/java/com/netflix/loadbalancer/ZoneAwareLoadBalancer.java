@@ -17,6 +17,7 @@
 */
 package com.netflix.loadbalancer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 import com.netflix.client.ClientFactory;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
@@ -83,6 +85,14 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         for (Map.Entry<String, List<Server>> entry: zoneServersMap.entrySet()) {
         	String zone = entry.getKey().toLowerCase();
             getLoadBalancer(zone).setServersList(entry.getValue());
+        }
+        // check if there is any zone that no longer has a server
+        // and set the list to empty so that the zone related metrics does not
+        // contain stale data
+        for (Map.Entry<String, BaseLoadBalancer> existingLBEntry: balancers.entrySet()) {
+            if (!zoneServersMap.keySet().contains(existingLBEntry.getKey())) {
+                existingLBEntry.getValue().setServersList(Collections.emptyList());
+            }
         }
     }    
     
