@@ -331,6 +331,7 @@ public class PrimeConnections {
                 // It does not really matter if there was an exception,
                 // the goal here is to attempt "priming/opening" the route
                 // in ec2 .. actual http results do not matter
+                logger.debug("Error connecting to server: {}", e.getMessage());
                 lastException = e;
                 sleepBeforeRetry(tryNum);
             } 

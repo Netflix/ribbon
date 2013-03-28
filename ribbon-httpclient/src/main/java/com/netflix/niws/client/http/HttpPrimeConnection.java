@@ -50,6 +50,7 @@ public class HttpPrimeConnection implements IPrimeConnection {
     @Override
     public boolean connect(Server server, String primeConnectionsURIPath) throws Exception {
         String url = "http://" + server.getHostPort() + primeConnectionsURIPath;
+        logger.debug("Trying URL: {}", url);
         HttpUriRequest get = new HttpGet(url);
         HttpResponse response = null;
         try {
