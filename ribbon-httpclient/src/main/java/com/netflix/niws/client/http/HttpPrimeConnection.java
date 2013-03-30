@@ -30,7 +30,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.util.EntityUtils;
 
 /**
  * An implementation of {@link IPrimeConnection} using Apache HttpClient.
@@ -55,10 +54,8 @@ public class HttpPrimeConnection implements IPrimeConnection {
         HttpResponse response = null;
         try {
             response = client.execute(get);
-            String resp = EntityUtils.toString(response.getEntity());
             if (logger.isDebugEnabled()) {
                 logger.debug("Response code:" + response.getStatusLine().getStatusCode());
-                logger.debug("Response:" + resp);
             }
         } finally {
            get.abort();
