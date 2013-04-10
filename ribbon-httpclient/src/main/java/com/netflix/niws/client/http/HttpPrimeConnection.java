@@ -54,7 +54,7 @@ public class HttpPrimeConnection implements IPrimeConnection {
         HttpResponse response = null;
         try {
             response = client.execute(get);
-            if (logger.isDebugEnabled()) {
+            if (logger.isDebugEnabled() && response.getStatusLine() != null) {
                 logger.debug("Response code:" + response.getStatusLine().getStatusCode());
             }
         } finally {
