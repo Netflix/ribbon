@@ -98,7 +98,7 @@ public class PrimeConnections {
     private float primeRatio = 1.0f;
 
 
-    int maxRetries = 2;
+    int maxRetries = 9;
 
     long maxTotalTimeToPrimeConnections = 30 * 1000; // default time
 

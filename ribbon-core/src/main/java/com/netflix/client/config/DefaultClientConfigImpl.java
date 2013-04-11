@@ -97,7 +97,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = 30000;
 
-    public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = 2;
+    public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = 9;
 
     public static final Boolean DEFAULT_ENABLE_PRIME_CONNECTIONS = Boolean.FALSE;
 
