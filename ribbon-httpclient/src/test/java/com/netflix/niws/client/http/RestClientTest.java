@@ -94,7 +94,22 @@ public class RestClientTest {
         HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("https://www.google.com/")).build();
         HttpClientResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
-    	
     }
+    
+    @Test
+    public void testSecureClient2()  throws Exception {
+        ConfigurationManager.getConfigInstance().setProperty("test3.ribbon.IsSecure", "true");
+        RestClient client = (RestClient) ClientFactory.getNamedClient("test3");
+        BaseLoadBalancer lb = new BaseLoadBalancer();
+        Server[] servers = new Server[]{new Server("www.google.com", 443)};
+        lb.addServers(Arrays.asList(servers));
+        client.setLoadBalancer(lb);
+        HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("/")).build();
+        HttpClientResponse response = client.executeWithLoadBalancer(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("https://www.google.com:443/", response.getRequestedURI().toString());
+        
+    }
+
     
 }

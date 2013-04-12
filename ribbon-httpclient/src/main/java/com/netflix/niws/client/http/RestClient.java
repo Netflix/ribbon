@@ -420,7 +420,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     private boolean isSecure(IClientConfig overriddenClientConfig) {
-        boolean isSecure = false;
+        boolean isSecure = this.isSecure;
         if (overriddenClientConfig != null && overriddenClientConfig.containsProperty(CommonClientConfigKey.IsSecure)){
             isSecure = Boolean.parseBoolean(overriddenClientConfig.getProperty(CommonClientConfigKey.IsSecure).toString());
         } 
