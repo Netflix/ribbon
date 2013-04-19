@@ -20,9 +20,14 @@ package com.netflix.niws.loadbalancer;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.AmazonInfo.MetaDataKey;
 import com.netflix.client.IClientConfigAware;
@@ -35,7 +40,9 @@ import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.loadbalancer.AbstractServerListFilter;
+import com.netflix.loadbalancer.ILoadBalancerPredicate;
 import com.netflix.loadbalancer.LoadBalancerStats;
+import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ZoneSnapshot;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
@@ -46,7 +53,7 @@ import com.netflix.servo.monitor.Monitors;
  *
  */
 public class DefaultNIWSServerListFilter extends
-        AbstractServerListFilter<DiscoveryEnabledServer> implements IClientConfigAware {
+        AbstractServerListFilter<DiscoveryEnabledServer> implements IClientConfigAware, ILoadBalancerPredicate {
 
     private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
     private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
@@ -54,6 +61,7 @@ public class DefaultNIWSServerListFilter extends
     private DynamicDoubleProperty blackOutServerPercentageThreshold;
     private DynamicIntProperty availableServersThreshold;
     private Counter overrideCounter;
+    private ZoneAffinityPredicate zoneAffinityPredicate = new ZoneAffinityPredicate();
     
     private static Logger logger = LoggerFactory.getLogger(DefaultNIWSServerListFilter.class);
     
@@ -87,6 +95,7 @@ public class DefaultNIWSServerListFilter extends
         availableServersThreshold = DynamicPropertyFactory.getInstance().getIntProperty(niwsClientConfig.getClientName() + "." + niwsClientConfig.getNameSpace() + ".zoneAffinity.minAvailableServers", 2);
         logger.debug("availableServersThreshold: {}", availableServersThreshold.get());
         overrideCounter = Monitors.newCounter("ZoneAffinity_OverrideCounter");
+
         Monitors.registerObject("NIWSServerListFilter_" + niwsClientConfig.getClientName());
     }
     
@@ -121,30 +130,15 @@ public class DefaultNIWSServerListFilter extends
         
     @Override
     public List<DiscoveryEnabledServer> getFilteredListOfServers(List<DiscoveryEnabledServer> servers) {
-    	if ((zoneAffinity || zoneExclusive) && servers !=null && servers.size() > 0){
-    		List<DiscoveryEnabledServer> filteredServers = new ArrayList<DiscoveryEnabledServer>();
-    		if (zone != null) {
-    			for (DiscoveryEnabledServer s : servers) {
-    				if (DiscoveryEnabledServer.class.isAssignableFrom(s.getClass())) {
-    					DiscoveryEnabledServer ds = (DiscoveryEnabledServer) s;
-    					if (ds.getInstanceInfo() != null 
-    							&& ds.getInstanceInfo().getDataCenterInfo() instanceof AmazonInfo) {
-    						AmazonInfo ai = (AmazonInfo) ds.getInstanceInfo()
-    								.getDataCenterInfo();
-    						String az = ai.get(MetaDataKey.availabilityZone);
-    						if (az != null && zone != null && az.toLowerCase().equals(zone.toLowerCase())) {
-    							filteredServers.add(s);
-    						}
-    					}
-    				}
-    			}
-    			if (shouldEnableZoneAffinity(filteredServers)) {
-    				return filteredServers;
-    			} else if (zoneAffinity) {
-    				overrideCounter.increment();
-    			}
-    		}
-    	}
+        if (zone != null && (zoneAffinity || zoneExclusive) && servers !=null && servers.size() > 0){
+            List<DiscoveryEnabledServer> filteredServers = Lists.newArrayList(Iterables.filter(
+                    servers, this.zoneAffinityPredicate.getServerOnlyPredicate()));
+            if (shouldEnableZoneAffinity(filteredServers)) {
+                return filteredServers;
+            } else if (zoneAffinity) {
+                overrideCounter.increment();
+            }
+        }
     	return servers;
     }
 
@@ -153,8 +147,26 @@ public class DefaultNIWSServerListFilter extends
         StringBuilder sb = new StringBuilder("DefaultNIWSServerListFilter:");
         sb.append(", zone: ").append(zone).append(", zoneAffinity:").append(zoneAffinity);
         sb.append(", zoneExclusivity:").append(zoneExclusive);
-        return sb.toString();
-        
+        return sb.toString();       
     }
 
+    @Override
+    public boolean apply(Key input) {
+        Server s = input.getServer();
+        if (DiscoveryEnabledServer.class.isAssignableFrom(s.getClass())) {
+            DiscoveryEnabledServer ds = (DiscoveryEnabledServer) s;
+            if (ds.getInstanceInfo() != null 
+                    && ds.getInstanceInfo().getDataCenterInfo() instanceof AmazonInfo) {
+                AmazonInfo ai = (AmazonInfo) ds.getInstanceInfo()
+                        .getDataCenterInfo();
+                String az = ai.get(MetaDataKey.availabilityZone);
+                if (az != null && zone != null && az.toLowerCase().equals(zone.toLowerCase())) {
+                    return true;
+                }
+            } 
+            return false;
+        } else {
+            return false;
+        }
+    }
 }

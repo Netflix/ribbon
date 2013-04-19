@@ -19,6 +19,12 @@ package com.netflix.loadbalancer;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ChainedDynamicProperty;
 import com.netflix.config.DynamicBooleanProperty;
@@ -43,66 +49,22 @@ import com.netflix.servo.annotations.Monitor;
  * @author awang
  *
  */
-public class AvailabilityFilteringRule extends ClientConfigEnabledRoundRobinRule {
-    
-    private ChainedDynamicProperty.IntProperty activeConnectionsLimit;
-    
-    private static final DynamicBooleanProperty CIRCUIT_BREAKER_FILTERING =
-    		DynamicPropertyFactory.getInstance().getBooleanProperty("niws.loadbalancer.availabilityFilteringRule.filterCircuitTripped", true);
+public class AvailabilityFilteringRule extends PredicateBasedRule {    
 
-    private static final DynamicIntProperty ACTIVE_CONNECTIONS_LIMIT =
-            DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit", Integer.MAX_VALUE);
-
+    private AbstractServerPredicate predicate;
+    
     public AvailabilityFilteringRule() {
     	super();
-    	activeConnectionsLimit = new ChainedDynamicProperty.IntProperty(ACTIVE_CONNECTIONS_LIMIT);     	
+    	predicate = new AvailabilityPredicate(this);
     }
+    
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
     	super.initWithNiwsConfig(clientConfig);
-    	String id = "default";
-    	if (clientConfig != null) {
-    	    id = clientConfig.getClientName();
-        	activeConnectionsLimit = new ChainedDynamicProperty.IntProperty(id + "." + clientConfig.getNameSpace() + ".ActiveConnectionsLimit", ACTIVE_CONNECTIONS_LIMIT); 
-    	}    	
+    	predicate = new AvailabilityPredicate(this, clientConfig);
     }
 
-        
-    @Override
-    public Server choose(Object key) {
-    	ILoadBalancer lb = getLoadBalancer();
-        Server server = super.choose(key);
-        LoadBalancerStats lbStats = null;
-        
-        if (lb instanceof AbstractLoadBalancer) {
-        	lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
-        }
-        if (lbStats == null) {
-            return server;
-        }
-        int count = lb.getServerList(false).size();
-        while (server != null && count > 0) {
-            ServerStats stats = lbStats.getSingleServerStat(server);
-            if (shouldSkipServer(stats)) {
-                // try again 
-                server = super.choose(key);
-                count--;                
-            } else {
-                break;
-            }
-        }                
-        return server;
-    }
-    
-    private boolean shouldSkipServer(ServerStats stats) {
-        if ((CIRCUIT_BREAKER_FILTERING.get() && stats.isCircuitBreakerTripped()) 
-                || stats.getActiveRequestsCount() >= activeConnectionsLimit.get()) {
-        	return true;
-        }
-    	return false;
-    }
-    
     @Monitor(name="AvailableServersCount", type = DataSourceType.GAUGE)
     public int getAvailableServersCount() {
     	ILoadBalancer lb = getLoadBalancer();
@@ -110,19 +72,12 @@ public class AvailabilityFilteringRule extends ClientConfigEnabledRoundRobinRule
     	if (servers == null) {
     		return 0;
     	}
-    	int count = servers.size();
-        LoadBalancerStats lbStats = null;        
-        if (lb instanceof AbstractLoadBalancer) {
-        	lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
-        }
-    	if (lbStats != null) {
-    		for (Server server: servers) {
-    			ServerStats stats = lbStats.getSingleServerStat(server);
-    			if (shouldSkipServer(stats)) {
-    				count--;
-    			}
-    		}
-        }
-        return count;    	
+    	return Collections2.filter(servers, predicate.getServerOnlyPredicate()).size();
+    }
+
+
+    @Override
+    public AbstractServerPredicate getPredicate() {
+        return predicate;
     }
 }

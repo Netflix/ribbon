@@ -132,7 +132,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     protected Client apacheHttpClientSpecificInitialization() {
-        httpClient4 = NFHttpClientFactory.getNamedNFHttpClient(restClientName);
+        httpClient4 = NFHttpClientFactory.getNamedNFHttpClient(restClientName, true);
 
         if (httpClient4 instanceof AbstractHttpClient) {
             // DONT use our NFHttpClient's default Retry Handler since we have

@@ -19,10 +19,14 @@ package com.netflix.niws.loadbalancer;
 
 import static org.junit.Assert.*;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.Builder;
 import com.netflix.client.ClientFactory;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DeploymentContext.ContextKey;
 
@@ -33,8 +37,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
+import com.netflix.loadbalancer.AvailabilityPredicate;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
+import com.netflix.loadbalancer.IRule;
 import com.netflix.loadbalancer.LoadBalancerStats;
+import com.netflix.loadbalancer.Server;
 import com.netflix.niws.loadbalancer.DefaultNIWSServerListFilter;
 import com.netflix.niws.loadbalancer.DiscoveryEnabledNIWSServerList;
 import com.netflix.niws.loadbalancer.DiscoveryEnabledServer;

@@ -23,54 +23,48 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.loadbalancer.ILoadBalancerPredicate.Key;
 
 /**
  * 
  * @author awang
  *
  */
-public class ZoneAvoidanceRule extends AvailabilityFilteringRule {
-
-    private static final DynamicDoubleProperty triggeringLoad = DynamicPropertyFactory
-            .getInstance()
-            .getDoubleProperty(
-                    "niws.loadbalancer.zoneAvoidanceRule.triggeringLoadThreshold",
-                    0.2d);
-
-    private static final DynamicBooleanProperty ENABLED = DynamicPropertyFactory
-            .getInstance().getBooleanProperty(
-                    "niws.loadbalancer.zoneAvoidanceRule.enabled", true);
+public class ZoneAvoidanceRule extends PredicateBasedRule {
 
     private static final Random random = new Random();
-
+    
+    private CompositePredicate compositePredicate;
+    
+    public ZoneAvoidanceRule() {
+        super();
+        ZoneAvoidancePredicate zonePredicate = new ZoneAvoidancePredicate(this);
+        AvailabilityPredicate availabilityPredicate = new AvailabilityPredicate(this);
+        compositePredicate = createCompositePredicate(zonePredicate, availabilityPredicate);
+    }
+    
+    private CompositePredicate createCompositePredicate(ZoneAvoidancePredicate p1, AvailabilityPredicate p2) {
+        return CompositePredicate.withPredicates(p1, p2)
+                             .addFallbackPredicate(p2)
+                             .setAllowEmptyFilteredList(false).build();
+        
+    }
+    
+    
     @Override
-    public Server choose(Object key) {
-    	ILoadBalancer lb = getLoadBalancer();
-        Server server = super.choose(key);
-        LoadBalancerStats lbStats = null;        
-        if (lb instanceof AbstractLoadBalancer) {
-        	lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
-        }
-        if (lbStats == null || !ENABLED.get() || server.getZone() == null
-                || lbStats.getAvailableZones().size() <= 1) {
-            return server;
-        } else {
-            Set<String> availableZones = getAvailableZones(lbStats,
-                    triggeringLoad.get(), 0.99999d);
-            if (availableZones == null || availableZones.size() == 0) {
-                return server;
-            } else {
-                int count = lb.getServerList(false).size();
-                while (!availableZones.contains(server.getZone())
-                        && (--count >= 0)) {
-                    server = super.choose(key);
-                }
-                return server;
-            }
-        }
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+        super.initWithNiwsConfig(clientConfig);
+        ZoneAvoidancePredicate zonePredicate = new ZoneAvoidancePredicate(this, clientConfig);
+        AvailabilityPredicate availabilityPredicate = new AvailabilityPredicate(this, clientConfig);
+        compositePredicate = createCompositePredicate(zonePredicate, availabilityPredicate);
     }
 
     static Map<String, ZoneSnapshot> createSnapshot(LoadBalancerStats lbStats) {
@@ -170,4 +164,9 @@ public class ZoneAvoidanceRule extends AvailabilityFilteringRule {
         return getAvailableZones(snapshot, triggeringLoad,
                 triggeringBlackoutPercentage);
     }
+
+    @Override
+    public AbstractServerPredicate getPredicate() {
+        return compositePredicate;
+    }    
 }
