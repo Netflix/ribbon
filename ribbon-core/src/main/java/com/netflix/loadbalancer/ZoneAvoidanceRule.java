@@ -23,17 +23,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicBooleanProperty;
-import com.netflix.config.DynamicDoubleProperty;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.loadbalancer.ILoadBalancerPredicate.Key;
 
 /**
+ * A rule that uses the a {@link CompositePredicate} to filter servers based on zone and availability. The primary predicate is composed of
+ * a {@link ZoneAvoidancePredicate} and {@link AvailabilityPredicate}, with the fallbacks to {@link AvailabilityPredicate}
+ * and an "always true" predicate returned from {@link AbstractServerPredicate#alwaysTrue()} 
  * 
  * @author awang
  *
@@ -54,14 +49,14 @@ public class ZoneAvoidanceRule extends PredicateBasedRule {
     private CompositePredicate createCompositePredicate(ZoneAvoidancePredicate p1, AvailabilityPredicate p2) {
         return CompositePredicate.withPredicates(p1, p2)
                              .addFallbackPredicate(p2)
-                             .setAllowEmptyFilteredList(false).build();
+                             .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
+                             .build();
         
     }
     
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
-        super.initWithNiwsConfig(clientConfig);
         ZoneAvoidancePredicate zonePredicate = new ZoneAvoidancePredicate(this, clientConfig);
         AvailabilityPredicate availabilityPredicate = new AvailabilityPredicate(this, clientConfig);
         compositePredicate = createCompositePredicate(zonePredicate, availabilityPredicate);

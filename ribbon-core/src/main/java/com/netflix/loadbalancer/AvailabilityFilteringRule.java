@@ -19,17 +19,8 @@ package com.netflix.loadbalancer;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
-
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.config.ChainedDynamicProperty;
-import com.netflix.config.DynamicBooleanProperty;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 
@@ -55,14 +46,17 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
     
     public AvailabilityFilteringRule() {
     	super();
-    	predicate = new AvailabilityPredicate(this);
+    	predicate = CompositePredicate.withPredicate(new AvailabilityPredicate(this, null))
+                .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
+                .build();
     }
     
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
-    	super.initWithNiwsConfig(clientConfig);
-    	predicate = new AvailabilityPredicate(this, clientConfig);
+    	predicate = CompositePredicate.withPredicate(new AvailabilityPredicate(this, clientConfig))
+    	            .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
+    	            .build();
     }
 
     @Monitor(name="AvailableServersCount", type = DataSourceType.GAUGE)

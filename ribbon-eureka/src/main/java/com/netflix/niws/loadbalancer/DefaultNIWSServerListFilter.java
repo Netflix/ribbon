@@ -40,9 +40,9 @@ import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.loadbalancer.AbstractServerListFilter;
-import com.netflix.loadbalancer.ILoadBalancerPredicate;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ZoneAffinityPredicate;
 import com.netflix.loadbalancer.ZoneSnapshot;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
@@ -53,7 +53,7 @@ import com.netflix.servo.monitor.Monitors;
  *
  */
 public class DefaultNIWSServerListFilter extends
-        AbstractServerListFilter<DiscoveryEnabledServer> implements IClientConfigAware, ILoadBalancerPredicate {
+        AbstractServerListFilter<DiscoveryEnabledServer> implements IClientConfigAware {
 
     private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
     private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
@@ -148,25 +148,5 @@ public class DefaultNIWSServerListFilter extends
         sb.append(", zone: ").append(zone).append(", zoneAffinity:").append(zoneAffinity);
         sb.append(", zoneExclusivity:").append(zoneExclusive);
         return sb.toString();       
-    }
-
-    @Override
-    public boolean apply(Key input) {
-        Server s = input.getServer();
-        if (DiscoveryEnabledServer.class.isAssignableFrom(s.getClass())) {
-            DiscoveryEnabledServer ds = (DiscoveryEnabledServer) s;
-            if (ds.getInstanceInfo() != null 
-                    && ds.getInstanceInfo().getDataCenterInfo() instanceof AmazonInfo) {
-                AmazonInfo ai = (AmazonInfo) ds.getInstanceInfo()
-                        .getDataCenterInfo();
-                String az = ai.get(MetaDataKey.availabilityZone);
-                if (az != null && zone != null && az.toLowerCase().equals(zone.toLowerCase())) {
-                    return true;
-                }
-            } 
-            return false;
-        } else {
-            return false;
-        }
     }
 }
