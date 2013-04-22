@@ -70,6 +70,24 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
     }
 
 
+    /**
+     * This method is overridden to provide a more efficient implementation which does not iterate through
+     * all servers. This is under the assumption that in most cases, there are more available instances 
+     * than not. 
+     */
+    @Override
+    public Server choose(Object key) {
+        int count = 0;
+        Server server = roundRobinRule.choose(key);
+        while (count++ <= 10) {
+            if (predicate.apply(new PredicateKey(server))) {
+                return server;
+            }
+            server = roundRobinRule.choose(key);
+        }
+        return super.choose(key);
+    }
+
     @Override
     public AbstractServerPredicate getPredicate() {
         return predicate;

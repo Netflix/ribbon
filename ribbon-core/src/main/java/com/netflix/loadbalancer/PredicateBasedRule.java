@@ -27,15 +27,19 @@ import com.google.common.base.Optional;
  * @author awang
  *
  */
-public abstract class PredicateBasedRule extends AbstractLoadBalancerRule {
+public abstract class PredicateBasedRule extends ClientConfigEnabledRoundRobinRule {
    
     /**
-     * Method that provide an instance of {@link AbstractServerPredicate} to be used by this class.
+     * Method that provides an instance of {@link AbstractServerPredicate} to be used by this class.
      * 
      * @return
      */
     public abstract AbstractServerPredicate getPredicate();
         
+    /**
+     * Get a server by calling {@link AbstractServerPredicate#chooseRandomlyAfterFiltering(java.util.List, Object)}.
+     * The performance for this method is O(n) where n is number of servers to be filtered.
+     */
     @Override
     public Server choose(Object key) {
         ILoadBalancer lb = getLoadBalancer();

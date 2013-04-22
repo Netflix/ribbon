@@ -114,6 +114,8 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
      * Get servers filtered by this predicate from list of servers. Load balancer key
      * is presumed to be null. 
      * 
+     * @see #getEligibleServers(List, Object)
+     * 
      */
     public List<Server> getEligibleServers(List<Server> servers) {
         return getEligibleServers(servers, null);
