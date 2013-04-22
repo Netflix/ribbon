@@ -23,7 +23,7 @@ subprojects {
         compile 'org.slf4j:slf4j-api:1.6.4'
         compile 'com.netflix.servo:servo-core:0.4.32'
         compile 'com.google.guava:guava:11.0.2'
-        compile 'com.netflix.archaius:archaius-core:0.5.4'
+        compile 'com.netflix.archaius:archaius-core:0.5.8'
         compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
         compile 'javax.ws.rs:jsr311-api:1.1.1' 
         compile 'commons-collections:commons-collections:3.2.1'

@@ -65,7 +65,7 @@ public class HttpPrimeConnection implements IPrimeConnection {
 
     @Override
     public void initWithNiwsConfig(IClientConfig niwsClientConfig) {
-        client = NFHttpClientFactory.getNamedNFHttpClient(niwsClientConfig.getClientName() + "-PrimeConnsClient"); 
+        client = NFHttpClientFactory.getNamedNFHttpClient(niwsClientConfig.getClientName() + "-PrimeConnsClient", false); 
         HttpConnectionParams.setConnectionTimeout(client.getParams(), 2000);        
     }
 }

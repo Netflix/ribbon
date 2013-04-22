@@ -49,8 +49,12 @@ public class NFHttpClientFactory {
 		}
 		return client;			
 	}
-	
-	public static NFHttpClient getNamedNFHttpClient(String name){		
+
+    public static NFHttpClient getNamedNFHttpClient(String name) {
+        return getNamedNFHttpClient(name, true);
+    }
+
+	public static NFHttpClient getNamedNFHttpClient(String name, boolean registerMonitor){		
 		NFHttpClient client = namedClientMap.get(name);		
 		//avoid creating multiple HttpClient instances 
 		if (client == null){
@@ -59,7 +63,9 @@ public class NFHttpClientFactory {
 		        if (client == null){
         			client = new NFHttpClient(name);
         			namedClientMap.put(name,client);
-        			Monitors.registerObject("HttpClient_" + name, client);
+        			if (registerMonitor) {
+        			    Monitors.registerObject("HttpClient_" + name, client);
+        			}
 		        }
 		    }
 		}

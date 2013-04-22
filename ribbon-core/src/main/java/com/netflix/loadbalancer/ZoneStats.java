@@ -51,7 +51,7 @@ public class ZoneStats<T extends Server> {
         return zone;
     }
             
-    @Monitor(name=PREFIX + "ActiveRequestsCount", type = DataSourceType.GAUGE)    
+    @Monitor(name=PREFIX + "ActiveRequestsCount", type = DataSourceType.INFORMATIONAL)    
     public int getActiveRequestsCount() {
         return loadBalancerStats.getActiveRequestsCount(zone);
     }
@@ -71,12 +71,12 @@ public class ZoneStats<T extends Server> {
         return loadBalancerStats.getActiveRequestsPerServer(zone);
     }
     
-    @Monitor(name=PREFIX + "RequestsMadeLast5Minutes", type = DataSourceType.GAUGE)    
+    // @Monitor(name=PREFIX + "RequestsMadeLast5Minutes", type = DataSourceType.GAUGE)    
     public long getMeasuredZoneHits() {
         return loadBalancerStats.getMeasuredZoneHits(zone);
     }
     
-    @Monitor(name=PREFIX + "CircuitBreakerTrippedPercentage", type = DataSourceType.GAUGE)    
+    @Monitor(name=PREFIX + "CircuitBreakerTrippedPercentage", type = DataSourceType.INFORMATIONAL)    
     public double getCircuitBreakerTrippedPercentage() {
         ZoneSnapshot snapShot = loadBalancerStats.getZoneSnapshot(zone);
         int totalCount = snapShot.getInstanceCount();
