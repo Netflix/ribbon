@@ -84,7 +84,8 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     EnableZoneAffinity("EnableZoneAffinity"),
     EnableZoneExclusivity("EnableZoneExclusivity"),
     PrioritizeVipAddressBasedServers("PrioritizeVipAddressBasedServers"),
-    VipAddressResolverClassName("VipAddressResolverClassName");
+    VipAddressResolverClassName("VipAddressResolverClassName"),
+    RulePredicateClasses("RulePredicateClasses");
 
     private final String configKey;
 

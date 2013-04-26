@@ -28,23 +28,23 @@ import com.netflix.client.config.IClientConfig;
  */
 public class ClientConfigEnabledRoundRobinRule extends AbstractLoadBalancerRule {
 
-    RoundRobinRule rule = new RoundRobinRule();
+    RoundRobinRule roundRobinRule = new RoundRobinRule();
 
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
-        rule = new RoundRobinRule();
+        roundRobinRule = new RoundRobinRule();
     }
 
     @Override
     public void setLoadBalancer(ILoadBalancer lb) {
     	super.setLoadBalancer(lb);
-    	rule.setLoadBalancer(lb);
+    	roundRobinRule.setLoadBalancer(lb);
     }
     
     @Override
     public Server choose(Object key) {
-        if (rule != null) {
-            return rule.choose(key);
+        if (roundRobinRule != null) {
+            return roundRobinRule.choose(key);
         } else {
             throw new IllegalArgumentException(
                     "This class has not been initialized with the RoundRobinRule class");

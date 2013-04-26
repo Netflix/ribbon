@@ -22,6 +22,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.servo.annotations.DataSourceType;
@@ -64,8 +65,13 @@ public class ServerStats {
     Server server;
     
     AtomicLong totalRequests = new AtomicLong();
-    private AtomicInteger successiveConnectionFailureCount = new AtomicInteger(0);
-    private AtomicInteger activeRequestsCount = new AtomicInteger(0);
+    
+    @VisibleForTesting
+    AtomicInteger successiveConnectionFailureCount = new AtomicInteger(0);
+    
+    @VisibleForTesting
+    AtomicInteger activeRequestsCount = new AtomicInteger(0);
+    
     private volatile long lastConnectionFailedTimestamp;
     private volatile long lastActiveRequestsCountChangeTimestamp;
     private AtomicLong totalCircuitBreakerBlackOutPeriod = new AtomicLong(0);
