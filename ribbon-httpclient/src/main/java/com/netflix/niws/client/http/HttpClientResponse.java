@@ -59,8 +59,7 @@ public class HttpClientResponse implements IResponse {
     }
        
     
-    public <T> T getEntity(Class<T> c) throws IllegalArgumentException,
-            ClientException {
+    public <T> T getEntity(Class<T> c) throws Exception {
         T t = null;
         try {
             t = this.bcr.getEntity(c);

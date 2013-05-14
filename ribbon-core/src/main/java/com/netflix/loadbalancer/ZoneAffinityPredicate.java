@@ -36,7 +36,7 @@ import com.netflix.loadbalancer.Server;
  */
 public class ZoneAffinityPredicate extends AbstractServerPredicate {
 
-    private static final String zone = ConfigurationManager.getDeploymentContext().getValue(ContextKey.zone);
+    private final String zone = ConfigurationManager.getDeploymentContext().getValue(ContextKey.zone);
     
     public ZoneAffinityPredicate() {        
     }
