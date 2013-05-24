@@ -393,8 +393,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     public void addServers(List<Server> newServers) {
         if (newServers != null && newServers.size() > 0) {
             try {
-                newServers.addAll(allServerList);
-                setServersList(newServers);
+                ArrayList<Server> newList = new ArrayList<Server>();
+                newList.addAll(allServerList);
+                newList.addAll(newServers);
+                setServersList(newList);
             } catch (Exception e) {
                 logger.error("Exception while adding Servers", e);
             }
