@@ -55,7 +55,7 @@ public class SimpleRoundRobinLBTest {
 		List<Server> servers = new ArrayList<Server>();
 		for (String svc: isAliveMap.keySet()){
 			servers.add(new Server(svc));	
-		}		
+		}
 		lb.addServers(servers);
 		
 		// make sure the ping cycle has kicked in and all servers are set to alive
@@ -70,6 +70,21 @@ public class SimpleRoundRobinLBTest {
 	public static void cleanup() {
 		LogManager.getRootLogger().setLevel((Level)Level.INFO);
 	}
+	
+	@Test
+	public void testAddingServers() {
+		BaseLoadBalancer baseLb = new BaseLoadBalancer(new PingFake(), new RoundRobinRule());
+		List<Server> servers = new ArrayList<Server>();
+		servers.add(new Server("dummyservice0.netflix.com:8080"));
+		baseLb.addServers(servers);
+		servers.clear();
+		// add 1
+		servers.add(new Server("dummyservice1.netflix.com:8080"));
+		int originalCount = servers.size();
+		baseLb.addServers(servers);
+		assertEquals(originalCount, servers.size());
+	}
+	
 	/**
 	 * Simulate a single user who should just round robin among the available servers
 	 */
