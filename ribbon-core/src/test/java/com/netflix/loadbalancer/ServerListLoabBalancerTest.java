@@ -40,11 +40,11 @@ public class ServerListLoabBalancerTest {
 	static List<Server> serverList = Arrays.asList(servers);
 	
 	public static class FixedServerList extends AbstractServerList<Server> {
-
+	    
 		@Override
 		public void initWithNiwsConfig(IClientConfig clientConfig) {
 		}
-
+		
 		@Override
 		public List<Server> getInitialListOfServers() {
 			return serverList;

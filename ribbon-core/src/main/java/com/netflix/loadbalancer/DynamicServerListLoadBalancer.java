@@ -33,6 +33,7 @@ import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -265,7 +266,8 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
     }
 
-    private void updateListOfServers() {
+    @VisibleForTesting
+    void updateListOfServers() {
         List<T> servers = new ArrayList<T>();
         if (serverListImpl != null) {
             servers = serverListImpl.getUpdatedListOfServers();
