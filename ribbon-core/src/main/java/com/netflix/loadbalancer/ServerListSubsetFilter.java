@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.loadbalancer;
 
 import java.util.Collections;
@@ -14,6 +29,16 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicFloatProperty;
 import com.netflix.config.DynamicIntProperty;
 
+/**
+ * A server list filter that limits the number of the servers used by the load balancer to be the subset of all servers.
+ * This is useful if the server farm is large (e.g., in the hundreds) and making use of every one of them
+ * and keeping the connections in http client's connection pool is unnecessary. It also has the capability of eviction 
+ * of relatively unhealthy servers by comparing the total network failures and concurrent connections. 
+ *  
+ * @author awang
+ *
+ * @param <T>
+ */
 public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServerListFilter<T> implements IClientConfigAware, Comparator<T>{
 
     private Random random = new Random();
@@ -38,6 +63,26 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
                 + ".ServerListSubsetFilter.eliminationConnectionThresold", 0);
     }
         
+    /**
+     * Given all the servers, keep only a stable subset of servers to use. This method
+     * keeps the current list of subset in use and keep returning the same list, with exceptions
+     * to relatively unhealthy servers, which are defined as the following:
+     * <p>
+     * <ul>
+     * <li>Servers with their concurrent connection count exceeding the client configuration for 
+     *  {@code<clientName>.<nameSpace>.ServerListSubsetFilter.eliminationConnectionThresold} (default is 0)
+     * <li>Servers with their failure count exceeding the client configuration for 
+     *  {@code<clientName>.<nameSpace>.ServerListSubsetFilter.eliminationFailureThresold}  (default is 0)
+     *  <li>If the servers evicted above is less than the forced eviction percentage as defined by client configuration
+     *   {@code<clientName>.<nameSpace>.ServerListSubsetFilter.forceEliminatePercent} (default is 10%, or 0.1), the
+     *   remaining servers will be sorted by their health status and servers will worst health status will be
+     *   forced evicted.
+     * </ul>
+     * <p>
+     * After the elimination, new servers will be randomly chosen from all servers pool to keep the
+     * number of the subset unchanged. 
+     * 
+     */
     @Override
     public List<T> getFilteredListOfServers(List<T> servers) {
         List<T> zoneAffinityFiltered = super.getFilteredListOfServers(servers);
@@ -127,7 +172,8 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
 
     /**
      * Function to sort the list by server health condition, with
-     * unhealthy servers before healthy servers 
+     * unhealthy servers before healthy servers. The servers are first sorted by
+     * failures count, and then concurrent connection count.
      */
     @Override
     public int compare(T server1, T server2) {
