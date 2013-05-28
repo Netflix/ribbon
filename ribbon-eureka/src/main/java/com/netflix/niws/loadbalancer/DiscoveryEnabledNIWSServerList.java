@@ -22,16 +22,12 @@ import java.util.List;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
-import com.netflix.client.ClientException;
-import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
 import com.netflix.loadbalancer.AbstractServerList;
-import com.netflix.loadbalancer.AbstractServerListFilter;
-import com.netflix.loadbalancer.ServerListFilter;
 
 /**
  * Class to hold a list of servers that NIWS RestClient can use
@@ -105,30 +101,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     public void setVipAddresses(String vipAddresses) {
         this.vipAddresses = vipAddresses;
     }
-    
-    @Override
-    public AbstractServerListFilter<DiscoveryEnabledServer> getFilterImpl(
-            IClientConfig niwsClientConfig) throws ClientException {
-        try {
-            String niwsServerListFilterClassName = niwsClientConfig
-                    .getProperty(
-                            CommonClientConfigKey.NIWSServerListFilterClassName,
-                            DefaultNIWSServerListFilter.class.getName())
-                    .toString();
-
-            AbstractServerListFilter<DiscoveryEnabledServer> abstractNIWSServerListFilter = 
-            		(AbstractServerListFilter<DiscoveryEnabledServer>) ClientFactory.instantiateInstanceWithClientConfig(niwsServerListFilterClassName, niwsClientConfig);
-            return abstractNIWSServerListFilter;
-        } catch (Throwable e) {
-            throw new ClientException(
-                    ClientException.ErrorType.CONFIGURATION,
-                    "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"
-                            + niwsClientConfig
-                                    .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName), e);
-        }
-
-    }
-    
+        
     public String toString(){
         StringBuilder sb = new StringBuilder("DiscoveryEnabledNIWSServerList:");
         sb.append("; clientName:").append(clientName);

@@ -192,6 +192,9 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 response = execute(request);        
                 done = true;
             } catch (Exception e) {
+                if (serverStats != null) {
+                    serverStats.addToFailureCount();
+                }
                 lastException = e;
                 if (isCircuitBreakerException(e) && serverStats != null) {
                     serverStats.incrementSuccessiveConnectionFailureCount();
