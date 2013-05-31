@@ -267,7 +267,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     }
 
     @VisibleForTesting
-    void updateListOfServers() {
+    public void updateListOfServers() {
         List<T> servers = new ArrayList<T>();
         if (serverListImpl != null) {
             servers = serverListImpl.getUpdatedListOfServers();
