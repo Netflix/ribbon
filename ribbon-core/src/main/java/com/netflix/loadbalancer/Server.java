@@ -105,11 +105,6 @@ public class Server {
                     throw e;
                 }
             }
-
-            if (null == host) {
-                return null;
-            }
-
             return new Pair<String, Integer>(host, port);
         } else {
             return null;
