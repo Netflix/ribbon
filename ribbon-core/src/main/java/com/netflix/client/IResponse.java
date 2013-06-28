@@ -18,9 +18,7 @@
 package com.netflix.client;
 
 import java.net.URI;
-
-import javax.ws.rs.core.MultivaluedMap;
-
+import java.util.Map;
 
 /**
  * Response interface for the client framework.  
@@ -54,5 +52,5 @@ public interface IResponse
     * 
     * @return Headers if any in the response.
     */
-   public MultivaluedMap<?, ?> getHeaders();   
+   public Map<String, ?> getHeaders();   
 }
