@@ -59,7 +59,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     private final static IRule DEFAULT_RULE = new RoundRobinRule();
     private static final String DEFAULT_NAME = "default";
     private static final String PREFIX = "LoadBalancer_";
-    private static final IPing DEFAULT_PING = new DummyPing();
 
     protected IRule rule = DEFAULT_RULE;
 

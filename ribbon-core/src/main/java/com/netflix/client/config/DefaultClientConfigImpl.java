@@ -33,7 +33,6 @@ import com.netflix.client.VipAddressResolver;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
-import com.netflix.loadbalancer.DummyPing;
 
 /**
  * Default client configuration that loads properties from Archaius's ConfigurationManager. 
