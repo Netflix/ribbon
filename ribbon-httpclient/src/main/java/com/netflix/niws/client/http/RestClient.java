@@ -432,6 +432,18 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 		return 80;
 	}
 
+	
+	
+    @Override
+    protected int getDefaultPortFromScheme(String scheme) {        
+        int port = super.getDefaultPortFromScheme(scheme);
+        if (port < 0) {
+            return 80;
+        } else {
+            return port;
+        }
+    }
+
     @Override
     protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpClientRequest task) {
         URI theUrl = task.getUri();

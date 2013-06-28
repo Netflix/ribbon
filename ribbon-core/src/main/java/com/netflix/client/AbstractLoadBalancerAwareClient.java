@@ -450,10 +450,33 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     protected abstract Pair<String, Integer> deriveSchemeAndPortFromPartialUri(S task);
     
     /**
-     * Get the default port which is protocol specific if port is missing in the request URI.
+     * Get the default port from the vip address.
      * 
+     * @deprecated replaced by {@link #getDefaultPortFromScheme(String)}
      */
     protected abstract int getDefaultPort();
+    
+    
+    /**
+     * Get the default port of the target server given the scheme of vip address if it is available. 
+     * Subclass should override it to provider protocol specific default port number if any.
+     * 
+     * @param scheme from the vip address. null if not present.
+     * @return 80 if scheme is http, 443 if scheme is https, -1 else.
+     */
+    protected int getDefaultPortFromScheme(String scheme) {
+        if (scheme == null) {
+            return -1;
+        }
+        if (scheme.equals("http")) {
+            return 80;
+        } else if (scheme.equals("https")) {
+            return 443;
+        } else {
+            return -1;
+        }
+    }
+
         
     /**
      * Derive the host and port from virtual address if virtual address is indeed contains the actual host 
@@ -480,7 +503,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
         int port = uri.getPort();
         if (port < 0) {
-        	port = getDefaultPort();
+        	port = getDefaultPortFromScheme(scheme);
         }
         if (port < 0) {
         	throw new ClientException("Unable to derive host/port from vip address " + vipAddress);
