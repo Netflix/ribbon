@@ -98,7 +98,7 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
     		return null;
     	}
     	
-    	Preconditions.checkArgument(storeFile == null || StringUtils.isNotEmpty(password), "Null keystore should have empty password, defined keystore must have password");
+    	Preconditions.checkArgument(StringUtils.isNotEmpty(password), "Null keystore should have empty password, defined keystore must have password");
     	
     	KeyStore keyStore = null;
     	
