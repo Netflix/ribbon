@@ -24,7 +24,6 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicListProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
 

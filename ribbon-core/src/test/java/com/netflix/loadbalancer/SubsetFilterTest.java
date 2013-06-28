@@ -15,7 +15,8 @@
  */
 package com.netflix.loadbalancer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
@@ -27,12 +28,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
-import com.netflix.config.DynamicFloatProperty;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.loadbalancer.ServerListLoabBalancerTest.FixedServerList;
-
 
 public class SubsetFilterTest {
     
