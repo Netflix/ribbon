@@ -30,7 +30,6 @@ subprojects {
         compile 'com.google.guava:guava:11.0.2'
         compile 'com.netflix.archaius:archaius-core:0.5.8'
         compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
-        compile 'javax.ws.rs:jsr311-api:1.1.1' 
         compile 'commons-collections:commons-collections:3.2.1'
         testCompile 'junit:junit:4.10'
         testCompile 'log4j:log4j:1.2.16'
@@ -50,6 +49,7 @@ project(':ribbon-httpclient') {
         compile project(':ribbon-core')
         compile 'org.apache.httpcomponents:httpclient:4.1.2' 
         compile 'com.sun.jersey:jersey-bundle:1.9.1'
+        compile 'javax.ws.rs:jsr311-api:1.1.1' 
         compile 'com.sun.jersey.contribs:jersey-apache-client4:1.8'
         testCompile 'asm:asm-all:3.2'
         testCompile 'commons-io:commons-io:2.0.1'
