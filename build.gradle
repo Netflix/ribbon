@@ -53,7 +53,8 @@ project(':ribbon-httpclient') {
         compile 'com.sun.jersey.contribs:jersey-apache-client4:1.8'
         testCompile 'asm:asm-all:3.2'
         testCompile 'commons-io:commons-io:2.0.1'
-        testCompile 'com.sun.jersey:jersey-server:1.9.1'        
+        testCompile 'com.sun.jersey:jersey-server:1.9.1'
+        testCompile 'com.google.mockwebserver:mockwebserver:20130505'
     }
 }
 
