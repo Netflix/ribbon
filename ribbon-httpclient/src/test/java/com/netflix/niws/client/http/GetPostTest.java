@@ -17,6 +17,10 @@
 */
 package com.netflix.niws.client.http;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
@@ -24,13 +28,9 @@ import java.util.Random;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 import com.netflix.client.ClientFactory;
-import com.netflix.config.ConfigurationManager;
 import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;

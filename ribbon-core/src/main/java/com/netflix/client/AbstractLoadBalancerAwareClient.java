@@ -20,7 +20,6 @@ package com.netflix.client;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -542,6 +541,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * @param original Original URI passed from caller
      * @return new request with the final URI  
      */
+    @SuppressWarnings("unchecked")
     protected S computeFinalUriWithLoadBalancer(S original) throws ClientException{
         URI newURI;
         URI theUrl = original.getUri();
