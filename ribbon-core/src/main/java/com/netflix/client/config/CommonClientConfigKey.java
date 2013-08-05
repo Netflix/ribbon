@@ -85,6 +85,7 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     EnableZoneExclusivity("EnableZoneExclusivity"),
     PrioritizeVipAddressBasedServers("PrioritizeVipAddressBasedServers"),
     VipAddressResolverClassName("VipAddressResolverClassName"),
+    TargetRegion("TargetRegion"),
     RulePredicateClasses("RulePredicateClasses");
 
     private final String configKey;
