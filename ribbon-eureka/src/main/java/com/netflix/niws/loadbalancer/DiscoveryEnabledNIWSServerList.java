@@ -30,7 +30,9 @@ import com.netflix.discovery.DiscoveryManager;
 import com.netflix.loadbalancer.AbstractServerList;
 
 /**
- * Class to hold a list of servers that NIWS RestClient can use
+ * The server list class that fetches the server information from Eureka client. ServerList is used by
+ * {@link DynamicServerListLoadBalancer} to get server list dynamically. 
+ * 
  * @author stonse
  *
  */
@@ -43,15 +45,16 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     boolean prioritizeVipAddressBasedServers = true;
   
     String datacenter;
+    String targetRegion;
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         this.clientName = clientConfig.getClientName();
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
         isSecure = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.IsSecure, "false"));
-        prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));
-        
+        prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));        
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
+        targetRegion = (String) clientConfig.getProperty(CommonClientConfigKey.TargetRegion);
     }
     
     
@@ -77,8 +80,8 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
         }
         if (vipAddresses!=null){
             for (String vipAddress : vipAddresses.split(",")) {
-                List<InstanceInfo> listOfinstanceInfo = discoveryClient
-                .getInstancesByVipAddress(vipAddress, isSecure);
+                // if targetRegion is null, it will be interpreted as the same region of client
+                List<InstanceInfo> listOfinstanceInfo = discoveryClient.getInstancesByVipAddress(vipAddress, isSecure, targetRegion); 
                 for (InstanceInfo ii : listOfinstanceInfo) {
                     if (ii.getStatus().equals(InstanceStatus.UP)) {
                     	DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure);
