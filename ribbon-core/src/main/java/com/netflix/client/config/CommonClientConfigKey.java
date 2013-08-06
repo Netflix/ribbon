@@ -25,7 +25,7 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     Port("Port"),
     SecurePort("SecurePort"),
     VipAddress("VipAddress"),
-    DeploymentContextBasedVipAddresses("DeploymentContextBasedVipAddresses"),       
+    DeploymentContextBasedVipAddresses("DeploymentContextBasedVipAddresses"),
     MaxAutoRetries("MaxAutoRetries"),
     MaxAutoRetriesNextServer("MaxAutoRetriesNextServer"),
     OkToRetryOnAllOperations("OkToRetryOnAllOperations"),
@@ -64,10 +64,11 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     KeyStorePassword("KeyStorePassword"),
     TrustStore("TrustStore"),
     TrustStorePassword("TrustStorePassword"),
+    IsClientAuthRequired("IsClientAuthRequired"),
 
-    // Client implementation        
+    // Client implementation
     ClientClassName("ClientClassName"),
-    
+
     //LoadBalancer Related
     InitializeNFLoadBalancer("InitializeNFLoadBalancer"),
     NFLoadBalancerClassName("NFLoadBalancerClassName"),
