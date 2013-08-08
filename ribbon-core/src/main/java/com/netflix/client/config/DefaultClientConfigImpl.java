@@ -35,7 +35,7 @@ import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
 
 /**
- * Default client configuration that loads properties from Archaius's ConfigurationManager. 
+ * Default client configuration that loads properties from Archaius's ConfigurationManager.
  * <p>
  * The easiest way to configure client and load balancer is through loading properties into Archaius that conform to the specific format:
 
@@ -45,10 +45,10 @@ import com.netflix.config.DynamicStringProperty;
 <p>
 You can define properties in a file on classpath or as system properties. If former, ConfigurationManager.loadPropertiesFromResources() API should be called to load the file.
 <p>
-By default, "ribbon" should be the nameSpace. 
+By default, "ribbon" should be the nameSpace.
 <p>
-If there is no property specified for a named client, {@link ClientFactory} will still create the client and 
-load balancer with default values for all necessary properties. The default 
+If there is no property specified for a named client, {@link ClientFactory} will still create the client and
+load balancer with default values for all necessary properties. The default
 values are specified in this class as constants.
 <p>
 If a property is missing the clientName, it is interpreted as a property that applies to all clients. For example
@@ -57,14 +57,14 @@ If a property is missing the clientName, it is interpreted as a property that ap
 ribbon.ReadTimeout=1000
 }</pre>
 
-This will establish the default ReadTimeout property for all clients. 
+This will establish the default ReadTimeout property for all clients.
 <p>
 You can also programmatically set properties by constructing instance of DefaultClientConfigImpl. Follow these steps:
 
-<li> Get an instance by calling {@link #getClientConfigWithDefaultValues(String)} to load default values, 
+<li> Get an instance by calling {@link #getClientConfigWithDefaultValues(String)} to load default values,
 and any properties that are already defined with Configuration in Archaius
-<li> Set all desired properties by calling {@link #setProperty(IClientConfigKey, Object)} API. 
-<li> Pass this instance together with client name to {@link ClientFactory} API. 
+<li> Set all desired properties by calling {@link #setProperty(IClientConfigKey, Object)} API.
+<li> Pass this instance together with client name to {@link ClientFactory} API.
 <p><p>
 If it is desired to have properties defined in a different name space, for example, "foo"
 
@@ -73,8 +73,8 @@ myclient.foo.ReadTimeout=1000
 }</pre>
 
 You should use {@link #getClientConfigWithDefaultValues(String, String)} - in the first step above.
- * 
- * @author Sudhir Tonse 
+ *
+ * @author Sudhir Tonse
  * @author awang
  *
  */
@@ -87,9 +87,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = "com.netflix.loadbalancer.AvailabilityFilteringRule";
 
     public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = "com.netflix.loadbalancer.ZoneAwareLoadBalancer";
-    
+
     public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
-    
+
     public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = "com.netflix.client.SimpleVipAddressResolver";
 
     public static final String DEFAULT_PRIME_CONNECTIONS_URI = "/";
@@ -127,24 +127,24 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = 50;
 
     public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = 200;
-    
-        
+
+
     public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = 1.0f;
-    
+
     public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = "com.netflix.niws.client.http.HttpPrimeConnection";
-    
+
     public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.loadbalancer.ConfigurationBasedServerList";
-    
+
     public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
-    
+
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
 
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
 
     private String clientName = null;
-    
+
     private VipAddressResolver resolver = null;
 
     private boolean enableDynamicProperties = true;
@@ -162,14 +162,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final Boolean DEFAULT_ENABLE_LOADBALANCER = Boolean.TRUE;
 
     public static final String DEFAULT_PROPERTY_NAME_SPACE = "ribbon";
-    
+
     private String propertyNameSpace = DEFAULT_PROPERTY_NAME_SPACE;
 
     public static final Boolean DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS = Boolean.FALSE;
-    
+
     public static final Boolean DEFAULT_ENABLE_NIWS_EVENT_LOGGING = Boolean.TRUE;
-        
-    private Map<String, DynamicStringProperty> dynamicProperties = new ConcurrentHashMap<String, DynamicStringProperty>();
+
+    public static final Boolean DEFAULT_IS_CLIENT_AUTH_REQUIRED = Boolean.FALSE;
+
+    private final Map<String, DynamicStringProperty> dynamicProperties = new ConcurrentHashMap<String, DynamicStringProperty>();
 
     public Boolean getDefaultPrioritizeVipAddressBasedServers() {
 		return DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS;
@@ -327,12 +329,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return DEFAULT_ENABLE_LOADBALANCER;
 	}
 
-	
+
 	public Boolean getDefaultOkToRetryOnAllOperations() {
 		return DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS;
 	}
 
-        
+	public Boolean getDefaultIsClientAuthRequired(){
+		return DEFAULT_IS_CLIENT_AUTH_REQUIRED;
+	}
+
+
 	/**
 	 * Create instance with no properties in default name space {@link #DEFAULT_PROPERTY_NAME_SPACE}
 	 */
@@ -343,12 +349,12 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 	/**
 	 * Create instance with no properties in the specified name space
-	 */    
+	 */
     public DefaultClientConfigImpl(String nameSpace) {
     	this();
     	this.propertyNameSpace = nameSpace;
     }
-        
+
     protected void loadDefaultValues() {
         putDefaultIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
         putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
@@ -359,7 +365,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultIntegerProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, getDefaultMaxAutoRetriesNextServer());
         putDefaultBooleanProperty(CommonClientConfigKey.OkToRetryOnAllOperations, getDefaultOkToRetryOnAllOperations());
         putDefaultBooleanProperty(CommonClientConfigKey.FollowRedirects, getDefaultFollowRedirects());
-        putDefaultBooleanProperty(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, getDefaultConnectionPoolCleanerTaskEnabled()); 
+        putDefaultBooleanProperty(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, getDefaultConnectionPoolCleanerTaskEnabled());
         putDefaultIntegerProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, getDefaultConnectionidleTimeInMsecs());
         putDefaultIntegerProperty(CommonClientConfigKey.ConnectionCleanerRepeatInterval, getDefaultConnectionIdleTimertaskRepeatInMsecs());
         putDefaultBooleanProperty(CommonClientConfigKey.EnableGZIPContentEncodingFilter, getDefaultEnableGzipContentEncodingFilter());
@@ -394,9 +400,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultFloatProperty(CommonClientConfigKey.MinPrimeConnectionsRatio, getDefaultMinPrimeConnectionsRatio());
         putDefaultStringProperty(CommonClientConfigKey.PrimeConnectionsClassName, getDefaultPrimeConnectionsClass());
         putDefaultStringProperty(CommonClientConfigKey.NIWSServerListClassName, getDefaultSeverListClass());
-        putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());    	
+        putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());
+        putDefaultBooleanProperty(CommonClientConfigKey.IsClientAuthRequired, getDefaultIsClientAuthRequired());
     }
-    
+
     protected void setPropertyInternal(IClientConfigKey propName, Object value) {
         setPropertyInternal(propName.key(), value);
     }
@@ -404,7 +411,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     private String getConfigKey(String propName) {
         return (clientName == null) ? getDefaultPropName(propName) : getInstancePropName(clientName, propName);
     }
-    
+
     protected void setPropertyInternal(final String propName, Object value) {
         String stringValue = (value == null) ? "" : String.valueOf(value);
         properties.put(propName, stringValue);
@@ -423,11 +430,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
                     properties.remove(propName);
                 }
             }
-            
-            // equals and hashcode needed 
+
+            // equals and hashcode needed
             // since this is anonymous object is later used as a set key
-            
-            @Override 
+
+            @Override
             public boolean equals(Object other){
             	if (other == null) {
             		return false;
@@ -437,24 +444,24 @@ public class DefaultClientConfigImpl implements IClientConfig {
                 }
                 return false;
             }
-            
+
             @Override
             public String toString(){
             	return propName;
             }
-            
+
             @Override
             public int hashCode(){
             	return propName.hashCode();
             }
-            
-            
+
+
         };
         prop.addCallback(callback);
         dynamicProperties.put(propName, prop);
     }
-    
-    
+
+
 	// Helper methods which first check if a "default" (with rest client name)
 	// property exists. If so, that value is used, else the default value
 	// passed as argument is used to put into the properties member variable
@@ -469,13 +476,13 @@ public class DefaultClientConfigImpl implements IClientConfig {
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
-    
+
     protected void putDefaultFloatProperty(IClientConfigKey propName, Float defaultValue) {
         Float value = ConfigurationManager.getConfigInstance().getFloat(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
-    
+
     protected void putDefaultTimeUnitProperty(IClientConfigKey propName, TimeUnit defaultValue) {
         TimeUnit value = defaultValue;
         String propValue = ConfigurationManager.getConfigInstance().getString(
@@ -485,7 +492,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         }
         setPropertyInternal(propName, value);
     }
-    
+
     String getDefaultPropName(String propName) {
         return getNameSpace() + "." + propName;
     }
@@ -494,19 +501,19 @@ public class DefaultClientConfigImpl implements IClientConfig {
         return getDefaultPropName(propName.key());
     }
 
-    
+
     protected void putDefaultStringProperty(IClientConfigKey propName, String defaultValue) {
         String value = ConfigurationManager.getConfigInstance().getString(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
-    
+
     protected void putDefaultBooleanProperty(IClientConfigKey propName, Boolean defaultValue) {
         Boolean value = ConfigurationManager.getConfigInstance().getBoolean(
                 getDefaultPropName(propName), defaultValue);
         setPropertyInternal(propName, value);
     }
-    
+
     public void setClientName(String clientName){
         this.clientName  = clientName;
     }
@@ -528,7 +535,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         enableDynamicProperties = true;
         setClientName(restClientName);
         loadDefaultValues();
-        Configuration props = ConfigurationManager.getConfigInstance().subset(restClientName);        
+        Configuration props = ConfigurationManager.getConfigInstance().subset(restClientName);
         for (Iterator<String> keys = props.getKeys(); keys.hasNext(); ){
             String key = keys.next();
             String prop = key;
@@ -537,9 +544,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
             setPropertyInternal(prop, props.getProperty(key));
         }
-        
+
     }
-    
+
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "DC_DOUBLECHECK")
     private VipAddressResolver getVipAddressResolver() {
         if (resolver == null) {
@@ -555,11 +562,12 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
         }
         return resolver;
-        
+
     }
 
-    public String resolveDeploymentContextbasedVipAddresses(){
-        
+    @Override
+	public String resolveDeploymentContextbasedVipAddresses(){
+
         String deploymentContextBasedVipAddressesMacro = (String) getProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses);
         return getVipAddressResolver().resolve(deploymentContextBasedVipAddressesMacro, this);
     }
@@ -612,7 +620,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         }
         return this;
     }
-    
+
     protected Object getProperty(String key) {
         DynamicStringProperty dynamicProperty = dynamicProperties.get(key);
         if (dynamicProperty != null) {
@@ -621,9 +629,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
                 return dynamicValue;
             }
         }
-        return properties.get(key);    	
+        return properties.get(key);
     }
-    
+
     /* (non-Javadoc)
 	 * @see com.netflix.niws.client.CliengConfig#getProperty(com.netflix.niws.client.ClientConfigKey)
 	 */
@@ -695,7 +703,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         }
         return sb.toString();
     }
-            
+
     public void setProperty(Properties props, String restClientName, String key, String value){
         props.setProperty( getInstancePropName(restClientName, key), value);
     }
@@ -709,12 +717,12 @@ public class DefaultClientConfigImpl implements IClientConfig {
         return restClientName + "." + getNameSpace() + "."
                 + key;
     }
-    
+
 
 	@Override
 	public String getNameSpace() {
 		return propertyNameSpace;
-	}	
+	}
 
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
 		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
