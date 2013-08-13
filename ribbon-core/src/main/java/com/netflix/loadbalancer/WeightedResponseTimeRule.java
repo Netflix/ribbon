@@ -23,6 +23,8 @@ import com.netflix.client.config.IClientConfig;
  * This class essentially contains the ResponseTimeWeightedRule class defined in
  * the loadbalancer package
  * 
+ * @deprecated Use {@link ResponseTimeWeightedRule}
+ * @see ResponseTimeWeightedRule
  * @author stonse
  * 
  */

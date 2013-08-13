@@ -19,57 +19,79 @@ package com.netflix.loadbalancer;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
 
 /** 
  * Rule that use the average/percentile response times
  * to assign dynamic "weights" per Server which is then used in 
- * the "Weighted Round Robin" fashion
- * 
+ * the "Weighted Round Robin" fashion. 
+ * <p/>
  * The basic idea for weighted round robin has been obtained from JCS
  * The implementation for choosing the endpoint from the list of endpoints
  * is as follows:Let's assume 4 endpoints:A(wt=10), B(wt=30), C(wt=40), 
  * D(wt=20). 
+ * <p/>
  * Using the Random API, generate a random number between 1 and10+30+40+20.
  * Let's assume that the above list is randomized. Based on the weights, we
  * have intervals as follows:
+ * <p/>
  * 1-----10 (A's weight)
+ * <br/>
  * 11----40 (A's weight + B's weight)
+ * <br/>
  * 41----80 (A's weight + B's weight + C's weight)
+ * <br/>
  * 81----100(A's weight + B's weight + C's weight + C's weight)
+ * <p/>
  * Here's the psuedo code for deciding where to send the request:
+ * <p/>
  * if (random_number between 1 & 10) {send request to A;}
+ * <br/>
  * else if (random_number between 11 & 40) {send request to B;}
+ * <br/>
  * else if (random_number between 41 & 80) {send request to C;}
+ * <br/>
  * else if (random_number between 81 & 100) {send request to D;}
- * 
+ * <p/>
+ * When there is not enough statistics gathered for the servers, this rule
+ * will fall back to use {@link RoundRobinRule}. 
  * @author stonse
  */
-public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
+public class ResponseTimeWeightedRule extends RoundRobinRule {
 
-    private static final int serverWeightTaskTimerInterval = 30 * 1000;
+    public static final IClientConfigKey WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY = new IClientConfigKey() {
+        @Override
+        public String key() {
+            return "ServerWeightTaskTimerInterval";
+        }
+        
+        @Override
+        public String toString() {
+            return key();
+        }
+    };
+    
+    public static final int DEFAULT_TIMER_INTERVAL = 30 * 1000;
+    
+    private int serverWeightTaskTimerInterval = DEFAULT_TIMER_INTERVAL;
 
     private static final Logger logger = LoggerFactory.getLogger(ResponseTimeWeightedRule.class);
+    
+    // holds the accumulated weight from index 0 to current index
+    // for example, element at index 2 holds the sum of weight of servers from 0 to 2
+    private volatile List<Double> accumulatedWeights = new ArrayList<Double>();
+    
 
-    ILoadBalancer lb = null;
-
-    Map<Server, Double> serverWeights = new ConcurrentHashMap<Server, Double>();
-
-    List<Double> finalWeights = new ArrayList<Double>();
-
-    double maxTotalWeight = 0.0;
-
-    private final Random random = new Random(System.currentTimeMillis());
+    private final Random random = new Random();
 
     protected Timer serverWeightTimer = null;
 
@@ -79,22 +101,23 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
     String name = "unknown";
 
     public ResponseTimeWeightedRule() {
-
+        super();
     }
 
-    public ILoadBalancer getLoadBalancer() {
-        return lb;
+    public ResponseTimeWeightedRule(ILoadBalancer lb) {
+        super(lb);
     }
-
+    
+    @Override
     public void setLoadBalancer(ILoadBalancer lb) {
-        this.lb = lb;
+        super.setLoadBalancer(lb);
         if (lb instanceof BaseLoadBalancer) {
             name = ((BaseLoadBalancer) lb).getName();
         }
+        initialize(lb);
     }
 
-    public void initialize(ILoadBalancer lb) {
-        setLoadBalancer(lb);
+    void initialize(ILoadBalancer lb) {        
         if (serverWeightTimer != null) {
             serverWeightTimer.cancel();
         }
@@ -102,7 +125,7 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
                 + name, true);
         serverWeightTimer.schedule(new DynamicServerWeightTask(), 0,
                 serverWeightTaskTimerInterval);
-        // do a initialrun
+        // do a initial run
         ServerWeight sw = new ServerWeight();
         sw.maintainWeights();
 
@@ -123,9 +146,8 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
         }
     }
 
-    final static boolean availableOnly = false;
-
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
+    @Override
     public Server choose(ILoadBalancer lb, Object key) {
         if (lb == null) {
             return null;
@@ -133,40 +155,43 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
         Server server = null;
 
         while (server == null) {
+            // get hold of the current reference in case it is changed from the other thread
+            List<Double> currentWeights = accumulatedWeights;
             if (Thread.interrupted()) {
                 return null;
             }
-            List<Server> upList = lb.getServerList(true);
             List<Server> allList = lb.getServerList(false);
 
-            int upCount = upList.size();
             int serverCount = allList.size();
 
-            if ((upCount == 0) || (serverCount == 0)) {
+            if (serverCount == 0) {
                 return null;
             }
 
-            double randomIndex = 0;
-
-            while (randomIndex == 0) {
-                randomIndex = random.nextDouble() * maxTotalWeight;
-                if (randomIndex != 0) {
-                    break;
-                }
-            }
             int serverIndex = 0;
 
-            // pick the server index based on the randomIndex
-            int n = 0;
-            for (Double d : finalWeights) {
-                if (randomIndex <= d) {
-                    serverIndex = n;
-                } else {
-                    n++;
+            // last one in the list is the sum of all weights
+            double maxTotalWeight = currentWeights.size() == 0 ? 0 : currentWeights.get(currentWeights.size() - 1); 
+            // No server has been hit yet and total weight is not initialized
+            // fallback to use round robin
+            if (maxTotalWeight < 0.001d) {
+                server =  super.choose(getLoadBalancer(), key); 
+            } else {
+                // generate a random weight between 0 (inclusive) to maxTotalWeight (exclusive)
+                double randomWeight = random.nextDouble() * maxTotalWeight;
+                // pick the server index based on the randomIndex
+                int n = 0;
+                for (Double d : currentWeights) {
+                    if (d >= randomWeight) {
+                        serverIndex = n;
+                        break;
+                    } else {
+                        n++;
+                    }
                 }
-            }
 
-            server = allList.get(serverIndex);
+                server = allList.get(serverIndex);
+            }
 
             if (server == null) {
                 /* Transient. */
@@ -190,12 +215,9 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
             try {
                 serverWeight.maintainWeights();
             } catch (Throwable t) {
-                String lbName = "unknown";
-                BaseLoadBalancer nlb = (BaseLoadBalancer) lb;
-                lbName = nlb.getName();
                 logger.error(
                         "Throwable caught while running DynamicServerWeightTask for "
-                                + lbName, t);
+                                + name, t);
             }
         }
     }
@@ -203,6 +225,7 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
     class ServerWeight {
 
         public void maintainWeights() {
+            ILoadBalancer lb = getLoadBalancer();
             if (lb == null) {
                 return;
             }
@@ -211,37 +234,36 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
             } else {
                 serverWeightAssignmentInProgress.set(true);
             }
-
             try {
-
-                BaseLoadBalancer nlb = (BaseLoadBalancer) lb;
-                for (Server server : nlb.getServerList(availableOnly)) {
-                    Double weight = 10.00;
-                    if (nlb.getLoadBalancerStats() != null) {
-                        if (nlb.getLoadBalancerStats().getServerStats().get(
-                                server) != null) {
-                            ServerStats ss = nlb.getLoadBalancerStats()
-                                    .getServerStats().get(server);
-                            weight = ss.getResponseTime95thPercentile();
-                        } else {
-                            nlb.getLoadBalancerStats().addServer(server);
-                        }
-                    }
-                    serverWeights.put(server, weight);
+                logger.info("Weight adjusting job started");
+                AbstractLoadBalancer nlb = (AbstractLoadBalancer) lb;
+                LoadBalancerStats stats = nlb.getLoadBalancerStats();
+                if (stats == null) {
+                    // no statistics, nothing to do
+                    return;
                 }
-                // calculate final weights
+                double totalResponseTime = 0;
+                // find maximal 95% response time
+                for (Server server : nlb.getServerList(false)) {
+                    // this will automatically load the stats if not in cache
+                    ServerStats ss = stats.getSingleServerStat(server);
+                    totalResponseTime += ss.getResponseTimeAvg();
+                }
+                // weight for each server is (sum of responseTime of all servers - responseTime)
+                // so that the longer the response time, the less the weight and the less likely to be chosen
                 Double weightSoFar = 0.0;
-                finalWeights.clear();
-                for (Server server : nlb.getServerList(availableOnly)) {
-                    weightSoFar += serverWeights.get(server);
-                    finalWeights.add(weightSoFar);
+                
+                // create new list and hot swap the reference
+                List<Double> finalWeights = new ArrayList<Double>();
+                for (Server server : nlb.getServerList(false)) {
+                    ServerStats ss = stats.getSingleServerStat(server);
+                    double weight = totalResponseTime - ss.getResponseTimeAvg();
+                    weightSoFar += weight;
+                    finalWeights.add(weightSoFar);   
                 }
-                maxTotalWeight = weightSoFar;
+                setWeights(finalWeights);
             } catch (Throwable t) {
-                logger
-                        .error(
-                                "Exception while dynamically calculating server weights",
-                                t);
+                logger.error("Exception while dynamically calculating server weights", t);
             } finally {
                 serverWeightAssignmentInProgress.set(false);
             }
@@ -249,13 +271,15 @@ public class ResponseTimeWeightedRule extends AbstractLoadBalancerRule {
         }
     }
 
-	@Override
-	public Server choose(Object key) {
-		return choose(getLoadBalancer(), key);
-	}
-
+    void setWeights(List<Double> weights) {
+        this.accumulatedWeights = weights;
+    }
+    
 	@Override
 	public void initWithNiwsConfig(IClientConfig clientConfig) {
+	    super.initWithNiwsConfig(clientConfig);
+	    serverWeightTaskTimerInterval = Integer.valueOf(
+	            String.valueOf(clientConfig.getProperty(WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY, DEFAULT_TIMER_INTERVAL)));
 	}
 
 }
