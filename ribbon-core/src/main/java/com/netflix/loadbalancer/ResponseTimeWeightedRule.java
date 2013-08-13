@@ -65,6 +65,11 @@ import com.netflix.client.config.IClientConfigKey;
  * When there is not enough statistics gathered for the servers, this rule
  * will fall back to use {@link RoundRobinRule}. 
  * @author stonse
+ * 
+ * @deprecated Use {@link WeightedResponseTimeRule}
+ * 
+ * @see WeightedResponseTimeRule
+ * 
  */
 public class ResponseTimeWeightedRule extends RoundRobinRule {
 

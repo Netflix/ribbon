@@ -7,7 +7,7 @@ import org.junit.Test;
 import com.netflix.client.ClientFactory;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
-import com.netflix.loadbalancer.ResponseTimeWeightedRule;
+import com.netflix.loadbalancer.WeightedResponseTimeRule;
 
 public class ResponseTimeWeightedRuleTest {
     
@@ -19,10 +19,10 @@ public class ResponseTimeWeightedRuleTest {
             ConfigurationManager.getConfigInstance().setProperty(
                     "sample-client.ribbon.NFLoadBalancerClassName", "com.netflix.loadbalancer.DynamicServerListLoadBalancer");
             ConfigurationManager.getConfigInstance().setProperty(
-                    "sample-client.ribbon.NFLoadBalancerRuleClassName", "com.netflix.loadbalancer.ResponseTimeWeightedRule");
+                    "sample-client.ribbon.NFLoadBalancerRuleClassName", "com.netflix.loadbalancer.WeightedResponseTimeRule");
             // shorter weight adjusting interval
             ConfigurationManager.getConfigInstance().setProperty(
-                    "sample-client.ribbon." + ResponseTimeWeightedRule.WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY, "5000");
+                    "sample-client.ribbon." + WeightedResponseTimeRule.WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY, "5000");
             ConfigurationManager.getConfigInstance().setProperty(
                     "sample-client.ribbon.InitializeNFLoadBalancer", "true");       
 
@@ -39,6 +39,7 @@ public class ResponseTimeWeightedRuleTest {
             for (int i = 0; i < 50; i++) {
                 client.executeWithLoadBalancer(request);
             }
+            // expect google.com is hit more often than microsoft.com as it has a shorter response time
             System.out.println(((AbstractLoadBalancer) client.getLoadBalancer()).getLoadBalancerStats());
         }
         catch (Exception e){
