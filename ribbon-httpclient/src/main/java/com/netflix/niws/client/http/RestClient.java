@@ -23,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.security.KeyStore;
 import java.util.Iterator;
 
 import javax.ws.rs.core.MultivaluedMap;
@@ -33,6 +34,8 @@ import org.apache.http.client.UserTokenHandler;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.scheme.SchemeSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.AbstractHttpClient;
 import org.apache.http.impl.client.BasicCookieStore;
@@ -373,12 +376,8 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         	}
         }
 
-        // By default, we do not use user token for secure connection. This is to make sure that
-        // we can reuse the connection in connection pool. The user token, which is the authenticated
-        // principal, is set after the secure connection is established and saved as part of the
-        // connection attribute in the pool. However, new connection does not have the principal
-        // attribute so a request to get a connection in the pool does not result in any matching
-        // connection and no connection will be reused.
+        // Warning that if user tokens are used (i.e. ignoreUserToken == false) this may be prevent SSL connections from being
+        // reused, which is generally not the intent for long-living proxy connections and the like.
         // See http://hc.apache.org/httpcomponents-client-ga/tutorial/html/advanced.html
         if (ignoreUserToken) {
             ((DefaultHttpClient) httpClient4).setUserTokenHandler(new UserTokenHandler() {
@@ -389,12 +388,42 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             });
         }
 
-
-
         ApacheHttpClient4Handler handler = new ApacheHttpClient4Handler(httpClient4, new BasicCookieStore(), false);
 
         return new ApacheHttpClient4(handler, config);
     }
+
+    public void resetSSLSocketFactory(AbstractSslContextFactory abstractContextFactory){
+
+    	try {
+
+    		KeyStoreAwareSocketFactory awareSocketFactory = isHostnameValidationRequired ? new KeyStoreAwareSocketFactory(abstractContextFactory) :
+                new KeyStoreAwareSocketFactory(abstractContextFactory, SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+    		httpClient4.getConnectionManager().getSchemeRegistry().register(new Scheme(
+                    "https",443, awareSocketFactory));
+
+    	} catch (Exception e) {
+    		throw new IllegalArgumentException("Unable to configure custom secure socket factory", e);
+    	}
+    }
+
+    public KeyStore getKeyStore(){
+
+    	SchemeRegistry registry = httpClient4.getConnectionManager().getSchemeRegistry();
+
+    	if(! registry.getSchemeNames().contains("https")){
+    		throw new IllegalStateException("Registry does not include an 'https' entry.");
+    	}
+
+    	SchemeSocketFactory awareSocketFactory = httpClient4.getConnectionManager().getSchemeRegistry().getScheme("https").getSchemeSocketFactory();
+
+    	if(awareSocketFactory instanceof KeyStoreAwareSocketFactory){
+    		return ((KeyStoreAwareSocketFactory) awareSocketFactory).getKeyStore();
+    	}else{
+    		throw new IllegalStateException("Cannot extract keystore from scheme socket factory of type: " + awareSocketFactory.getClass().getName());
+    	}
+    }
+
 
     public static URL getResource(String resourceName)
     {
