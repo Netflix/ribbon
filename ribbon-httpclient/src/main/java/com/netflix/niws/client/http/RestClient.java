@@ -126,8 +126,8 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         this.ncc = clientConfig;
         this.restClientName = ncc.getClientName();
         this.isSecure = getBooleanFromConfig(ncc, CommonClientConfigKey.IsSecure, this.isSecure);
-        this.isHostnameValidationRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsHostnameValidationRequired, this.isSecure);
-        this.isClientAuthRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsHostnameValidationRequired, this.isSecure);
+        this.isHostnameValidationRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsHostnameValidationRequired, this.isHostnameValidationRequired);
+        this.isClientAuthRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsClientAuthRequired, this.isClientAuthRequired);
         this.bFollowRedirects = getBooleanFromConfig(ncc, CommonClientConfigKey.FollowRedirects, true);
         this.ignoreUserToken = getBooleanFromConfig(ncc, CommonClientConfigKey.IgnoreUserTokenInConnectionPoolForSecureClient, this.ignoreUserToken);
 

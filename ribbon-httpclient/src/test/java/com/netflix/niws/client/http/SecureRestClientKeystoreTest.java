@@ -1,6 +1,28 @@
+/*
+*
+* Copyright 2013 Netflix, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*/
 package com.netflix.niws.client.http;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
+import java.io.FileOutputStream;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
 
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.junit.Test;
@@ -10,6 +32,10 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.config.ConfigurationManager;
 import com.sun.jersey.core.util.Base64;
 
+/**
+ * @author jzarfoss
+ *
+ */
 public class SecureRestClientKeystoreTest {
 
 	// dummy truststore from a common verisign root.
@@ -30,7 +56,7 @@ public class SecureRestClientKeystoreTest {
 	//		 Signature algorithm name: SHA1withRSA
 	//		 Version: 3
 	//
-	//	Extensions: 
+	//	Extensions:
 	//
 	//	#1: ObjectId: 2.5.29.15 Criticality=true
 	//	KeyUsage [
@@ -55,30 +81,30 @@ public class SecureRestClientKeystoreTest {
 	//	]
 
 	private static final String DUMMY_TRUSTSTORE_PASSWORD = "changeit";
-	
-	private static final String DUMMY_TRUSTSTORE = 
-			"/u3+7QAAAAIAAAABAAAAAgALc2FtcGxlX3Jvb3QAAAFA0cbCLgAFWC41MDkAAATXMIIE0zCCA7ug" + 
-					"AwIBAgIQGNrRniZ96LtKIVjNzGs7SjANBgkqhkiG9w0BAQUFADCByjELMAkGA1UEBhMCVVMxFzAV" + 
-					"BgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQLExZWZXJpU2lnbiBUcnVzdCBOZXR3b3JrMTow" + 
-					"OAYDVQQLEzEoYykgMjAwNiBWZXJpU2lnbiwgSW5jLiAtIEZvciBhdXRob3JpemVkIHVzZSBvbmx5" + 
-					"MUUwQwYDVQQDEzxWZXJpU2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRpZmljYXRpb24g" + 
-					"QXV0aG9yaXR5IC0gRzUwHhcNMDYxMTA4MDAwMDAwWhcNMzYwNzE2MjM1OTU5WjCByjELMAkGA1UE" + 
-					"BhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQLExZWZXJpU2lnbiBUcnVzdCBO" + 
-					"ZXR3b3JrMTowOAYDVQQLEzEoYykgMjAwNiBWZXJpU2lnbiwgSW5jLiAtIEZvciBhdXRob3JpemVk" + 
-					"IHVzZSBvbmx5MUUwQwYDVQQDEzxWZXJpU2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRp" + 
-					"ZmljYXRpb24gQXV0aG9yaXR5IC0gRzUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCv" + 
-					"JAgIKXo1nmAMqudLO07cfLw8RRy7K+D+KQL5VwijZIUVJ/XxrcgxiV0i6CqqpkKzj/i5Vbext0uz" + 
-					"/o9+B1fs70PbZmIVYc9gDaTY3vjgw2IIPVQT60nKWVSFJuUrjxuf6/WhkcIzSdhDY2pSS9KP6HBR" + 
-					"TdGJaXvHcPaz3BJ023tdS1bTlr8Vd6Gw9KIl8q8ckmcY5fQGBO+QueQA5N06tRn/Arr0PO7gi+s3" + 
-					"i+z016zy9vA9r911kTMZHRxAy3QkGSGT2RT+rCpSx4/VBEnkjWNHiDxpg8v+R70rfk/Fla4OndTR" + 
-					"Q8Bnc+MUCH7lP59zuDMKz10/NIeWiu5T6CUVAgMBAAGjgbIwga8wDwYDVR0TAQH/BAUwAwEB/zAO" + 
-					"BgNVHQ8BAf8EBAMCAQYwbQYIKwYBBQUHAQwEYTBfoV2gWzBZMFcwVRYJaW1hZ2UvZ2lmMCEwHzAH" + 
-					"BgUrDgMCGgQUj+XTGoasjY5rw8+AatRIGCx7GS4wJRYjaHR0cDovL2xvZ28udmVyaXNpZ24uY29t" + 
-					"L3ZzbG9nby5naWYwHQYDVR0OBBYEFH/TZafC3ey78DAJ80M5+gKvMzEzMA0GCSqGSIb3DQEBBQUA" + 
-					"A4IBAQCTJEowX2LP2BqYLz3q3JktvXf2pXkiOOzEp6B4Eq1iDkVwZMXnl2YtmAl+X6/WzChl8gGq" + 
-					"CBpH3vn5fJJaCGkgDdk+bW48DW7Y5gaRQBi5+MHt39tBquCWIMnNZBU4gcmU7qKEKQsTb47bDN0l" + 
-					"AtukixlE0kF6BWlKWE9gyn6CagsCqiUXObXbf+eEZSqVir2G3l6BFoMtEMze/aiCKm0oHw0LxOXn" + 
-					"GiYZ4fQRbxC1lfznQgUy286dUV4otp6F01vvpX1FQHKOtw5rDgb7MzVIcbidJ4vEZV8NhnacRHr2" + 
+
+	private static final String DUMMY_TRUSTSTORE =
+			"/u3+7QAAAAIAAAABAAAAAgALc2FtcGxlX3Jvb3QAAAFA0cbCLgAFWC41MDkAAATXMIIE0zCCA7ug" +
+					"AwIBAgIQGNrRniZ96LtKIVjNzGs7SjANBgkqhkiG9w0BAQUFADCByjELMAkGA1UEBhMCVVMxFzAV" +
+					"BgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQLExZWZXJpU2lnbiBUcnVzdCBOZXR3b3JrMTow" +
+					"OAYDVQQLEzEoYykgMjAwNiBWZXJpU2lnbiwgSW5jLiAtIEZvciBhdXRob3JpemVkIHVzZSBvbmx5" +
+					"MUUwQwYDVQQDEzxWZXJpU2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRpZmljYXRpb24g" +
+					"QXV0aG9yaXR5IC0gRzUwHhcNMDYxMTA4MDAwMDAwWhcNMzYwNzE2MjM1OTU5WjCByjELMAkGA1UE" +
+					"BhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQLExZWZXJpU2lnbiBUcnVzdCBO" +
+					"ZXR3b3JrMTowOAYDVQQLEzEoYykgMjAwNiBWZXJpU2lnbiwgSW5jLiAtIEZvciBhdXRob3JpemVk" +
+					"IHVzZSBvbmx5MUUwQwYDVQQDEzxWZXJpU2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRp" +
+					"ZmljYXRpb24gQXV0aG9yaXR5IC0gRzUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCv" +
+					"JAgIKXo1nmAMqudLO07cfLw8RRy7K+D+KQL5VwijZIUVJ/XxrcgxiV0i6CqqpkKzj/i5Vbext0uz" +
+					"/o9+B1fs70PbZmIVYc9gDaTY3vjgw2IIPVQT60nKWVSFJuUrjxuf6/WhkcIzSdhDY2pSS9KP6HBR" +
+					"TdGJaXvHcPaz3BJ023tdS1bTlr8Vd6Gw9KIl8q8ckmcY5fQGBO+QueQA5N06tRn/Arr0PO7gi+s3" +
+					"i+z016zy9vA9r911kTMZHRxAy3QkGSGT2RT+rCpSx4/VBEnkjWNHiDxpg8v+R70rfk/Fla4OndTR" +
+					"Q8Bnc+MUCH7lP59zuDMKz10/NIeWiu5T6CUVAgMBAAGjgbIwga8wDwYDVR0TAQH/BAUwAwEB/zAO" +
+					"BgNVHQ8BAf8EBAMCAQYwbQYIKwYBBQUHAQwEYTBfoV2gWzBZMFcwVRYJaW1hZ2UvZ2lmMCEwHzAH" +
+					"BgUrDgMCGgQUj+XTGoasjY5rw8+AatRIGCx7GS4wJRYjaHR0cDovL2xvZ28udmVyaXNpZ24uY29t" +
+					"L3ZzbG9nby5naWYwHQYDVR0OBBYEFH/TZafC3ey78DAJ80M5+gKvMzEzMA0GCSqGSIb3DQEBBQUA" +
+					"A4IBAQCTJEowX2LP2BqYLz3q3JktvXf2pXkiOOzEp6B4Eq1iDkVwZMXnl2YtmAl+X6/WzChl8gGq" +
+					"CBpH3vn5fJJaCGkgDdk+bW48DW7Y5gaRQBi5+MHt39tBquCWIMnNZBU4gcmU7qKEKQsTb47bDN0l" +
+					"AtukixlE0kF6BWlKWE9gyn6CagsCqiUXObXbf+eEZSqVir2G3l6BFoMtEMze/aiCKm0oHw0LxOXn" +
+					"GiYZ4fQRbxC1lfznQgUy286dUV4otp6F01vvpX1FQHKOtw5rDgb7MzVIcbidJ4vEZV8NhnacRHr2" +
 					"lVz2XTIIM6RUthg/aFzyQkqFOFSDX9HoLPKsEdao7WNq8RZLLllY/uSyRqtKBTGTmf/ktGM=";
 
 	@Test
@@ -86,25 +112,80 @@ public class SecureRestClientKeystoreTest {
 
 		// jks format
 		byte[] dummyTruststore = Base64.decode(DUMMY_TRUSTSTORE);
-		
+
 		File tempKeystore = File.createTempFile(this.getClass().getName(), ".keystore");
 		File tempTruststore = File.createTempFile(this.getClass().getName(), ".truststore");
 
+		FileOutputStream keystoreFileOut = new FileOutputStream(tempKeystore);
+		keystoreFileOut.write(dummyTruststore);
+		keystoreFileOut.close();
+
+		FileOutputStream truststoreFileOut = new FileOutputStream(tempTruststore);
+		truststoreFileOut.write(dummyTruststore);
+		truststoreFileOut.close();
+
+
 		AbstractConfiguration cm = ConfigurationManager.getConfigInstance();
-		
-		String configPrefix = this.getClass().getName() + ".test1.";
-		
-		cm.setProperty(configPrefix + CommonClientConfigKey.IsSecure, "true");
-		cm.setProperty(configPrefix + CommonClientConfigKey.IsClientAuthRequired, "true");
-		cm.setProperty(configPrefix + CommonClientConfigKey.KeyStore, tempKeystore.getAbsolutePath());
-		cm.setProperty(configPrefix + CommonClientConfigKey.KeyStorePassword, DUMMY_TRUSTSTORE_PASSWORD);
-		cm.setProperty(configPrefix + CommonClientConfigKey.TrustStore, tempTruststore.getAbsolutePath());
-		cm.setProperty(configPrefix + CommonClientConfigKey.TrustStorePassword, DUMMY_TRUSTSTORE_PASSWORD);
-		
-		RestClient client = (RestClient) ClientFactory.getNamedClient(configPrefix);
-		
-		
-		
+
+		String name = this.getClass().getName() + ".test1";
+
+		String configPrefix = name + "." + "ribbon";
+
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.IsSecure, "true");
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.IsClientAuthRequired, "true");
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.KeyStore, tempKeystore.getAbsolutePath());
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.KeyStorePassword, DUMMY_TRUSTSTORE_PASSWORD);
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.TrustStore, tempTruststore.getAbsolutePath());
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.TrustStorePassword, DUMMY_TRUSTSTORE_PASSWORD);
+
+		RestClient client = (RestClient) ClientFactory.getNamedClient(name);
+
+		KeyStore keyStore = client.getKeyStore();
+
+		Certificate cert = keyStore.getCertificate("sample_root");
+
+		assertNotNull(cert);
+
+	}
+
+	@Test
+	public void testGetKeystoreWithNoClientAuth() throws Exception{
+
+		// jks format
+		byte[] dummyTruststore = Base64.decode(DUMMY_TRUSTSTORE);
+
+		File tempKeystore = File.createTempFile(this.getClass().getName(), ".keystore");
+		File tempTruststore = File.createTempFile(this.getClass().getName(), ".truststore");
+
+		FileOutputStream keystoreFileOut = new FileOutputStream(tempKeystore);
+		keystoreFileOut.write(dummyTruststore);
+		keystoreFileOut.close();
+
+		FileOutputStream truststoreFileOut = new FileOutputStream(tempTruststore);
+		truststoreFileOut.write(dummyTruststore);
+		truststoreFileOut.close();
+
+
+		AbstractConfiguration cm = ConfigurationManager.getConfigInstance();
+
+		String name = this.getClass().getName() + ".test2";
+
+		String configPrefix = name + "." + "ribbon";
+
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.IsSecure, "true");
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.KeyStore, tempKeystore.getAbsolutePath());
+		cm.setProperty(configPrefix + "." +  CommonClientConfigKey.KeyStorePassword, DUMMY_TRUSTSTORE_PASSWORD);
+
+		RestClient client = (RestClient) ClientFactory.getNamedClient(name);
+
+		KeyStore keyStore = client.getKeyStore();
+
+		Certificate cert = keyStore.getCertificate("sample_root");
+
+		assertNotNull(cert);
+
+
+
 
 	}
 
