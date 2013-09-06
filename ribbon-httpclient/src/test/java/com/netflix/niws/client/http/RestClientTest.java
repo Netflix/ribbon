@@ -18,7 +18,9 @@
 package com.netflix.niws.client.http;
 
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -31,22 +33,19 @@ import com.netflix.client.ClientFactory;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
-import com.netflix.niws.client.http.HttpClientResponse;
-import com.netflix.niws.client.http.HttpClientRequest;
-import com.netflix.niws.client.http.RestClient;
 
 
-public class RestClientTest {    
+public class RestClientTest {
     @Test
     public void testExecuteWithoutLB() throws Exception {
-        RestClient client = (RestClient) ClientFactory.getNamedClient("google");        
+        RestClient client = (RestClient) ClientFactory.getNamedClient("google");
         HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("http://www.google.com/")).build();
         HttpClientResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
         response = client.execute(request);
         assertEquals(200, response.getStatus());
     }
-    
+
     @Test
     public void testExecuteWithLB() throws Exception {
         RestClient client = (RestClient) ClientFactory.getNamedClient("allservices");
@@ -74,7 +73,7 @@ public class RestClientTest {
         HttpClientResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
     }
-    
+
     @Test
     public void testVipAsURI()  throws Exception {
     	ConfigurationManager.getConfigInstance().setProperty("test1.ribbon.DeploymentContextBasedVipAddresses", "google.com:80");
@@ -86,7 +85,7 @@ public class RestClientTest {
         assertEquals(200, response.getStatus());
         assertEquals("http://google.com:80/", response.getRequestedURI().toString());
     }
-    
+
     @Test
     public void testSecureClient()  throws Exception {
     	ConfigurationManager.getConfigInstance().setProperty("test2.ribbon.IsSecure", "true");
@@ -95,7 +94,7 @@ public class RestClientTest {
         HttpClientResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
     }
-    
+
     @Test
     public void testSecureClient2()  throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("test3.ribbon.IsSecure", "true");
@@ -108,8 +107,8 @@ public class RestClientTest {
         HttpClientResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
         assertEquals("https://www.google.com:443/", response.getRequestedURI().toString());
-        
+
     }
 
-    
+
 }

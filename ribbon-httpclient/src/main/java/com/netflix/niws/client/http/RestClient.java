@@ -23,23 +23,27 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.security.KeyStore;
 import java.util.Iterator;
 
-import javax.net.ssl.SSLContext;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.UserTokenHandler;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.scheme.SchemeSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.impl.client.AbstractHttpClient;
 import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +60,9 @@ import com.netflix.http4.NFHttpClient;
 import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
+import com.netflix.http4.ssl.KeyStoreAwareSocketFactory;
+import com.netflix.niws.cert.AbstractSslContextFactory;
+import com.netflix.niws.client.ClientSslSocketFactoryException;
 import com.netflix.niws.client.URLSslContextFactory;
 import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.netflix.util.Pair;
@@ -71,7 +78,7 @@ import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
 /**
  * A client that is essentially a wrapper around Jersey client. By default, it uses HttpClient for underlying HTTP communication.
  * Application can set its own Jersey client with this class, but doing so will void all client configurations set in {@link IClientConfig}.
- *  
+ *
  * @author awang
  *
  */
@@ -92,6 +99,9 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     private String proxyHost;
     private int proxyPort;
     private boolean isSecure;
+    private boolean isHostnameValidationRequired;
+    private boolean isClientAuthRequired;
+    private boolean ignoreUserToken;
     private ApacheHttpClient4Config config;
 
     boolean bFollowRedirects = DefaultClientConfigImpl.DEFAULT_FOLLOW_REDIRECTS;
@@ -109,26 +119,27 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     public RestClient(Client jerseyClient) {
         this.restClient = jerseyClient;
     }
-    
+
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         super.initWithNiwsConfig(clientConfig);
         this.ncc = clientConfig;
-        restClientName = ncc.getClientName();
-        isSecure = isSecure(clientConfig);
-        if (ncc.getProperty(CommonClientConfigKey.FollowRedirects)!=null){
-            Boolean followRedirects = Boolean.valueOf(""+ncc.getProperty(CommonClientConfigKey.FollowRedirects, "true"));
-            bFollowRedirects = followRedirects.booleanValue();
-        }
-        config = new DefaultApacheHttpClient4Config();
-        config.getProperties().put(
+        this.restClientName = ncc.getClientName();
+        this.isSecure = getBooleanFromConfig(ncc, CommonClientConfigKey.IsSecure, this.isSecure);
+        this.isHostnameValidationRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsHostnameValidationRequired, this.isHostnameValidationRequired);
+        this.isClientAuthRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsClientAuthRequired, this.isClientAuthRequired);
+        this.bFollowRedirects = getBooleanFromConfig(ncc, CommonClientConfigKey.FollowRedirects, true);
+        this.ignoreUserToken = getBooleanFromConfig(ncc, CommonClientConfigKey.IgnoreUserTokenInConnectionPoolForSecureClient, this.ignoreUserToken);
+
+        this.config = new DefaultApacheHttpClient4Config();
+        this.config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_CONNECT_TIMEOUT,
                 Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ConnectTimeout))));
-        config.getProperties().put(
+        this.config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_READ_TIMEOUT,
                 Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ReadTimeout))));
-        
-        restClient = apacheHttpClientSpecificInitialization();
+
+        this.restClient = apacheHttpClientSpecificInitialization();
     }
 
     protected Client apacheHttpClientSpecificInitialization() {
@@ -329,36 +340,90 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
             final URL trustStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.TrustStore);
             final URL keyStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.KeyStore);
 
-            if (trustStoreUrl != null || keyStoreUrl != null) {
-                try {
-                    final ClientConnectionManager currentManager = httpClient4
-                    .getConnectionManager();
+        	final ClientConnectionManager currentManager = httpClient4.getConnectionManager();
 
-                    SSLContext context = new URLSslContextFactory(
-                            trustStoreUrl,
-                            (String) ncc
-                            .getProperty(CommonClientConfigKey.TrustStorePassword),
+            AbstractSslContextFactory abstractFactory = null;
+
+
+            if (    // if client auth is required, need both a truststore and a keystore to warrant configuring
+            		// if client is not is not required, we only need a keystore OR a truststore to warrant configuring
+            		(isClientAuthRequired && (trustStoreUrl != null && keyStoreUrl != null))
+            		||
+            		(!isClientAuthRequired && (trustStoreUrl != null || keyStoreUrl != null))
+            		) {
+
+                try {
+                	abstractFactory = new URLSslContextFactory(trustStoreUrl,
+                            (String) ncc.getProperty(CommonClientConfigKey.TrustStorePassword),
                             keyStoreUrl,
-                            (String) ncc
-                            .getProperty(CommonClientConfigKey.KeyStorePassword))
-                    .getSSLContext();
-                    currentManager.getSchemeRegistry().register(new Scheme(
-                            "https",
-                            443,
-                            new SSLSocketFactory(
-                                    context,
-                                    (X509HostnameVerifier) null)));
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(
-                            "Unable to configure custom secure socket factory",
-                            e);
+                            (String) ncc.getProperty(CommonClientConfigKey.KeyStorePassword));
+
+                } catch (ClientSslSocketFactoryException e) {
+                    throw new IllegalArgumentException("Unable to configure custom secure socket factory", e);
                 }
             }
+
+        	KeyStoreAwareSocketFactory awareSocketFactory;
+        	try {
+        		awareSocketFactory = isHostnameValidationRequired ? new KeyStoreAwareSocketFactory(abstractFactory) :
+        		    new KeyStoreAwareSocketFactory(abstractFactory, SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+
+        		currentManager.getSchemeRegistry().register(new Scheme(
+                        "https",443, awareSocketFactory));
+
+        	} catch (Exception e) {
+        		throw new IllegalArgumentException("Unable to configure custom secure socket factory", e);
+        	}
         }
+
+        // Warning that if user tokens are used (i.e. ignoreUserToken == false) this may be prevent SSL connections from being
+        // reused, which is generally not the intent for long-living proxy connections and the like.
+        // See http://hc.apache.org/httpcomponents-client-ga/tutorial/html/advanced.html
+        if (ignoreUserToken) {
+            ((DefaultHttpClient) httpClient4).setUserTokenHandler(new UserTokenHandler() {
+                @Override
+                public Object getUserToken(HttpContext context) {
+                    return null;
+                }
+            });
+        }
+
         ApacheHttpClient4Handler handler = new ApacheHttpClient4Handler(httpClient4, new BasicCookieStore(), false);
-       
+
         return new ApacheHttpClient4(handler, config);
     }
+
+    public void resetSSLSocketFactory(AbstractSslContextFactory abstractContextFactory){
+
+    	try {
+
+    		KeyStoreAwareSocketFactory awareSocketFactory = isHostnameValidationRequired ? new KeyStoreAwareSocketFactory(abstractContextFactory) :
+                new KeyStoreAwareSocketFactory(abstractContextFactory, SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+    		httpClient4.getConnectionManager().getSchemeRegistry().register(new Scheme(
+                    "https",443, awareSocketFactory));
+
+    	} catch (Exception e) {
+    		throw new IllegalArgumentException("Unable to configure custom secure socket factory", e);
+    	}
+    }
+
+    public KeyStore getKeyStore(){
+
+    	SchemeRegistry registry = httpClient4.getConnectionManager().getSchemeRegistry();
+
+    	if(! registry.getSchemeNames().contains("https")){
+    		throw new IllegalStateException("Registry does not include an 'https' entry.");
+    	}
+
+    	SchemeSocketFactory awareSocketFactory = httpClient4.getConnectionManager().getSchemeRegistry().getScheme("https").getSchemeSocketFactory();
+
+    	if(awareSocketFactory instanceof KeyStoreAwareSocketFactory){
+    		return ((KeyStoreAwareSocketFactory) awareSocketFactory).getKeyStore();
+    	}else{
+    		throw new IllegalStateException("Cannot extract keystore from scheme socket factory of type: " + awareSocketFactory.getClass().getName());
+    	}
+    }
+
 
     public static URL getResource(String resourceName)
     {
@@ -412,19 +477,22 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         }
         return result;
     }
-    
+
     @Override
     public HttpClientResponse execute(HttpClientRequest task) throws Exception {
         return execute(task.getVerb(), task.getUri(),
                 task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity());
     }
 
-    private boolean isSecure(IClientConfig overriddenClientConfig) {
-        boolean isSecure = this.isSecure;
-        if (overriddenClientConfig != null && overriddenClientConfig.containsProperty(CommonClientConfigKey.IsSecure)){
-            isSecure = Boolean.parseBoolean(overriddenClientConfig.getProperty(CommonClientConfigKey.IsSecure).toString());
-        } 
-        return isSecure;
+
+    private boolean getBooleanFromConfig(IClientConfig overriddenClientConfig, IClientConfigKey key, boolean defaultValue){
+
+    	if(overriddenClientConfig != null && overriddenClientConfig.containsProperty(key)){
+    		defaultValue = Boolean.parseBoolean(overriddenClientConfig.getProperty(key).toString());
+    	}
+
+    	return defaultValue;
+
     }
 
 	@Override
@@ -432,10 +500,10 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 		return 80;
 	}
 
-	
-	
+
+
     @Override
-    protected int getDefaultPortFromScheme(String scheme) {        
+    protected int getDefaultPortFromScheme(String scheme) {
         int port = super.getDefaultPortFromScheme(scheme);
         if (port < 0) {
             return 80;
@@ -447,7 +515,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     @Override
     protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpClientRequest task) {
         URI theUrl = task.getUri();
-        boolean isSecure = isSecure(task.getOverrideConfig());
+        boolean isSecure = getBooleanFromConfig(task.getOverrideConfig(), CommonClientConfigKey.IsSecure, this.isSecure);
         String scheme = theUrl.getScheme();
         if (scheme != null) {
             isSecure = 	scheme.equalsIgnoreCase("https");
@@ -474,7 +542,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         HttpClientResponse thisResponse = null;
         boolean bbFollowRedirects = bFollowRedirects;
         // read overriden props
-        if (overriddenClientConfig != null 
+        if (overriddenClientConfig != null
         		// set whether we should auto follow redirects
         		&& overriddenClientConfig.getProperty(CommonClientConfigKey.FollowRedirects)!=null){
         	// use default directive from overall config
@@ -541,13 +609,13 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     @Override
     protected boolean isRetriableException(Exception e) {
         boolean shouldRetry = isConnectException(e) || isSocketException(e);
-        if (e instanceof ClientException 
+        if (e instanceof ClientException
                 && ((ClientException)e).getErrorType() == ClientException.ErrorType.SERVER_THROTTLED){
             shouldRetry = true;
         }
         return shouldRetry;
     }
-    
+
     @Override
     protected boolean isCircuitBreakerException(Exception e) {
         return isConnectException(e) || isSocketException(e);
@@ -555,21 +623,21 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 
     private static boolean isSocketException(Throwable e) {
         int levelCount = 0;
-        while (e != null && levelCount < 10) {            
-            if (e instanceof SocketException) { 
+        while (e != null && levelCount < 10) {
+            if (e instanceof SocketException) {
                 return true;
             }
             e = e.getCause();
             levelCount++;
         }
         return false;
-        
+
     }
 
     private static boolean isConnectException(Throwable e) {
         int levelCount = 0;
-        while (e != null && levelCount < 10) {            
-            if ((e instanceof SocketException) 
+        while (e != null && levelCount < 10) {
+            if ((e instanceof SocketException)
                     || ((e instanceof org.apache.http.conn.ConnectTimeoutException)
                             && !(e instanceof org.apache.http.conn.ConnectionPoolTimeoutException))) {
                 return true;
@@ -579,9 +647,9 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         }
         return false;
     }
-    
+
 	@Override
-	protected Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
+	protected Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress)
 			throws URISyntaxException, ClientException {
 		if (!vipAddress.contains("http")) {
 			vipAddress = "http://" + vipAddress;
