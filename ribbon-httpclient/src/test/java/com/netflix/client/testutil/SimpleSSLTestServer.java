@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.security.KeyStore;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -58,28 +59,26 @@ public class SimpleSSLTestServer {
 
 	private final ServerSocket ss;
 
+	@edu.umd.cs.findbugs.annotations.SuppressWarnings
 	public SimpleSSLTestServer(final File truststore, final String truststorePass,
 			final File keystore, final String keystorePass, final int port, final boolean clientAuthRequred) throws Exception{
 
-		KeyStore ks = KeyStore.getInstance("JKS");
-        ks.load(new FileInputStream(keystore), keystorePass.toCharArray());
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        kmf.init(ks, keystorePass.toCharArray());
+			KeyStore ks = KeyStore.getInstance("JKS");
+			ks.load(new FileInputStream(keystore), keystorePass.toCharArray());
+			KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			kmf.init(ks, keystorePass.toCharArray());
 
-        KeyStore ts = KeyStore.getInstance("JKS");
-        ts.load(new FileInputStream(truststore), keystorePass.toCharArray());
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-		tmf.init(ts);
+			KeyStore ts = KeyStore.getInstance("JKS");
+			ts.load(new FileInputStream(truststore), keystorePass.toCharArray());
+			TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			tmf.init(ts);
 
+			SSLContext sc = SSLContext.getInstance("TLS");
+			sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
-        SSLContext sc = SSLContext.getInstance("TLS");
-        sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+			ss = sc.getServerSocketFactory().createServerSocket(port);
 
-
-
-        ss = sc.getServerSocketFactory().createServerSocket(port);
-
-        ((SSLServerSocket) ss).setNeedClientAuth(clientAuthRequred);
+			((SSLServerSocket) ss).setNeedClientAuth(clientAuthRequred);
 	}
 
 	public void accept() throws Exception{
@@ -96,14 +95,13 @@ public class SimpleSSLTestServer {
 				try{
 					sock = ss.accept();
 
-					reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-					writer = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
+					reader = new BufferedReader(new InputStreamReader(sock.getInputStream(), Charset.defaultCharset()));
+					writer = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream(), Charset.defaultCharset()));
 
 					reader.readLine(); // we really don't care what the client says, he's getting the special regardless...
 
 					writer.write(CANNED_RESPONSE);
 					writer.flush();
-
 
 				}catch(Exception e){
 					e.printStackTrace();
@@ -111,9 +109,9 @@ public class SimpleSSLTestServer {
 					try{
 						Closeables.close(reader, true);
 						Closeables.close(writer, true);
-						Closeables.close(sock, true);
+						sock.close();
 					}catch(Exception e){
-						// noop
+						e.printStackTrace();
 					}
 				}
 			}

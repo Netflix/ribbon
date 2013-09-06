@@ -48,8 +48,7 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
  */
 public class SecureGetTest {
 
-	// custom minted test keystores/truststores for ribbon testing only
-	// hand made with BouncyCastle library
+	// custom minted test keystores/truststores for Ribbon testing
 
 	// PLEASE DO NOT USE FOR ANYTHING OTHER THAN TESTING (the private keys are sitting right here in a String!!)
 	// but if you need keystore to test with, help yourself, they're good until 2113!
@@ -59,7 +58,6 @@ public class SecureGetTest {
 	// the negative testing being that set 1 and set 2 cannot talk to each other
 
 	// base64 encoded
-
 
 	//	Keystore type: JKS
 	//	Keystore provider: SUN
@@ -318,18 +316,18 @@ public class SecureGetTest {
 	}
 
 	@AfterClass
-	public static void shutDown() {
+	public static void shutDown(){
 
 		try{
 			testServer1.close();
 		}catch(Exception e){
-			// noop
+			e.printStackTrace();
 		}
 
 		try{
 			testServer2.close();
 		}catch(Exception e){
-			// noop
+			e.printStackTrace();
 		}
 
 	}
@@ -425,7 +423,6 @@ public class SecureGetTest {
 
 			fail("expecting ssl hostname validation error");
 		}catch(ClientHandlerException che){
-			che.printStackTrace();
 			assertTrue(che.getMessage().indexOf("hostname in certificate didn't match") > -1);
 		}
 	}
@@ -459,7 +456,6 @@ public class SecureGetTest {
 			fail("expecting ssl hostname validation error");
 
 		}catch(ClientHandlerException che){
-			che.printStackTrace();
 			assertTrue(che.getMessage().indexOf("peer not authenticated") > -1);
 		}
 	}
