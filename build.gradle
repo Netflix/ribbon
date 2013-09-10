@@ -58,6 +58,17 @@ project(':ribbon-httpclient') {
     }
 }
 
+project(':ribbon-netty') {
+    dependencies {
+        compile project(':ribbon-core')
+        compile 'io.netty:netty-all:4.0.8.Final'
+        testCompile 'com.sun.jersey:jersey-bundle:1.9.1'
+        testCompile 'asm:asm-all:3.2'
+        testCompile 'commons-io:commons-io:2.0.1'
+    }
+}
+
+
 project(':ribbon-eureka') {   
     dependencies {
         compile project(':ribbon-core')
