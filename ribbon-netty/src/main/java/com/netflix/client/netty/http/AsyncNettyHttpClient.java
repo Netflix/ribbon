@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -12,11 +13,13 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.SocketChannelConfig;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultHttpRequest;
@@ -34,6 +37,7 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.QueryStringEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 
 import com.google.common.base.Optional;
 import com.netflix.client.AsyncClient;
@@ -46,15 +50,18 @@ import com.netflix.serialization.DefaultSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 
-public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, NettyHttpResponse,ContentTypeBasedSerializerKey> {
+public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, NettyHttpResponse> {
 
     SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory = new DefaultSerializationFactory();
     Bootstrap b = new Bootstrap();
     
     private final String RIBBON_HANDLER = "ribbonHandler"; 
     
+    private int readTimeout;
+    private int connectTimeout;
+    
     public AsyncNettyHttpClient(IClientConfig config) {
-        String serializationFactoryClass = (String) config.getProperty(CommonClientConfigKey.SerializationFactoryClassName);
+        String serializationFactoryClass = config.getPropertyAsString(CommonClientConfigKey.SerializationFactoryClassName, null);
         if (serializationFactoryClass != null) {
             try {
                 serializationFactory = (SerializationFactory<ContentTypeBasedSerializerKey>) Class.forName(serializationFactoryClass).newInstance();
@@ -66,10 +73,12 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
         b.group(group)
              .channel(NioSocketChannel.class)
              .handler(new Initializer());
+        connectTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, 2000);
+        readTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, 2000);
     }
     
     
-    private static class Initializer extends ChannelInitializer<SocketChannel> {
+    private class Initializer extends ChannelInitializer<SocketChannel> {
         
         @Override
         protected void initChannel(SocketChannel ch) throws Exception {
@@ -83,6 +92,8 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
 
             // Uncomment the following line if you don't want to handle HttpChunks.
             p.addLast("aggregator", new HttpObjectAggregator(1048576));
+            
+            p.addLast("readTimeoutHandler", new ReadTimeoutHandler(readTimeout, TimeUnit.MILLISECONDS));
         }        
     }
     
@@ -104,6 +115,8 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
         Channel ch = null;
         try {
             ch = b.connect(host, port).sync().channel();
+            SocketChannelConfig cfg = (SocketChannelConfig) ch.config();
+            cfg.setConnectTimeoutMillis(connectTimeout);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -132,12 +145,22 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
                     }
                 }
             }
+            
+            @Override
+            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                ctx.close();
+                callback.onException(cause);
+            }
+
         });
 
         ch.writeAndFlush(nettyHttpRequest);
     }
 
     private static String getContentType(Map<String, Collection<String>> headers) {
+        if (headers == null) {
+            return null;
+        }
         for (Map.Entry<String, Collection<String>> entry: headers.entrySet()) {
             String key = entry.getKey();
             if (key.equalsIgnoreCase("content-type")) {

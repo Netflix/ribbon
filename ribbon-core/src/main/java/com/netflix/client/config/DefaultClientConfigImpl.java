@@ -733,4 +733,39 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		config.loadProperties(clientName);
 		return config;
 	}
+
+    @Override
+    public int getPropertyAsInteger(IClientConfigKey key, int defaultValue) {
+        Object rawValue = getProperty(key);
+        if (rawValue != null) {
+            try {
+                return Integer.parseInt(String.valueOf(rawValue));
+            } catch (NumberFormatException e) {
+            }
+        }
+        return defaultValue;
+        
+    }
+
+    @Override
+    public String getPropertyAsString(IClientConfigKey key, String defaultValue) {
+        Object rawValue = getProperty(key);
+        if (rawValue != null) {
+            return String.valueOf(rawValue);
+        }
+        return defaultValue;
+    }
+
+    @Override
+    public boolean getPropertyAsBoolean(IClientConfigKey key,
+            boolean defaultValue) {
+        Object rawValue = getProperty(key);
+        if (rawValue != null) {
+            try {
+                return Boolean.valueOf(String.valueOf(rawValue));
+            } catch (NumberFormatException e) {
+            }
+        }
+        return defaultValue;
+    }
 }

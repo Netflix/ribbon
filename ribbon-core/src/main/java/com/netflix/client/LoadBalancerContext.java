@@ -1,25 +1,7 @@
-/*
-*
-* Copyright 2013 Netflix, Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
 package com.netflix.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,23 +15,13 @@ import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
-import com.netflix.servo.monitor.Monitors;
-import com.netflix.servo.monitor.Stopwatch;
-import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
 
-/**
- * Abstract class that provides the integration of client with load balancers.
- * 
- * @author awang
- *
- */
-public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> implements IClient<S, T>, IClientConfigAware {    
-    
-    private static final Logger logger = LoggerFactory.getLogger(AbstractLoadBalancerAwareClient.class);
+public abstract class LoadBalancerContext implements IClientConfigAware {
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancerContext.class);
 
     protected String clientName = "default";          
-    
+
     protected String vipAddresses;
     
     protected int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
@@ -59,11 +31,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
         
     private ILoadBalancer lb;
-    protected volatile Timer tracer;
 
-    
-    public AbstractLoadBalancerAwareClient() {  
-    }
     
     /**
      * Set necessary parameters from client configuration and register with Servo monitors.
@@ -73,51 +41,29 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         if (clientConfig == null) {
             return;    
         }
-        vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
         clientName = clientConfig.getClientName();
         if (clientName == null) {
-        	clientName = "default";
+            clientName = "default";
         }
-        try {
-            maxAutoRetries = Integer.parseInt(clientConfig.getProperty(
-            		CommonClientConfigKey.MaxAutoRetries,maxAutoRetries).toString());
-        } catch (Exception e) {
-            logger.warn("Invalid maxRetries set for client:" + clientName);
-        }
-        try {
-            maxAutoRetriesNextServer = Integer.parseInt(clientConfig.getProperty(
-            		CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer).toString());
-        } catch (Exception e) {
-            logger.warn("Invalid maxRetriesNextServer set for client:" + clientName);
-        }
+        vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
+        maxAutoRetries = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
+        maxAutoRetriesNextServer = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer);
         
-        try {
-            Boolean bOkToRetryOnAllOperations = Boolean.valueOf(clientConfig.getProperty(CommonClientConfigKey.OkToRetryOnAllOperations,
-                    okToRetryOnAllOperations).toString());
-            okToRetryOnAllOperations = bOkToRetryOnAllOperations.booleanValue();
-        } catch (Exception e) {
-            logger.warn("Invalid OkToRetryOnAllOperations set for client:" + clientName);
-        }
-        tracer = Monitors.newTimer(clientName + "_OperationTimer", TimeUnit.MILLISECONDS);
-        Monitors.registerObject("Client_" + clientName, this);
-    }
-    
-    
-    protected Timer getExecuteTracer() {
-        if (tracer == null) {
-            tracer = Monitors.newTimer(clientName + "_OperationTimer", TimeUnit.MILLISECONDS);
-        } 
-        return tracer;        
+       okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
     }
     
     /**
      * Delegate to {@link #initWithNiwsConfig(IClientConfig)}
      * @param clientConfig
      */
-    public AbstractLoadBalancerAwareClient(IClientConfig clientConfig) {
+    public LoadBalancerContext(IClientConfig clientConfig) {
         initWithNiwsConfig(clientConfig);        
     }
     
+    public LoadBalancerContext() {
+        // TODO Auto-generated constructor stub
+    }
+
     public final String getClientName() {
         return clientName;
     }
@@ -171,72 +117,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * 
      */
     protected abstract boolean isRetriableException(Throwable e);
-    
-    /**
-     * Execute the request on single server after the final URI is calculated. This method takes care of
-     * retries and update server stats.
-     *  
-     */
-    protected T executeOnSingleServer(S request) throws ClientException {
-        boolean done = false;
-        int retries = 0;
-
-        boolean retryOkayOnOperation = okToRetryOnAllOperations;
-        if (request.isRetriable()) {
-        	retryOkayOnOperation = true;
-        }
-        int numRetries =  maxAutoRetries;
-        URI uri = request.getUri();
-        Server server = new Server(uri.getHost(), uri.getPort());
-        ServerStats serverStats = null;
-        ILoadBalancer lb = this.getLoadBalancer();
-        if (lb instanceof AbstractLoadBalancer){
-            LoadBalancerStats lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
-            serverStats = lbStats.getSingleServerStat(server);
-        }
-        IClientConfig overriddenClientConfig = request.getOverrideConfig();
-        if (overriddenClientConfig!=null){
-            try {
-                numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(CommonClientConfigKey.MaxAutoRetries,maxAutoRetries));
-            } catch (Exception e) {
-                logger.warn("Invalid maxRetries requested for RestClient:" + this.clientName);
-            }
-        }
         
-        T response = null;
-        Exception lastException = null;
-        if (tracer == null) {
-           tracer = Monitors.newTimer(this.getClass().getName() + "_ExecutionTimer", TimeUnit.MILLISECONDS);
-        }
-        do {            
-            noteOpenConnection(serverStats, request);
-            Stopwatch w = tracer.start();
-            try {
-                response = execute(request);        
-                done = true;
-            } catch (Exception e) {
-                if (serverStats != null) {
-                    serverStats.addToFailureCount();
-                }
-                lastException = e;
-                if (isCircuitBreakerException(e) && serverStats != null) {
-                    serverStats.incrementSuccessiveConnectionFailureCount();
-                }
-                boolean shouldRetry = retryOkayOnOperation && numRetries >= 0 && isRetriableException(e);
-                if (shouldRetry) {
-                    retries = handleRetry(uri.toString(), retries, numRetries, e);
-                } else {
-                    ClientException niwsClientException = generateNIWSException(uri.toString(), e);
-                    throw niwsClientException;
-                }
-            } finally {
-                w.stop();
-                noteRequestCompletion(serverStats, request, response, lastException, w.getDuration(TimeUnit.MILLISECONDS));
-            }
-        } while (!done); 
-        return response;
-    }
-    
     private boolean isPresentAsCause(Throwable throwableToSearchIn,
             Class<? extends Throwable> throwableToSearchFor) {
         return isPresentAsCauseHelper(throwableToSearchIn, throwableToSearchFor) != null;
@@ -336,7 +217,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * This is called after a response is received or an exception is thrown from the {@link #execute(ClientRequest)}
      * to update related stats.  
      */
-    protected void noteRequestCompletion(ServerStats stats, S task, IResponse response, Throwable e, long responseTime) {        
+    protected void noteRequestCompletion(ServerStats stats, ClientRequest request, IResponse response, Throwable e, long responseTime) {        
         try {
             if (stats != null) {
                 stats.decrementActiveRequestsCount();
@@ -354,7 +235,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     /**
      * Called just before {@link #execute(ClientRequest)} call.
      */
-    protected void noteOpenConnection(ServerStats serverStats, S task) {
+    protected void noteOpenConnection(ServerStats serverStats, ClientRequest request) {
         if (serverStats == null) {
             return;
         }
@@ -365,88 +246,6 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         }
     }
 
-    /**
-     * This method should be used when the caller wants to dispatch the request to a server chosen by
-     * the load balancer, instead of specifying the server in the request's URI. 
-     * It calculates the final URI by calling {@link #computeFinalUriWithLoadBalancer(ClientRequest)}
-     * and then calls {@link #execute(ClientRequest)}.
-     * 
-     * @param request request to be dispatched to a server chosen by the load balancer. The URI can be a partial
-     * URI which does not contain the host name or the protocol.
-     */
-    public T executeWithLoadBalancer(S request) throws ClientException {
-        int retries = 0;
-        boolean done = false;
-        boolean retryOkayOnOperation = okToRetryOnAllOperations;
-
-        retryOkayOnOperation = request.isRetriable();
-        // Is it okay to retry for this particular operation?
-
-        // see if maxRetries has been overriden
-        int numRetries = maxAutoRetriesNextServer;
-        IClientConfig overriddenClientConfig = request.getOverrideConfig();
-        if (overriddenClientConfig != null) {
-            try {
-                numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(
-                        CommonClientConfigKey.MaxAutoRetriesNextServer,
-                        maxAutoRetriesNextServer));
-            } catch (Exception e) {
-                logger
-                .warn("Invalid maxAutoRetriesNextServer requested for RestClient:"
-                        + this.getClientName());
-            }
-            try {
-                // Retry operation can be forcefully turned on or off for this particular request
-                Boolean requestSpecificRetryOn = Boolean.valueOf(""+
-                        overriddenClientConfig.getProperty(CommonClientConfigKey.RequestSpecificRetryOn,
-                        "false"));
-                retryOkayOnOperation = requestSpecificRetryOn.booleanValue();
-            } catch (Exception e) {
-                logger.warn("Invalid RequestSpecificRetryOn set for RestClient:" + this.getClientName());
-            }
-        }
-
-        T response = null;
-
-        do {
-            try {
-                S resolved = computeFinalUriWithLoadBalancer(request);
-                response = executeOnSingleServer(resolved);
-                done = true;
-            } catch (Exception e) {      
-                boolean shouldRetry = false;
-                if (e instanceof ClientException) {
-                    // we dont want to retry for PUT/POST and DELETE, we can for GET
-                    shouldRetry = retryOkayOnOperation && numRetries>0;
-                }
-                if (shouldRetry) {
-                    retries++;
-                    if (retries > numRetries) {
-                        throw new ClientException(
-                                ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
-                                "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
-                                + numRetries
-                                + " retries, while making a RestClient call for:"
-                                + request.getUri() + ":" +  getDeepestCause(e).getMessage(), e);
-                    }
-                    logger.error("Exception while executing request which is deemed retry-able, retrying ..., Next Server Retry Attempt#:"
-                            + retries
-                            + ", URI tried:"
-                            + request.getUri());
-                } else {
-                    if (e instanceof ClientException) {
-                        throw (ClientException) e;
-                    } else {
-                        throw new ClientException(
-                                ClientException.ErrorType.GENERAL,
-                                "Unable to execute request for URI:" + request.getUri(),
-                                e);
-                    }
-                }
-            } 
-        } while (!done);
-        return response;
-    }
       
     /**
      * Derive scheme and port from a partial URI. For example, for HTTP based client, the URI with 
@@ -456,15 +255,28 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * to get the complete executable URI.
      * 
      */
-    protected abstract Pair<String, Integer> deriveSchemeAndPortFromPartialUri(S task);
-    
-    /**
-     * Get the default port from the vip address.
-     * 
-     * @deprecated replaced by {@link #getDefaultPortFromScheme(String)}
-     */
-    protected abstract int getDefaultPort();
-    
+    protected <T extends ClientRequest> Pair<String, Integer> deriveSchemeAndPortFromPartialUri(T request) {
+        URI theUrl = request.getUri();
+        boolean isSecure = false;
+        String scheme = theUrl.getScheme();
+        if (scheme != null) {
+            isSecure =  scheme.equalsIgnoreCase("https");
+        }
+        int port = theUrl.getPort();
+        if (port < 0 && !isSecure){
+            port = 80;
+        } else if (port < 0 && isSecure){
+            port = 443;
+        }
+        if (scheme == null){
+            if (isSecure) {
+                scheme = "https";
+            } else {
+                scheme = "http";
+            }
+        }
+        return new Pair<String, Integer>(scheme, port);
+    }
     
     /**
      * Get the default port of the target server given the scheme of vip address if it is available. 
@@ -499,23 +311,23 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      *  
      */
     protected  Pair<String, Integer> deriveHostAndPortFromVipAddress(String vipAddress) 
-    		throws URISyntaxException, ClientException {
+            throws URISyntaxException, ClientException {
         Pair<String, Integer> hostAndPort = new Pair<String, Integer>(null, -1);
         URI uri = new URI(vipAddress);
         String scheme = uri.getScheme();
         if (scheme == null) {
-        	uri = new URI("http://" + vipAddress);
+            uri = new URI("http://" + vipAddress);
         }
         String host = uri.getHost();
         if (host == null) {
-        	throw new ClientException("Unable to derive host/port from vip address " + vipAddress);
+            throw new ClientException("Unable to derive host/port from vip address " + vipAddress);
         }
         int port = uri.getPort();
         if (port < 0) {
-        	port = getDefaultPortFromScheme(scheme);
+            port = getDefaultPortFromScheme(scheme);
         }
         if (port < 0) {
-        	throw new ClientException("Unable to derive host/port from vip address " + vipAddress);
+            throw new ClientException("Unable to derive host/port from vip address " + vipAddress);
         }
         hostAndPort.setFirst(host);
         hostAndPort.setSecond(port);
@@ -552,7 +364,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * @return new request with the final URI  
      */
     @SuppressWarnings("unchecked")
-    protected S computeFinalUriWithLoadBalancer(S original) throws ClientException{
+    protected <T extends ClientRequest> T computeFinalUriWithLoadBalancer(T original) throws ClientException{
         URI newURI;
         URI theUrl = original.getUri();
 
@@ -680,10 +492,54 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             }
             
             newURI = new URI(scheme, theUrl.getUserInfo(), host, port, urlPath, theUrl.getQuery(), theUrl.getFragment());
-            return (S) original.replaceUri(newURI);            
+            return (T) original.replaceUri(newURI);            
         } catch (URISyntaxException e) {
             throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage());
         }
     }
-}
 
+    protected boolean isRetriable(ClientRequest request) {
+        if (request.isRetriable()) {
+            return true;            
+        } else {
+            boolean retryOkayOnOperation = okToRetryOnAllOperations;
+            IClientConfig overriddenClientConfig = request.getOverrideConfig();
+            if (overriddenClientConfig != null) {
+                retryOkayOnOperation = overriddenClientConfig.getPropertyAsBoolean(CommonClientConfigKey.RequestSpecificRetryOn, okToRetryOnAllOperations);
+            }
+            return retryOkayOnOperation;
+        }
+    }
+    
+    protected int getRetriesNextServer(IClientConfig overriddenClientConfig) {
+        int numRetries = maxAutoRetriesNextServer;
+        if (overriddenClientConfig != null) {
+            numRetries = overriddenClientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetriesNextServer, maxAutoRetriesNextServer);
+        }
+        return numRetries;
+    }
+    
+    public final ServerStats getServerStats(Server server) {
+        ServerStats serverStats = null;
+        ILoadBalancer lb = this.getLoadBalancer();
+        if (lb instanceof AbstractLoadBalancer){
+            LoadBalancerStats lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
+            serverStats = lbStats.getSingleServerStat(server);
+        }
+        return serverStats;
+
+    }
+
+    public final int getNumberRetriesOnSameServer(IClientConfig overriddenClientConfig) {
+        int numRetries =  maxAutoRetries;
+        if (overriddenClientConfig!=null){
+            try {
+                numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(CommonClientConfigKey.MaxAutoRetries,maxAutoRetries));
+            } catch (Exception e) {
+                logger.warn("Invalid maxRetries requested for RestClient:" + this.clientName);
+            }
+        }
+        return numRetries;
+    }
+
+}

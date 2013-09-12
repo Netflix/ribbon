@@ -53,5 +53,11 @@ public interface IClientConfig {
 	 * @return
 	 */
 	public String resolveDeploymentContextbasedVipAddresses();
+	
+	public int getPropertyAsInteger(IClientConfigKey key, int defaultValue);
+
+    public String getPropertyAsString(IClientConfigKey key, String defaultValue);
+    
+    public boolean getPropertyAsBoolean(IClientConfigKey key, boolean defaultValue);
 
 }

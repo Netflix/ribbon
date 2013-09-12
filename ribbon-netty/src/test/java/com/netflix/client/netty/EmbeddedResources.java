@@ -7,9 +7,12 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Ignore;
 
@@ -29,12 +32,28 @@ public class EmbeddedResources {
         return Response.ok(content).build();
     }
     
+    @GET
+    @Path("/readTimeout")
+    public Response getReadTimeout() throws IOException, InterruptedException {
+        Thread.sleep(10000);
+        String content = mapper.writeValueAsString(defaultPerson);
+        return Response.ok(content).build();
+    }
+
+    
     @POST
     @Path("/person")
     public Response createPerson(String content) throws IOException {
         Person person = mapper.readValue(content, Person.class);
         return Response.ok(mapper.writeValueAsString(person)).build();
-    }    
+    }
+    
+    @GET
+    @Path("/personQuery")
+    public Response queryPerson(@QueryParam("name") String name, @QueryParam("age") int age) throws IOException {
+        Person person = new Person(name, age);
+        return Response.ok(mapper.writeValueAsString(person)).build();
+    }
 
 }
 
