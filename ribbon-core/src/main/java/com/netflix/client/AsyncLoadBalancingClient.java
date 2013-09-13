@@ -129,7 +129,7 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                 if (isCircuitBreakerException(e) && serverStats != null) {
                     serverStats.incrementSuccessiveConnectionFailureCount();
                 }
-                boolean shouldRetry = retryOkayOnOperation && numRetries >= 0 && isRetriableException(e);
+                boolean shouldRetry = retryOkayOnOperation && numRetries > 0 && isRetriableException(e);
                 if (shouldRetry) {
                     if (retries.incrementAndGet() > numRetries) {
                         callback.onException(new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,

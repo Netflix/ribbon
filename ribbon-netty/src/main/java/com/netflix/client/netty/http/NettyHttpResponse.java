@@ -34,26 +34,26 @@ public class NettyHttpResponse implements ResponseWithTypedEntity {
     
     @Override
     public <T> T get(Class<T> type) throws ClientException {
-        ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.headers().get(HttpHeaders.CONTENT_TYPE), type);
-        Deserializer deserializer = serializationFactory.getDeserializer(key).orNull();
-        if (deserializer == null) {
-            throw new ClientException("No serializer for " + key);
-        }
-        if (!content.isReadable()) {
-            throw new ClientException("The underlying ByteBuf is not readable");
-        }
-        int readableBytes = content.readableBytes();
-        byte[] raw = new byte[readableBytes];
-        if (content.hasArray()) {
-            raw = Arrays.copyOfRange(content.array(), content.arrayOffset() + content.readerIndex(), content.arrayOffset() + content.readerIndex() + readableBytes);
-        } else {
-            content.getBytes(content.readerIndex(), raw);
-        }
-        content.skipBytes(readableBytes);
         try {
+            ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.headers().get(HttpHeaders.CONTENT_TYPE), type);
+            Deserializer deserializer = serializationFactory.getDeserializer(key).orNull();
+            if (deserializer == null) {
+                throw new ClientException("No serializer for " + key);
+            }
+            if (!content.isReadable()) {
+                throw new ClientException("The underlying ByteBuf is not readable");
+            }
+            int readableBytes = content.readableBytes();
+            byte[] raw = new byte[readableBytes];
+            if (content.hasArray()) {
+                raw = Arrays.copyOfRange(content.array(), content.arrayOffset() + content.readerIndex(), content.arrayOffset() + content.readerIndex() + readableBytes);
+            } else {
+                content.getBytes(content.readerIndex(), raw);
+            }
+            content.skipBytes(readableBytes);
             return deserializer.deserialize(raw, type);
-        } catch (IOException e) {
-            throw new ClientException("Error deserializing", e);
+        } catch (Throwable e) {
+            throw new ClientException("Unable to deserialize the content", e);    
         }
     }
 

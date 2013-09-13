@@ -1,16 +1,11 @@
 package com.netflix.client.netty.http;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -19,7 +14,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.SocketChannelConfig;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultHttpRequest;
@@ -39,7 +33,18 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 
-import com.google.common.base.Optional;
+import java.io.IOException;
+import java.net.URI;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.netflix.client.AsyncClient;
 import com.netflix.client.ClientException;
 import com.netflix.client.ResponseCallback;
@@ -56,7 +61,10 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
     Bootstrap b = new Bootstrap();
     
     private final String RIBBON_HANDLER = "ribbonHandler"; 
-    
+    private final String READ_TIMEOUT_HANDLER = "readTimeoutHandler"; 
+
+    private ExecutorService executors;
+
     private int readTimeout;
     private int connectTimeout;
     
@@ -68,13 +76,16 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
             } catch (Exception e) {
             }
         }
-        
+        executors = new ThreadPoolExecutor(5, 20, 30, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(100), new ThreadPoolExecutor.AbortPolicy());
+
         EventLoopGroup group = new NioEventLoopGroup();
         b.group(group)
              .channel(NioSocketChannel.class)
              .handler(new Initializer());
         connectTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, 2000);
         readTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, 2000);
+        b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout);
+        b.option(ChannelOption.SO_TIMEOUT, 2);
     }
     
     
@@ -93,7 +104,6 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
             // Uncomment the following line if you don't want to handle HttpChunks.
             p.addLast("aggregator", new HttpObjectAggregator(1048576));
             
-            p.addLast("readTimeoutHandler", new ReadTimeoutHandler(readTimeout, TimeUnit.MILLISECONDS));
         }        
     }
     
@@ -111,52 +121,82 @@ public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, Netty
                 port = 443;
             }
         }
-        HttpRequest nettyHttpRequest = getHttpRequest(request);
-        Channel ch = null;
+        final HttpRequest nettyHttpRequest = getHttpRequest(request);
+        // Channel ch = null;
         try {
-            ch = b.connect(host, port).sync().channel();
-            SocketChannelConfig cfg = (SocketChannelConfig) ch.config();
-            cfg.setConnectTimeoutMillis(connectTimeout);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        ChannelPipeline p = ch.pipeline();
+            ChannelFuture future = b.connect(host, port);
+            future.addListener(new ChannelFutureListener() {         
+                @Override
+                public void operationComplete(final ChannelFuture f) {
+                    try {
+                        // per Netty javadoc, it is recommended to use separate thread to handle channel future.
+                        executors.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (f.isCancelled()) {
+                                } else if (!f.isSuccess()) {
+                                    callback.onException(f.cause());
+                                } else {
+                                    final Channel ch = f.channel();
+                                    final ChannelPipeline p = ch.pipeline();
 
-        if (p.get(RIBBON_HANDLER) != null) {
-            p.remove(RIBBON_HANDLER);
-        }
-        p.addLast(RIBBON_HANDLER, new SimpleChannelInboundHandler<HttpObject>() {
-            HttpResponse response;
-            ByteBuf content;
-            
-            @Override
-            protected void channelRead0(ChannelHandlerContext ctx,
-                    HttpObject msg) throws Exception {
-                if (msg instanceof HttpResponse) {
-                    HttpResponse response = (HttpResponse) msg;
-                    this.response = response;
-                }
-                if (msg instanceof HttpContent) {
-                    HttpContent content = (HttpContent) msg;
-                    this.content = content.content();
-                    if (content instanceof LastHttpContent) {
-                        NettyHttpResponse nettyResponse = new NettyHttpResponse(this.response, this.content, serializationFactory, uri);
-                        callback.onResponseReceived(nettyResponse);
+                                    // only add read timeout after successful channel connection
+                                    if (p.get(READ_TIMEOUT_HANDLER) != null) {
+                                        p.remove(READ_TIMEOUT_HANDLER);
+                                    }
+                                    p.addLast(READ_TIMEOUT_HANDLER, new ReadTimeoutHandler(readTimeout, TimeUnit.MILLISECONDS));
+
+                                    if (p.get(RIBBON_HANDLER) != null) {
+                                        p.remove(RIBBON_HANDLER);
+                                    }
+
+                                    p.addLast(RIBBON_HANDLER, new SimpleChannelInboundHandler<HttpObject>() {
+                                        HttpResponse response;
+                                        ByteBuf content;
+                                        AtomicBoolean channelRead = new AtomicBoolean(false);
+
+                                        @Override
+                                        protected void channelRead0(ChannelHandlerContext ctx,
+                                                HttpObject msg) throws Exception {
+                                            channelRead.set(true);
+                                            if (msg instanceof HttpResponse) {
+                                                HttpResponse response = (HttpResponse) msg;
+                                                this.response = response;
+                                            }
+                                            if (msg instanceof HttpContent) {
+                                                HttpContent content = (HttpContent) msg;
+                                                this.content = content.content();
+                                                if (content instanceof LastHttpContent) {
+                                                    NettyHttpResponse nettyResponse = new NettyHttpResponse(this.response, this.content, serializationFactory, uri);
+                                                    callback.onResponseReceived(nettyResponse);
+                                                }
+                                            }
+                                        }
+
+                                        @Override
+                                        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                                            if (channelRead.get() && (cause instanceof io.netty.handler.timeout.ReadTimeoutException)) {
+                                                return;
+                                            }
+                                            callback.onException(cause);
+                                        }
+
+                                    });
+                                    ch.writeAndFlush(nettyHttpRequest);
+                                }
+                            }
+                        });
+                    } catch (Throwable e) {
+                        // this will be called if task submission is rejected
+                        callback.onException(e);
                     }
                 }
-            }
-            
-            @Override
-            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                ctx.close();
-                callback.onException(cause);
-            }
-
-        });
-
-        ch.writeAndFlush(nettyHttpRequest);
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
-
+    
     private static String getContentType(Map<String, Collection<String>> headers) {
         if (headers == null) {
             return null;
