@@ -4,13 +4,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -20,7 +18,6 @@ import com.netflix.client.ResponseWithTypedEntity;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
-import com.sun.jersey.api.client.ClientResponse;
 
 public class NettyHttpResponse implements ResponseWithTypedEntity {
 
