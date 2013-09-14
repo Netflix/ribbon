@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
+import javax.ws.rs.core.MultivaluedMap;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.net.HttpHeaders;
@@ -18,6 +20,7 @@ import com.netflix.client.ResponseWithTypedEntity;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
+import com.sun.jersey.api.client.ClientResponse;
 
 public class NettyHttpResponse implements ResponseWithTypedEntity {
 
@@ -68,11 +71,6 @@ public class NettyHttpResponse implements ResponseWithTypedEntity {
     }
 
     @Override
-    public boolean isSuccess() {
-        return response.getStatus().equals(HttpResponseStatus.OK);
-    }
-
-    @Override
     public URI getRequestedURI() {
         return requestedURI;
     }
@@ -84,6 +82,23 @@ public class NettyHttpResponse implements ResponseWithTypedEntity {
             map.put(entry.getKey(), entry.getValue());
         }
         return map.asMap();
+    }
+    
+    @Override
+    public boolean isSuccess() {
+        return response.getStatus().equals(HttpResponseStatus.OK);
+    }
+
+    public int getStatus() {
+        return response.getStatus().code();
+    }
+
+
+    public boolean hasEntity() {
+        if (content != null && content.isReadable() && content.readableBytes() > 0) {
+            return true;
+        }
+        return false;
     }
 
 }

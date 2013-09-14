@@ -33,6 +33,12 @@ public class EmbeddedResources {
     }
     
     @GET
+    @Path("/noEntity")
+    public Response getNoEntity() {
+        return Response.ok().build();
+    }
+    
+    @GET
     @Path("/readTimeout")
     public Response getReadTimeout() throws IOException, InterruptedException {
         Thread.sleep(10000);

@@ -9,6 +9,8 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.BeforeClass;
@@ -65,10 +67,12 @@ public class NettyClientTest {
         URI uri = new URI(SERVICE_URI + "testNetty/person");
         NettyHttpRequest request = NettyHttpRequest.newBuilder().setUri(uri).build();
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
+        final AtomicReference<NettyHttpResponse> res = new AtomicReference<NettyHttpResponse>();
         client.execute(request, new ResponseCallback<NettyHttpResponse>() {            
             @Override
             public void onResponseReceived(NettyHttpResponse response) {
                 try {
+                    res.set(response);
                     person = response.get(Person.class);
                 } catch (ClientException e) {
                     e.printStackTrace();
@@ -83,7 +87,34 @@ public class NettyClientTest {
         Thread.sleep(5000);
         assertEquals(EmbeddedResources.defaultPerson, person);
         assertNull(exception.get());
+        assertTrue(res.get().getHeaders().get("Content-type").contains("application/json"));
     }
+    
+    @Test
+    public void testNoEntity() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testNetty/noEntity");
+        NettyHttpRequest request = NettyHttpRequest.newBuilder().setUri(uri).build();
+        final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
+        final AtomicInteger responseCode = new AtomicInteger();
+        final AtomicBoolean hasEntity = new AtomicBoolean(true);
+        client.execute(request, new ResponseCallback<NettyHttpResponse>() {            
+            @Override
+            public void onResponseReceived(NettyHttpResponse response) {
+                responseCode.set(response.getStatus());
+                hasEntity.set(response.hasEntity());
+            }
+            
+            @Override
+            public void onException(Throwable e) {
+                exception.set(e);
+            }
+        });
+        Thread.sleep(2000);
+        assertNull(exception.get());
+        assertEquals(200, responseCode.get());
+        assertFalse(hasEntity.get());
+    }
+
 
     @Test
     public void testPost() throws Exception {
