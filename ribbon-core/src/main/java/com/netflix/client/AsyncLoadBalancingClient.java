@@ -133,10 +133,10 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                 if (shouldRetry) {
                     if (retries.incrementAndGet() > numRetries) {
                         callback.onException(new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
-                                "NUMBEROFRETRIESEXEEDED :" + numRetries + " retries, while making a RestClient call for:" + uri,
+                                "NUMBEROFRETRIESEXEEDED :" + numRetries + " retries, while making a RestClient call for: " + uri,
                                 e !=null? e: new RuntimeException()));
                     } else {
-                        logger.error("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt#:" +
+                        logger.error("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt #:" +
                                 retries.get() +
                                 ", URI:" +
                                 uri);
@@ -149,6 +149,7 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                         try {
                             asyncClient.execute(request, this);
                         } catch (ClientException ex) {
+                            callback.onException(ex);
                         }
                     } 
                 } else {

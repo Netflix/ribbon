@@ -22,6 +22,7 @@ public class LoadBalancingNettyClient extends AsyncLoadBalancingClient<NettyHttp
     protected boolean isCircuitBreakerException(Throwable e) {
         while (e != null) {
             if (e instanceof io.netty.handler.timeout.ReadTimeoutException
+                    || e instanceof io.netty.channel.ConnectTimeoutException
                     || e instanceof SocketException
                     || e instanceof SocketTimeoutException) {
                 return true;

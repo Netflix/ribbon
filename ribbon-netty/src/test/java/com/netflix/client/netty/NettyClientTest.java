@@ -1,9 +1,10 @@
 package com.netflix.client.netty;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
@@ -129,7 +130,7 @@ public class NettyClientTest {
             public void onResponseReceived(NettyHttpResponse response) {
                 try {
                     person = response.get(Person.class);
-                } catch (ClientException e) {
+                } catch (ClientException e) { // NOPMD
                 }
             }
             

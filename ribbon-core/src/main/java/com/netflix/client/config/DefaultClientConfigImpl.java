@@ -727,10 +727,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
 		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
 	}
+	
+	public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
+	    DefaultClientConfigImpl config = new DefaultClientConfigImpl();
+	    config.loadDefaultValues();
+	    return config;
+	}
+
 
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {
-		DefaultClientConfigImpl config = new DefaultClientConfigImpl(nameSpace);
-		config.loadProperties(clientName);
+	    DefaultClientConfigImpl config = new DefaultClientConfigImpl(nameSpace);
+	    config.loadProperties(clientName);
 		return config;
 	}
 
@@ -741,6 +748,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
             try {
                 return Integer.parseInt(String.valueOf(rawValue));
             } catch (NumberFormatException e) {
+                return defaultValue;
             }
         }
         return defaultValue;
@@ -764,6 +772,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
             try {
                 return Boolean.valueOf(String.valueOf(rawValue));
             } catch (NumberFormatException e) {
+                return defaultValue;
             }
         }
         return defaultValue;

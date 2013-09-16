@@ -21,10 +21,11 @@ import com.netflix.serialization.SerializationFactory;
 
 public class NettyHttpResponse implements ResponseWithTypedEntity {
 
-    private HttpResponse response;
-    private ByteBuf content;
-    private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory;
-    private URI requestedURI;
+    private final HttpResponse response;
+    final ByteBuf content;
+    private final SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory;
+    private final URI requestedURI;
+    
     public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory, URI requestedURI) {
         this.response = response;
         this.content = content;
