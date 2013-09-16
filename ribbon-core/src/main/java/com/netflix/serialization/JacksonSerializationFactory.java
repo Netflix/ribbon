@@ -1,12 +1,14 @@
 package com.netflix.serialization;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.common.base.Optional;
 
-public class DefaultSerializationFactory implements SerializationFactory<ContentTypeBasedSerializerKey>{
+public class JacksonSerializationFactory implements SerializationFactory<ContentTypeBasedSerializerKey>{
 
     private static final JsonCodec instance = new JsonCodec();
     @Override
@@ -40,5 +42,14 @@ class JsonCodec implements Serializer, Deserializer {
     public byte[] serialize(Object object) throws IOException {
         return mapper.writeValueAsBytes(object);
     }
-    
+
+    @Override
+    public <T> T deserialize(InputStream in, Class<T> type) throws IOException {
+        return mapper.readValue(in, type);
+    }
+
+    @Override
+    public void serialize(OutputStream out, Object object) throws IOException {
+        mapper.writeValue(out, object);
+    }
 }

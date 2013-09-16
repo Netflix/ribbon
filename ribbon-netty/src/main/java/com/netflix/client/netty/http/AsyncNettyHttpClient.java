@@ -58,13 +58,13 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
-import com.netflix.serialization.DefaultSerializationFactory;
+import com.netflix.serialization.JacksonSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 
 public class AsyncNettyHttpClient implements AsyncClient<NettyHttpRequest, NettyHttpResponse>, IClientConfigAware {
 
-    private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory = new DefaultSerializationFactory();
+    private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory = new JacksonSerializationFactory();
     private Bootstrap b = new Bootstrap();
     
     private final String RIBBON_HANDLER = "ribbonHandler"; 
