@@ -1,14 +1,26 @@
 package com.netflix.serialization;
 
+import com.google.common.reflect.TypeToken;
+
 public class ContentTypeBasedSerializerKey {
     private final String contentType;
+    private final TypeToken<?> typeToken;
     private final Class<?> classType;
     
     public ContentTypeBasedSerializerKey(String contentType, Class<?> classType) {
         super();
         this.contentType = contentType;
+        this.typeToken = TypeToken.of(classType);
         this.classType = classType;
     }
+    
+    public ContentTypeBasedSerializerKey(String contentType, TypeToken<?> typeToken) {
+        super();
+        this.contentType = contentType;
+        this.typeToken = typeToken;
+        this.classType = typeToken.getClass();
+    }
+
 
     public final String getContentType() {
         return contentType;
@@ -17,7 +29,11 @@ public class ContentTypeBasedSerializerKey {
     public final Class<?> getClassType() {
         return classType;
     }
-
+    
+    public final TypeToken<?> getTypeToken() {
+        return typeToken;
+    }
+    
     @Override
     public int hashCode() {
         final int prime = 31;

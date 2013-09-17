@@ -13,6 +13,7 @@ import java.util.Map;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.net.HttpHeaders;
+import com.google.common.reflect.TypeToken;
 import com.netflix.client.ClientException;
 import com.netflix.client.ResponseWithTypedEntity;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
@@ -34,6 +35,12 @@ public class NettyHttpResponse implements ResponseWithTypedEntity {
     }
     
     @Override
+    public <T> T get(TypeToken<T> type) throws ClientException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public <T> T get(Class<T> type) throws ClientException {
         try {
             ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.headers().get(HttpHeaders.CONTENT_TYPE), type);
@@ -41,21 +48,26 @@ public class NettyHttpResponse implements ResponseWithTypedEntity {
             if (deserializer == null) {
                 throw new ClientException("No serializer for " + key);
             }
-            if (!content.isReadable()) {
-                throw new ClientException("The underlying ByteBuf is not readable");
-            }
-            int readableBytes = content.readableBytes();
-            byte[] raw = new byte[readableBytes];
-            if (content.hasArray()) {
-                raw = Arrays.copyOfRange(content.array(), content.arrayOffset() + content.readerIndex(), content.arrayOffset() + content.readerIndex() + readableBytes);
-            } else {
-                content.getBytes(content.readerIndex(), raw);
-            }
-            content.skipBytes(readableBytes);
+            byte[] raw = getBytesFromByteBuf();
             return deserializer.deserialize(raw, type);
         } catch (Throwable e) {
             throw new ClientException("Unable to deserialize the content", e);    
         }
+    }
+    
+    private byte[] getBytesFromByteBuf() throws ClientException {
+        if (!content.isReadable()) {
+            throw new ClientException("The underlying ByteBuf is not readable");
+        }
+        int readableBytes = content.readableBytes();
+        byte[] raw = new byte[readableBytes];
+        if (content.hasArray()) {
+            raw = Arrays.copyOfRange(content.array(), content.arrayOffset() + content.readerIndex(), content.arrayOffset() + content.readerIndex() + readableBytes);
+        } else {
+            content.getBytes(content.readerIndex(), raw);
+        }
+        content.skipBytes(readableBytes);
+        return raw;        
     }
 
     @Override
@@ -98,5 +110,4 @@ public class NettyHttpResponse implements ResponseWithTypedEntity {
         }
         return false;
     }
-
 }
