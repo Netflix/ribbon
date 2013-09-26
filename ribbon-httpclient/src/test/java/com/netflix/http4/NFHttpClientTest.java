@@ -84,6 +84,8 @@ public class NFHttpClientTest {
         assertEquals(1, connectionPool.getCreatedEntryCount());
         assertEquals(10, connectionPool.getRequestsCount());
         assertEquals(9, connectionPool.getFreeEntryCount());
+        assertEquals(0, connectionPool.getDeleteCount());
+        assertEquals(10, connectionPool.getReleaseCount());
     }
 
     @Test

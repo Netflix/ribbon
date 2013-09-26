@@ -20,17 +20,21 @@ package com.netflix.http4;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.conn.ClientConnectionOperator;
+import org.apache.http.conn.ConnectionPoolTimeoutException;
 import org.apache.http.conn.params.ConnPerRoute;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.impl.conn.tsccm.BasicPoolEntry;
 import org.apache.http.impl.conn.tsccm.ConnPoolByRoute;
 import org.apache.http.impl.conn.tsccm.PoolEntryRequest;
 import org.apache.http.impl.conn.tsccm.RouteSpecificPool;
+import org.apache.http.impl.conn.tsccm.WaitingThreadAborter;
 import org.apache.http.params.HttpParams;
 
 import com.google.common.base.Preconditions;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
+import com.netflix.servo.monitor.Stopwatch;
+import com.netflix.servo.monitor.Timer;
 
 /**
  * A connection pool that provides Servo counters to monitor the efficiency. 
@@ -45,7 +49,9 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     private Counter freeEntryCounter;
     private Counter createEntryCounter;
     private Counter requestCounter;
-
+    private Counter releaseCounter;
+    private Counter deleteCounter;
+    private Stopwatch requestTimer;
     
     public NamedConnectionPool(String name, ClientConnectionOperator operator,
             ConnPerRoute connPerRoute, int maxTotalConnections, long connTTL,
@@ -84,9 +90,13 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     
     void initMonitors(String name) {
         Preconditions.checkNotNull(name);
-        freeEntryCounter = Monitors.newCounter(name + "_ReuseEntry");
-        createEntryCounter = Monitors.newCounter(name + "_CreatedNewEntry");
-        requestCounter = Monitors.newCounter(name + "_RequestEntry");
+        freeEntryCounter = Monitors.newCounter(name + "_Reuse");
+        createEntryCounter = Monitors.newCounter(name + "_CreateNew");
+        requestCounter = Monitors.newCounter(name + "_Request");
+        releaseCounter = Monitors.newCounter(name + "_Release");
+        deleteCounter = Monitors.newCounter(name + "_Delete");
+        requestTimer = Monitors.newTimer(name + "RequestEntry", TimeUnit.MILLISECONDS).start();
+        requestTimer.reset();
         Monitors.registerObject(this);
     }
 
@@ -112,6 +122,33 @@ public class NamedConnectionPool extends ConnPoolByRoute {
         return super.createEntry(rospl, op);
     }
     
+    
+    
+    @Override
+    protected BasicPoolEntry getEntryBlocking(HttpRoute route, Object state,
+            long timeout, TimeUnit tunit, WaitingThreadAborter aborter)
+            throws ConnectionPoolTimeoutException, InterruptedException {
+        requestTimer.start();
+        try {
+            return super.getEntryBlocking(route, state, timeout, tunit, aborter);
+        } finally {
+            requestTimer.stop();
+        }
+    }
+
+    @Override
+    public void freeEntry(BasicPoolEntry entry, boolean reusable,
+            long validDuration, TimeUnit timeUnit) {
+        releaseCounter.increment();
+        super.freeEntry(entry, reusable, validDuration, timeUnit);
+    }
+
+    @Override
+    protected void deleteEntry(BasicPoolEntry entry) {
+        deleteCounter.increment();
+        super.deleteEntry(entry);
+    }
+
     public final long getFreeEntryCount() {
         return freeEntryCounter.getValue();
     }
@@ -122,5 +159,13 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     
     public final long getRequestsCount() {
         return requestCounter.getValue();
+    }   
+    
+    public final long getReleaseCount() {
+        return releaseCounter.getValue();
+    }
+    
+    public final long getDeleteCount() {
+        return deleteCounter.getValue();
     }
 }
