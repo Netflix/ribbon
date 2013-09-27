@@ -95,7 +95,7 @@ public class NFHttpClient extends DefaultHttpClient {
 	}
 
 	protected NFHttpClient(String name){
-		super(new ThreadSafeClientConnManager());
+		super(new MonitoredConnectionManager(name));
 		this.name = name;
 		init();
 	}
