@@ -607,7 +607,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected boolean isRetriableException(Exception e) {
+    protected boolean isRetriableException(Throwable e) {
         boolean shouldRetry = isConnectException(e) || isSocketException(e);
         if (e instanceof ClientException
                 && ((ClientException)e).getErrorType() == ClientException.ErrorType.SERVER_THROTTLED){
@@ -617,7 +617,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected boolean isCircuitBreakerException(Exception e) {
+    protected boolean isCircuitBreakerException(Throwable e) {
         return isConnectException(e) || isSocketException(e);
     }
 
