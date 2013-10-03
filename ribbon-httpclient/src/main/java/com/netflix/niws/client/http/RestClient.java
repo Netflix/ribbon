@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.client.AbstractLoadBalancerAwareClient;
 import com.netflix.client.ClientException;
+import com.netflix.client.ClientRequest;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -495,13 +496,6 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 
     }
 
-	@Override
-	protected int getDefaultPort() {
-		return 80;
-	}
-
-
-
     @Override
     protected int getDefaultPortFromScheme(String scheme) {
         int port = super.getDefaultPortFromScheme(scheme);
@@ -513,7 +507,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpClientRequest task) {
+    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(ClientRequest task) {
         URI theUrl = task.getUri();
         boolean isSecure = getBooleanFromConfig(task.getOverrideConfig(), CommonClientConfigKey.IsSecure, this.isSecure);
         String scheme = theUrl.getScheme();
@@ -607,7 +601,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected boolean isRetriableException(Exception e) {
+    protected boolean isRetriableException(Throwable e) {
         boolean shouldRetry = isConnectException(e) || isSocketException(e);
         if (e instanceof ClientException
                 && ((ClientException)e).getErrorType() == ClientException.ErrorType.SERVER_THROTTLED){
@@ -617,7 +611,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected boolean isCircuitBreakerException(Exception e) {
+    protected boolean isCircuitBreakerException(Throwable e) {
         return isConnectException(e) || isSocketException(e);
     }
 

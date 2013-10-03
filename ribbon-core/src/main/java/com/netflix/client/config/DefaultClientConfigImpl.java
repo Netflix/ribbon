@@ -605,6 +605,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public void setProperty(IClientConfigKey key, Object value){
         setPropertyInternal(key.key(), value);
     }
+    
+    public DefaultClientConfigImpl withProperty(IClientConfigKey key, Object value) {
+        setProperty(key, value);
+        return this;
+    }
 
     public IClientConfig applyOverride(IClientConfig override) {
         if (override == null) {
@@ -727,10 +732,54 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
 		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
 	}
+	
+	public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
+	    DefaultClientConfigImpl config = new DefaultClientConfigImpl();
+	    config.loadDefaultValues();
+	    return config;
+	}
+
 
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {
-		DefaultClientConfigImpl config = new DefaultClientConfigImpl(nameSpace);
-		config.loadProperties(clientName);
+	    DefaultClientConfigImpl config = new DefaultClientConfigImpl(nameSpace);
+	    config.loadProperties(clientName);
 		return config;
 	}
+
+    @Override
+    public int getPropertyAsInteger(IClientConfigKey key, int defaultValue) {
+        Object rawValue = getProperty(key);
+        if (rawValue != null) {
+            try {
+                return Integer.parseInt(String.valueOf(rawValue));
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+        
+    }
+
+    @Override
+    public String getPropertyAsString(IClientConfigKey key, String defaultValue) {
+        Object rawValue = getProperty(key);
+        if (rawValue != null) {
+            return String.valueOf(rawValue);
+        }
+        return defaultValue;
+    }
+
+    @Override
+    public boolean getPropertyAsBoolean(IClientConfigKey key,
+            boolean defaultValue) {
+        Object rawValue = getProperty(key);
+        if (rawValue != null) {
+            try {
+                return Boolean.valueOf(String.valueOf(rawValue));
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
 }

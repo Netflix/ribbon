@@ -41,6 +41,7 @@ subprojects {
 project(':ribbon-core') {
     dependencies {
         compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
+        compile 'com.netflix.rxjava:rxjava-core:0.14.2'
     }
 }
 
@@ -63,4 +64,14 @@ project(':ribbon-eureka') {
         compile project(':ribbon-core')
         compile 'com.netflix.eureka:eureka-client:1.1.107' 
     }    
+}
+
+project(':ribbon-httpasyncclient') {
+    dependencies {
+        compile project(':ribbon-core')
+        compile 'org.apache.httpcomponents:httpasyncclient:4.0-beta4'       
+        testCompile 'com.sun.jersey:jersey-bundle:1.9.1'
+        testCompile 'asm:asm-all:3.2'
+        testCompile 'commons-io:commons-io:2.0.1' 
+    }
 }
