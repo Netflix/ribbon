@@ -7,30 +7,36 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.http.nio.util.ExpandableBuffer;
+import org.apache.http.nio.util.HeapByteBufferAllocator;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import rx.Observable;
 import rx.util.functions.Action1;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.AsyncLoadBalancingClient;
+import com.netflix.client.AsyncStreamClient.StreamCallback;
 import com.netflix.client.ClientException;
 import com.netflix.client.ObservableAsyncClient;
 import com.netflix.client.ResponseCallback;
+import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpRequest.Verb;
 import com.netflix.httpasyncclient.RibbonHttpAsyncClient.AsyncResponse;
@@ -51,6 +57,71 @@ public class HttpAsyncClienTest {
     
     private RibbonHttpAsyncClient client = new RibbonHttpAsyncClient();
     private static int port;
+    
+    static class ExpandableByteBuffer extends ExpandableBuffer {
+        public ExpandableByteBuffer(int size) {
+            super(size, HeapByteBufferAllocator.INSTANCE);
+        }
+
+        public ExpandableByteBuffer() {
+            super(4 * 1024, HeapByteBufferAllocator.INSTANCE);
+        }
+
+        public void addByte(byte b) {
+            if (this.buffer.remaining() == 0) {
+                expand();
+            }
+            this.buffer.put(b);
+        }
+
+        public boolean hasContent() {
+            return this.buffer.position() > 0;
+        }
+
+        public byte[] getBytes() {
+            byte[] data = new byte[this.buffer.position()];
+            this.buffer.position(0);
+            this.buffer.get(data);
+            return data;
+        }
+
+        public void reset() {
+            clear();
+        }
+
+        public void consumeInputStream(InputStream content) throws IOException {
+            try {
+                int b = -1;
+                while ((b = content.read()) != -1) {
+                    addByte((byte) b);
+                }
+            } finally {
+                content.close();
+            }
+        }
+    }
+    
+    static class SSEDecoder implements StreamDecoder<String, ByteBuffer> {
+        final ExpandableByteBuffer dataBuffer = new ExpandableByteBuffer();
+
+        @Override
+        public List<String> decode(ByteBuffer buf) throws IOException {
+            List<String> result = Lists.newArrayList();
+            while (buf.position() < buf.limit()) {
+                byte b = buf.get();
+                if (b == 10 || b == 13) {
+                    if (dataBuffer.hasContent()) {
+                        result.add(new String(dataBuffer.getBytes()));
+                    }
+                    dataBuffer.reset();
+                } else {
+                    dataBuffer.addByte(b);
+                }
+            }
+            return result;
+        }
+        
+    }
 
     @BeforeClass 
     public static void init() throws Exception {
@@ -64,7 +135,7 @@ public class HttpAsyncClienTest {
             e.printStackTrace();
             fail(e.getMessage());
         }
-        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
     }
 
     @Test
@@ -309,7 +380,33 @@ public class HttpAsyncClienTest {
         assertEquals(4, lb.getLoadBalancerStats().getSingleServerStat(server).getTotalRequestsCount());                
         assertEquals(4, lb.getLoadBalancerStats().getSingleServerStat(server).getSuccessiveConnectionFailureCount());                
     }
-
-
     
+    @Test
+    public void testStream() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testNetty/stream").build();
+        final List<String> results = Lists.newArrayList();
+        final CountDownLatch latch = new CountDownLatch(1);
+        client.stream(request, new SSEDecoder(), new StreamCallback<AsyncResponse, String>() {
+            @Override
+            public void onResponseReceived(AsyncResponse response) {
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onCompleted() {
+                latch.countDown();    
+            }
+
+            @Override
+            public void onElement(String element) {
+                results.add(element);
+            }
+        });
+        latch.await(60, TimeUnit.SECONDS);
+        assertEquals(EmbeddedResources.streamContent, results);
+    }
 }

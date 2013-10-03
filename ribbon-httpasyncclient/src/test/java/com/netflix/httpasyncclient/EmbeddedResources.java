@@ -1,6 +1,8 @@
 package com.netflix.httpasyncclient;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -8,13 +10,17 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Ignore;
+
+import com.google.common.collect.Lists;
 
 @Ignore
 @Path("/testNetty")
@@ -24,6 +30,14 @@ public class EmbeddedResources {
 
     private static ObjectMapper mapper = new ObjectMapper();
     static Person defaultPerson = new Person("ribbon", 1);
+    
+    static List<String> streamContent = Lists.newArrayList();
+    
+    static {
+        for (int i = 0; i < 100; i++) {
+            streamContent.add("data: line " + i);
+        }
+    }
     
     @GET
     @Path("/person")
@@ -59,6 +73,27 @@ public class EmbeddedResources {
     public Response queryPerson(@QueryParam("name") String name, @QueryParam("age") int age) throws IOException {
         Person person = new Person(name, age);
         return Response.ok(mapper.writeValueAsString(person)).build();
+    }
+    
+    @GET
+    @Path("/stream")
+    @Produces("text/event-stream")
+    public StreamingOutput getStream() {
+        return new StreamingOutput() {
+
+            @Override
+            public void write(OutputStream output) throws IOException,
+                    WebApplicationException {
+                for (String line: streamContent) {
+                    String eventLine = line + "\n";
+                    output.write(eventLine.getBytes());
+                    try {
+                       Thread.sleep(100);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        };
     }
 
 }
