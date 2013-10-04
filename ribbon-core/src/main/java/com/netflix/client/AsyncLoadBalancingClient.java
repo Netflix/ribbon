@@ -1,25 +1,31 @@
 package com.netflix.client;
 
 import java.net.URI;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 import com.netflix.servo.monitor.Stopwatch;
 
-public class AsyncLoadBalancingClient<Request extends ClientRequest, Response extends ResponseWithTypedEntity>
-        extends LoadBalancerContext implements AsyncClient<Request, Response> {
+public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IResponse, U>
+        extends LoadBalancerContext implements AsyncClient<T, S, U> {
     
-    private AsyncClient<Request, Response> asyncClient;
+    private AsyncClient<T, S, U> asyncClient;
     private static final Logger logger = LoggerFactory.getLogger(AsyncLoadBalancingClient.class);
 
 
-    public AsyncLoadBalancingClient(AsyncClient<Request, Response> asyncClient) {
+    public AsyncLoadBalancingClient(AsyncClient<T, S, U> asyncClient) {
         super();
         this.asyncClient = asyncClient;
     }
@@ -27,19 +33,133 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
     protected AsyncLoadBalancingClient() {
     }
 
+    
+    private Future<S> getFuture(final AtomicReference<Future<S>> futurePointer, final CallbackDelegate<S, ?> callbackDelegate) {
+        return new Future<S>() {
+
+            @Override
+            public boolean cancel(boolean arg0) {
+                Future<S> current = futurePointer.get();
+                if (current != null) {                    
+                    return current.cancel(arg0);
+                } else {
+                    return false;
+                }
+            }
+
+            @Override
+            public S get() throws InterruptedException, ExecutionException {
+                return callbackDelegate.getCompletedResponse();
+            }
+
+            @Override
+            public S get(long arg0, TimeUnit arg1)
+                    throws InterruptedException, ExecutionException,
+                    TimeoutException {
+                return callbackDelegate.getCompletedResponse(arg0,  arg1);
+            }
+
+            @Override
+            public boolean isCancelled() {
+                Future<S> current = futurePointer.get();
+                if (current != null) {                    
+                    return current.isCancelled();
+                } else {
+                    return false;
+                }
+            }
+
+            @Override
+            public boolean isDone() {
+                return callbackDelegate.isDone();
+            }
+            
+        };
+        
+    }
+    
+    private static class CallbackDelegate<T extends IResponse, E> implements ResponseCallback<T, E> {
+
+        private ResponseCallback<T, E> callback;
+
+        public CallbackDelegate(ResponseCallback<T, E> callback) {
+            this.callback = callback;
+        }
+        
+        private CountDownLatch latch = new CountDownLatch(1);
+        private volatile T completeResponse = null; 
+        
+        T getCompletedResponse() throws InterruptedException {
+            latch.await();
+            return completeResponse;
+        }
+
+        T getCompletedResponse(long time, TimeUnit timeUnit) throws InterruptedException {
+            latch.await(time, timeUnit);
+            return completeResponse;
+        }
+               
+        boolean isDone() {
+            return latch.getCount() <= 0;
+        }
+
+        @Override
+        public void completed(T response) {
+            latch.countDown();
+            completeResponse = response;
+            if (callback != null) {
+                callback.completed(response);
+            }
+        }
+
+        @Override
+        public void failed(Throwable e) {
+            latch.countDown();
+            if (callback != null) {
+                callback.failed(e);
+            }
+        }
+
+        @Override
+        public void cancelled() {
+            latch.countDown();
+            if (callback != null) {
+                callback.cancelled();
+            }
+        }
+
+        @Override
+        public void responseReceived(T response) {
+            if (callback != null) {
+                callback.responseReceived(response);
+            }
+        }
+
+        @Override
+        public void contentReceived(E content) {
+            if (callback != null) {
+                callback.contentReceived(content);
+            }
+        }
+    }
+    
     @Override
-    public Future<Response> execute(final Request request, final ResponseCallback<Response> callback)
+    public <E> Future<S> execute(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback)
             throws ClientException {
         final AtomicInteger retries = new AtomicInteger(0);
         final boolean retryOkayOnOperation = isRetriable(request);
 
         final int numRetriesNextServer = getRetriesNextServer(request.getOverrideConfig()); 
-        Request resolved = computeFinalUriWithLoadBalancer(request);
-        asyncExecuteOnSingleServer(resolved, new ResponseCallback<Response>() {
+        T resolved = computeFinalUriWithLoadBalancer(request);
+        
+        final CallbackDelegate<S, E> delegate = new CallbackDelegate<S, E>(callback);
+        final AtomicReference<Future<S>> currentRunningTask = new AtomicReference<Future<S>>();
+        
+        asyncExecuteOnSingleServer(resolved, decoder, new ResponseCallback<S, E>() {
 
             @Override
-            public void completed(Response response) {
-                callback.completed(response);
+            public void completed(S response) {
+                delegate.completed(response);
             }
 
             @Override
@@ -51,7 +171,7 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                 }
                 if (shouldRetry) {
                     if (retries.incrementAndGet() > numRetriesNextServer) {
-                        callback.failed(new ClientException(
+                        delegate.failed(new ClientException(
                                 ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
                                 "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
                                 + numRetriesNextServer
@@ -64,15 +184,15 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                             + ", URI tried:"
                             + request.getUri());
                     try {
-                        asyncExecuteOnSingleServer(computeFinalUriWithLoadBalancer(request), this);
+                        asyncExecuteOnSingleServer(computeFinalUriWithLoadBalancer(request), decoder, this, currentRunningTask);
                     } catch (ClientException e1) {
-                        callback.failed(e1);
+                        delegate.failed(e1);
                     }
                 } else {
                     if (e instanceof ClientException) {
-                        callback.failed(e);
+                        delegate.failed(e);
                     } else {
-                        callback.failed(new ClientException(
+                        delegate.failed(new ClientException(
                                 ClientException.ErrorType.GENERAL,
                                 "Unable to execute request for URI:" + request.getUri(),
                                 e));
@@ -82,10 +202,21 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
 
             @Override
             public void cancelled() {
+                delegate.cancelled();
+            }
+
+            @Override
+            public void responseReceived(S response) {
+                delegate.responseReceived(response);
+            }
+
+            @Override
+            public void contentReceived(E content) {
+                delegate.contentReceived(content);
             }
             
-        });
-        return null;
+        }, currentRunningTask);
+        return getFuture(currentRunningTask, delegate);
     }
 
     /**
@@ -94,7 +225,8 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
      * @throws ClientException 
      *  
      */
-    protected void asyncExecuteOnSingleServer(final Request request, final ResponseCallback<Response> callback) throws ClientException {
+    protected <E> void asyncExecuteOnSingleServer(final T request, final StreamDecoder<E, U> decoder, 
+            final ResponseCallback<S, E> callback, final AtomicReference<Future<S>> currentRunningTask) throws ClientException {
         final AtomicInteger retries = new AtomicInteger(0);
 
         final boolean retryOkayOnOperation = request.isRetriable()? true: okToRetryOnAllOperations;
@@ -104,11 +236,11 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
         final ServerStats serverStats = getServerStats(server);
         final Stopwatch tracer = getExecuteTracer().start();
         noteOpenConnection(serverStats, request);
-        asyncClient.execute(request, new ResponseCallback<Response>() {
-            private Response thisResponse;
+        Future<S> future = asyncClient.execute(request, decoder, new ResponseCallback<S, E>() {
+            private S thisResponse;
             private Throwable thisException;
             @Override
-            public void completed(Response response) {
+            public void completed(S response) {
                 thisResponse = response;
                 onComplete();
                 callback.completed(response);
@@ -133,7 +265,8 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                         tracer.start();
                         noteOpenConnection(serverStats, request);
                         try {
-                            asyncClient.execute(request, this);
+                            Future<S> future = asyncClient.execute(request, decoder, this);
+                            currentRunningTask.set(future);
                         } catch (ClientException ex) {
                             callback.failed(ex);
                         }
@@ -152,8 +285,20 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
 
             @Override
             public void cancelled() {
+                onComplete();
+            }
+
+            @Override
+            public void responseReceived(S response) {
+                callback.responseReceived(response);
+            }
+
+            @Override
+            public void contentReceived(E content) {
+                callback.contentReceived(content);
             }            
         });
+        currentRunningTask.set(future);
     }
 
     

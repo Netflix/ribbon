@@ -30,15 +30,15 @@ import rx.util.functions.Action1;
 import com.google.common.collect.Lists;
 import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.ClientException;
+import com.netflix.client.FullResponseCallback;
 import com.netflix.client.ObservableAsyncClient;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
-import com.netflix.client.StreamResponseCallback;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpRequest.Verb;
-import com.netflix.httpasyncclient.RibbonHttpAsyncClient.AsyncResponse;
+import com.netflix.client.HttpResponse;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
@@ -142,10 +142,10 @@ public class HttpAsyncClienTest {
         URI uri = new URI(SERVICE_URI + "testNetty/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
-        final AtomicReference<RibbonHttpAsyncClient.AsyncResponse> res = new AtomicReference<RibbonHttpAsyncClient.AsyncResponse>();
-        client.execute(request, new ResponseCallback<RibbonHttpAsyncClient.AsyncResponse>() {            
+        final AtomicReference<HttpResponse> res = new AtomicReference<HttpResponse>();
+        client.execute(request, new FullResponseCallback<HttpResponse>() {            
             @Override
-            public void completed(RibbonHttpAsyncClient.AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 try {
                     res.set(response);
                     person = response.get(Person.class);
@@ -174,8 +174,8 @@ public class HttpAsyncClienTest {
     public void testFuture() throws Exception {
         URI uri = new URI(SERVICE_URI + "testNetty/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        Future<AsyncResponse> future = client.execute(request, null);
-        AsyncResponse response = future.get();
+        Future<HttpResponse> future = client.execute(request, null);
+        HttpResponse response = future.get();
         // System.err.println(future.get().get(Person.class));
         person = response.get(Person.class);
         assertEquals(EmbeddedResources.defaultPerson, person);
@@ -187,11 +187,11 @@ public class HttpAsyncClienTest {
     public void testObservable() throws Exception {
         URI uri = new URI(SERVICE_URI + "testNetty/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        ObservableAsyncClient<HttpRequest, RibbonHttpAsyncClient.AsyncResponse> observableClient = new ObservableAsyncClient<HttpRequest, RibbonHttpAsyncClient.AsyncResponse>(client);
+        ObservableAsyncClient<HttpRequest, HttpResponse> observableClient = new ObservableAsyncClient<HttpRequest, HttpResponse>(client);
         final List<Person> result = Lists.newArrayList();
-        observableClient.execute(request).toBlockingObservable().forEach(new Action1<AsyncResponse>() {
+        observableClient.execute(request).toBlockingObservable().forEach(new Action1<HttpResponse>() {
             @Override
-            public void call(AsyncResponse t1) {
+            public void call(HttpResponse t1) {
                 try {
                     result.add(t1.get(Person.class));
                 } catch (ClientException e) {
@@ -202,7 +202,6 @@ public class HttpAsyncClienTest {
         System.err.println(observableClient.execute(request).toBlockingObservable().single().get(Person.class));
     }
 
-    
     @Test
     public void testNoEntity() throws Exception {
         URI uri = new URI(SERVICE_URI + "testNetty/noEntity");
@@ -210,9 +209,9 @@ public class HttpAsyncClienTest {
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
         final AtomicInteger responseCode = new AtomicInteger();
         final AtomicBoolean hasEntity = new AtomicBoolean(true);
-        client.execute(request, new ResponseCallback<AsyncResponse>() {            
+        client.execute(request, new FullResponseCallback<HttpResponse>() {            
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 responseCode.set(response.getStatus());
                 hasEntity.set(response.hasEntity());
             }
@@ -239,9 +238,9 @@ public class HttpAsyncClienTest {
         Person myPerson = new Person("netty", 5);
         HttpRequest request = HttpRequest.newBuilder().uri(uri).verb(Verb.POST).entity(myPerson).header("Content-type", "application/json").build();
         
-        client.execute(request, new ResponseCallback<AsyncResponse>() {            
+        client.execute(request, new FullResponseCallback<HttpResponse>() {            
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) { // NOPMD
@@ -269,9 +268,9 @@ public class HttpAsyncClienTest {
         HttpRequest request = HttpRequest.newBuilder().uri(uri).queryParams("age", String.valueOf(myPerson.age))
                 .queryParams("name", myPerson.name).build();
         
-        client.execute(request, new ResponseCallback<AsyncResponse>() {            
+        client.execute(request, new FullResponseCallback<HttpResponse>() {            
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) {
@@ -298,9 +297,9 @@ public class HttpAsyncClienTest {
         RibbonHttpAsyncClient timeoutClient = new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
         HttpRequest request = HttpRequest.newBuilder().uri("http://www.google.com:81/").build();
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
-        timeoutClient.execute(request, new ResponseCallback<AsyncResponse>() {
+        timeoutClient.execute(request, new FullResponseCallback<HttpResponse>() {
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 System.err.println("Got response");
             }
 
@@ -322,8 +321,8 @@ public class HttpAsyncClienTest {
     
     @Test
     public void testLoadBalancingClient() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, AsyncResponse> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                RibbonHttpAsyncClient.AsyncResponse>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         List<Server> servers = Lists.newArrayList(new Server("localhost:" + port));
         lb.setServersList(servers);
@@ -331,9 +330,9 @@ public class HttpAsyncClienTest {
         URI uri = new URI("/testNetty/person");
         person = null;
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        loadBalancingClient.execute(request, new ResponseCallback<AsyncResponse>() {            
+        loadBalancingClient.execute(request, null, new FullResponseCallback<HttpResponse>() {            
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) {
@@ -357,9 +356,28 @@ public class HttpAsyncClienTest {
     }
     
     @Test
+    public void testLoadBalancingClientFuture() throws Exception {
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(client);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
+        List<Server> servers = Lists.newArrayList(new Server("localhost:" + port));
+        lb.setServersList(servers);
+        loadBalancingClient.setLoadBalancer(lb);
+        URI uri = new URI("/testNetty/person");
+        person = null;
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        Future<HttpResponse> future = loadBalancingClient.execute(request, null, null);
+        HttpResponse response = future.get();
+        person = response.get(Person.class);
+        assertEquals(EmbeddedResources.defaultPerson, person);
+        assertEquals(1, lb.getLoadBalancerStats().getSingleServerStat(new Server("localhost:" + port)).getTotalRequestsCount());        
+    }
+
+    
+    @Test
     public void testLoadBalancingClientMultiServers() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, AsyncResponse> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                RibbonHttpAsyncClient.AsyncResponse>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server good = new Server("localhost:" + port);
         Server bad = new Server("localhost:" + 33333);
@@ -371,9 +389,9 @@ public class HttpAsyncClienTest {
         person = null;
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
-        loadBalancingClient.execute(request, new ResponseCallback<AsyncResponse>() {            
+        loadBalancingClient.execute(request, null, new FullResponseCallback<HttpResponse>() {            
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) {
@@ -399,11 +417,31 @@ public class HttpAsyncClienTest {
     }
     
     @Test
+    public void testLoadBalancingClientMultiServersFuture() throws Exception {
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(client);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
+        Server good = new Server("localhost:" + port);
+        Server bad = new Server("localhost:" + 33333);
+        List<Server> servers = Lists.newArrayList(bad, bad, good);
+        lb.setServersList(servers);
+        loadBalancingClient.setLoadBalancer(lb);
+        loadBalancingClient.setMaxAutoRetriesNextServer(2);
+        URI uri = new URI("/testNetty/person");
+        person = null;
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        Future<HttpResponse> future = loadBalancingClient.execute(request, null, null);
+        assertEquals(EmbeddedResources.defaultPerson, future.get().get(Person.class));
+        assertEquals(1, lb.getLoadBalancerStats().getSingleServerStat(good).getTotalRequestsCount());
+    }
+
+    
+    @Test
     public void testLoadBalancingClientWithRetry() throws Exception {
         RibbonHttpAsyncClient timeoutClient = 
                 new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
-        AsyncLoadBalancingClient<HttpRequest, AsyncResponse> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                RibbonHttpAsyncClient.AsyncResponse>(timeoutClient);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(timeoutClient);
         loadBalancingClient.setMaxAutoRetries(1);
         loadBalancingClient.setMaxAutoRetriesNextServer(1);
         Server server = new Server("www.microsoft.com:81");
@@ -415,9 +453,9 @@ public class HttpAsyncClienTest {
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
-        loadBalancingClient.execute(request, new ResponseCallback<AsyncResponse>() {            
+        loadBalancingClient.execute(request, null, new FullResponseCallback<HttpResponse>() {            
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 System.err.println(response.getStatus());
             }
             
@@ -440,13 +478,35 @@ public class HttpAsyncClienTest {
     }
     
     @Test
+    public void testLoadBalancingClientWithRetryFuture() throws Exception {
+        RibbonHttpAsyncClient timeoutClient = 
+                new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(timeoutClient);
+        loadBalancingClient.setMaxAutoRetries(1);
+        loadBalancingClient.setMaxAutoRetriesNextServer(1);
+        Server server = new Server("www.microsoft.com:81");
+        List<Server> servers = Lists.newArrayList(server);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
+        lb.setServersList(servers);
+        loadBalancingClient.setLoadBalancer(lb);
+        URI uri = new URI("/");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        Future<HttpResponse> future = loadBalancingClient.execute(request, null, null);
+        assertNull(future.get());
+        assertEquals(4, lb.getLoadBalancerStats().getSingleServerStat(server).getTotalRequestsCount());                
+        assertEquals(4, lb.getLoadBalancerStats().getSingleServerStat(server).getSuccessiveConnectionFailureCount());                
+    }
+
+    
+    @Test
     public void testStream() throws Exception {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testNetty/stream").build();
         final List<String> results = Lists.newArrayList();
         final CountDownLatch latch = new CountDownLatch(1);
-        client.stream(request, new SSEDecoder(), new StreamResponseCallback<AsyncResponse, List<String>>() {
+        client.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, List<String>>() {
             @Override
-            public void completed(AsyncResponse response) {
+            public void completed(HttpResponse response) {
                 latch.countDown();    
             }
 
@@ -456,7 +516,7 @@ public class HttpAsyncClienTest {
             }
 
             @Override
-            public void onContentReceived(List<String> element) {
+            public void contentReceived(List<String> element) {
                 results.addAll(element);
             }
 
@@ -465,10 +525,54 @@ public class HttpAsyncClienTest {
             }
 
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void responseReceived(HttpResponse response) {
             }
         });
         latch.await(60, TimeUnit.SECONDS);
         assertEquals(EmbeddedResources.streamContent, results);
     }
+    
+    @Test
+    public void testStreamWithLoadBalancer() throws Exception {
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(client);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
+        Server good = new Server("localhost:" + port);
+        Server bad = new Server("localhost:" + 33333);
+        List<Server> servers = Lists.newArrayList(bad, bad, good);
+        lb.setServersList(servers);
+        loadBalancingClient.setLoadBalancer(lb);
+        loadBalancingClient.setMaxAutoRetriesNextServer(2);
+
+        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testNetty/stream").build();
+        final List<String> results = Lists.newArrayList();
+        final CountDownLatch latch = new CountDownLatch(1);
+        loadBalancingClient.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, List<String>>() {
+            @Override
+            public void completed(HttpResponse response) {
+                latch.countDown();    
+            }
+
+            @Override
+            public void failed(Throwable e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void contentReceived(List<String> element) {
+                results.addAll(element);
+            }
+
+            @Override
+            public void cancelled() {
+            }
+
+            @Override
+            public void responseReceived(HttpResponse response) {
+            }
+        });
+        latch.await(60, TimeUnit.SECONDS);
+        assertEquals(EmbeddedResources.streamContent, results);
+    }
+
 }

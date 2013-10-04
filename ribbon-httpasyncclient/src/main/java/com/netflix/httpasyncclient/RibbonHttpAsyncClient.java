@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -13,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
@@ -31,16 +29,12 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.reflect.TypeToken;
 import com.netflix.client.AsyncClient;
-import com.netflix.client.AsyncStreamClient;
 import com.netflix.client.ClientException;
+import com.netflix.client.FullResponseCallback;
 import com.netflix.client.ResponseCallback;
-import com.netflix.client.ResponseWithTypedEntity;
 import com.netflix.client.StreamDecoder;
-import com.netflix.client.StreamResponseCallback;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
@@ -50,15 +44,14 @@ import com.netflix.serialization.JacksonSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 
-public class RibbonHttpAsyncClient 
-    implements AsyncClient<HttpRequest, RibbonHttpAsyncClient.AsyncResponse>, 
-               AsyncStreamClient<HttpRequest, RibbonHttpAsyncClient.AsyncResponse, ByteBuffer> {
+
+public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> {
 
     CloseableHttpAsyncClient httpclient;
     private SerializationFactory<ContentTypeBasedSerializerKey> factory = new JacksonSerializationFactory();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
     
-    public static class AsyncResponse extends BaseResponse implements ResponseWithTypedEntity {
+    private static class AsyncResponse extends BaseResponse implements com.netflix.client.HttpResponse {
 
         private SerializationFactory<ContentTypeBasedSerializerKey>  factory;
         
@@ -117,6 +110,7 @@ public class RibbonHttpAsyncClient
             }
         }
         
+        @Override
         public void releaseResources() {
             HttpEntity entity = response.getEntity();
             if (entity != null) {
@@ -172,8 +166,8 @@ public class RibbonHttpAsyncClient
     }
 
     
-    private Future<AsyncResponse> createFuture(final Future<HttpResponse> future, final DelegateCallback callback) {
-        return new Future<AsyncResponse>() {
+    private Future<com.netflix.client.HttpResponse> createFuture(final Future<HttpResponse> future, final DelegateCallback<?> callback) {
+        return new Future<com.netflix.client.HttpResponse>() {
             @Override
             public boolean cancel(boolean arg0) {
                 return future.cancel(arg0);
@@ -205,15 +199,47 @@ public class RibbonHttpAsyncClient
     }
     
     @Override
-    public Future<AsyncResponse> execute(HttpRequest ribbonRequest,
-            final ResponseCallback<AsyncResponse> callback) throws ClientException {
-        
+    public <E> Future<com.netflix.client.HttpResponse> execute(
+            HttpRequest ribbonRequest, final StreamDecoder<E, ByteBuffer> decoder,
+            final ResponseCallback<com.netflix.client.HttpResponse, E> callback)
+            throws ClientException {        
         HttpUriRequest request = getRequest(ribbonRequest);
-        DelegateCallback fCallback = new DelegateCallback(callback);
-        // MyResponseConsumer consumer = new MyResponseConsumer(callback);
-        // logger.info("start execute");
-        Future<HttpResponse> future = httpclient.execute(request, fCallback);
+        DelegateCallback<E> fCallback = new DelegateCallback<E>(callback);
+        Future<HttpResponse> future = null;
+        if (decoder != null) {
+            AsyncByteConsumer<HttpResponse> consumer = new AsyncByteConsumer<HttpResponse>() {
+                private volatile HttpResponse response;            
+                @Override
+                protected void onByteReceived(ByteBuffer buf, IOControl ioctrl)
+                        throws IOException {
+                    E obj = decoder.decode(buf);
+                    if (obj != null) {
+                        callback.contentReceived(obj);
+                    }
+                }
+
+                @Override
+                protected void onResponseReceived(HttpResponse response)
+                        throws HttpException, IOException {
+                    this.response = response;
+                    callback.responseReceived(new AsyncResponse(response, factory));
+                }
+
+                @Override
+                protected HttpResponse buildResult(HttpContext context)
+                        throws Exception {
+                    return response;
+                }            
+            };
+            future = httpclient.execute(HttpAsyncMethods.create(request), consumer, fCallback);
+        } else {
+            future = httpclient.execute(request, fCallback);
+        }
         return createFuture(future, fCallback); 
+    }
+    
+    public Future<com.netflix.client.HttpResponse> execute(HttpRequest ribbonRequest, final FullResponseCallback<com.netflix.client.HttpResponse> callback) throws ClientException {
+        return execute(ribbonRequest, null, callback);
     }
     
     private HttpUriRequest getRequest(HttpRequest ribbonRequest) throws ClientException {
@@ -258,12 +284,12 @@ public class RibbonHttpAsyncClient
         
     }
     
-    class DelegateCallback implements FutureCallback<HttpResponse> {
-        private final ResponseCallback<AsyncResponse> callback;
+    class DelegateCallback<E> implements FutureCallback<HttpResponse> {
+        private final ResponseCallback<com.netflix.client.HttpResponse, E> callback;
         
         private AtomicBoolean callbackInvoked = new AtomicBoolean(false);
         
-        public DelegateCallback(ResponseCallback<AsyncResponse> callback) {
+        public DelegateCallback(ResponseCallback<com.netflix.client.HttpResponse, E> callback) {
             this.callback = callback;
         }
         
@@ -317,6 +343,7 @@ public class RibbonHttpAsyncClient
         }
     }
 
+    /*
     @Override
     public <T> Future<AsyncResponse> stream(
             HttpRequest ribbonRequest,
@@ -352,5 +379,7 @@ public class RibbonHttpAsyncClient
         
         Future<HttpResponse> future = httpclient.execute(HttpAsyncMethods.create(request), consumer, internalCallback);
         return createFuture(future, internalCallback);
-    }
+    } */
+
+   
 }

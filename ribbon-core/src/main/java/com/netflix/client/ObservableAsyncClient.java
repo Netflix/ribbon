@@ -10,9 +10,9 @@ import rx.subscriptions.Subscriptions;
 
 public class ObservableAsyncClient<T extends ClientRequest, S extends ResponseWithTypedEntity> {
 
-    private final AsyncClient<T, S> client;
+    private final AsyncClient<T, S, ?> client;
     
-    public ObservableAsyncClient(AsyncClient<T, S> client) {
+    public ObservableAsyncClient(AsyncClient<T, S, ?> client) {
         this.client = client;
     }
     
@@ -23,8 +23,8 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends ResponseWi
 
                 final CompositeSubscription parentSubscription = new CompositeSubscription();
                 try {
-                    parentSubscription.add(Subscriptions.from(client.execute(request, 
-                            new ResponseCallback<S>() {
+                    parentSubscription.add(Subscriptions.from(client.execute(request, null,
+                            new FullResponseCallback<S>() {
 
                                 @Override
                                 public void completed(S response) {

@@ -8,4 +8,6 @@ public interface ResponseWithTypedEntity extends IResponse {
     public <T> T get(TypeToken<T> type) throws ClientException;
     
     public String getAsString() throws ClientException;
+    
+    public boolean hasEntity();
 }
