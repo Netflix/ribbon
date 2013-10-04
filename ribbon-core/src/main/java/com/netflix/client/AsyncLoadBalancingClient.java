@@ -38,12 +38,12 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
         asyncExecuteOnSingleServer(resolved, new ResponseCallback<Response>() {
 
             @Override
-            public void onResponseReceived(Response response) {
-                callback.onResponseReceived(response);
+            public void completed(Response response) {
+                callback.completed(response);
             }
 
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
                 boolean shouldRetry = false;
                 if (e instanceof ClientException) {
                     // we dont want to retry for PUT/POST and DELETE, we can for GET
@@ -51,7 +51,7 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                 }
                 if (shouldRetry) {
                     if (retries.incrementAndGet() > numRetriesNextServer) {
-                        callback.onException(new ClientException(
+                        callback.failed(new ClientException(
                                 ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
                                 "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
                                 + numRetriesNextServer
@@ -66,18 +66,22 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                     try {
                         asyncExecuteOnSingleServer(computeFinalUriWithLoadBalancer(request), this);
                     } catch (ClientException e1) {
-                        callback.onException(e1);
+                        callback.failed(e1);
                     }
                 } else {
                     if (e instanceof ClientException) {
-                        callback.onException(e);
+                        callback.failed(e);
                     } else {
-                        callback.onException(new ClientException(
+                        callback.failed(new ClientException(
                                 ClientException.ErrorType.GENERAL,
                                 "Unable to execute request for URI:" + request.getUri(),
                                 e));
                     }
                 }
+            }
+
+            @Override
+            public void cancelled() {
             }
             
         });
@@ -104,14 +108,14 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
             private Response thisResponse;
             private Throwable thisException;
             @Override
-            public void onResponseReceived(Response response) {
+            public void completed(Response response) {
                 thisResponse = response;
                 onComplete();
-                callback.onResponseReceived(response);
+                callback.completed(response);
             }
 
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
                 thisException = e;
                 onComplete();
                 if (serverStats != null) {
@@ -123,7 +127,7 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                 boolean shouldRetry = retryOkayOnOperation && numRetries > 0 && isRetriableException(e);
                 if (shouldRetry) {
                     if (!handleSameServerRetry(uri, retries.incrementAndGet(), numRetries, e)) {
-                        callback.onException(new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
+                        callback.failed(new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
                                 "NUMBEROFRETRIESEXEEDED :" + numRetries + " retries, while making a RestClient call for: " + uri, e));                        
                     } else {
                         tracer.start();
@@ -131,12 +135,12 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                         try {
                             asyncClient.execute(request, this);
                         } catch (ClientException ex) {
-                            callback.onException(ex);
+                            callback.failed(ex);
                         }
                     } 
                 } else {
                     ClientException clientException = generateNIWSException(uri.toString(), e);
-                    callback.onException(clientException);
+                    callback.failed(clientException);
                 }
             }
             
@@ -144,6 +148,10 @@ public class AsyncLoadBalancingClient<Request extends ClientRequest, Response ex
                 tracer.stop();
                 long duration = tracer.getDuration(TimeUnit.MILLISECONDS);
                 noteRequestCompletion(serverStats, request, thisResponse, thisException, duration);
+            }
+
+            @Override
+            public void cancelled() {
             }            
         });
     }

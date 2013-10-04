@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,8 +22,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.http.nio.util.ExpandableBuffer;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -30,11 +29,11 @@ import rx.util.functions.Action1;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.AsyncLoadBalancingClient;
-import com.netflix.client.AsyncStreamClient.StreamCallback;
 import com.netflix.client.ClientException;
 import com.netflix.client.ObservableAsyncClient;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
+import com.netflix.client.StreamResponseCallback;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.http.HttpRequest;
@@ -101,7 +100,7 @@ public class HttpAsyncClienTest {
         }
     }
     
-    static class SSEDecoder implements StreamDecoder<String, ByteBuffer> {
+    static class SSEDecoder implements StreamDecoder<List<String>, ByteBuffer> {
         final ExpandableByteBuffer dataBuffer = new ExpandableByteBuffer();
 
         @Override
@@ -135,7 +134,7 @@ public class HttpAsyncClienTest {
             e.printStackTrace();
             fail(e.getMessage());
         }
-        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
     }
 
     @Test
@@ -146,25 +145,43 @@ public class HttpAsyncClienTest {
         final AtomicReference<RibbonHttpAsyncClient.AsyncResponse> res = new AtomicReference<RibbonHttpAsyncClient.AsyncResponse>();
         client.execute(request, new ResponseCallback<RibbonHttpAsyncClient.AsyncResponse>() {            
             @Override
-            public void onResponseReceived(RibbonHttpAsyncClient.AsyncResponse response) {
+            public void completed(RibbonHttpAsyncClient.AsyncResponse response) {
                 try {
                     res.set(response);
                     person = response.get(Person.class);
-                } catch (ClientException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
             
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
                 exception.set(e);
             }
+
+            @Override
+            public void cancelled() {
+            }
         });
+        // System.err.println(future.get().get(Person.class));
         Thread.sleep(2000);
         assertEquals(EmbeddedResources.defaultPerson, person);
         assertNull(exception.get());
         assertTrue(res.get().getHeaders().get("Content-type").contains("application/json"));
     }
+    
+    @Test
+    public void testFuture() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testNetty/person");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        Future<AsyncResponse> future = client.execute(request, null);
+        AsyncResponse response = future.get();
+        // System.err.println(future.get().get(Person.class));
+        person = response.get(Person.class);
+        assertEquals(EmbeddedResources.defaultPerson, person);
+        assertTrue(response.getHeaders().get("Content-type").contains("application/json"));
+    }
+
     
     @Test
     public void testObservable() throws Exception {
@@ -182,6 +199,7 @@ public class HttpAsyncClienTest {
             }
         });
         assertEquals(Lists.newArrayList(EmbeddedResources.defaultPerson), result);
+        System.err.println(observableClient.execute(request).toBlockingObservable().single().get(Person.class));
     }
 
     
@@ -194,14 +212,18 @@ public class HttpAsyncClienTest {
         final AtomicBoolean hasEntity = new AtomicBoolean(true);
         client.execute(request, new ResponseCallback<AsyncResponse>() {            
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void completed(AsyncResponse response) {
                 responseCode.set(response.getStatus());
                 hasEntity.set(response.hasEntity());
             }
             
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
                 exception.set(e);
+            }
+
+            @Override
+            public void cancelled() {
             }
         });
         Thread.sleep(2000);
@@ -219,7 +241,7 @@ public class HttpAsyncClienTest {
         
         client.execute(request, new ResponseCallback<AsyncResponse>() {            
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void completed(AsyncResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) { // NOPMD
@@ -227,8 +249,14 @@ public class HttpAsyncClienTest {
             }
             
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
             }
+
+            @Override
+            public void cancelled() {
+            }
+            
+            
         });
         Thread.sleep(2000);
         assertEquals(myPerson, person);
@@ -243,7 +271,7 @@ public class HttpAsyncClienTest {
         
         client.execute(request, new ResponseCallback<AsyncResponse>() {            
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void completed(AsyncResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) {
@@ -252,7 +280,13 @@ public class HttpAsyncClienTest {
             }
             
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
+            }
+
+            @Override
+            public void cancelled() {
+                // TODO Auto-generated method stub
+                
             }
         });
         Thread.sleep(2000);
@@ -266,13 +300,19 @@ public class HttpAsyncClienTest {
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
         timeoutClient.execute(request, new ResponseCallback<AsyncResponse>() {
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void completed(AsyncResponse response) {
                 System.err.println("Got response");
             }
 
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
                 exception.set(e);
+            }
+
+            @Override
+            public void cancelled() {
+                // TODO Auto-generated method stub
+                
             }
             
         });
@@ -293,7 +333,7 @@ public class HttpAsyncClienTest {
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         loadBalancingClient.execute(request, new ResponseCallback<AsyncResponse>() {            
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void completed(AsyncResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) {
@@ -302,7 +342,13 @@ public class HttpAsyncClienTest {
             }
             
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
+            }
+
+            @Override
+            public void cancelled() {
+                // TODO Auto-generated method stub
+                
             }
         });
         Thread.sleep(2000);
@@ -327,7 +373,7 @@ public class HttpAsyncClienTest {
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
         loadBalancingClient.execute(request, new ResponseCallback<AsyncResponse>() {            
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void completed(AsyncResponse response) {
                 try {
                     person = response.get(Person.class);
                 } catch (ClientException e) {
@@ -336,8 +382,14 @@ public class HttpAsyncClienTest {
             }
             
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
                 exception.set(e);
+            }
+
+            @Override
+            public void cancelled() {
+                // TODO Auto-generated method stub
+                
             }
         });
         Thread.sleep(10000);
@@ -365,13 +417,19 @@ public class HttpAsyncClienTest {
 
         loadBalancingClient.execute(request, new ResponseCallback<AsyncResponse>() {            
             @Override
-            public void onResponseReceived(AsyncResponse response) {
+            public void completed(AsyncResponse response) {
                 System.err.println(response.getStatus());
             }
             
             @Override
-            public void onException(Throwable e) {
+            public void failed(Throwable e) {
                 exception.set(e);
+            }
+
+            @Override
+            public void cancelled() {
+                // TODO Auto-generated method stub
+                
             }
         });
         Thread.sleep(10000);
@@ -386,24 +444,28 @@ public class HttpAsyncClienTest {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testNetty/stream").build();
         final List<String> results = Lists.newArrayList();
         final CountDownLatch latch = new CountDownLatch(1);
-        client.stream(request, new SSEDecoder(), new StreamCallback<AsyncResponse, String>() {
+        client.stream(request, new SSEDecoder(), new StreamResponseCallback<AsyncResponse, List<String>>() {
             @Override
-            public void onResponseReceived(AsyncResponse response) {
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onCompleted() {
+            public void completed(AsyncResponse response) {
                 latch.countDown();    
             }
 
             @Override
-            public void onElement(String element) {
-                results.add(element);
+            public void failed(Throwable e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onContentReceived(List<String> element) {
+                results.addAll(element);
+            }
+
+            @Override
+            public void cancelled() {
+            }
+
+            @Override
+            public void onResponseReceived(AsyncResponse response) {
             }
         });
         latch.await(60, TimeUnit.SECONDS);

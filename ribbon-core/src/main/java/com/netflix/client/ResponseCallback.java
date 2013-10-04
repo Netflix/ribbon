@@ -1,8 +1,10 @@
 package com.netflix.client;
 
-public interface ResponseCallback<R extends ResponseWithTypedEntity> {
-    public void onResponseReceived(R response);
+public interface ResponseCallback<T extends IResponse> {
+    public void completed(T response);
 
-    public void onException(Throwable e);
+    public void failed(Throwable e);
+    
+    public void cancelled();
 }
 

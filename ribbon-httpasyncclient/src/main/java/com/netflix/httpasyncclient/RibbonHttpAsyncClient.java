@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +40,7 @@ import com.netflix.client.ClientException;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.ResponseWithTypedEntity;
 import com.netflix.client.StreamDecoder;
+import com.netflix.client.StreamResponseCallback;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
@@ -56,51 +58,24 @@ public class RibbonHttpAsyncClient
     private SerializationFactory<ContentTypeBasedSerializerKey> factory = new JacksonSerializationFactory();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
     
-    public static class AsyncResponse implements ResponseWithTypedEntity {
+    public static class AsyncResponse extends BaseResponse implements ResponseWithTypedEntity {
 
-        private HttpResponse response;
         private SerializationFactory<ContentTypeBasedSerializerKey>  factory;
         
         public AsyncResponse(HttpResponse response, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory) {
+            super(response);
             this.response = response;    
             this.factory = serializationFactory;
         }
         
         @Override
-        public Object getPayload() throws ClientException {
-            return response.getEntity();
-        }
-
-        @Override
         public boolean hasPayload() {
-            // return decoder != null && !decoder.isCompleted();
-            
             HttpEntity entity = response.getEntity();
             try {
                 return (entity != null && entity.getContent() != null && entity.getContent().available() > 0);
             } catch (IOException e) {
                 return false;
             }
-        }
-
-        @Override
-        public boolean isSuccess() {
-            return response.getStatusLine().getStatusCode() == 200;
-        }
-
-        @Override
-        public URI getRequestedURI() {
-            return null;
-        }
-
-        @Override
-        public Map<String, Collection<String>> getHeaders() {
-            Multimap<String, String> map = ArrayListMultimap.create();
-            for (Header header: response.getAllHeaders()) {
-                map.put(header.getName(), header.getValue());
-            }
-            return map.asMap();
-            
         }
 
         @Override
@@ -126,10 +101,7 @@ public class RibbonHttpAsyncClient
 
         }
         
-        public int getStatus() {
-            return response.getStatusLine().getStatusCode();
-        }
-        
+        @Override
         public boolean hasEntity() {
             return hasPayload();
         }
@@ -142,6 +114,17 @@ public class RibbonHttpAsyncClient
                 return deserializer.deserializeAsString(response.getEntity().getContent());
             } catch (IOException e) {
                 throw new ClientException(e);
+            }
+        }
+        
+        public void releaseResources() {
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                try {
+                    entity.getContent().close();
+                } catch (IllegalStateException e) {
+                } catch (IOException e) {
+                }
             }
         }
         
@@ -189,7 +172,7 @@ public class RibbonHttpAsyncClient
     }
 
     
-    private Future<AsyncResponse> fromHttpResponseFuture(final Future<HttpResponse> future) {
+    private Future<AsyncResponse> createFuture(final Future<HttpResponse> future, final DelegateCallback callback) {
         return new Future<AsyncResponse>() {
             @Override
             public boolean cancel(boolean arg0) {
@@ -199,14 +182,14 @@ public class RibbonHttpAsyncClient
             @Override
             public AsyncResponse get() throws InterruptedException,
                     ExecutionException {
-                return new AsyncResponse(future.get(), factory);
+                return callback.getCompletedResponse();
             }
 
             @Override
-            public AsyncResponse get(long arg0, TimeUnit arg1)
+            public AsyncResponse get(long time, TimeUnit timeUnit)
                     throws InterruptedException, ExecutionException,
                     TimeoutException {
-                return new AsyncResponse(future.get(arg0, arg1), factory);
+                return callback.getCompletedResponse(time, timeUnit);
             }
 
             @Override
@@ -216,7 +199,7 @@ public class RibbonHttpAsyncClient
 
             @Override
             public boolean isDone() {
-                return future.isDone();
+                return callback.isDone();
             }            
         }; 
     }
@@ -230,7 +213,7 @@ public class RibbonHttpAsyncClient
         // MyResponseConsumer consumer = new MyResponseConsumer(callback);
         // logger.info("start execute");
         Future<HttpResponse> future = httpclient.execute(request, fCallback);
-        return fromHttpResponseFuture(future); 
+        return createFuture(future, fCallback); 
     }
     
     private HttpUriRequest getRequest(HttpRequest ribbonRequest) throws ClientException {
@@ -283,20 +266,35 @@ public class RibbonHttpAsyncClient
         public DelegateCallback(ResponseCallback<AsyncResponse> callback) {
             this.callback = callback;
         }
+        
+        private CountDownLatch latch = new CountDownLatch(1);
+        private volatile AsyncResponse completeResponse = null; 
+        
+        AsyncResponse getCompletedResponse() throws InterruptedException {
+            latch.await();
+            return completeResponse;
+        }
+
+        AsyncResponse getCompletedResponse(long time, TimeUnit timeUnit) throws InterruptedException {
+            latch.await(time, timeUnit);
+            return completeResponse;
+        }
+        
+        boolean isDone() {
+            return latch.getCount() <= 0;
+        }
 
         @Override
         public void completed(HttpResponse result) {
             if (callbackInvoked.compareAndSet(false, true)) {
-                try {
-                    callback.onResponseReceived(new AsyncResponse(result, factory));
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                    logger.error("Error invoking callback");
-                } finally {
-                    try {
-                        result.getEntity().getContent().close();
-                    } catch (Exception e) {
-                    }
+                completeResponse = new AsyncResponse(result, factory);
+                latch.countDown();
+                if (callback != null) {
+                   try {
+                        callback.completed(completeResponse);
+                   } catch (Throwable e) {
+                        logger.error("Error invoking callback", e);
+                   } 
                 }
             }
         }
@@ -304,34 +302,36 @@ public class RibbonHttpAsyncClient
         @Override
         public void failed(Exception e) {
             if (callbackInvoked.compareAndSet(false, true)) {
-                callback.onException(e);
+                latch.countDown();
+                if (callback != null) {
+                    callback.failed(e);
+                }
             }
         }
 
         @Override
         public void cancelled() {
-            if (callbackInvoked.compareAndSet(false, true)) {
-                callback.onException(new ClientException("request has been cancelled"));
+            if (callbackInvoked.compareAndSet(false, true) && callback != null) {
+                callback.failed(new ClientException("request has been cancelled"));
             }
         }
     }
 
     @Override
-    public <E> Future<AsyncResponse> stream(
+    public <T> Future<AsyncResponse> stream(
             HttpRequest ribbonRequest,
-            final StreamDecoder<E, ByteBuffer> decoder,
-            final StreamCallback<AsyncResponse, E> callback) throws ClientException {
+            final StreamDecoder<T, ByteBuffer> decoder,
+            final StreamResponseCallback<AsyncResponse, T> callback) throws ClientException {
         HttpUriRequest request = getRequest(ribbonRequest);
+        final DelegateCallback internalCallback = new DelegateCallback(callback);
         AsyncByteConsumer<HttpResponse> consumer = new AsyncByteConsumer<HttpResponse>() {
             private volatile HttpResponse response;            
             @Override
             protected void onByteReceived(ByteBuffer buf, IOControl ioctrl)
                     throws IOException {
-                List<E> elements = decoder.decode(buf);
-                if (elements != null) {
-                    for (E e: elements) {
-                        callback.onElement(e);
-                    }
+                T obj = decoder.decode(buf);
+                if (obj != null) {
+                    callback.onContentReceived(obj);
                 }
             }
 
@@ -349,24 +349,8 @@ public class RibbonHttpAsyncClient
             }            
         };
         
-        final FutureCallback<HttpResponse> internalCallback = new FutureCallback<HttpResponse>() {
-            @Override
-            public void completed(HttpResponse result) {
-                callback.onCompleted();
-            }
-
-            @Override
-            public void failed(Exception ex) {
-                callback.onError(ex);
-            }
-
-            @Override
-            public void cancelled() {
-                callback.onError(new ClientException("cancelled"));
-            }            
-        };
         
         Future<HttpResponse> future = httpclient.execute(HttpAsyncMethods.create(request), consumer, internalCallback);
-        return fromHttpResponseFuture(future);
+        return createFuture(future, internalCallback);
     }
 }

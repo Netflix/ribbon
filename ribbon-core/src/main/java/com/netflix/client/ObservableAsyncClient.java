@@ -27,14 +27,19 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends ResponseWi
                             new ResponseCallback<S>() {
 
                                 @Override
-                                public void onResponseReceived(S response) {
+                                public void completed(S response) {
                                     observer.onNext(response);
                                     observer.onCompleted();
                                 }
 
                                 @Override
-                                public void onException(Throwable e) {
+                                public void failed(Throwable e) {
                                     observer.onError(e);
+                                }
+
+                                @Override
+                                public void cancelled() {
+                                    observer.onError(new IllegalStateException("operation cancelled"));                                    
                                 }
                     })));
                 } catch (ClientException e) {
