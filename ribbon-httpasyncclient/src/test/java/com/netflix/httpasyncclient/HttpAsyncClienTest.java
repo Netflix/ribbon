@@ -32,6 +32,7 @@ import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.ClientException;
 import com.netflix.client.FullResponseCallback;
 import com.netflix.client.ObservableAsyncClient;
+import com.netflix.client.ObservableAsyncClient.StreamEvent;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -187,7 +188,7 @@ public class HttpAsyncClienTest {
     public void testObservable() throws Exception {
         URI uri = new URI(SERVICE_URI + "testNetty/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        ObservableAsyncClient<HttpRequest, HttpResponse> observableClient = new ObservableAsyncClient<HttpRequest, HttpResponse>(client);
+        ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = new ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer>(client);
         final List<Person> result = Lists.newArrayList();
         observableClient.execute(request).toBlockingObservable().forEach(new Action1<HttpResponse>() {
             @Override
@@ -531,6 +532,25 @@ public class HttpAsyncClienTest {
         latch.await(60, TimeUnit.SECONDS);
         assertEquals(EmbeddedResources.streamContent, results);
     }
+    
+    @Test
+    public void testStreamObservable() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testNetty/stream").build();
+        final List<String> results = Lists.newArrayList();
+        ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = 
+                new ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer>(client);
+        observableClient.stream(request, new SSEDecoder())
+            .toBlockingObservable()
+            .forEach(new Action1<StreamEvent<HttpResponse, List<String>>>() {
+
+                @Override
+                public void call(final StreamEvent<HttpResponse, List<String>> t1) {
+                    results.addAll(t1.getEvent());
+                }
+            });                
+        assertEquals(EmbeddedResources.streamContent, results);
+    }
+
     
     @Test
     public void testStreamWithLoadBalancer() throws Exception {
