@@ -83,7 +83,6 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
             }
             
         };
-        
     }
     
     private static class CallbackDelegate<T extends IResponse, E> implements ResponseCallback<T, E> {
@@ -97,14 +96,31 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         private CountDownLatch latch = new CountDownLatch(1);
         private volatile T completeResponse = null; 
         
-        T getCompletedResponse() throws InterruptedException {
+        private volatile Throwable exception = null;
+        
+        T getCompletedResponse() throws InterruptedException, ExecutionException {
             latch.await();
-            return completeResponse;
+            if (completeResponse != null) {
+                return completeResponse;
+            } else if (exception != null) {
+                throw new ExecutionException(exception);
+            } else {
+                throw new IllegalStateException("No response or exception is received");
+            }
         }
 
-        T getCompletedResponse(long time, TimeUnit timeUnit) throws InterruptedException {
-            latch.await(time, timeUnit);
-            return completeResponse;
+        T getCompletedResponse(long time, TimeUnit timeUnit) throws InterruptedException, TimeoutException, ExecutionException {
+            if (latch.await(time, timeUnit)) {
+                if (completeResponse != null) {
+                    return completeResponse;
+                } else if (exception != null) {
+                    throw new ExecutionException(exception);
+                } else {
+                    throw new IllegalStateException("No response or exception is received");
+                }
+            } else {
+                throw new TimeoutException();
+            }
         }
                
         boolean isDone() {
@@ -123,6 +139,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         @Override
         public void failed(Throwable e) {
             latch.countDown();
+            exception = e;
             if (callback != null) {
                 callback.failed(e);
             }
@@ -149,6 +166,11 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                 callback.contentReceived(content);
             }
         }
+    }
+
+    public Future<S> execute(final T request, final FullResponseCallback<S> callback)
+            throws ClientException {
+        return execute(request, null, callback);
     }
     
     @Override
@@ -404,6 +426,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                             try {
                                 future.cancel(true);
                             } catch (Throwable e) {
+                                logger.warn("Unable to cancel future", e);
                             }
                         }
                         i++;
@@ -418,10 +441,8 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
             public boolean cancel(boolean mayInterruptIfRunning) {
                 cancelled = true;
                 for (Future<S> future: results) {
-                    if (!future.isCancelled()) {
-                        if (!future.cancel(mayInterruptIfRunning)) {
+                    if (!future.isCancelled() && !future.cancel(mayInterruptIfRunning)) {
                             cancelled = false;
-                        }
                     }
                 }
                 return cancelled;
@@ -446,14 +467,15 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                     TimeoutException {
                 lock.lock();
                 long startTime = System.nanoTime();
+                boolean elapsed = false;
                 try {
                     if (finalSequenceNumber.get() < 0) {
-                        responseChosen.await(timeout, unit);
+                        elapsed = responseChosen.await(timeout, unit);
                     }
                 } finally {
                     lock.unlock();
                 }
-                if (finalSequenceNumber.get() < 0) {
+                if (elapsed || finalSequenceNumber.get() < 0) {
                     throw new TimeoutException("No response is available yet from parallel execution");
                 } else {
                     long timeWaited = System.nanoTime() - startTime;

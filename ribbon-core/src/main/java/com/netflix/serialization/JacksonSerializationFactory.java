@@ -39,7 +39,7 @@ public class JacksonSerializationFactory implements SerializationFactory<Content
 
 class JsonCodec implements Serializer, Deserializer {
     private ObjectMapper mapper = new ObjectMapper();
-    
+    /*
     @Override
     public <T> T deserialize(byte[] content, Class<T> type) throws IOException {
         return mapper.readValue(content, type);
@@ -65,13 +65,24 @@ class JsonCodec implements Serializer, Deserializer {
             throws IOException {
         return mapper.readValue(content, new TypeTokenBasedReference<T>(type));
     }
-
+    */
     @Override
     public <T> T deserialize(InputStream in, TypeToken<T> type)
             throws IOException {
         return mapper.readValue(in, new TypeTokenBasedReference<T>(type));
     }
-
+    
+    @Override
+    public byte[] serialize(Object object) throws IOException {
+        return mapper.writeValueAsBytes(object);
+    }
+    /*
+    @Override
+    public void serialize(OutputStream out, Object object) throws IOException {
+        mapper.writeValue(out, object);
+    }
+    */
+    /*
     @Override
     public String deserializeAsString(byte[] content) throws IOException {
         return new String(content, Charsets.UTF_8);
@@ -81,7 +92,7 @@ class JsonCodec implements Serializer, Deserializer {
     public String deserializeAsString(InputStream in) throws IOException {
         String content = CharStreams.toString(new InputStreamReader(in, Charsets.UTF_8));
         return content;
-    }
+    } */
 }
 
 class TypeTokenBasedReference<T> extends TypeReference<T> {

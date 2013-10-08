@@ -5,6 +5,7 @@ import java.net.URI;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
+import com.netflix.client.http.HttpRequest;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.WeightedResponseTimeRule;
@@ -28,7 +29,7 @@ public class ResponseTimeWeightedRuleTest {
 
             RestClient client = (RestClient) ClientFactory.getNamedClient("sample-client"); 
 
-            HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("/")).build(); 
+            HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build(); 
 
             for (int i = 0; i < 20; i++) {
                 client.executeWithLoadBalancer(request);

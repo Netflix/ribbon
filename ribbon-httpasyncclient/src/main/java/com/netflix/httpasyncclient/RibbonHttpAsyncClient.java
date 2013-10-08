@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -26,12 +25,10 @@ import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.methods.AsyncByteConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
-import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.reflect.TypeToken;
 import com.netflix.client.AsyncClient;
 import com.netflix.client.ClientException;
 import com.netflix.client.FullResponseCallback;
@@ -41,7 +38,6 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
-import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.JacksonSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
@@ -52,80 +48,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
     CloseableHttpAsyncClient httpclient;
     private SerializationFactory<ContentTypeBasedSerializerKey> factory = new JacksonSerializationFactory();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
-    
-    private static class AsyncResponse extends BaseResponse implements com.netflix.client.HttpResponse {
-
-        private SerializationFactory<ContentTypeBasedSerializerKey>  factory;
         
-        public AsyncResponse(HttpResponse response, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory) {
-            super(response);
-            this.response = response;    
-            this.factory = serializationFactory;
-        }
-        
-        @Override
-        public boolean hasPayload() {
-            HttpEntity entity = response.getEntity();
-            try {
-                return (entity != null && entity.getContent() != null && entity.getContent().available() > 0);
-            } catch (IOException e) {
-                return false;
-            }
-        }
-
-        @Override
-        public <T> T get(Class<T> type) throws ClientException {
-            ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.getFirstHeader("Content-type").getValue(), type);
-            Deserializer deserializer = factory.getDeserializer(key).orNull();
-            try {
-                return deserializer.deserialize(response.getEntity().getContent(), type);
-            } catch (IOException e) {
-                throw new ClientException(e);
-            }
-        }
-
-        @Override
-        public <T> T get(TypeToken<T> type) throws ClientException {
-            ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.getFirstHeader("Content-type").getValue(), type);
-            Deserializer deserializer = factory.getDeserializer(key).orNull();
-            try {
-                return deserializer.deserialize(response.getEntity().getContent(), type);
-            } catch (IOException e) {
-                throw new ClientException(e);
-            }
-
-        }
-        
-        @Override
-        public boolean hasEntity() {
-            return hasPayload();
-        }
-
-        @Override
-        public String getAsString() throws ClientException {
-            ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.getFirstHeader("Content-type").getValue(), String.class);
-            Deserializer deserializer = factory.getDeserializer(key).orNull();
-            try {
-                return deserializer.deserializeAsString(response.getEntity().getContent());
-            } catch (IOException e) {
-                throw new ClientException(e);
-            }
-        }
-        
-        @Override
-        public void releaseResources() {
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                try {
-                    entity.getContent().close();
-                } catch (IllegalStateException e) {
-                } catch (IOException e) {
-                }
-            }
-        }
-        
-    }
-    
     public RibbonHttpAsyncClient() {
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(10000)
@@ -176,13 +99,13 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
             }
 
             @Override
-            public AsyncResponse get() throws InterruptedException,
+            public HttpClientResponse get() throws InterruptedException,
                     ExecutionException {
                 return callback.getCompletedResponse();
             }
 
             @Override
-            public AsyncResponse get(long time, TimeUnit timeUnit)
+            public HttpClientResponse get(long time, TimeUnit timeUnit)
                     throws InterruptedException, ExecutionException,
                     TimeoutException {
                 return callback.getCompletedResponse(time, timeUnit);
@@ -205,8 +128,8 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
             HttpRequest ribbonRequest, final StreamDecoder<E, ByteBuffer> decoder,
             final ResponseCallback<com.netflix.client.HttpResponse, E> callback)
             throws ClientException {        
-        HttpUriRequest request = getRequest(ribbonRequest);
-        DelegateCallback<E> fCallback = new DelegateCallback<E>(callback);
+        final HttpUriRequest request = getRequest(ribbonRequest);
+        DelegateCallback<E> fCallback = new DelegateCallback<E>(callback, request.getURI());
         Future<HttpResponse> future = null;
         if (decoder != null) {
             AsyncByteConsumer<HttpResponse> consumer = new AsyncByteConsumer<HttpResponse>() {
@@ -225,7 +148,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                         throws HttpException, IOException {
                     this.response = response;
                     if (callback != null) {
-                        callback.responseReceived(new AsyncResponse(response, factory));
+                        callback.responseReceived(new HttpClientResponse(response, factory, request.getURI()));
                     }
                 }
 
@@ -243,7 +166,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                         throws IOException {
                     super.onResponseReceived(response);
                     if (callback != null) {
-                        callback.responseReceived(new AsyncResponse(response, factory));
+                        callback.responseReceived(new HttpClientResponse(response, factory, request.getURI()));
                     }
                 }
             };
@@ -306,21 +229,40 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         
         private AtomicBoolean callbackInvoked = new AtomicBoolean(false);
         
-        public DelegateCallback(ResponseCallback<com.netflix.client.HttpResponse, E> callback) {
+        private URI requestedURI;
+        
+        public DelegateCallback(ResponseCallback<com.netflix.client.HttpResponse, E> callback, URI requestedURI) {
             this.callback = callback;
+            this.requestedURI = requestedURI;
         }
         
         private CountDownLatch latch = new CountDownLatch(1);
-        private volatile AsyncResponse completeResponse = null; 
+        private volatile HttpClientResponse completeResponse = null; 
+        private volatile Throwable exception;
         
-        AsyncResponse getCompletedResponse() throws InterruptedException {
+        HttpClientResponse getCompletedResponse() throws InterruptedException, ExecutionException {
             latch.await();
-            return completeResponse;
+            if (completeResponse != null) {
+                return completeResponse;
+            } else if (exception != null) {
+                throw new ExecutionException(exception);
+            } else {
+                throw new IllegalStateException("No response or exception is received");
+            }
         }
 
-        AsyncResponse getCompletedResponse(long time, TimeUnit timeUnit) throws InterruptedException {
-            latch.await(time, timeUnit);
-            return completeResponse;
+        HttpClientResponse getCompletedResponse(long time, TimeUnit timeUnit) throws InterruptedException, TimeoutException, ExecutionException {
+            if (latch.await(time, timeUnit)) {
+                if (completeResponse != null) {
+                    return completeResponse;
+                } else if (exception != null) {
+                    throw new ExecutionException(exception);
+                } else {
+                    throw new IllegalStateException("No response or exception is received");
+                }
+            } else {
+                throw new TimeoutException();
+            }
         }
         
         boolean isDone() {
@@ -330,7 +272,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         @Override
         public void completed(HttpResponse result) {
             if (callbackInvoked.compareAndSet(false, true)) {
-                completeResponse = new AsyncResponse(result, factory);
+                completeResponse = new HttpClientResponse(result, factory, requestedURI);
                 latch.countDown();
                 if (callback != null) {
                    try {
@@ -345,6 +287,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         @Override
         public void failed(Exception e) {
             if (callbackInvoked.compareAndSet(false, true)) {
+                exception = e;
                 latch.countDown();
                 if (callback != null) {
                     callback.failed(e);

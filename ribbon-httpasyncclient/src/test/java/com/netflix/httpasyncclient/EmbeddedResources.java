@@ -15,15 +15,13 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Ignore;
 
 import com.google.common.collect.Lists;
 
 @Ignore
-@Path("/testNetty")
+@Path("/testAsync")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class EmbeddedResources {
@@ -86,10 +84,10 @@ public class EmbeddedResources {
                     WebApplicationException {
                 for (String line: streamContent) {
                     String eventLine = line + "\n";
-                    output.write(eventLine.getBytes());
+                    output.write(eventLine.getBytes("UTF-8"));
                     try {
                        Thread.sleep(100);
-                    } catch (Exception e) {
+                    } catch (Exception e) { // NOPMD
                     }
                 }
             }
