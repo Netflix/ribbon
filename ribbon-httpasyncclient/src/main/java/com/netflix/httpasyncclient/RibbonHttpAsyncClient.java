@@ -25,6 +25,8 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.methods.AsyncByteConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
+import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
+import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -213,7 +215,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                 protected void onByteReceived(ByteBuffer buf, IOControl ioctrl)
                         throws IOException {
                     E obj = decoder.decode(buf);
-                    if (obj != null) {
+                    if (obj != null && callback != null) {
                         callback.contentReceived(obj);
                     }
                 }
@@ -222,7 +224,9 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                 protected void onResponseReceived(HttpResponse response)
                         throws HttpException, IOException {
                     this.response = response;
-                    callback.responseReceived(new AsyncResponse(response, factory));
+                    if (callback != null) {
+                        callback.responseReceived(new AsyncResponse(response, factory));
+                    }
                 }
 
                 @Override
@@ -233,7 +237,20 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
             };
             future = httpclient.execute(HttpAsyncMethods.create(request), consumer, fCallback);
         } else {
-            future = httpclient.execute(request, fCallback);
+            BasicAsyncResponseConsumer consumer = new BasicAsyncResponseConsumer() {
+                @Override
+                protected void onResponseReceived(HttpResponse response)
+                        throws IOException {
+                    super.onResponseReceived(response);
+                    if (callback != null) {
+                        callback.responseReceived(new AsyncResponse(response, factory));
+                    }
+                }
+            };
+            future = httpclient.execute(HttpAsyncMethods.create(request), consumer, fCallback);
+            
+            // future = httpclient.execute(request, fCallback);
+
         }
         return createFuture(future, fCallback); 
     }
@@ -338,48 +355,8 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         @Override
         public void cancelled() {
             if (callbackInvoked.compareAndSet(false, true) && callback != null) {
-                callback.failed(new ClientException("request has been cancelled"));
+                callback.cancelled();
             }
         }
     }
-
-    /*
-    @Override
-    public <T> Future<AsyncResponse> stream(
-            HttpRequest ribbonRequest,
-            final StreamDecoder<T, ByteBuffer> decoder,
-            final StreamResponseCallback<AsyncResponse, T> callback) throws ClientException {
-        HttpUriRequest request = getRequest(ribbonRequest);
-        final DelegateCallback internalCallback = new DelegateCallback(callback);
-        AsyncByteConsumer<HttpResponse> consumer = new AsyncByteConsumer<HttpResponse>() {
-            private volatile HttpResponse response;            
-            @Override
-            protected void onByteReceived(ByteBuffer buf, IOControl ioctrl)
-                    throws IOException {
-                T obj = decoder.decode(buf);
-                if (obj != null) {
-                    callback.onContentReceived(obj);
-                }
-            }
-
-            @Override
-            protected void onResponseReceived(HttpResponse response)
-                    throws HttpException, IOException {
-                this.response = response;
-                callback.onResponseReceived(new AsyncResponse(response, factory));
-            }
-
-            @Override
-            protected HttpResponse buildResult(HttpContext context)
-                    throws Exception {
-                return response;
-            }            
-        };
-        
-        
-        Future<HttpResponse> future = httpclient.execute(HttpAsyncMethods.create(request), consumer, internalCallback);
-        return createFuture(future, internalCallback);
-    } */
-
-   
 }

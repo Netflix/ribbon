@@ -594,5 +594,110 @@ public class HttpAsyncClienTest {
         latch.await(60, TimeUnit.SECONDS);
         assertEquals(EmbeddedResources.streamContent, results);
     }
+    
+    @Test
+    public void testCancel() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testNetty/readTimeout");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        final CountDownLatch latch = new CountDownLatch(1);
+        Future<HttpResponse> future = client.execute(request, new FullResponseCallback<HttpResponse>() {
+            @Override
+            public void completed(HttpResponse response) {
+            }
+
+            @Override
+            public void failed(Throwable e) {
+            }
+
+            @Override
+            public void cancelled() {
+                latch.countDown();
+            }
+        });
+        assertTrue(future.cancel(true));
+        latch.await(10, TimeUnit.SECONDS);
+        assertEquals(0, latch.getCount());
+    }
+    
+    @Test
+    public void testParallel() throws Exception {
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(client);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
+        Server good = new Server("localhost:" + port);
+        Server bad = new Server("localhost:" + 33333);
+        List<Server> servers = Lists.newArrayList(bad, good);
+        lb.setServersList(servers);
+        loadBalancingClient.setLoadBalancer(lb);
+        URI uri = new URI("/testNetty/person");
+        final List<Person> results = Lists.newArrayList();
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
+        final CountDownLatch latch = new CountDownLatch(1);
+        loadBalancingClient.parallelExecute(request, null, new FullResponseCallback<HttpResponse>() {            
+            @Override
+            public void completed(HttpResponse response) {
+                try {
+                    person = response.get(Person.class);
+                } catch (ClientException e) {
+                    e.printStackTrace();
+                }
+                latch.countDown();
+                results.add(person);
+            }
+            
+            @Override
+            public void failed(Throwable e) {
+                exception.set(e);
+            }
+
+            @Override
+            public void cancelled() {
+            }
+        }, 2);
+        latch.await();
+        // make sure we do not get more than 1 callback
+        Thread.sleep(2000);
+        assertNull(exception.get());
+        assertEquals(Lists.newArrayList(EmbeddedResources.defaultPerson), results);
+
+    }
+    
+    @Test
+    public void testParallelAllFailed() throws Exception {
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer>(client);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
+        Server bad = new Server("localhost:" + 55555);
+        Server bad1 = new Server("localhost:" + 33333);
+        List<Server> servers = Lists.newArrayList(bad, bad1);
+        lb.setServersList(servers);
+        loadBalancingClient.setLoadBalancer(lb);
+        URI uri = new URI("/testNetty/person");
+        final List<Throwable> results = Lists.newArrayList();
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        final CountDownLatch latch = new CountDownLatch(1);
+        loadBalancingClient.parallelExecute(request, null, new FullResponseCallback<HttpResponse>() {            
+            @Override
+            public void completed(HttpResponse response) {
+            }
+            
+            @Override
+            public void failed(Throwable e) {
+                results.add(e);
+                latch.countDown();
+            }
+
+            @Override
+            public void cancelled() {
+            }
+        }, 2);
+        latch.await();
+        // make sure we do not get more than 1 callback
+        Thread.sleep(2000);
+        assertEquals(1, results.size());
+
+    }
+
 
 }

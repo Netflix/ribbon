@@ -1,19 +1,27 @@
 package com.netflix.client;
 
 import java.net.URI;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 import com.netflix.servo.monitor.Stopwatch;
@@ -286,6 +294,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
             @Override
             public void cancelled() {
                 onComplete();
+                callback.cancelled();
             }
 
             @Override
@@ -301,6 +310,177 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         currentRunningTask.set(future);
     }
 
+    public <E> Future<S> parallelExecute(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback, final int numServers)
+            throws ClientException {
+        List<T> requests = Lists.newArrayList();
+        for (int i = 0; i < numServers; i++) {
+            requests.add(computeFinalUriWithLoadBalancer(request));
+        }
+        final LinkedBlockingDeque<Future<S>> results = new LinkedBlockingDeque<Future<S>>();
+        final AtomicInteger failedCount = new AtomicInteger();
+        final AtomicInteger finalSequenceNumber = new AtomicInteger(-1);
+        final AtomicBoolean responseRecevied = new AtomicBoolean();
+        final AtomicBoolean completedCalled = new AtomicBoolean();
+        final AtomicBoolean failedCalled = new AtomicBoolean();
+        final AtomicBoolean cancelledCalled = new AtomicBoolean();
+        final Lock lock = new ReentrantLock();
+        final Condition responseChosen = lock.newCondition();
+        
+        for (int i = 0; i < requests.size(); i++) {
+            final int sequenceNumber = i;
+            results.add(asyncClient.execute(requests.get(i), decoder, new ResponseCallback<S, E>() {
+                private volatile boolean chosen = false;
+                @Override
+                public void completed(S response) {
+                    if (completedCalled.compareAndSet(false, true)  
+                            && callback != null && chosen) {
+                        callback.completed(response);
+                    }
+                }
+
+                @Override
+                public void failed(Throwable e) {
+                    int count = failedCount.incrementAndGet();
+                    if ((count == numServers || chosen) && failedCalled.compareAndSet(false, true)) {
+                        lock.lock();
+                        try {
+                            finalSequenceNumber.set(sequenceNumber);
+                            responseChosen.signalAll();
+                        } finally {
+                            lock.unlock();
+                        }
+                        if (callback != null) {
+                            callback.failed(e);
+                        }
+                    }
+                }
+
+                @Override
+                public void cancelled() {
+                    int count = failedCount.incrementAndGet();
+                    if ((count == numServers || chosen) && cancelledCalled.compareAndSet(false, true)) {
+                        lock.lock();
+                        try {
+                            finalSequenceNumber.set(sequenceNumber);
+                            responseChosen.signalAll();
+                        } finally {
+                            lock.unlock();
+                        }
+                        if (callback != null) {
+                            callback.cancelled();
+                        }
+                    }
+                }
+
+                @Override
+                public void responseReceived(S response) {
+                    if (responseRecevied.compareAndSet(false, true)) {
+                        chosen = true;
+                        lock.lock();
+                        try {
+                            finalSequenceNumber.set(sequenceNumber);
+                            responseChosen.signalAll();
+                        } finally {
+                            lock.unlock();
+                        }
+                        if (callback != null) {
+                            callback.responseReceived(response);
+                        }
+                    }
+                    cancelOthers();
+                }
+
+                @Override
+                public void contentReceived(E content) {
+                    if (callback != null && chosen) {
+                        callback.contentReceived(content);   
+                    }
+                }
+                
+                private void cancelOthers() {
+                    int i = 0; 
+                    for (Future<S> future: results) {
+                        if (finalSequenceNumber.get() >= 0 && i != finalSequenceNumber.get() && !future.isCancelled()) {
+                            try {
+                                future.cancel(true);
+                            } catch (Throwable e) {
+                            }
+                        }
+                        i++;
+                    }                    
+                }
+            }));
+        }
+        return new Future<S>() {
+
+            private volatile boolean cancelled = false;
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                cancelled = true;
+                for (Future<S> future: results) {
+                    if (!future.isCancelled()) {
+                        if (!future.cancel(mayInterruptIfRunning)) {
+                            cancelled = false;
+                        }
+                    }
+                }
+                return cancelled;
+            }
+            
+            @Override
+            public S get() throws InterruptedException, ExecutionException {
+                lock.lock();
+                try {
+                    while (finalSequenceNumber.get() < 0) {
+                        responseChosen.await();
+                    }
+                } finally {
+                    lock.unlock();
+                }
+                return Iterables.get(results, finalSequenceNumber.get()).get();
+            }
+
+            @Override
+            public S get(long timeout, TimeUnit unit)
+                    throws InterruptedException, ExecutionException,
+                    TimeoutException {
+                lock.lock();
+                long startTime = System.nanoTime();
+                try {
+                    if (finalSequenceNumber.get() < 0) {
+                        responseChosen.await(timeout, unit);
+                    }
+                } finally {
+                    lock.unlock();
+                }
+                if (finalSequenceNumber.get() < 0) {
+                    throw new TimeoutException("No response is available yet from parallel execution");
+                } else {
+                    long timeWaited = System.nanoTime() - startTime;
+                    long timeRemainingNanoSeconds = TimeUnit.NANOSECONDS.convert(timeout, unit) - timeWaited;
+                    if (timeRemainingNanoSeconds > 0) {
+                        return Iterables.get(results, finalSequenceNumber.get()).get(timeRemainingNanoSeconds, TimeUnit.NANOSECONDS);
+                    } else {
+                        throw new TimeoutException("No response is available yet from parallel execution");
+                    }
+                }                
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return cancelled;
+            }
+
+            @Override
+            public boolean isDone() {
+                if (finalSequenceNumber.get() < 0) {
+                    return false;
+                } else {
+                    return Iterables.get(results, finalSequenceNumber.get()).isDone();
+                }
+            }
+        };
+    }
     
     @Override
     protected boolean isCircuitBreakerException(Throwable e) {
