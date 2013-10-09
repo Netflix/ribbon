@@ -29,14 +29,19 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.netflix.client.AsyncClient;
+import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.ClientException;
+import com.netflix.client.ClientFactory;
 import com.netflix.client.FullResponseCallback;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
+import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.JacksonSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
@@ -73,6 +78,28 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         httpclient.start();
     }
 
+    
+    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name) 
+            throws ClientException {
+        IClientConfig config = ClientFactory.getNamedConfig(name);
+        return createNamedLoadBalancingClientFromConfig(name, config);       
+    }
+    
+    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name, IClientConfig clientConfig) 
+            throws ClientException {
+        Preconditions.checkArgument(clientConfig.getClientName().equals(name));
+        try {
+            RibbonHttpAsyncClient client = new RibbonHttpAsyncClient(clientConfig);
+            ILoadBalancer loadBalancer  = ClientFactory.registerNamedLoadBalancerFromclientConfig(name, clientConfig);
+            AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> loadBalancingClient = 
+                    new AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer>(client, clientConfig);
+            loadBalancingClient.setLoadBalancer(loadBalancer);
+            return loadBalancingClient;
+        } catch (Throwable e) {
+            throw new ClientException(ClientException.ErrorType.CONFIGURATION, 
+                    "Unable to create client", e);
+        }
+    }
     
     private static String getContentType(Map<String, Collection<String>> headers) {
         if (headers == null) {

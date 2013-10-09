@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 import com.netflix.servo.monitor.Stopwatch;
@@ -37,6 +38,12 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         super();
         this.asyncClient = asyncClient;
     }
+    
+    public AsyncLoadBalancingClient(AsyncClient<T, S, U> asyncClient, IClientConfig clientConfig) {
+        super(clientConfig);
+        this.asyncClient = asyncClient;
+    }
+
 
     protected AsyncLoadBalancingClient() {
     }

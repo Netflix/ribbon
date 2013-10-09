@@ -41,6 +41,7 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpRequest.Verb;
 import com.netflix.client.HttpResponse;
+import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
@@ -353,6 +354,24 @@ public class HttpAsyncClienTest {
     }
     
     @Test
+    public void testLoadBalancingClientFromFactory() throws Exception {
+        ConfigurationManager.getConfigInstance().setProperty("asyncclient.ribbon.listOfServers", "localhost:33333,localhost:33333,localhost:" + port);
+        ConfigurationManager.getConfigInstance().setProperty("asyncclient.ribbon." + CommonClientConfigKey.MaxAutoRetriesNextServer, "2");
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = RibbonHttpAsyncClient.createNamedLoadBalancingClientFromConfig("asyncclient");
+        assertEquals(2, loadBalancingClient.getMaxAutoRetriesNextServer());
+        URI uri = new URI("/testAsync/person");
+        person = null;
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();        
+        loadBalancingClient.execute(request, callback);
+        callback.awaitCallback();        
+        Server good = new Server("localhost:" + port);
+        assertEquals(EmbeddedResources.defaultPerson, callback.getHttpResponse().getEntity(Person.class));
+        assertEquals(1, loadBalancingClient.getServerStats(good).getTotalRequestsCount());
+    }
+
+    
+    @Test
     public void testLoadBalancingClientMultiServersFuture() throws Exception {
         AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
                 HttpResponse, ByteBuffer>(client);
@@ -374,6 +393,7 @@ public class HttpAsyncClienTest {
     
     @Test
     public void testLoadBalancingClientWithRetry() throws Exception {
+        
         RibbonHttpAsyncClient timeoutClient = 
                 new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
         AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
@@ -570,7 +590,6 @@ public class HttpAsyncClienTest {
         // make sure we do not get more than 1 callback
         callback.awaitCallback();
         assertNotNull(callback.getError());
-
     }
 
 
