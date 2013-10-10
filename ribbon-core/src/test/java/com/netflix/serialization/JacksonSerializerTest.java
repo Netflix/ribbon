@@ -3,6 +3,7 @@ package com.netflix.serialization;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 import org.junit.Test;
@@ -20,16 +21,22 @@ public class JacksonSerializerTest {
         JacksonSerializationFactory factory = new JacksonSerializationFactory();
         ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey("application/json", new TypeToken<List<Person>>(){});
         Serializer serializer = factory.getSerializer(key).get();
-        String content = new String(serializer.serialize(people), "UTF-8");
+        String content = new String(serializeToBytes(people, serializer), "UTF-8");
         Deserializer deserializer = factory.getDeserializer(key).get();
         List<Person> list = deserializer.deserialize(new ByteArrayInputStream(content.getBytes("UTF-8")), new TypeToken<List<Person>>(){});
         assertEquals(people, list);
         Person person = new Person("ribbon", 1);
-        byte[] bytes = serializer.serialize(person);
+        byte[] bytes = serializeToBytes(person, serializer);
         Person deserialized = deserializer.deserialize(new ByteArrayInputStream(bytes), TypeToken.of(Person.class));
         assertEquals(person, deserialized);
         deserialized = deserializer.deserialize(new ByteArrayInputStream(bytes), TypeToken.of(Person.class));
         assertEquals(person, deserialized);
+    }
+    
+    private byte[] serializeToBytes(Object obj, Serializer serializer) throws Exception {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        serializer.serialize(bout, obj);
+        return bout.toByteArray();
     }
 }
 

@@ -73,8 +73,8 @@ class JsonCodec implements Serializer, Deserializer {
     }
     
     @Override
-    public byte[] serialize(Object object) throws IOException {
-        return mapper.writeValueAsBytes(object);
+    public void serialize(OutputStream out, Object object) throws IOException {
+        mapper.writeValue(out, object);
     }
     /*
     @Override

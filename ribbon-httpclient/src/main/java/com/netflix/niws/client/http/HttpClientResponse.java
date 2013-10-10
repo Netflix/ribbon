@@ -17,23 +17,18 @@
 */
 package com.netflix.niws.client.http;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.reflect.TypeToken;
-import com.netflix.client.HttpResponse;
-import com.netflix.client.IResponse;
 import com.netflix.client.ClientException;
+import com.netflix.client.HttpResponse;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
@@ -44,8 +39,6 @@ import com.sun.jersey.api.client.UniformInterfaceException;
  *
  */
 class HttpClientResponse implements HttpResponse {
-    
-    private static final Logger logger = LoggerFactory.getLogger(HttpClientResponse.class);
     
     private ClientResponse bcr = null;
         
@@ -131,12 +124,9 @@ class HttpClientResponse implements HttpResponse {
         return bcr;
     }
     
-    public void releaseResources() {
-        try {
-            bcr.close();
-        } catch (Exception e) {
-            logger.error("Error releasing connection", e);
-        }
+    @Override
+    public void close() throws IOException {
+        bcr.close();
     }
 
     @SuppressWarnings("unchecked")

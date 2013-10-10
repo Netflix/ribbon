@@ -58,10 +58,8 @@ public class ManyShortLivedRequestsSurvivorTest {
         for (int i = 0; i < nbHitsPerServer * 2; i++) {
             request = HttpRequest.newBuilder().uri(new URI("/")).build();
             HttpResponse response = client.executeWithLoadBalancer(request);
-            response.releaseResources();
-
+            response.close();
         }
-
     }
 
     static String hostAndPort(URL url) {

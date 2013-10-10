@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.http.nio.util.ExpandableBuffer;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -564,7 +566,7 @@ public class HttpAsyncClienTest {
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();                
-        loadBalancingClient.parallelExecute(request, null, callback, 4);
+        loadBalancingClient.parallelExecute(request, null, callback, 4, 1, TimeUnit.MILLISECONDS);
         callback.awaitCallback();
         // make sure we do not get more than 1 callback
         assertNull(callback.getError());
@@ -586,7 +588,7 @@ public class HttpAsyncClienTest {
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();                
-        loadBalancingClient.parallelExecute(request, null, callback, 2);
+        loadBalancingClient.parallelExecute(request, null, callback, 2, 1, TimeUnit.MILLISECONDS);
         // make sure we do not get more than 1 callback
         callback.awaitCallback();
         assertNotNull(callback.getError());

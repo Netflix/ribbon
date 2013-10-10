@@ -94,24 +94,23 @@ class HttpClientResponse implements com.netflix.client.HttpResponse {
     }
 
     @Override
-    public void releaseResources() {
-        HttpEntity entity = response.getEntity();
-        if (entity != null) {
-            try {
-                entity.getContent().close();
-            } catch (IllegalStateException e) { // NOPMD
-            } catch (IOException e) { // NOPMD
-            }
-        }
-    }
-
-    @Override
     public InputStream getInputStream() throws ClientException {
         try {
             return response.getEntity().getContent();
         } catch (Exception e) {
             throw new ClientException(ErrorType.GENERAL, "Unable to get InputStream", e);
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            try {
+                entity.getContent().close();
+            } catch (IllegalStateException e) { // NOPMD
+            }
+        }    
     }
     
 }

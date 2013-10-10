@@ -271,13 +271,13 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         List<T> servers = new ArrayList<T>();
         if (serverListImpl != null) {
             servers = serverListImpl.getUpdatedListOfServers();
-            LOGGER.debug("List of Servers obtained from Discovery client:"
-                    + servers);
+            LOGGER.debug("List of Servers for {} obtained from Discovery client: {}",
+                    getIdentifier(), servers);
 
             if (filter != null) {
                 servers = filter.getFilteredListOfServers(servers);
-                LOGGER.debug("Filtered List of Servers obtained from Discovery client:"
-                        + servers);
+                LOGGER.debug("Filtered List of Servers for {} obtained from Discovery client: {}",
+                        getIdentifier(), servers);
             }
         }
         updateAllServerList(servers);

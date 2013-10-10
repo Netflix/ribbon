@@ -139,7 +139,7 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
         return isPresentAsCauseHelper(throwableToSearchIn, throwableToSearchFor) != null;
     }
 
-    private Throwable isPresentAsCauseHelper(Throwable throwableToSearchIn,
+    static Throwable isPresentAsCauseHelper(Throwable throwableToSearchIn,
             Class<? extends Throwable> throwableToSearchFor) {
         int infiniteLoopPreventionCounter = 10;
         while (throwableToSearchIn != null && infiniteLoopPreventionCounter > 0) {

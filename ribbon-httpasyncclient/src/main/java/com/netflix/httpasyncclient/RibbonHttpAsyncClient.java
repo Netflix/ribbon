@@ -1,6 +1,9 @@
 package com.netflix.httpasyncclient;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -12,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -19,6 +23,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.nio.IOControl;
@@ -234,21 +239,26 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         if (entity != null) {
             String contentType = getContentType(ribbonRequest.getHeaders());    
             ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(contentType, entity.getClass());
-            Serializer serializer = factory.getSerializer(key).orNull();
-            if (serializer == null) {
-                throw new ClientException("Unable to find serializer for " + key);
+            HttpEntity httpEntity = null;
+            if (entity instanceof InputStream) {
+                httpEntity = new InputStreamEntity((InputStream) entity, -1);
+                builder.setEntity(httpEntity);
+            } else {
+                Serializer serializer = factory.getSerializer(key).orNull();
+                if (serializer == null) {
+                    throw new ClientException("Unable to find serializer for " + key);
+                }
+                PipedOutputStream source = new PipedOutputStream();
+                try {
+                    httpEntity = new InputStreamEntity(new PipedInputStream(source));
+                    serializer.serialize(source, entity);
+                    builder.setEntity(httpEntity);
+                } catch (IOException e) {
+                    throw new ClientException(e);
+                }
             }
-            byte[] content;
-            try {
-                content = serializer.serialize(entity);
-            } catch (IOException e) {
-                throw new ClientException("Error serializing entity in request", e);
-            }
-            ByteArrayEntity finalEntity = new ByteArrayEntity(content);
-            builder.setEntity(finalEntity);
         }
         return builder.build();
-        
     }
     
     class DelegateCallback<E> implements FutureCallback<HttpResponse> {
@@ -328,5 +338,9 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                 callback.cancelled();
             }
         }
+    }
+    
+    public void close() throws IOException {
+        httpclient.close();
     }
 }

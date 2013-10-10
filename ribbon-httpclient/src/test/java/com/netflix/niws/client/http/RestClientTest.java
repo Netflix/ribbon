@@ -66,7 +66,7 @@ public class RestClientTest {
             assertEquals(200, response.getStatus());
             assertTrue(response.isSuccess());
             String content = response.getEntity(String.class);
-            response.releaseResources();
+            response.close();
             assertTrue(content.length() > 100);
             result.add(response.getRequestedURI());
         }

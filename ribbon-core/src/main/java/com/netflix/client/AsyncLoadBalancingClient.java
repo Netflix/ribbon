@@ -1,5 +1,6 @@
 package com.netflix.client;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -18,9 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.Server;
@@ -339,7 +338,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         currentRunningTask.set(future);
     }
 
-    public <E> Future<S> parallelExecute(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback, final int numServers)
+    public <E> Future<S> parallelExecute(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback, final int numServers, long timeout, TimeUnit unit)
             throws ClientException {
         List<T> requests = Lists.newArrayList();
         for (int i = 0; i < numServers; i++) {
@@ -440,9 +439,18 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                     }                    
                 }
             }));
+            lock.lock();
+            try {
+                if (finalSequenceNumber.get() >= 0 || responseChosen.await(timeout, unit)) {
+                    // there is a response within the specified timeout, no need to send more requests
+                    break;
+                }
+            } catch (InterruptedException e1) {
+            } finally {
+                lock.unlock();
+            }
         }
         return new Future<S>() {
-
             private volatile boolean cancelled = false;
             @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
@@ -519,5 +527,12 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
     @Override
     protected boolean isRetriableException(Throwable e) {
         return true;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (asyncClient != null) {
+            asyncClient.close();
+        }
     }
 }
