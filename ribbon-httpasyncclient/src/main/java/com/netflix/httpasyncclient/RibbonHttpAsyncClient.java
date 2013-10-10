@@ -39,7 +39,7 @@ import com.netflix.client.AsyncClient;
 import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
-import com.netflix.client.FullResponseCallback;
+import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -229,7 +229,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         return createFuture(future, fCallback); 
     }
     
-    public Future<com.netflix.client.http.HttpResponse> execute(HttpRequest ribbonRequest, final FullResponseCallback<com.netflix.client.http.HttpResponse> callback) throws ClientException {
+    public Future<com.netflix.client.http.HttpResponse> execute(HttpRequest ribbonRequest, final BufferedResponseCallback<com.netflix.client.http.HttpResponse> callback) throws ClientException {
         return execute(ribbonRequest, null, callback);
     }
     

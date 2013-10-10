@@ -184,7 +184,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         }
     }
 
-    public Future<S> execute(final T request, final FullResponseCallback<S> callback)
+    public Future<S> execute(final T request, final BufferedResponseCallback<S> callback)
             throws ClientException {
         return execute(request, null, callback);
     }

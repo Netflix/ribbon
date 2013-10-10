@@ -44,7 +44,7 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
                 final CompositeSubscription parentSubscription = new CompositeSubscription();
                 try {
                     parentSubscription.add(Subscriptions.from(client.execute(request, null,
-                            new FullResponseCallback<S>() {
+                            new BufferedResponseCallback<S>() {
 
                                 @Override
                                 public void completed(S response) {
@@ -131,5 +131,5 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
             }
         });
     }
-    
+   
 }

@@ -33,7 +33,7 @@ import rx.util.functions.Action1;
 import com.google.common.collect.Lists;
 import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.ClientException;
-import com.netflix.client.FullResponseCallback;
+import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.ObservableAsyncClient;
 import com.netflix.client.ObservableAsyncClient.StreamEvent;
 import com.netflix.client.ResponseCallback;
@@ -127,7 +127,7 @@ public class HttpAsyncClienTest {
         
     }
 
-    static class ResponseCallbackWithLatch extends FullResponseCallback<HttpResponse> {
+    static class ResponseCallbackWithLatch extends BufferedResponseCallback<HttpResponse> {
         private volatile HttpResponse httpResponse;
         private volatile boolean cancelled;
         private volatile Throwable error;
