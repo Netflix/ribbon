@@ -19,7 +19,7 @@ import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
 
-class HttpClientResponse implements com.netflix.client.HttpResponse {
+class HttpClientResponse implements com.netflix.client.http.HttpResponse {
 
     private SerializationFactory<ContentTypeBasedSerializerKey>  factory;
     private HttpResponse response;

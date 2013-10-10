@@ -2,6 +2,7 @@ package com.netflix.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -119,21 +120,6 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
         return e;
     }
 
-    /**
-     * Determine if an exception should contribute to circuit breaker trip. If such exceptions happen consecutively
-     * on a server, it will be deemed as circuit breaker tripped and enter into a time out when it will be
-     * skipped by the {@link AvailabilityFilteringRule}, which is the default rule for load balancers.
-     */
-    protected abstract boolean isCircuitBreakerException(Throwable e);
-        
-    /**
-     * Determine if operation can be retried if an exception is thrown. For example, connect 
-     * timeout related exceptions
-     * are typically retriable.
-     * 
-     */
-    protected abstract boolean isRetriableException(Throwable e);
-        
     private boolean isPresentAsCause(Throwable throwableToSearchIn,
             Class<? extends Throwable> throwableToSearchFor) {
         return isPresentAsCauseHelper(throwableToSearchIn, throwableToSearchFor) != null;
@@ -152,6 +138,21 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
             }
         }
         return null;
+    }
+    
+    public static boolean isPresentAsCause(Throwable throwableToSearchIn,
+            Collection<Class<? extends Throwable>> throwableToSearchFor) {
+        int infiniteLoopPreventionCounter = 10;
+        while (throwableToSearchIn != null && infiniteLoopPreventionCounter > 0) {
+            infiniteLoopPreventionCounter--;
+            for (Class<? extends Throwable> c: throwableToSearchFor) {
+                if (throwableToSearchIn.getClass().isAssignableFrom(c)) {
+                    return true;
+                }
+            }
+            throwableToSearchIn = throwableToSearchIn.getCause();
+        }
+        return false;
     }
 
     protected ClientException generateNIWSException(String uri, Throwable e){
@@ -544,12 +545,6 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
         }
         logger.warn("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt#: {}, URI: {}",  
                 currentRetryCount, uri);
-        try {
-            Thread.sleep((int) Math.pow(2.0, currentRetryCount) * 100); 
-        } catch (InterruptedException ex) {
-        }
         return true;
     }
-
-
 }

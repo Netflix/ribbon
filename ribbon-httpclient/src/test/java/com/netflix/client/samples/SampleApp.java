@@ -23,8 +23,8 @@ import java.net.URI;
 import org.junit.Ignore;
 
 import com.netflix.client.ClientFactory;
-import com.netflix.client.HttpResponse;
 import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
 import com.netflix.niws.client.http.RestClient;

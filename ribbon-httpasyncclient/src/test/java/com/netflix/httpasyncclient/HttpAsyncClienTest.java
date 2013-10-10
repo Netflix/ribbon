@@ -41,8 +41,8 @@ import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.HttpRequest.Verb;
-import com.netflix.client.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
@@ -350,7 +350,7 @@ public class HttpAsyncClienTest {
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();        
         loadBalancingClient.execute(request, callback);
-        callback.awaitCallback();        
+        callback.awaitCallback();       
         assertEquals(EmbeddedResources.defaultPerson, callback.getHttpResponse().getEntity(Person.class));
         assertEquals(1, lb.getLoadBalancerStats().getSingleServerStat(good).getTotalRequestsCount());
     }

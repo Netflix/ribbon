@@ -53,12 +53,35 @@ import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 
 
-public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> {
+public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> {
 
     CloseableHttpAsyncClient httpclient;
-    private SerializationFactory<ContentTypeBasedSerializerKey> factory = new JacksonSerializationFactory();
+    private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory = new JacksonSerializationFactory();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
         
+    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name) 
+            throws ClientException {
+        IClientConfig config = ClientFactory.getNamedConfig(name);
+        return createNamedLoadBalancingClientFromConfig(name, config);       
+    }
+    
+    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name, IClientConfig clientConfig) 
+            throws ClientException {
+        Preconditions.checkArgument(clientConfig.getClientName().equals(name));
+        try {
+            RibbonHttpAsyncClient client = new RibbonHttpAsyncClient(clientConfig);
+            ILoadBalancer loadBalancer  = ClientFactory.registerNamedLoadBalancerFromclientConfig(name, clientConfig);
+            AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> loadBalancingClient = 
+                    new AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer>(client, clientConfig);
+            loadBalancingClient.setLoadBalancer(loadBalancer);
+            loadBalancingClient.setErrorHandler(new HttpAsyncClientLoadBalancerErrorHandler());
+            return loadBalancingClient;
+        } catch (Throwable e) {
+            throw new ClientException(ClientException.ErrorType.CONFIGURATION, 
+                    "Unable to create client", e);
+        }
+    }
+    
     public RibbonHttpAsyncClient() {
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(10000)
@@ -69,6 +92,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         httpclient.start();
     }
     
+    @SuppressWarnings("unchecked")
     public RibbonHttpAsyncClient(IClientConfig clientConfig) {
         int connectTimeout = clientConfig.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, 10000);
         RequestConfig requestConfig = RequestConfig.custom()
@@ -80,32 +104,27 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                 .setMaxConnTotal(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxTotalHttpConnections, 200))
                 .setMaxConnPerRoute(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxHttpConnectionsPerHost, 50))
                 .build();
+        String serializationFactoryClass = clientConfig.getPropertyAsString(CommonClientConfigKey.SerializationFactoryClassName, null);
+        if (serializationFactoryClass != null) {
+            try {
+                serializationFactory = (SerializationFactory<ContentTypeBasedSerializerKey>) Class.forName(serializationFactoryClass).newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException("Unable to instantiate serialization factory", e);
+            }            
+        }
         httpclient.start();
     }
 
     
-    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name) 
-            throws ClientException {
-        IClientConfig config = ClientFactory.getNamedConfig(name);
-        return createNamedLoadBalancingClientFromConfig(name, config);       
+    public final SerializationFactory<ContentTypeBasedSerializerKey> getSerializationFactory() {
+        return serializationFactory;
     }
-    
-    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name, IClientConfig clientConfig) 
-            throws ClientException {
-        Preconditions.checkArgument(clientConfig.getClientName().equals(name));
-        try {
-            RibbonHttpAsyncClient client = new RibbonHttpAsyncClient(clientConfig);
-            ILoadBalancer loadBalancer  = ClientFactory.registerNamedLoadBalancerFromclientConfig(name, clientConfig);
-            AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer> loadBalancingClient = 
-                    new AsyncLoadBalancingClient<HttpRequest, com.netflix.client.HttpResponse, ByteBuffer>(client, clientConfig);
-            loadBalancingClient.setLoadBalancer(loadBalancer);
-            return loadBalancingClient;
-        } catch (Throwable e) {
-            throw new ClientException(ClientException.ErrorType.CONFIGURATION, 
-                    "Unable to create client", e);
-        }
+
+    public final void setSerializationFactory(
+            SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory) {
+        this.serializationFactory = serializationFactory;
     }
-    
+
     private static String getContentType(Map<String, Collection<String>> headers) {
         if (headers == null) {
             return null;
@@ -123,8 +142,8 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
     }
 
     
-    private Future<com.netflix.client.HttpResponse> createFuture(final Future<HttpResponse> future, final DelegateCallback<?> callback) {
-        return new Future<com.netflix.client.HttpResponse>() {
+    private Future<com.netflix.client.http.HttpResponse> createFuture(final Future<HttpResponse> future, final DelegateCallback<?> callback) {
+        return new Future<com.netflix.client.http.HttpResponse>() {
             @Override
             public boolean cancel(boolean arg0) {
                 return future.cancel(arg0);
@@ -156,9 +175,9 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
     }
     
     @Override
-    public <E> Future<com.netflix.client.HttpResponse> execute(
+    public <E> Future<com.netflix.client.http.HttpResponse> execute(
             HttpRequest ribbonRequest, final StreamDecoder<E, ByteBuffer> decoder,
-            final ResponseCallback<com.netflix.client.HttpResponse, E> callback)
+            final ResponseCallback<com.netflix.client.http.HttpResponse, E> callback)
             throws ClientException {        
         final HttpUriRequest request = getRequest(ribbonRequest);
         DelegateCallback<E> fCallback = new DelegateCallback<E>(callback, request.getURI());
@@ -180,7 +199,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                         throws HttpException, IOException {
                     this.response = response;
                     if (callback != null) {
-                        callback.responseReceived(new HttpClientResponse(response, factory, request.getURI()));
+                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI()));
                     }
                 }
 
@@ -198,7 +217,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                         throws IOException {
                     super.onResponseReceived(response);
                     if (callback != null) {
-                        callback.responseReceived(new HttpClientResponse(response, factory, request.getURI()));
+                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI()));
                     }
                 }
             };
@@ -210,7 +229,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         return createFuture(future, fCallback); 
     }
     
-    public Future<com.netflix.client.HttpResponse> execute(HttpRequest ribbonRequest, final FullResponseCallback<com.netflix.client.HttpResponse> callback) throws ClientException {
+    public Future<com.netflix.client.http.HttpResponse> execute(HttpRequest ribbonRequest, final FullResponseCallback<com.netflix.client.http.HttpResponse> callback) throws ClientException {
         return execute(ribbonRequest, null, callback);
     }
     
@@ -244,7 +263,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                 httpEntity = new InputStreamEntity((InputStream) entity, -1);
                 builder.setEntity(httpEntity);
             } else {
-                Serializer serializer = factory.getSerializer(key).orNull();
+                Serializer serializer = serializationFactory.getSerializer(key).orNull();
                 if (serializer == null) {
                     throw new ClientException("Unable to find serializer for " + key);
                 }
@@ -262,13 +281,13 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
     }
     
     class DelegateCallback<E> implements FutureCallback<HttpResponse> {
-        private final ResponseCallback<com.netflix.client.HttpResponse, E> callback;
+        private final ResponseCallback<com.netflix.client.http.HttpResponse, E> callback;
         
         private AtomicBoolean callbackInvoked = new AtomicBoolean(false);
         
         private URI requestedURI;
         
-        public DelegateCallback(ResponseCallback<com.netflix.client.HttpResponse, E> callback, URI requestedURI) {
+        public DelegateCallback(ResponseCallback<com.netflix.client.http.HttpResponse, E> callback, URI requestedURI) {
             this.callback = callback;
             this.requestedURI = requestedURI;
         }
@@ -309,7 +328,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         @Override
         public void completed(HttpResponse result) {
             if (callbackInvoked.compareAndSet(false, true)) {
-                completeResponse = new HttpClientResponse(result, factory, requestedURI);
+                completeResponse = new HttpClientResponse(result, serializationFactory, requestedURI);
                 latch.countDown();
                 if (callback != null) {
                    try {

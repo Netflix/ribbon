@@ -28,7 +28,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.reflect.TypeToken;
 import com.netflix.client.ClientException;
-import com.netflix.client.HttpResponse;
+import com.netflix.client.http.HttpResponse;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 

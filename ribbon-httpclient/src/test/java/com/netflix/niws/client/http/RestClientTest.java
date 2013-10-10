@@ -30,8 +30,8 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
-import com.netflix.client.HttpResponse;
 import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;

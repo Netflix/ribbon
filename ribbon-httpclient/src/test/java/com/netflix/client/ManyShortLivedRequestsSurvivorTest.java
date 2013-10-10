@@ -22,6 +22,7 @@ package com.netflix.client;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
 import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.niws.client.http.RestClient;
 import org.junit.Test;
 

@@ -19,6 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.netflix.client.config.IClientConfig;
@@ -31,7 +32,8 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
     
     private AsyncClient<T, S, U> asyncClient;
     private static final Logger logger = LoggerFactory.getLogger(AsyncLoadBalancingClient.class);
-
+    
+    private LoadBalancerErrorHandler<? super T, ? super S> errorHandler = new DefaultLoadBalancerErrorHandler<ClientRequest, IResponse>();
 
     public AsyncLoadBalancingClient(AsyncClient<T, S, U> asyncClient) {
         super();
@@ -47,7 +49,15 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
     protected AsyncLoadBalancingClient() {
     }
 
-    
+    public final LoadBalancerErrorHandler<? super T, ? super S> getErrorHandler() {
+        return errorHandler;
+    }
+
+    public final void setErrorHandler(LoadBalancerErrorHandler<T, S> errorHandler) {
+        Preconditions.checkNotNull(errorHandler);
+        this.errorHandler = errorHandler;
+    }
+
     private Future<S> getFuture(final AtomicReference<Future<S>> futurePointer, final CallbackDelegate<S, ?> callbackDelegate) {
         return new Future<S>() {
 
@@ -200,11 +210,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
 
             @Override
             public void failed(Throwable e) {
-                boolean shouldRetry = false;
-                if (e instanceof ClientException) {
-                    // we dont want to retry for PUT/POST and DELETE, we can for GET
-                    shouldRetry = retryOkayOnOperation && numRetriesNextServer > 0;
-                }
+                boolean shouldRetry = retryOkayOnOperation && numRetriesNextServer > 0 && errorHandler.isRetriableException(request, e, false);
                 if (shouldRetry) {
                     if (retries.incrementAndGet() > numRetriesNextServer) {
                         delegate.failed(new ClientException(
@@ -225,14 +231,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                         delegate.failed(e1);
                     }
                 } else {
-                    if (e instanceof ClientException) {
-                        delegate.failed(e);
-                    } else {
-                        delegate.failed(new ClientException(
-                                ClientException.ErrorType.GENERAL,
-                                "Unable to execute request for URI:" + request.getUri(),
-                                e));
-                    }
+                    delegate.failed(e);
                 }
             }
 
@@ -289,10 +288,10 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                 if (serverStats != null) {
                     serverStats.addToFailureCount();
                 }
-                if (isCircuitBreakerException(e) && serverStats != null) {
+                if (errorHandler.isCircuitTrippingException(e) && serverStats != null) {
                     serverStats.incrementSuccessiveConnectionFailureCount();
                 }
-                boolean shouldRetry = retryOkayOnOperation && numRetries > 0 && isRetriableException(e);
+                boolean shouldRetry = retryOkayOnOperation && numRetries > 0 && errorHandler.isRetriableException(request, e, true);
                 if (shouldRetry) {
                     if (!handleSameServerRetry(uri, retries.incrementAndGet(), numRetries, e)) {
                         callback.failed(new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
@@ -308,8 +307,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                         }
                     } 
                 } else {
-                    ClientException clientException = generateNIWSException(uri.toString(), e);
-                    callback.failed(clientException);
+                    callback.failed(e);
                 }
             }
             
@@ -327,6 +325,9 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
 
             @Override
             public void responseReceived(S response) {
+                if (errorHandler.isCircuitTrippinErrorgResponse(response)) {
+                    serverStats.incrementSuccessiveConnectionFailureCount();
+                }
                 callback.responseReceived(response);
             }
 
@@ -519,16 +520,6 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         };
     }
     
-    @Override
-    protected boolean isCircuitBreakerException(Throwable e) {
-        return true;
-    }
-
-    @Override
-    protected boolean isRetriableException(Throwable e) {
-        return true;
-    }
-
     @Override
     public void close() throws IOException {
         if (asyncClient != null) {

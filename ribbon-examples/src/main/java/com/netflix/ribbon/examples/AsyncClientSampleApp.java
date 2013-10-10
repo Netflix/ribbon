@@ -3,8 +3,8 @@ package com.netflix.ribbon.examples;
 import java.util.concurrent.Future;
 
 import com.netflix.client.FullResponseCallback;
-import com.netflix.client.HttpResponse;
 import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.httpasyncclient.RibbonHttpAsyncClient;
 
 public class AsyncClientSampleApp {

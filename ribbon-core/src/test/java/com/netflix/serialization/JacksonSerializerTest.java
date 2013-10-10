@@ -6,6 +6,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import com.google.common.reflect.TypeToken;
 import com.google.common.collect.Lists;
@@ -31,7 +32,12 @@ public class JacksonSerializerTest {
         assertEquals(person, deserialized);
         deserialized = deserializer.deserialize(new ByteArrayInputStream(bytes), TypeToken.of(Person.class));
         assertEquals(person, deserialized);
+        
+        ObjectMapper mapper = new ObjectMapper();
+        deserialized = (Person) mapper.readValue(bytes, TypeToken.of(Person.class).getRawType());
+        assertEquals(person, deserialized);
     }
+    
     
     private byte[] serializeToBytes(Object obj, Serializer serializer) throws Exception {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();

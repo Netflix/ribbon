@@ -31,8 +31,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
-import com.netflix.client.HttpResponse;
 import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.HttpRequest.Verb;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
