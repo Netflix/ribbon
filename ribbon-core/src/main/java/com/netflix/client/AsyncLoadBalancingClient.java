@@ -345,11 +345,12 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         public boolean isResponseReceived();
         public boolean isFailed();
         public Multimap<URI, Future<T>> getAllAttempts();
+        public URI getExecutedURI();
     }
     
     public <E> ExecutionResult<S> executeWithBackupRequests(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback, final int numServers, long timeout, TimeUnit unit)
             throws ClientException {
-        List<T> requests = Lists.newArrayList();
+        final List<T> requests = Lists.newArrayList();
         for (int i = 0; i < numServers; i++) {
             requests.add(computeFinalUriWithLoadBalancer(request));
         }
@@ -538,6 +539,16 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
             @Override
             public Multimap<URI, Future<S>> getAllAttempts() {
                 return map;
+            }
+
+            @Override
+            public URI getExecutedURI() {
+                int requestIndex = finalSequenceNumber.get(); 
+                if ( requestIndex >= 0) {
+                    return requests.get(requestIndex).getUri();
+                } else {
+                    return null;
+                }
             }
         };
     }

@@ -19,12 +19,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.http.nio.util.ExpandableBuffer;
 import org.apache.http.nio.util.HeapByteBufferAllocator;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -32,7 +29,6 @@ import rx.util.functions.Action1;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.AsyncLoadBalancingClient;
-import com.netflix.client.ClientException;
 import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.ObservableAsyncClient;
 import com.netflix.client.ObservableAsyncClient.StreamEvent;
@@ -41,8 +37,8 @@ import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.http.HttpRequest;
-import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.HttpRequest.Verb;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
@@ -53,7 +49,7 @@ import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.net.httpserver.HttpServer;
 
-public class HttpAsyncClienTest {
+public class HttpAsyncClientTest {
     private static HttpServer server = null;
     private static String SERVICE_URI;
 
@@ -578,6 +574,7 @@ public class HttpAsyncClienTest {
                 fail("All futures should be done at this point");
             }
         }
+        assertEquals(new URI("http://" + good.getHost() + ":" + good.getPort() +  uri.getPath()), result.getExecutedURI());
     }
     
     @Test
