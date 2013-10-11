@@ -20,8 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
@@ -339,7 +341,13 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         currentRunningTask.set(future);
     }
 
-    public <E> Future<S> parallelExecute(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback, final int numServers, long timeout, TimeUnit unit)
+    public static interface ExecutionResult<T extends IResponse> extends Future<T> {
+        public boolean isResponseReceived();
+        public boolean isFailed();
+        public Multimap<URI, Future<T>> getAllAttempts();
+    }
+    
+    public <E> ExecutionResult<S> executeWithBackupRequests(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback, final int numServers, long timeout, TimeUnit unit)
             throws ClientException {
         List<T> requests = Lists.newArrayList();
         for (int i = 0; i < numServers; i++) {
@@ -354,10 +362,11 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         final AtomicBoolean cancelledCalled = new AtomicBoolean();
         final Lock lock = new ReentrantLock();
         final Condition responseChosen = lock.newCondition();
+        final Multimap<URI, Future<S>> map = ArrayListMultimap.create();
         
         for (int i = 0; i < requests.size(); i++) {
             final int sequenceNumber = i;
-            results.add(asyncClient.execute(requests.get(i), decoder, new ResponseCallback<S, E>() {
+            Future<S> future = asyncClient.execute(requests.get(i), decoder, new ResponseCallback<S, E>() {
                 private volatile boolean chosen = false;
                 @Override
                 public void completed(S response) {
@@ -429,17 +438,15 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                 private void cancelOthers() {
                     int i = 0; 
                     for (Future<S> future: results) {
-                        if (finalSequenceNumber.get() >= 0 && i != finalSequenceNumber.get() && !future.isCancelled()) {
-                            try {
-                                future.cancel(true);
-                            } catch (Throwable e) {
-                                logger.warn("Unable to cancel future", e);
-                            }
+                        if (finalSequenceNumber.get() >= 0 && i != finalSequenceNumber.get() && !future.isDone()) {
+                            future.cancel(true);
                         }
                         i++;
                     }                    
                 }
-            }));
+            });
+            results.add(future);
+            map.put(requests.get(i).getUri(), future);
             lock.lock();
             try {
                 if (finalSequenceNumber.get() >= 0 || responseChosen.await(timeout, unit)) {
@@ -451,7 +458,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                 lock.unlock();
             }
         }
-        return new Future<S>() {
+        return new ExecutionResult<S>() {
             private volatile boolean cancelled = false;
             @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
@@ -516,6 +523,21 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                 } else {
                     return Iterables.get(results, finalSequenceNumber.get()).isDone();
                 }
+            }
+
+            @Override
+            public boolean isResponseReceived() {
+                return responseRecevied.get();
+            }
+
+            @Override
+            public boolean isFailed() {
+                return failedCalled.get();
+            }
+
+            @Override
+            public Multimap<URI, Future<S>> getAllAttempts() {
+                return map;
             }
         };
     }

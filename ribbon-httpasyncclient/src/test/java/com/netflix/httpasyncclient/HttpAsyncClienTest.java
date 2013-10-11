@@ -566,13 +566,18 @@ public class HttpAsyncClienTest {
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();                
-        loadBalancingClient.parallelExecute(request, null, callback, 4, 1, TimeUnit.MILLISECONDS);
+        AsyncLoadBalancingClient.ExecutionResult<HttpResponse> result = loadBalancingClient.executeWithBackupRequests(request, null, callback, 4, 1, TimeUnit.MILLISECONDS);
         callback.awaitCallback();
+        assertTrue(result.isResponseReceived());
         // make sure we do not get more than 1 callback
         assertNull(callback.getError());
         assertFalse(callback.isCancelled());
         assertEquals(EmbeddedResources.defaultPerson, callback.getHttpResponse().getEntity(Person.class));
-
+        for (Future<HttpResponse> future: result.getAllAttempts().values()) {
+            if (!future.isDone()) {
+                fail("All futures should be done at this point");
+            }
+        }
     }
     
     @Test
@@ -588,7 +593,7 @@ public class HttpAsyncClienTest {
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();                
-        loadBalancingClient.parallelExecute(request, null, callback, 2, 1, TimeUnit.MILLISECONDS);
+        loadBalancingClient.executeWithBackupRequests(request, null, callback, 2, 1, TimeUnit.MILLISECONDS);
         // make sure we do not get more than 1 callback
         callback.awaitCallback();
         assertNotNull(callback.getError());

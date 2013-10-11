@@ -51,7 +51,7 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     private Counter requestCounter;
     private Counter releaseCounter;
     private Counter deleteCounter;
-    private Stopwatch requestTimer;
+    private Timer requestTimer;
     
     public NamedConnectionPool(String name, ClientConnectionOperator operator,
             ConnPerRoute connPerRoute, int maxTotalConnections, long connTTL,
@@ -95,8 +95,7 @@ public class NamedConnectionPool extends ConnPoolByRoute {
         requestCounter = Monitors.newCounter(name + "_Request");
         releaseCounter = Monitors.newCounter(name + "_Release");
         deleteCounter = Monitors.newCounter(name + "_Delete");
-        requestTimer = Monitors.newTimer(name + "RequestEntry", TimeUnit.MILLISECONDS).start();
-        requestTimer.reset();
+        requestTimer = Monitors.newTimer(name + "RequestEntry", TimeUnit.MILLISECONDS);
         Monitors.registerObject(this);
     }
 
@@ -128,11 +127,11 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     protected BasicPoolEntry getEntryBlocking(HttpRoute route, Object state,
             long timeout, TimeUnit tunit, WaitingThreadAborter aborter)
             throws ConnectionPoolTimeoutException, InterruptedException {
-        requestTimer.start();
+        Stopwatch stopWatch = requestTimer.start();
         try {
             return super.getEntryBlocking(route, state, timeout, tunit, aborter);
         } finally {
-            requestTimer.stop();
+            stopWatch.stop();
         }
     }
 
@@ -150,22 +149,22 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     }
 
     public final long getFreeEntryCount() {
-        return freeEntryCounter.getValue();
+        return freeEntryCounter.getValue().longValue();
     }
     
     public final long getCreatedEntryCount() {
-        return createEntryCounter.getValue();
+        return createEntryCounter.getValue().longValue();
     }
     
     public final long getRequestsCount() {
-        return requestCounter.getValue();
+        return requestCounter.getValue().longValue();
     }   
     
     public final long getReleaseCount() {
-        return releaseCounter.getValue();
+        return releaseCounter.getValue().longValue();
     }
     
     public final long getDeleteCount() {
-        return deleteCounter.getValue();
+        return deleteCounter.getValue().longValue();
     }
 }

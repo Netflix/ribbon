@@ -9,6 +9,7 @@ import java.util.Map;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -24,11 +25,13 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
     private SerializationFactory<ContentTypeBasedSerializerKey>  factory;
     private HttpResponse response;
     private URI requestedURI;
+    private AbstractAsyncResponseConsumer<HttpResponse> consumer;
     
-    public HttpClientResponse(HttpResponse response, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory, URI requestedURI) {
+    public HttpClientResponse(HttpResponse response, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
         this.response = response;    
         this.factory = serializationFactory;
         this.requestedURI = requestedURI;
+        this.consumer = consumer;
     }
     
     @Override
@@ -104,6 +107,7 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
 
     @Override
     public void close() throws IOException {
+        consumer.close();
         HttpEntity entity = response.getEntity();
         if (entity != null) {
             try {
@@ -111,6 +115,7 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
             } catch (IllegalStateException e) { // NOPMD
             }
         }    
+        
     }
     
 }

@@ -29,6 +29,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.methods.AsyncByteConsumer;
 import org.apache.http.nio.client.methods.HttpAsyncMethods;
+import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 import org.apache.http.nio.protocol.BasicAsyncResponseConsumer;
 import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
@@ -43,7 +44,6 @@ import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.loadbalancer.ILoadBalancer;
@@ -180,10 +180,9 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
             final ResponseCallback<com.netflix.client.http.HttpResponse, E> callback)
             throws ClientException {        
         final HttpUriRequest request = getRequest(ribbonRequest);
-        DelegateCallback<E> fCallback = new DelegateCallback<E>(callback, request.getURI());
-        Future<HttpResponse> future = null;
+        AbstractAsyncResponseConsumer<HttpResponse> consumer = null;
         if (decoder != null) {
-            AsyncByteConsumer<HttpResponse> consumer = new AsyncByteConsumer<HttpResponse>() {
+            consumer = new AsyncByteConsumer<HttpResponse>() {
                 private volatile HttpResponse response;            
                 @Override
                 protected void onByteReceived(ByteBuffer buf, IOControl ioctrl)
@@ -199,7 +198,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                         throws HttpException, IOException {
                     this.response = response;
                     if (callback != null) {
-                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI()));
+                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI(), this));
                     }
                 }
 
@@ -209,23 +208,20 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
                     return response;
                 }            
             };
-            future = httpclient.execute(HttpAsyncMethods.create(request), consumer, fCallback);
         } else {
-            BasicAsyncResponseConsumer consumer = new BasicAsyncResponseConsumer() {
+            consumer = new BasicAsyncResponseConsumer() {
                 @Override
                 protected void onResponseReceived(HttpResponse response)
                         throws IOException {
                     super.onResponseReceived(response);
                     if (callback != null) {
-                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI()));
+                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI(), this));
                     }
                 }
             };
-            future = httpclient.execute(HttpAsyncMethods.create(request), consumer, fCallback);
-            
-            // future = httpclient.execute(request, fCallback);
-
         }
+        DelegateCallback<E> fCallback = new DelegateCallback<E>(callback, request.getURI(), consumer);
+        Future<HttpResponse> future = httpclient.execute(HttpAsyncMethods.create(request), consumer, fCallback);
         return createFuture(future, fCallback); 
     }
     
@@ -282,14 +278,15 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
     
     class DelegateCallback<E> implements FutureCallback<HttpResponse> {
         private final ResponseCallback<com.netflix.client.http.HttpResponse, E> callback;
-        
+        private final AbstractAsyncResponseConsumer<HttpResponse> consumer;
         private AtomicBoolean callbackInvoked = new AtomicBoolean(false);
         
         private URI requestedURI;
         
-        public DelegateCallback(ResponseCallback<com.netflix.client.http.HttpResponse, E> callback, URI requestedURI) {
+        public DelegateCallback(ResponseCallback<com.netflix.client.http.HttpResponse, E> callback, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
             this.callback = callback;
             this.requestedURI = requestedURI;
+            this.consumer = consumer;
         }
         
         private CountDownLatch latch = new CountDownLatch(1);
@@ -328,7 +325,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         @Override
         public void completed(HttpResponse result) {
             if (callbackInvoked.compareAndSet(false, true)) {
-                completeResponse = new HttpClientResponse(result, serializationFactory, requestedURI);
+                completeResponse = new HttpClientResponse(result, serializationFactory, requestedURI, consumer);
                 latch.countDown();
                 if (callback != null) {
                    try {
@@ -353,8 +350,11 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
 
         @Override
         public void cancelled() {
-            if (callbackInvoked.compareAndSet(false, true) && callback != null) {
-                callback.cancelled();
+            if (callbackInvoked.compareAndSet(false, true)) {
+                latch.countDown();
+                if (callback != null) {
+                    callback.cancelled();
+                }
             }
         }
     }
