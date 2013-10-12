@@ -125,7 +125,7 @@ class HttpClientResponse implements HttpResponse {
     }
     
     @Override
-    public void close() throws IOException {
+    public void close() {
         bcr.close();
     }
 

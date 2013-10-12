@@ -80,6 +80,7 @@ project(':ribbon-examples') {
     dependencies {
         compile project(':ribbon-httpclient')
         compile project(':ribbon-httpasyncclient')
+        compile 'com.google.code.gson:gson:2.2.4'
     }
 }
 

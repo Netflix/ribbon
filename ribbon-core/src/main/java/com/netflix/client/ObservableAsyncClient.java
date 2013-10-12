@@ -3,6 +3,9 @@ package com.netflix.client;
 
 import java.util.concurrent.Future;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
@@ -29,6 +32,8 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
             return event;
         }
     }
+    
+    private static final Logger logger = LoggerFactory.getLogger(ObservableAsyncClient.class);
     
     private final AsyncClient<T, S, U> client;
     
@@ -117,8 +122,7 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
                     parentSubscription.add(Subscriptions.from(future));
                     
                 } catch (ClientException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    logger.error("Unexpected exception", e);
                 }
                 return parentSubscription;
             }

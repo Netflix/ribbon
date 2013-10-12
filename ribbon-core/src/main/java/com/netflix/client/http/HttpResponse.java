@@ -10,4 +10,6 @@ public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
     public int getStatus();
     
     public Map<String, Collection<String>> getHeaders();  
+    
+    public void close();
 }

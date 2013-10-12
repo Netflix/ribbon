@@ -106,14 +106,14 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         consumer.close();
         HttpEntity entity = response.getEntity();
         if (entity != null) {
             try {
                 entity.getContent().close();
-            } catch (IllegalStateException e) { // NOPMD
-            }
+            } catch (Exception e) { // NOPMD
+            } 
         }    
         
     }

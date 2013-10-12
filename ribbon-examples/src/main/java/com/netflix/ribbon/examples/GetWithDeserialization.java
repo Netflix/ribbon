@@ -1,39 +1,45 @@
 package com.netflix.ribbon.examples;
 
+import java.net.URI;
 import java.util.concurrent.Future;
 
 import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
-import com.netflix.httpasyncclient.RibbonHttpAsyncClient;
+import com.netflix.ribbon.examples.server.ServerResources.Person;
 
-public class AsyncClientSampleApp {
-    
-    public static void main(String[] args) throws Exception {
-        RibbonHttpAsyncClient client = new RibbonHttpAsyncClient();
-        HttpRequest request = HttpRequest.newBuilder().uri("http://www.google.com/").build();
+
+public class GetWithDeserialization extends ExampleAppWithLocalResource {
+
+    @Override
+    public void run() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testAsync/person");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         Future<HttpResponse> future = client.execute(request, new BufferedResponseCallback<HttpResponse>() {
             @Override
             public void failed(Throwable e) {
-                System.err.println("failed: " + e);
             }
             
             @Override
             public void completed(HttpResponse response) {
-                System.out.println("Get response: " + response.getStatus());
                 try {
-                    response.close();
+                    System.out.println(response.getEntity(Person.class));
                 } catch (Exception e) {
                     e.printStackTrace();
+                } finally {
+                    response.close();
                 }
             }
             
             @Override
             public void cancelled() {
-                System.err.println("cancelled");
             }
         });
-        HttpResponse response = future.get();
-        System.out.println("Status from response " + response.getStatus());
+        future.get();
+    }
+
+    public static void main(String[] args) throws Exception {
+        GetWithDeserialization app = new GetWithDeserialization();
+        app.runApp();
     }
 }
