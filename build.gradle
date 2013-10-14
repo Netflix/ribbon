@@ -81,6 +81,7 @@ project(':ribbon-examples') {
         compile project(':ribbon-httpclient')
         compile project(':ribbon-httpasyncclient')
         compile 'com.google.code.gson:gson:2.2.4'
+        compile 'com.thoughtworks.xstream:xstream:1.4.5'
     }
 }
 

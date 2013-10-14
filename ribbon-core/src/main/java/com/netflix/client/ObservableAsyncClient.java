@@ -1,6 +1,8 @@
 package com.netflix.client;
 
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -13,7 +15,7 @@ import rx.Observable.OnSubscribeFunc;
 import rx.subscriptions.CompositeSubscription;
 import rx.subscriptions.Subscriptions;
 
-public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse, U> {
+public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse, U> implements Closeable {
 
     public static class StreamEvent<U extends IResponse, E> {
         private volatile U response;
@@ -94,7 +96,7 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
                             private volatile S response;
                             @Override
                             public void completed(S response) {
-                                observer.onCompleted();                                
+                                observer.onCompleted();
                             }
 
                             @Override
@@ -134,6 +136,16 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
                 return onSubscribeFunc.onSubscribe(observer);
             }
         });
+    }
+
+    @Override
+    public void close() {
+        try {
+            this.client.close();
+        } catch (IOException e) {
+            logger.error("Exception closing client", e);
+        }
+        
     }
    
 }

@@ -8,5 +8,5 @@ import com.netflix.serialization.SerializationFactory;
 public interface ResponseBufferingAsyncClient<T extends ClientRequest, S extends IResponse, U> extends Closeable {
     public Future<S> execute(T request, BufferedResponseCallback<S> callback) throws ClientException;
     
-    public void setSerializationFactory(SerializationFactory<U> factory);
+    public void addSerializationFactory(SerializationFactory<U> factory);
 }

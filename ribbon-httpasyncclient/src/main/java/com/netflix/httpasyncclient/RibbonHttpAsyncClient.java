@@ -1,12 +1,12 @@
 package com.netflix.httpasyncclient;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -22,6 +22,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
@@ -34,6 +35,7 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.netflix.client.AsyncClient;
 import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.ClientException;
@@ -54,7 +56,7 @@ public class RibbonHttpAsyncClient
                    AsyncHttpClient<ByteBuffer> {
 
     CloseableHttpAsyncClient httpclient;
-    private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory = new JacksonSerializationFactory();
+    private List<SerializationFactory<ContentTypeBasedSerializerKey>> factories = Lists.newArrayList();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
             
     public RibbonHttpAsyncClient() {
@@ -64,6 +66,7 @@ public class RibbonHttpAsyncClient
                 .build();
         httpclient = HttpAsyncClients.custom().setDefaultRequestConfig(requestConfig).setMaxConnTotal(200)
                 .setMaxConnPerRoute(50).build();
+        this.addSerializationFactory(new JacksonSerializationFactory());
         httpclient.start();
     }
     
@@ -79,10 +82,10 @@ public class RibbonHttpAsyncClient
                 .setMaxConnTotal(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxTotalHttpConnections, 200))
                 .setMaxConnPerRoute(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxHttpConnectionsPerHost, 50))
                 .build();
-        String serializationFactoryClass = clientConfig.getPropertyAsString(CommonClientConfigKey.SerializationFactoryClassName, null);
+        String serializationFactoryClass = clientConfig.getPropertyAsString(CommonClientConfigKey.DefaultSerializationFactoryClassName, JacksonSerializationFactory.class.getName());
         if (serializationFactoryClass != null) {
             try {
-                serializationFactory = (SerializationFactory<ContentTypeBasedSerializerKey>) Class.forName(serializationFactoryClass).newInstance();
+                factories.add((SerializationFactory<ContentTypeBasedSerializerKey>) Class.forName(serializationFactoryClass).newInstance());
             } catch (Exception e) {
                 throw new RuntimeException("Unable to instantiate serialization factory", e);
             }            
@@ -90,13 +93,13 @@ public class RibbonHttpAsyncClient
         httpclient.start();
     }
 
-    public final SerializationFactory<ContentTypeBasedSerializerKey> getSerializationFactory() {
-        return serializationFactory;
+    public final List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> getSerializationFactories() {
+        return factories;
     }
 
-    public final void setSerializationFactory(
-            SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory) {
-        this.serializationFactory = serializationFactory;
+    @Override
+    public final void addSerializationFactory(SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory) {
+        factories.add(0, serializationFactory);
     }
 
     private static String getContentType(Map<String, Collection<String>> headers) {
@@ -172,7 +175,7 @@ public class RibbonHttpAsyncClient
                         throws HttpException, IOException {
                     this.response = response;
                     if (callback != null) {
-                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI(), this));
+                        callback.responseReceived(new HttpClientResponse(response, factories, request.getURI(), this));
                     }
                 }
 
@@ -189,7 +192,7 @@ public class RibbonHttpAsyncClient
                         throws IOException {
                     super.onResponseReceived(response);
                     if (callback != null) {
-                        callback.responseReceived(new HttpClientResponse(response, serializationFactory, request.getURI(), this));
+                        callback.responseReceived(new HttpClientResponse(response, factories, request.getURI(), this));
                     }
                 }
             };
@@ -234,17 +237,23 @@ public class RibbonHttpAsyncClient
                 httpEntity = new InputStreamEntity((InputStream) entity, -1);
                 builder.setEntity(httpEntity);
             } else {
-                Serializer serializer = serializationFactory.getSerializer(key).orNull();
-                if (serializer == null) {
-                    throw new ClientException("Unable to find serializer for " + key);
+                for (SerializationFactory<ContentTypeBasedSerializerKey> f: factories) {
+                    Serializer serializer = f.getSerializer(key).orNull();
+                    if (serializer != null) {
+                        try {
+                            ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                            serializer.serialize(bout, entity);
+                            httpEntity = new ByteArrayEntity(bout.toByteArray());
+                            builder.setEntity(httpEntity);
+                            break;
+                        } catch (IOException e) {
+                            throw new ClientException(e);
+                        }
+                    }
+                    
                 }
-                PipedOutputStream source = new PipedOutputStream();
-                try {
-                    httpEntity = new InputStreamEntity(new PipedInputStream(source));
-                    serializer.serialize(source, entity);
-                    builder.setEntity(httpEntity);
-                } catch (IOException e) {
-                    throw new ClientException(e);
+                if (builder.getEntity() == null) {
+                    throw new ClientException("No suitable serializer for " + key);
                 }
             }
         }
@@ -300,7 +309,7 @@ public class RibbonHttpAsyncClient
         @Override
         public void completed(HttpResponse result) {
             if (callbackInvoked.compareAndSet(false, true)) {
-                completeResponse = new HttpClientResponse(result, serializationFactory, requestedURI, consumer);
+                completeResponse = new HttpClientResponse(result, factories, requestedURI, consumer);
                 latch.countDown();
                 if (callback != null) {
                    try {

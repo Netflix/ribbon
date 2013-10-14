@@ -1,6 +1,8 @@
 package com.netflix.ribbon.examples;
 
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
@@ -16,16 +18,18 @@ public abstract class ExampleAppWithLocalResource {
     
     public final void runApp() throws Exception {
         PackagesResourceConfig resourceConfig = new PackagesResourceConfig("com.netflix.ribbon.examples.server");
+        ExecutorService service = Executors.newFixedThreadPool(5);
         try{
             server = HttpServerFactory.create(SERVICE_URI, resourceConfig);           
+            server.setExecutor(service);
             server.start();
             run();
-            // Thread.sleep(10000); // make sure server is running when run() is returned 
         } finally {
-            System.err.println("Shut down server, this will take a while ...");
+            System.err.println("Shut down server ...");
             if (server != null) {
-                server.stop(0);
+                server.stop(1);
             }
+            service.shutdownNow();
         }
     }
 }

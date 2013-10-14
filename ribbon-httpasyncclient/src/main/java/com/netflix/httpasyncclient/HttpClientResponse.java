@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.Header;
@@ -22,12 +23,12 @@ import com.netflix.serialization.SerializationFactory;
 
 class HttpClientResponse implements com.netflix.client.http.HttpResponse {
 
-    private SerializationFactory<ContentTypeBasedSerializerKey>  factory;
+    private List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> factory;
     private HttpResponse response;
     private URI requestedURI;
     private AbstractAsyncResponseConsumer<HttpResponse> consumer;
     
-    public HttpClientResponse(HttpResponse response, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
+    public HttpClientResponse(HttpResponse response, List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> serializationFactory, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
         this.response = response;    
         this.factory = serializationFactory;
         this.requestedURI = requestedURI;
@@ -82,13 +83,17 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
     @Override
     public <T> T getEntity(TypeToken<T> type) throws ClientException {
         ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.getFirstHeader("Content-type").getValue(), type);
-        Deserializer deserializer = factory.getDeserializer(key).orNull();
-        try {
-            return deserializer.deserialize(response.getEntity().getContent(), type);
-        } catch (IOException e) {
-            throw new ClientException(e);
+        for (SerializationFactory<ContentTypeBasedSerializerKey> f: factory) {
+            Deserializer deserializer = f.getDeserializer(key).orNull();
+            if (deserializer != null) {
+                try {
+                    return deserializer.deserialize(response.getEntity().getContent(), type);
+                } catch (IOException e) {
+                    throw new ClientException(e);
+                }
+            }
         }
-
+        throw new ClientException("No suitable deserializer for " + key);
     }
     
     @Override

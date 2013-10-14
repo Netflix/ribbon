@@ -15,9 +15,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
+import org.apache.commons.io.input.XmlStreamReader;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.common.collect.Lists;
+import com.thoughtworks.xstream.XStream;
 
 @Path("/testAsync")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -104,6 +106,7 @@ public class ServerResources {
     @POST
     @Path("/person")
     public Response createPerson(String content) throws IOException {
+        System.err.println("uploaded: " + content);
         Person person = mapper.readValue(content, Person.class);
         return Response.ok(mapper.writeValueAsString(person)).build();
     }
@@ -136,6 +139,14 @@ public class ServerResources {
             }
         };
     }
-
+    
+    @GET
+    @Path("/getXml")
+    @Produces("application/xml")
+    public Response getXml() {
+        XStream xstream = new XStream();
+        String content = xstream.toXML(new Person("I am from XML", 1));
+        return Response.ok(content).build();
+    }
 }
 

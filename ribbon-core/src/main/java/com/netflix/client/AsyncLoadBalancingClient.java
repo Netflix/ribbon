@@ -341,7 +341,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         for (int i = 0; i < numServers; i++) {
             requests.add(computeFinalUriWithLoadBalancer(request));
         }
-        return AsyncBackupRequestsExecutor.executeWithBackupRequests(this,  requests, numServers, timeout, unit, decoder, callback);
+        return AsyncBackupRequestsExecutor.executeWithBackupRequests(this,  requests, timeout, unit, decoder, callback);
     }
 
     
@@ -353,7 +353,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
     }
 
     @Override
-    public void setSerializationFactory(SerializationFactory<V> factory) {
+    public void addSerializationFactory(SerializationFactory<V> factory) {
         // TODO Auto-generated method stub
         
     }

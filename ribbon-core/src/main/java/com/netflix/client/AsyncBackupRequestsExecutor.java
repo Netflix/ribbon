@@ -27,15 +27,16 @@ public class AsyncBackupRequestsExecutor {
 
     public static <T extends ClientRequest, S extends IResponse, U, V> ExecutionResult<S> 
             executeWithBackupRequests(AsyncClient<T, S, U, V> asyncClient, final List<T> requests,
-                final int numServers, long timeout, TimeUnit unit, final BufferedResponseCallback<S> callback) throws ClientException {
-        return executeWithBackupRequests(asyncClient, requests, numServers, timeout, unit, null, callback);
+               long timeout, TimeUnit unit, final BufferedResponseCallback<S> callback) throws ClientException {
+        return executeWithBackupRequests(asyncClient, requests, timeout, unit, null, callback);
     }
 
     public static <E, T extends ClientRequest, S extends IResponse, U, V> ExecutionResult<S> 
             executeWithBackupRequests(AsyncClient<T, S, U, V> asyncClient, final List<T> requests,
-                    final int numServers, long timeout, TimeUnit unit,
+                    long timeout, TimeUnit unit,
                     final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback)
             throws ClientException {
+        final int numServers = requests.size();
         final LinkedBlockingDeque<Future<S>> results = new LinkedBlockingDeque<Future<S>>();
         final AtomicInteger failedCount = new AtomicInteger();
         final AtomicInteger finalSequenceNumber = new AtomicInteger(-1);

@@ -121,7 +121,7 @@ public class AsyncHttpClientBuilder<T> {
     
     public AsyncHttpClientBuilder<T> withSerializationFactory(
             SerializationFactory<ContentTypeBasedSerializerKey> factory) {
-        client.setSerializationFactory(factory);
+        client.addSerializationFactory(factory);
         return this;
     }
     

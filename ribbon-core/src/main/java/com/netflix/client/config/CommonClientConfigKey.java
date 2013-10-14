@@ -92,7 +92,7 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     RulePredicateClasses("RulePredicateClasses"),
     
     // serialization
-    SerializationFactoryClassName("SerializationClassName");
+    DefaultSerializationFactoryClassName("DefaultSerializationClassName");
 
 
     private final String configKey;

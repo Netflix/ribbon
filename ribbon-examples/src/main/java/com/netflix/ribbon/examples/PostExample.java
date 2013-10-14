@@ -3,35 +3,38 @@ package com.netflix.ribbon.examples;
 import java.net.URI;
 import java.util.concurrent.Future;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+
 import com.netflix.client.http.AsyncBufferingHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.BufferedHttpResponseCallback;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
+import com.netflix.client.http.HttpRequest.Verb;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
 
-
-public class GetWithDeserialization extends ExampleAppWithLocalResource {
+public class PostExample extends ExampleAppWithLocalResource {
 
     @Override
     public void run() throws Exception {
-        URI uri = new URI(SERVICE_URI + "testAsync/person");
-        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         AsyncBufferingHttpClient client = AsyncHttpClientBuilder.withApacheAsyncClient().buildBufferingClient();
+        URI uri = new URI(SERVICE_URI + "testAsync/person");
+        Person myPerson = new Person("Example", 5);
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).verb(Verb.POST).entity(myPerson).header("Content-type", "application/json").build();
         try {
-            Future<HttpResponse> future = client.execute(request, new BufferedHttpResponseCallback() {
+            Future<HttpResponse> response = client.execute(request, new BufferedHttpResponseCallback() {
                 @Override
                 public void failed(Throwable e) {
+                    e.printStackTrace();
                 }
 
                 @Override
                 public void completed(HttpResponse response) {
                     try {
-                        System.out.println(response.getEntity(Person.class));
+                        System.out.println("Person uploaded: " + response.getEntity(Person.class));
                     } catch (Exception e) {
                         e.printStackTrace();
-                    } finally {
-                        response.close();
                     }
                 }
 
@@ -39,14 +42,15 @@ public class GetWithDeserialization extends ExampleAppWithLocalResource {
                 public void cancelled() {
                 }
             });
-            future.get();
+            response.get();
         } finally {
             client.close();
         }
     }
 
     public static void main(String[] args) throws Exception {
-        GetWithDeserialization app = new GetWithDeserialization();
+        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        PostExample app = new PostExample();
         app.runApp();
     }
 }
