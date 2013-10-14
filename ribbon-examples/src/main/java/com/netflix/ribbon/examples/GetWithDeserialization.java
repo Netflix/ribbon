@@ -3,7 +3,9 @@ package com.netflix.ribbon.examples;
 import java.net.URI;
 import java.util.concurrent.Future;
 
-import com.netflix.client.BufferedResponseCallback;
+import com.netflix.client.http.AsyncBufferingHttpClient;
+import com.netflix.client.http.AsyncHttpClientBuilder;
+import com.netflix.client.http.BufferedHttpResponseCallback;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
@@ -15,7 +17,8 @@ public class GetWithDeserialization extends ExampleAppWithLocalResource {
     public void run() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        Future<HttpResponse> future = client.execute(request, new BufferedResponseCallback<HttpResponse>() {
+        AsyncBufferingHttpClient client = AsyncHttpClientBuilder.withApacheAsyncClient().buildBufferingClient();
+        Future<HttpResponse> future = client.execute(request, new BufferedHttpResponseCallback() {
             @Override
             public void failed(Throwable e) {
             }

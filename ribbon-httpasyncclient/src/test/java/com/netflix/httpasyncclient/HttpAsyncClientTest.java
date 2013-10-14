@@ -28,6 +28,7 @@ import org.junit.Test;
 import rx.util.functions.Action1;
 
 import com.google.common.collect.Lists;
+import com.netflix.client.AsyncBackupRequestsExecutor.ExecutionResult;
 import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.ObservableAsyncClient;
@@ -36,6 +37,10 @@ import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.http.AsyncBufferingHttpClient;
+import com.netflix.client.http.AsyncHttpClient;
+import com.netflix.client.http.AsyncHttpClientBuilder;
+import com.netflix.client.http.AsyncLoadBalancingHttpClient;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpRequest.Verb;
 import com.netflix.client.http.HttpResponse;
@@ -45,6 +50,7 @@ import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
 import com.netflix.loadbalancer.RoundRobinRule;
 import com.netflix.loadbalancer.Server;
+import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.net.httpserver.HttpServer;
@@ -201,7 +207,10 @@ public class HttpAsyncClientTest {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new  ResponseCallbackWithLatch();
-        client.execute(request, callback);
+        AsyncBufferingHttpClient bufferingClient = 
+                AsyncHttpClientBuilder.withApacheAsyncClient()
+                                      .buildBufferingClient();
+        bufferingClient.execute(request, callback);
         callback.awaitCallback();
         assertEquals(EmbeddedResources.defaultPerson, callback.getHttpResponse().getEntity(Person.class));
     }
@@ -223,7 +232,9 @@ public class HttpAsyncClientTest {
     public void testObservable() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = new ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer>(client);
+        ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = 
+                AsyncHttpClientBuilder.withApacheAsyncClient()
+                .observableClient();
         final List<Person> result = Lists.newArrayList();
         observableClient.execute(request).toBlockingObservable().forEach(new Action1<HttpResponse>() {
             @Override
@@ -296,8 +307,8 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testLoadBalancingClient() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         List<Server> servers = Lists.newArrayList(new Server("localhost:" + port));
         lb.setServersList(servers);
@@ -313,8 +324,8 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testLoadBalancingClientFuture() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         List<Server> servers = Lists.newArrayList(new Server("localhost:" + port));
         lb.setServersList(servers);
@@ -332,8 +343,8 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testLoadBalancingClientMultiServers() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ?> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server good = new Server("localhost:" + port);
         Server bad = new Server("localhost:" + 33333);
@@ -355,8 +366,12 @@ public class HttpAsyncClientTest {
     public void testLoadBalancingClientFromFactory() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("asyncclient.ribbon.listOfServers", "localhost:33333,localhost:33333,localhost:" + port);
         ConfigurationManager.getConfigInstance().setProperty("asyncclient.ribbon." + CommonClientConfigKey.MaxAutoRetriesNextServer, "2");
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = RibbonHttpAsyncClient.createNamedLoadBalancingClientFromConfig("asyncclient");
+        AsyncLoadBalancingHttpClient<ByteBuffer> loadBalancingClient = AsyncHttpClientBuilder
+                    .withApacheAsyncClient("asyncclient")
+                    .withLoadBalancer()
+                    .build();
         assertEquals(2, loadBalancingClient.getMaxAutoRetriesNextServer());
+        assertTrue(loadBalancingClient.getErrorHandler() instanceof HttpAsyncClientLoadBalancerErrorHandler);
         URI uri = new URI("/testAsync/person");
         person = null;
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
@@ -371,19 +386,20 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testLoadBalancingClientMultiServersFuture() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server good = new Server("localhost:" + port);
         Server bad = new Server("localhost:" + 33333);
         List<Server> servers = Lists.newArrayList(bad, bad, good);
         lb.setServersList(servers);
-        loadBalancingClient.setLoadBalancer(lb);
-        loadBalancingClient.setMaxAutoRetriesNextServer(2);
+        AsyncLoadBalancingHttpClient<ByteBuffer> lbClient = 
+                AsyncHttpClientBuilder.withApacheAsyncClient()
+                .withLoadBalancer(lb)
+                .build();
+        lbClient.setMaxAutoRetriesNextServer(2);
         URI uri = new URI("/testAsync/person");
         person = null;
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        Future<HttpResponse> future = loadBalancingClient.execute(request, null, null);
+        Future<HttpResponse> future = lbClient.execute(request, null);
         assertEquals(EmbeddedResources.defaultPerson, future.get().getEntity(Person.class));
         assertEquals(1, lb.getLoadBalancerStats().getSingleServerStat(good).getTotalRequestsCount());
     }
@@ -394,8 +410,8 @@ public class HttpAsyncClientTest {
         
         RibbonHttpAsyncClient timeoutClient = 
                 new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(timeoutClient);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(timeoutClient);
         loadBalancingClient.setMaxAutoRetries(1);
         loadBalancingClient.setMaxAutoRetriesNextServer(1);
         Server server = new Server("www.microsoft.com:81");
@@ -417,8 +433,8 @@ public class HttpAsyncClientTest {
     public void testLoadBalancingClientWithRetryFuture() throws Exception {
         RibbonHttpAsyncClient timeoutClient = 
                 new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(timeoutClient);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(timeoutClient);
         loadBalancingClient.setMaxAutoRetries(1);
         loadBalancingClient.setMaxAutoRetriesNextServer(1);
         Server server = new Server("www.microsoft.com:81");
@@ -447,7 +463,10 @@ public class HttpAsyncClientTest {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
         final List<String> results = Lists.newArrayList();
         final CountDownLatch latch = new CountDownLatch(1);
-        client.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, List<String>>() {
+        AsyncHttpClient<ByteBuffer> httpClient = AsyncHttpClientBuilder
+                .withApacheAsyncClient()
+                .buildClient();
+        httpClient.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, List<String>>() {
             @Override
             public void completed(HttpResponse response) {
                 latch.countDown();    
@@ -480,7 +499,7 @@ public class HttpAsyncClientTest {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
         final List<String> results = Lists.newArrayList();
         ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = 
-                new ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer>(client);
+                AsyncHttpClientBuilder.withApacheAsyncClient().observableClient();
         observableClient.stream(request, new SSEDecoder())
             .toBlockingObservable()
             .forEach(new Action1<StreamEvent<HttpResponse, List<String>>>() {
@@ -497,8 +516,8 @@ public class HttpAsyncClientTest {
     @Test
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RV_RETURN_VALUE_IGNORED")
     public void testStreamWithLoadBalancer() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server good = new Server("localhost:" + port);
         Server bad = new Server("localhost:" + 33333);
@@ -551,18 +570,16 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testParallel() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(client);
-        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server good = new Server("localhost:" + port);
         Server bad = new Server("localhost:" + 33333);
         List<Server> servers = Lists.newArrayList(bad, bad, good, good);
-        lb.setServersList(servers);
-        loadBalancingClient.setLoadBalancer(lb);
+        AsyncLoadBalancingHttpClient<?> loadBalancingClient = AsyncHttpClientBuilder.withApacheAsyncClient()
+                .balancingWithServerList(servers)
+                .build();
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();                
-        AsyncLoadBalancingClient.ExecutionResult<HttpResponse> result = loadBalancingClient.executeWithBackupRequests(request, null, callback, 4, 1, TimeUnit.MILLISECONDS);
+        ExecutionResult<HttpResponse> result = loadBalancingClient.executeWithBackupRequests(request, 4, 1, TimeUnit.MILLISECONDS,null, callback);
         callback.awaitCallback();
         assertTrue(result.isResponseReceived());
         // make sure we do not get more than 1 callback
@@ -579,8 +596,8 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testParallelAllFailed() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server bad = new Server("localhost:" + 55555);
         Server bad1 = new Server("localhost:" + 33333);
@@ -590,11 +607,9 @@ public class HttpAsyncClientTest {
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();                
-        loadBalancingClient.executeWithBackupRequests(request, null, callback, 2, 1, TimeUnit.MILLISECONDS);
+        loadBalancingClient.executeWithBackupRequests(request, 2, 1, TimeUnit.MILLISECONDS, null, callback);
         // make sure we do not get more than 1 callback
         callback.awaitCallback();
         assertNotNull(callback.getError());
     }
-
-
 }

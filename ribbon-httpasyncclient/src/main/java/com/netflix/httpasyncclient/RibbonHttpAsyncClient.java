@@ -22,7 +22,6 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.concurrent.FutureCallback;
-import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
@@ -35,53 +34,29 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.netflix.client.AsyncClient;
-import com.netflix.client.AsyncLoadBalancingClient;
-import com.netflix.client.ClientException;
-import com.netflix.client.ClientFactory;
 import com.netflix.client.BufferedResponseCallback;
+import com.netflix.client.ClientException;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.client.http.AsyncHttpClient;
 import com.netflix.client.http.HttpRequest;
-import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.JacksonSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 
 
-public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> {
+public class RibbonHttpAsyncClient 
+        implements AsyncClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>, 
+                   AsyncHttpClient<ByteBuffer> {
 
     CloseableHttpAsyncClient httpclient;
     private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory = new JacksonSerializationFactory();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
-        
-    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name) 
-            throws ClientException {
-        IClientConfig config = ClientFactory.getNamedConfig(name);
-        return createNamedLoadBalancingClientFromConfig(name, config);       
-    }
-    
-    public static AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> createNamedLoadBalancingClientFromConfig(String name, IClientConfig clientConfig) 
-            throws ClientException {
-        Preconditions.checkArgument(clientConfig.getClientName().equals(name));
-        try {
-            RibbonHttpAsyncClient client = new RibbonHttpAsyncClient(clientConfig);
-            ILoadBalancer loadBalancer  = ClientFactory.registerNamedLoadBalancerFromclientConfig(name, clientConfig);
-            AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer> loadBalancingClient = 
-                    new AsyncLoadBalancingClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer>(client, clientConfig);
-            loadBalancingClient.setLoadBalancer(loadBalancer);
-            loadBalancingClient.setErrorHandler(new HttpAsyncClientLoadBalancerErrorHandler());
-            return loadBalancingClient;
-        } catch (Throwable e) {
-            throw new ClientException(ClientException.ErrorType.CONFIGURATION, 
-                    "Unable to create client", e);
-        }
-    }
-    
+            
     public RibbonHttpAsyncClient() {
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(10000)
@@ -115,7 +90,6 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         httpclient.start();
     }
 
-    
     public final SerializationFactory<ContentTypeBasedSerializerKey> getSerializationFactory() {
         return serializationFactory;
     }
@@ -225,6 +199,7 @@ public class RibbonHttpAsyncClient implements AsyncClient<HttpRequest, com.netfl
         return createFuture(future, fCallback); 
     }
     
+    @Override
     public Future<com.netflix.client.http.HttpResponse> execute(HttpRequest ribbonRequest, final BufferedResponseCallback<com.netflix.client.http.HttpResponse> callback) throws ClientException {
         return execute(ribbonRequest, null, callback);
     }

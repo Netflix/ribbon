@@ -20,7 +20,7 @@ import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
 
-public abstract class LoadBalancerContext implements IClientConfigAware {
+public abstract class LoadBalancerContext<T extends ClientRequest, S extends IResponse> implements IClientConfigAware {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerContext.class);
 
     protected String clientName = "default";          
@@ -29,6 +29,8 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
     
     protected int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
     protected int maxAutoRetries = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES;
+
+    protected LoadBalancerErrorHandler<? super T, ? super S> errorHandler = new DefaultLoadBalancerErrorHandler<ClientRequest, IResponse>();
 
 
     boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
@@ -80,7 +82,7 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
         return tracer;        
     }
     
-    public final String getClientName() {
+    public String getClientName() {
         return clientName;
     }
         
@@ -92,19 +94,19 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
         this.lb = lb;
     }
 
-    public final int getMaxAutoRetriesNextServer() {
+    public int getMaxAutoRetriesNextServer() {
         return maxAutoRetriesNextServer;
     }
 
-    public final void setMaxAutoRetriesNextServer(int maxAutoRetriesNextServer) {
+    public void setMaxAutoRetriesNextServer(int maxAutoRetriesNextServer) {
         this.maxAutoRetriesNextServer = maxAutoRetriesNextServer;
     }
 
-    public final int getMaxAutoRetries() {
+    public int getMaxAutoRetries() {
         return maxAutoRetries;
     }
 
-    public final void setMaxAutoRetries(int maxAutoRetries) {
+    public void setMaxAutoRetries(int maxAutoRetries) {
         this.maxAutoRetries = maxAutoRetries;
     }
 
@@ -251,7 +253,7 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
      * to get the complete executable URI.
      * 
      */
-    protected <T extends ClientRequest> Pair<String, Integer> deriveSchemeAndPortFromPartialUri(T request) {
+    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(T request) {
         URI theUrl = request.getUri();
         boolean isSecure = false;
         String scheme = theUrl.getScheme();
@@ -360,7 +362,7 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
      * @return new request with the final URI  
      */
     @SuppressWarnings("unchecked")
-    protected <T extends ClientRequest> T computeFinalUriWithLoadBalancer(T original) throws ClientException{
+    protected T computeFinalUriWithLoadBalancer(T original) throws ClientException{
         URI newURI;
         URI theUrl = original.getUri();
 
@@ -494,7 +496,7 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
         }
     }
 
-    protected boolean isRetriable(ClientRequest request) {
+    protected boolean isRetriable(T request) {
         if (request.isRetriable()) {
             return true;            
         } else {
@@ -526,7 +528,7 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
 
     }
 
-    public final int getNumberRetriesOnSameServer(IClientConfig overriddenClientConfig) {
+    protected int getNumberRetriesOnSameServer(IClientConfig overriddenClientConfig) {
         int numRetries =  maxAutoRetries;
         if (overriddenClientConfig!=null){
             try {
@@ -545,5 +547,14 @@ public abstract class LoadBalancerContext implements IClientConfigAware {
         logger.warn("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt#: {}, URI: {}",  
                 currentRetryCount, uri);
         return true;
+    }
+
+    public LoadBalancerErrorHandler<? super T, ? super S> getErrorHandler() {
+        return errorHandler;
+    }
+
+    public void setErrorHandler(
+            LoadBalancerErrorHandler<? super T, ? super S> errorHandler) {
+        this.errorHandler = errorHandler;
     }
 }

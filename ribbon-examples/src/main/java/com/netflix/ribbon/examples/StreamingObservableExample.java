@@ -7,6 +7,7 @@ import rx.util.functions.Action1;
 
 import com.netflix.client.ObservableAsyncClient;
 import com.netflix.client.ObservableAsyncClient.StreamEvent;
+import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 
@@ -16,7 +17,7 @@ public class StreamingObservableExample extends ExampleAppWithLocalResource {
     public void run() throws Exception {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
         ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = 
-                new ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer>(client);
+                AsyncHttpClientBuilder.withApacheAsyncClient().observableClient();
         observableClient.stream(request, new SSEDecoder())
             .toBlockingObservable()
             .forEach(new Action1<StreamEvent<HttpResponse, List<String>>>() {

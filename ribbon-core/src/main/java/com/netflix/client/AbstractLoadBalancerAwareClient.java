@@ -41,7 +41,7 @@ import com.netflix.servo.monitor.Timer;
  * @author awang
  *
  */
-public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> extends LoadBalancerContext implements IClient<S, T> {    
+public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> extends LoadBalancerContext<S, T> implements IClient<S, T> {    
     
     private static final Logger logger = LoggerFactory.getLogger(AbstractLoadBalancerAwareClient.class);
     

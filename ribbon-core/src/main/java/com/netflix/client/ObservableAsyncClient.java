@@ -35,9 +35,9 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
     
     private static final Logger logger = LoggerFactory.getLogger(ObservableAsyncClient.class);
     
-    private final AsyncClient<T, S, U> client;
+    private final AsyncClient<T, S, U, ?> client;
     
-    public ObservableAsyncClient(AsyncClient<T, S, U> client) {
+    public ObservableAsyncClient(AsyncClient<T, S, U, ?> client) {
         this.client = client;
     }
     

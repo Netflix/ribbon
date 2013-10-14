@@ -19,7 +19,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -27,37 +26,27 @@ import com.google.common.collect.Multimap;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
+import com.netflix.serialization.SerializationFactory;
 import com.netflix.servo.monitor.Stopwatch;
 
-public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IResponse, U>
-        extends LoadBalancerContext implements AsyncClient<T, S, U> {
+public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IResponse, U, V>
+        extends LoadBalancerContext<T, S> implements AsyncClient<T, S, U, V> {
     
-    private AsyncClient<T, S, U> asyncClient;
+    private AsyncClient<T, S, U, V> asyncClient;
     private static final Logger logger = LoggerFactory.getLogger(AsyncLoadBalancingClient.class);
     
-    private LoadBalancerErrorHandler<? super T, ? super S> errorHandler = new DefaultLoadBalancerErrorHandler<ClientRequest, IResponse>();
-
-    public AsyncLoadBalancingClient(AsyncClient<T, S, U> asyncClient) {
+    public AsyncLoadBalancingClient(AsyncClient<T, S, U, V> asyncClient) {
         super();
         this.asyncClient = asyncClient;
     }
     
-    public AsyncLoadBalancingClient(AsyncClient<T, S, U> asyncClient, IClientConfig clientConfig) {
+    public AsyncLoadBalancingClient(AsyncClient<T, S, U, V> asyncClient, IClientConfig clientConfig) {
         super(clientConfig);
         this.asyncClient = asyncClient;
     }
 
 
     protected AsyncLoadBalancingClient() {
-    }
-
-    public final LoadBalancerErrorHandler<? super T, ? super S> getErrorHandler() {
-        return errorHandler;
-    }
-
-    public final void setErrorHandler(LoadBalancerErrorHandler<T, S> errorHandler) {
-        Preconditions.checkNotNull(errorHandler);
-        this.errorHandler = errorHandler;
     }
 
     private Future<S> getFuture(final AtomicReference<Future<S>> futurePointer, final CallbackDelegate<S, ?> callbackDelegate) {
@@ -186,6 +175,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         }
     }
 
+    @Override
     public Future<S> execute(final T request, final BufferedResponseCallback<S> callback)
             throws ClientException {
         return execute(request, null, callback);
@@ -341,222 +331,30 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         currentRunningTask.set(future);
     }
 
-    public static interface ExecutionResult<T extends IResponse> extends Future<T> {
-        public boolean isResponseReceived();
-        public boolean isFailed();
-        public Multimap<URI, Future<T>> getAllAttempts();
-        public URI getExecutedURI();
-    }
-    
-    public <E> ExecutionResult<S> executeWithBackupRequests(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback, final int numServers, long timeout, TimeUnit unit)
+    public <E> AsyncBackupRequestsExecutor.ExecutionResult<S> executeWithBackupRequests(final T request,
+            final int numServers, long timeout, TimeUnit unit,
+            final StreamDecoder<E, U> decoder,
+            
+            final ResponseCallback<S, E> callback)
             throws ClientException {
         final List<T> requests = Lists.newArrayList();
         for (int i = 0; i < numServers; i++) {
             requests.add(computeFinalUriWithLoadBalancer(request));
         }
-        final LinkedBlockingDeque<Future<S>> results = new LinkedBlockingDeque<Future<S>>();
-        final AtomicInteger failedCount = new AtomicInteger();
-        final AtomicInteger finalSequenceNumber = new AtomicInteger(-1);
-        final AtomicBoolean responseRecevied = new AtomicBoolean();
-        final AtomicBoolean completedCalled = new AtomicBoolean();
-        final AtomicBoolean failedCalled = new AtomicBoolean();
-        final AtomicBoolean cancelledCalled = new AtomicBoolean();
-        final Lock lock = new ReentrantLock();
-        final Condition responseChosen = lock.newCondition();
-        final Multimap<URI, Future<S>> map = ArrayListMultimap.create();
-        
-        for (int i = 0; i < requests.size(); i++) {
-            final int sequenceNumber = i;
-            Future<S> future = asyncClient.execute(requests.get(i), decoder, new ResponseCallback<S, E>() {
-                private volatile boolean chosen = false;
-                @Override
-                public void completed(S response) {
-                    if (completedCalled.compareAndSet(false, true)  
-                            && callback != null && chosen) {
-                        callback.completed(response);
-                    }
-                }
-
-                @Override
-                public void failed(Throwable e) {
-                    int count = failedCount.incrementAndGet();
-                    if ((count == numServers || chosen) && failedCalled.compareAndSet(false, true)) {
-                        lock.lock();
-                        try {
-                            finalSequenceNumber.set(sequenceNumber);
-                            responseChosen.signalAll();
-                        } finally {
-                            lock.unlock();
-                        }
-                        if (callback != null) {
-                            callback.failed(e);
-                        }
-                    }
-                }
-
-                @Override
-                public void cancelled() {
-                    int count = failedCount.incrementAndGet();
-                    if ((count == numServers || chosen) && cancelledCalled.compareAndSet(false, true)) {
-                        lock.lock();
-                        try {
-                            finalSequenceNumber.set(sequenceNumber);
-                            responseChosen.signalAll();
-                        } finally {
-                            lock.unlock();
-                        }
-                        if (callback != null) {
-                            callback.cancelled();
-                        }
-                    }
-                }
-
-                @Override
-                public void responseReceived(S response) {
-                    if (responseRecevied.compareAndSet(false, true)) {
-                        chosen = true;
-                        lock.lock();
-                        try {
-                            finalSequenceNumber.set(sequenceNumber);
-                            responseChosen.signalAll();
-                        } finally {
-                            lock.unlock();
-                        }
-                        if (callback != null) {
-                            callback.responseReceived(response);
-                        }
-                    }
-                    cancelOthers();
-                }
-
-                @Override
-                public void contentReceived(E content) {
-                    if (callback != null && chosen) {
-                        callback.contentReceived(content);   
-                    }
-                }
-                
-                private void cancelOthers() {
-                    int i = 0; 
-                    for (Future<S> future: results) {
-                        if (finalSequenceNumber.get() >= 0 && i != finalSequenceNumber.get() && !future.isDone()) {
-                            future.cancel(true);
-                        }
-                        i++;
-                    }                    
-                }
-            });
-            results.add(future);
-            map.put(requests.get(i).getUri(), future);
-            lock.lock();
-            try {
-                if (finalSequenceNumber.get() >= 0 || responseChosen.await(timeout, unit)) {
-                    // there is a response within the specified timeout, no need to send more requests
-                    break;
-                }
-            } catch (InterruptedException e1) {
-            } finally {
-                lock.unlock();
-            }
-        }
-        return new ExecutionResult<S>() {
-            private volatile boolean cancelled = false;
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                cancelled = true;
-                for (Future<S> future: results) {
-                    if (!future.isCancelled() && !future.cancel(mayInterruptIfRunning)) {
-                            cancelled = false;
-                    }
-                }
-                return cancelled;
-            }
-            
-            @Override
-            public S get() throws InterruptedException, ExecutionException {
-                lock.lock();
-                try {
-                    while (finalSequenceNumber.get() < 0) {
-                        responseChosen.await();
-                    }
-                } finally {
-                    lock.unlock();
-                }
-                return Iterables.get(results, finalSequenceNumber.get()).get();
-            }
-
-            @Override
-            public S get(long timeout, TimeUnit unit)
-                    throws InterruptedException, ExecutionException,
-                    TimeoutException {
-                lock.lock();
-                long startTime = System.nanoTime();
-                boolean elapsed = false;
-                try {
-                    if (finalSequenceNumber.get() < 0) {
-                        elapsed = responseChosen.await(timeout, unit);
-                    }
-                } finally {
-                    lock.unlock();
-                }
-                if (elapsed || finalSequenceNumber.get() < 0) {
-                    throw new TimeoutException("No response is available yet from parallel execution");
-                } else {
-                    long timeWaited = System.nanoTime() - startTime;
-                    long timeRemainingNanoSeconds = TimeUnit.NANOSECONDS.convert(timeout, unit) - timeWaited;
-                    if (timeRemainingNanoSeconds > 0) {
-                        return Iterables.get(results, finalSequenceNumber.get()).get(timeRemainingNanoSeconds, TimeUnit.NANOSECONDS);
-                    } else {
-                        throw new TimeoutException("No response is available yet from parallel execution");
-                    }
-                }                
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return cancelled;
-            }
-
-            @Override
-            public boolean isDone() {
-                if (finalSequenceNumber.get() < 0) {
-                    return false;
-                } else {
-                    return Iterables.get(results, finalSequenceNumber.get()).isDone();
-                }
-            }
-
-            @Override
-            public boolean isResponseReceived() {
-                return responseRecevied.get();
-            }
-
-            @Override
-            public boolean isFailed() {
-                return failedCalled.get();
-            }
-
-            @Override
-            public Multimap<URI, Future<S>> getAllAttempts() {
-                return map;
-            }
-
-            @Override
-            public URI getExecutedURI() {
-                int requestIndex = finalSequenceNumber.get(); 
-                if ( requestIndex >= 0) {
-                    return requests.get(requestIndex).getUri();
-                } else {
-                    return null;
-                }
-            }
-        };
+        return AsyncBackupRequestsExecutor.executeWithBackupRequests(this,  requests, numServers, timeout, unit, decoder, callback);
     }
+
     
     @Override
     public void close() throws IOException {
         if (asyncClient != null) {
             asyncClient.close();
         }
+    }
+
+    @Override
+    public void setSerializationFactory(SerializationFactory<V> factory) {
+        // TODO Auto-generated method stub
+        
     }
 }

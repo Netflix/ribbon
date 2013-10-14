@@ -511,7 +511,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     }
 
     @Override
-    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(ClientRequest task) {
+    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpRequest task) {
         URI theUrl = task.getUri();
         boolean isSecure = getBooleanFromConfig(task.getOverrideConfig(), CommonClientConfigKey.IsSecure, this.isSecure);
         String scheme = theUrl.getScheme();

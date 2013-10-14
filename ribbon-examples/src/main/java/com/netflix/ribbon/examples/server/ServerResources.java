@@ -74,7 +74,7 @@ public class ServerResources {
     public static final List<String> streamContent = Lists.newArrayList();
     
     static {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1000; i++) {
             streamContent.add("data: line " + i);
         }
     }
@@ -128,7 +128,7 @@ public class ServerResources {
                     String eventLine = line + "\n";
                     output.write(eventLine.getBytes("UTF-8"));
                     try {
-                       Thread.sleep(10);
+                       Thread.sleep(5);
                     } catch (Exception e) { // NOPMD
                     }
                 }

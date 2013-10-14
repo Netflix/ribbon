@@ -6,14 +6,14 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URI;
-import java.util.List;
 import java.util.concurrent.Future;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.netflix.client.BufferedResponseCallback;
+import com.netflix.client.http.AsyncBufferingHttpClient;
+import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
@@ -27,6 +27,7 @@ public class CustomizedSerializerExample extends ExampleAppWithLocalResource {
     public void run() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        AsyncBufferingHttpClient client = AsyncHttpClientBuilder.withApacheAsyncClient().buildBufferingClient();
         client.setSerializationFactory(new GsonSerializationFactory());
         Future<HttpResponse> future = client.execute(request, new BufferedResponseCallback<HttpResponse>() {
             @Override
