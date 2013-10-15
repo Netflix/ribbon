@@ -17,6 +17,7 @@
 */
 package com.netflix.client;
 
+import java.io.Closeable;
 import java.net.URI;
 import java.util.Map;
 
@@ -24,7 +25,7 @@ import java.util.Map;
  * Response interface for the client framework.  
  *
  */
-public interface IResponse
+public interface IResponse extends Closeable
 {
    
    /**

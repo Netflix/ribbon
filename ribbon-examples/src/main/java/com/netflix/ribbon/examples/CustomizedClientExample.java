@@ -124,12 +124,12 @@ class GsonCodec implements Serializer, Deserializer {
     public <T> T deserialize(InputStream in, TypeToken<T> type)
             throws IOException {
         System.out.println("Deserializing using Gson");
-        return gson.fromJson(new InputStreamReader(in), type.getType());
+        return gson.fromJson(new InputStreamReader(in, "UTF-8"), type.getType());
     }
 
     @Override
     public void serialize(OutputStream out, Object object) throws IOException {
-        gson.toJson(object, new OutputStreamWriter(out));
+        gson.toJson(object, new OutputStreamWriter(out, "UTF-8"));
     }
 }
 

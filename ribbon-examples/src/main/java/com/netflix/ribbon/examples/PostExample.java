@@ -3,9 +3,6 @@ package com.netflix.ribbon.examples;
 import java.net.URI;
 import java.util.concurrent.Future;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-
 import com.netflix.client.http.AsyncBufferingHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.BufferedHttpResponseCallback;
@@ -49,7 +46,6 @@ public class PostExample extends ExampleAppWithLocalResource {
     }
 
     public static void main(String[] args) throws Exception {
-        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         PostExample app = new PostExample();
         app.runApp();
     }

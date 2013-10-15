@@ -96,7 +96,18 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
                             private volatile S response;
                             @Override
                             public void completed(S response) {
-                                observer.onCompleted();
+                                try {
+                                    observer.onCompleted();
+                                } finally {
+                                    // if decoder is not null, the content should have been consumed
+                                    if (decoder != null) {
+                                        try {
+                                            response.close();
+                                        } catch (IOException e) {
+                                            logger.error("Error closing response", e);
+                                        }
+                                    }
+                                }
                             }
 
                             @Override

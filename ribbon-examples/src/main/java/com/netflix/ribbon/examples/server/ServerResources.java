@@ -15,7 +15,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
-import org.apache.commons.io.input.XmlStreamReader;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.common.collect.Lists;

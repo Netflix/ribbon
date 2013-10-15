@@ -316,7 +316,16 @@ public class RibbonHttpAsyncClient
                         callback.completed(completeResponse);
                    } catch (Throwable e) {
                         logger.error("Error invoking callback", e);
-                   } 
+                   }
+                }
+                try {
+                    if (consumer instanceof AsyncByteConsumer && result.getEntity() != null
+                            && result.getEntity().getContent() != null) {
+                        result.getEntity().getContent().close();
+                        consumer.close();
+                    }
+                } catch (Throwable e) {
+                    logger.error("Error closing stream", e);
                 }
             }
         }

@@ -3,9 +3,7 @@ package com.netflix.client.http;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import com.netflix.client.AsyncClient;
-import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.LoadBalancerErrorHandler;
@@ -29,7 +27,6 @@ public class AsyncHttpClientBuilder<T> {
     public static class LoadBalancerClientBuilder<T> {
         
         AsyncLoadBalancingHttpClient<T> lbClient;
-        IClientConfig clientConfig;
         
         private LoadBalancerClientBuilder(
                 AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey> client, ILoadBalancer lb, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
@@ -43,7 +40,6 @@ public class AsyncHttpClientBuilder<T> {
         private LoadBalancerClientBuilder(
                 AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey> client, IClientConfig clientConfig, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
             lbClient = new AsyncLoadBalancingHttpClient<T>(client, clientConfig);
-            this.clientConfig = clientConfig;
             ILoadBalancer loadBalancer = null;
             try {
                 loadBalancer = ClientFactory.registerNamedLoadBalancerFromclientConfig(clientConfig.getClientName(), clientConfig);
