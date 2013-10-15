@@ -319,9 +319,7 @@ public class RibbonHttpAsyncClient
                    }
                 }
                 try {
-                    if (consumer instanceof AsyncByteConsumer && result.getEntity() != null
-                            && result.getEntity().getContent() != null) {
-                        result.getEntity().getContent().close();
+                    if (consumer instanceof AsyncByteConsumer) {
                         consumer.close();
                     }
                 } catch (Throwable e) {
