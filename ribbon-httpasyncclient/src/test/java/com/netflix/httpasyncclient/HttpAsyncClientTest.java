@@ -1,3 +1,20 @@
+/*
+ *
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.httpasyncclient;
 
 import static org.junit.Assert.assertEquals;
@@ -219,7 +236,7 @@ public class HttpAsyncClientTest {
     public void testFuture() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        Future<HttpResponse> future = client.execute(request, null);
+        Future<HttpResponse> future = client.execute(request);
         HttpResponse response = future.get();
         // System.err.println(future.get().getEntity(Person.class));
         person = response.getEntity(Person.class);
@@ -333,7 +350,7 @@ public class HttpAsyncClientTest {
         URI uri = new URI("/testAsync/person");
         person = null;
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        Future<HttpResponse> future = loadBalancingClient.execute(request, null, null);
+        Future<HttpResponse> future = loadBalancingClient.execute(request);
         HttpResponse response = future.get();
         person = response.getEntity(Person.class);
         assertEquals(EmbeddedResources.defaultPerson, person);
@@ -399,7 +416,7 @@ public class HttpAsyncClientTest {
         URI uri = new URI("/testAsync/person");
         person = null;
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        Future<HttpResponse> future = lbClient.execute(request, null);
+        Future<HttpResponse> future = lbClient.execute(request);
         assertEquals(EmbeddedResources.defaultPerson, future.get().getEntity(Person.class));
         assertEquals(1, lb.getLoadBalancerStats().getSingleServerStat(good).getTotalRequestsCount());
     }
@@ -444,7 +461,7 @@ public class HttpAsyncClientTest {
         loadBalancingClient.setLoadBalancer(lb);
         URI uri = new URI("/");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        Future<HttpResponse> future = loadBalancingClient.execute(request, null, null);
+        Future<HttpResponse> future = loadBalancingClient.execute(request);
         try {
             future.get();
             fail("ExecutionException expected");
