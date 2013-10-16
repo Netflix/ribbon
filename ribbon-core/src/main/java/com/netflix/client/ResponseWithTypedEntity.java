@@ -21,7 +21,14 @@ import java.io.InputStream;
 
 import com.google.common.reflect.TypeToken;
 
+/**
+ * A response type that includes a typed entity in its content.
+ * 
+ * @author awang
+ *
+ */
 public interface ResponseWithTypedEntity extends IResponse {
+    
     public <T> T getEntity(Class<T> type) throws Exception;
     
     public <T> T getEntity(TypeToken<T> type) throws Exception;

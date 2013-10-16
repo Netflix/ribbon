@@ -18,7 +18,16 @@
 package com.netflix.client;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
+/**
+ * A decoder that can decode entities from partial content in a response. 
+ * 
+ * @author awang
+ *
+ * @param <T> Type of entity
+ * @param <S> Type of storage used for partial content. For example, {@link ByteBuffer}.
+ */
 public interface StreamDecoder<T, S> {
     T decode(S input) throws IOException;
 }

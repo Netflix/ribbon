@@ -17,11 +17,22 @@
  */
 package com.netflix.client.http;
 
+import java.nio.ByteBuffer;
+
 import com.netflix.client.AsyncClient;
 import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 
+/**
+ * An asynchronous HTTP client that is capable of load balancing from an {@link ILoadBalancer}. 
+ * 
+ * @author awang
+ * @see AsyncLoadBalancingClient
+ *
+ * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
+ */
 public class AsyncLoadBalancingHttpClient<T> 
         extends AsyncLoadBalancingClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey>
         implements AsyncHttpClient<T> {

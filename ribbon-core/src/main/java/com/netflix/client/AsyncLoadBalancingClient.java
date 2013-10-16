@@ -18,34 +18,51 @@
 package com.netflix.client;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.loadbalancer.AvailabilityFilteringRule;
+import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
+import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
+import com.netflix.serialization.Serializer;
 import com.netflix.servo.monitor.Stopwatch;
 
+/**
+ * An asynchronous client that is capable of load balancing with an {@link ILoadBalancer}. It delegates the 
+ * asynchronous call to the {@link AsyncClient} passed in from the constructor. As with synchronous I/O client,
+ * the URI in the request can be a partial URI without host name or port. The load balancer will be responsible
+ * to choose a server and calculate the final URI. If multiple retries are configured, all intermediate failures
+ * will be hidden from the caller of the APIs in this class. All call results will be feed back to the load balancer
+ * as server statistics to help it choosing the next server, for example, avoiding servers with consecutive connection
+ * or read failures or high concurrent requests given the {@link AvailabilityFilteringRule}.
+ * 
+ * @author awang
+ *
+ * @param <T> Request type
+ * @param <S> Response type
+ * @param <U> Implementation specific storage type for content. For example, {@link ByteBuffer} for Apache HttpAsyncClient
+ *             and possibly {@link InputStream} for blocking IO client 
+ * @param <V> Type of key to find {@link Serializer} and {@link Deserializer} for the content. For example, for HTTP communication,
+ *            the key type is {@link ContentTypeBasedSerializerKey}
+ */
 public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IResponse, U, V>
         extends LoadBalancerContext<T, S> implements AsyncClient<T, S, U, V> {
     
@@ -61,7 +78,6 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         super(clientConfig);
         this.asyncClient = asyncClient;
     }
-
 
     protected AsyncLoadBalancingClient() {
     }
@@ -192,12 +208,28 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         }
     }
 
+    /**
+     * Execute a request with callback invoked after the full response is buffered. If multiple retries are configured,
+     * all intermediate failures will be hidden from caller and only the last successful response or failure
+     * will be used for callback.
+     * 
+     * @param request Request to execute. It can contain a partial URI without host or port as
+     * the load balancer will calculate the final URI after choosing a server.
+     */
     @Override
     public Future<S> execute(final T request, final BufferedResponseCallback<S> callback)
             throws ClientException {
         return execute(request, null, callback);
     }
     
+    /**
+     * Execute a request with callback. If multiple retries are configured,
+     * all intermediate failures will be hidden from caller and only the last successful response or failure
+     * will be used for callback.
+     * 
+     * @param request Request to execute. It can contain a partial URI without host or port as
+     * the load balancer will calculate the final URI after choosing a server.
+     */
     @Override
     public <E> Future<S> execute(final T request, final StreamDecoder<E, U> decoder, final ResponseCallback<S, E> callback)
             throws ClientException {
@@ -348,8 +380,17 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         currentRunningTask.set(future);
     }
 
+    /**
+     * Execute the same request that might be sent to multiple servers (as back up requests) if
+     * no response is received within the timeout. This method delegates to 
+     * {@link AsyncBackupRequestsExecutor#executeWithBackupRequests(AsyncClient, List, long, TimeUnit, StreamDecoder, ResponseCallback)} 
+     *
+     * @param request Request to execute. It can contain a partial URI without host or port as
+     * the load balancer will calculate the final URI after choosing a server.
+     * @param numServers the maximal number of servers to try before getting a response
+     */
     public <E> AsyncBackupRequestsExecutor.ExecutionResult<S> executeWithBackupRequests(final T request,
-            final int numServers, long timeout, TimeUnit unit,
+            final int numServers, long timeoutIntervalBetweenRequests, TimeUnit unit,
             final StreamDecoder<E, U> decoder,
             
             final ResponseCallback<S, E> callback)
@@ -358,7 +399,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
         for (int i = 0; i < numServers; i++) {
             requests.add(computeFinalUriWithLoadBalancer(request));
         }
-        return AsyncBackupRequestsExecutor.executeWithBackupRequests(this,  requests, timeout, unit, decoder, callback);
+        return AsyncBackupRequestsExecutor.executeWithBackupRequests(this,  requests, timeoutIntervalBetweenRequests, unit, decoder, callback);
     }
 
     
@@ -371,9 +412,17 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
 
     @Override
     public void addSerializationFactory(SerializationFactory<V> factory) {
-        // TODO Auto-generated method stub
-        
+        asyncClient.addSerializationFactory(factory);
     }
+
+    /**
+     * Execute a request where the future will be ready when full response is buffered. If multiple retries are configured,
+     * all intermediate failures will be hidden from caller and only the last successful response or failure
+     * will be used for creating the future.
+     * 
+     * @param request Request to execute. It can contain a partial URI without host or port as
+     * the load balancer will calculate the final URI after choosing a server.
+     */
 
     @Override
     public Future<S> execute(T request) throws ClientException {

@@ -17,12 +17,38 @@
  */
 package com.netflix.client;
 
-/**
- * Interface to define asynchronous communication client.
- * 
- */
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
+import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.Deserializer;
+import com.netflix.serialization.Serializer;
+
+/**
+ * Interface for asynchronous communication client with streaming capability.
+ * 
+ * @author awang
+ *
+ * @param <T> Request type
+ * @param <S> Response type
+ * @param <U> Implementation specific storage type for content. For example, {@link ByteBuffer} for Apache HttpAsyncClient
+ *             and possibly {@link InputStream} for blocking I/O client 
+ * @param <V> Type of key to find {@link Serializer} and {@link Deserializer} for the content. For example, for HTTP communication,
+ *            the key type is {@link ContentTypeBasedSerializerKey}
+ */
 public interface AsyncClient<T extends ClientRequest, S extends IResponse, U, V> extends ResponseBufferingAsyncClient<T, S, V> {
+    /**
+     * Asynchronously execute a request.
+     * 
+     * @param request Request to execute
+     * @param decooder Decoder to decode objects from the native stream 
+     * @param callback Callback to be invoked when execution completes or fails
+     * @return Future of the response
+     * @param <E> Type of object to be decoded from the stream
+     * 
+     * @throws ClientException if exception happens before the actual asynchronous execution happens, for example, an error to serialize 
+     *         the entity
+     */
     public <E> Future<S> execute(T request, StreamDecoder<E, U> decooder, ResponseCallback<S, E> callback) throws ClientException;
 }

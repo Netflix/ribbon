@@ -20,5 +20,11 @@ package com.netflix.client.http;
 import com.netflix.client.ResponseBufferingAsyncClient;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 
+/**
+ * An HTTP client that deals with buffered response.
+ * 
+ * @author awang
+ *
+ */
 public interface AsyncBufferingHttpClient extends ResponseBufferingAsyncClient<HttpRequest, HttpResponse, ContentTypeBasedSerializerKey>{
 }

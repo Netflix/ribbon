@@ -17,11 +17,27 @@
  */
 package com.netflix.client;
 
+/**
+ * A simple callback that is only invoked when full response is received and buffered
+ * from asynchronous communication.
+ * 
+ * @author awang
+ *
+ * @param <T> Type of the response, which is protocol specific.
+ * 
+ */
 public abstract class BufferedResponseCallback<T extends IResponse> implements ResponseCallback<T, Object>{
+    /**
+     * This method does nothing. Subclass can override it to receive callback
+     * when the initial response (for example, status code and headers of HTTP response) is received.
+     */
     @Override
     public void responseReceived(T response) {
     }
 
+    /**
+     * This method does nothing as it is only intended for callbacks on partial content.
+     */
     @Override
     public final void contentReceived(Object content) {
     }

@@ -17,8 +17,17 @@
  */
 package com.netflix.client.http;
 
+import java.nio.ByteBuffer;
+
 import com.netflix.client.AsyncClient;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 
+/**
+ * An asynchronous HTTP client.
+ *  
+ * @author awang
+ *
+ * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
+ */
 public interface AsyncHttpClient<T> extends AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey>, AsyncBufferingHttpClient {
 }
