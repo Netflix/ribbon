@@ -37,6 +37,14 @@ import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
 
+/**
+ * A class contains APIs intended to be used be load balancing client which is subclass of this class.
+ * 
+ * @author awang
+ *
+ * @param <T> Type of the request
+ * @param <S> Type of the response
+ */
 public abstract class LoadBalancerContext<T extends ClientRequest, S extends IResponse> implements IClientConfigAware {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerContext.class);
 
@@ -158,6 +166,9 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         return null;
     }
     
+    /**
+     * Test if certain exception classes exist as a cause in a Throwable 
+     */
     public static boolean isPresentAsCause(Throwable throwableToSearchIn,
             Collection<Class<? extends Throwable>> throwableToSearchFor) {
         int infiniteLoopPreventionCounter = 10;
@@ -549,7 +560,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         int numRetries =  maxAutoRetries;
         if (overriddenClientConfig!=null){
             try {
-                numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(CommonClientConfigKey.MaxAutoRetries,maxAutoRetries));
+                numRetries = overriddenClientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetries, maxAutoRetries);
             } catch (Exception e) {
                 logger.warn("Invalid maxRetries requested for RestClient:" + this.clientName);
             }
@@ -566,11 +577,11 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         return true;
     }
 
-    public LoadBalancerErrorHandler<? super T, ? super S> getErrorHandler() {
+    public final LoadBalancerErrorHandler<? super T, ? super S> getErrorHandler() {
         return errorHandler;
     }
 
-    public void setErrorHandler(
+    public final void setErrorHandler(
             LoadBalancerErrorHandler<? super T, ? super S> errorHandler) {
         this.errorHandler = errorHandler;
     }

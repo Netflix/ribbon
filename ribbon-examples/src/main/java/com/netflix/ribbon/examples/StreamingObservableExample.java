@@ -29,6 +29,12 @@ import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 
+/**
+ * A streaming example with the {@link ObservableAsyncClient}
+ * 
+ * @author awang
+ *
+ */
 public class StreamingObservableExample extends ExampleAppWithLocalResource {
 
     @Override

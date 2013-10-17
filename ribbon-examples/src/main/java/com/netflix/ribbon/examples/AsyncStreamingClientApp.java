@@ -21,12 +21,19 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.Future;
 
+import com.netflix.client.AsyncClient;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.http.AsyncHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 
+/**
+ * An example shows using the streaming API of the {@link AsyncClient}
+ * 
+ * @author awang
+ *
+ */
 public class AsyncStreamingClientApp extends ExampleAppWithLocalResource {
 
     @Override

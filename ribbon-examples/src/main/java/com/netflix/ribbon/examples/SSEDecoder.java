@@ -28,6 +28,15 @@ import org.apache.http.nio.util.HeapByteBufferAllocator;
 import com.google.common.collect.Lists;
 import com.netflix.client.StreamDecoder;
 
+/**
+ * A {@link StreamDecoder} used by some sample application. This decoder decodes
+ * content of ByteBuffer into list of Server-Sent Event string. 
+ * <p>
+ * This code is copied from https://github.com/Netflix/RxJava/tree/master/rxjava-contrib/rxjava-apache-http
+ *  
+ * @author awang
+ *
+ */
 public class SSEDecoder implements StreamDecoder<List<String>, ByteBuffer> {
     final ExpandableByteBuffer dataBuffer = new ExpandableByteBuffer();
 

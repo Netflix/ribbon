@@ -26,37 +26,57 @@ import org.apache.http.NoHttpResponseException;
 import org.apache.http.conn.ConnectionPoolTimeoutException;
 
 import com.google.common.collect.Lists;
+import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.LoadBalancerContext;
 import com.netflix.client.LoadBalancerErrorHandler;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
-import com.netflix.client.http.HttpRequest.Verb;
 
+/**
+ * The {@link LoadBalancerErrorHandler} to used with {@link AsyncLoadBalancingClient} if 
+ * the underlying asynchronous client is {@link RibbonHttpAsyncClient}. 
+ * 
+ * @author awang
+ *
+ */
 public class HttpAsyncClientLoadBalancerErrorHandler implements LoadBalancerErrorHandler<HttpRequest, HttpResponse> {
 
     @SuppressWarnings("unchecked")
     protected List<Class<? extends Throwable>> retriable = 
-            Lists.<Class<? extends Throwable>>newArrayList(ConnectException.class, SocketTimeoutException.class, NoHttpResponseException.class, ConnectionPoolTimeoutException.class);
+            Lists.<Class<? extends Throwable>>newArrayList(ConnectException.class, SocketTimeoutException.class, 
+                    NoHttpResponseException.class, ConnectionPoolTimeoutException.class);
     
     @SuppressWarnings("unchecked")
     protected List<Class<? extends Throwable>> circuitRelated = 
             Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class);
     
+    /**
+     * @return true if request is retriable and the Throwable has any of the following type of exception as a cause: 
+     * {@link ConnectException}, {@link SocketTimeoutException}, {@link NoHttpResponseException}, {@link ConnectionPoolTimeoutException}
+     * 
+     */
     @Override
     public boolean isRetriableException(HttpRequest request, Throwable e,
             boolean sameServer) {
-        if (request.getVerb() == Verb.GET && LoadBalancerContext.isPresentAsCause(e, retriable)) {
+        if (request.isRetriable() && LoadBalancerContext.isPresentAsCause(e, retriable)) {
             return true;
         } else {
             return false;
         }
     }
 
+    /**
+     * @return true if the Throwable has one of the following exception type as a cause: 
+     * {@link SocketException}, {@link SocketTimeoutException}
+     */
     @Override
     public boolean isCircuitTrippingException(Throwable e) {
         return LoadBalancerContext.isPresentAsCause(e, circuitRelated);
     }
 
+    /**
+     * @return true if the the response has status code 503 (throttle) 
+     */
     @Override
     public boolean isCircuitTrippinErrorgResponse(HttpResponse response) {
         return response.getStatus() == 503;

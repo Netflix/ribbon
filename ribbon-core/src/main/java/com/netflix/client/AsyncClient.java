@@ -17,7 +17,6 @@
  */
 package com.netflix.client;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
@@ -32,8 +31,7 @@ import com.netflix.serialization.Serializer;
  *
  * @param <T> Request type
  * @param <S> Response type
- * @param <U> Implementation specific storage type for content. For example, {@link ByteBuffer} for Apache HttpAsyncClient
- *             and possibly {@link InputStream} for blocking I/O client 
+ * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
  * @param <V> Type of key to find {@link Serializer} and {@link Deserializer} for the content. For example, for HTTP communication,
  *            the key type is {@link ContentTypeBasedSerializerKey}
  */

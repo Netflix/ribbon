@@ -30,6 +30,12 @@ import com.netflix.client.http.BufferedHttpResponseCallback;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 
+/**
+ * An example shows how to use the {@link AsyncBackupRequestsExecutor}
+ * 
+ * @author awang
+ *
+ */
 public class ExecutionWithBackupRequestExample {
     public static void main(String[] args) throws Exception {
         AsyncHttpClient<ByteBuffer> client = AsyncHttpClientBuilder.withApacheAsyncClient().buildClient();

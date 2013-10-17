@@ -28,6 +28,11 @@ import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.HttpRequest.Verb;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
 
+/**
+ * An example that shows how serialization works in a POST request
+ * @author awang
+ *
+ */
 public class PostExample extends ExampleAppWithLocalResource {
 
     @Override

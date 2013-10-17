@@ -25,6 +25,12 @@ import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.net.httpserver.HttpServer;
 
+/**
+ * A base class for some sample applications that starts and stops a local server
+ * 
+ * @author awang
+ *
+ */
 public abstract class ExampleAppWithLocalResource {
 
     int port = (new Random()).nextInt(1000) + 4000; 

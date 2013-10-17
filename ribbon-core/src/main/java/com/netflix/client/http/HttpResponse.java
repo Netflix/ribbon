@@ -23,7 +23,17 @@ import java.util.Map;
 
 import com.netflix.client.ResponseWithTypedEntity;
 
+/**
+ * Response for HTTP communication.
+ * 
+ * @author awang
+ *
+ */
 public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
+    /**
+     * Get the HTTP status code.
+     * @return
+     */
     public int getStatus();
     
     public Map<String, Collection<String>> getHeaders();  

@@ -59,8 +59,10 @@ import com.netflix.client.ClientException;
 import com.netflix.client.ResponseCallback;
 import com.netflix.client.StreamDecoder;
 import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.AsyncHttpClient;
+import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.JacksonSerializationFactory;
@@ -68,6 +70,16 @@ import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 
 
+/**
+ * An asynchronous HTTP client implementation based on Apache's HttpAsyncClient.
+ * <p>
+ * By default, connection pooling is enabled and the {@link SerializationFactory} installed is the {@link JacksonSerializationFactory}. 
+ * <p>
+ * It is recommended to use {@link AsyncHttpClientBuilder} instead of using this class directly.
+ * 
+ * @author awang
+ *
+ */
 public class RibbonHttpAsyncClient 
         implements AsyncClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>, 
                    AsyncHttpClient<ByteBuffer> {
@@ -76,28 +88,31 @@ public class RibbonHttpAsyncClient
     private List<SerializationFactory<ContentTypeBasedSerializerKey>> factories = Lists.newArrayList();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
             
+    /**
+     * Create an instance using default configuration obtained from {@link DefaultClientConfigImpl#getClientConfigWithDefaultValues()}
+     */
     public RibbonHttpAsyncClient() {
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(10000)
-                .setSocketTimeout(10000)                
-                .build();
-        httpclient = HttpAsyncClients.custom().setDefaultRequestConfig(requestConfig).setMaxConnTotal(200)
-                .setMaxConnPerRoute(50).build();
-        this.addSerializationFactory(new JacksonSerializationFactory());
-        httpclient.start();
+        this(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
     }
     
+    /**
+     * Create an instance with the passed in client configuration. To install a different default {@link SerializationFactory}, define property
+     * {@link CommonClientConfigKey#DefaultSerializationFactoryClassName} in the configuration. An instance of {@link CloseableHttpAsyncClient} 
+     * will be created and started.
+     * 
+     * @param clientConfig
+     */
     @SuppressWarnings("unchecked")
     public RibbonHttpAsyncClient(IClientConfig clientConfig) {
-        int connectTimeout = clientConfig.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, 10000);
+        int connectTimeout = clientConfig.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(connectTimeout)
-                .setSocketTimeout(clientConfig.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, 10000))    
+                .setSocketTimeout(clientConfig.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT))    
                 .setConnectionRequestTimeout(connectTimeout)
                 .build();
         httpclient = HttpAsyncClients.custom().setDefaultRequestConfig(requestConfig)
-                .setMaxConnTotal(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxTotalHttpConnections, 200))
-                .setMaxConnPerRoute(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxHttpConnectionsPerHost, 50))
+                .setMaxConnTotal(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxTotalHttpConnections, DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS))
+                .setMaxConnPerRoute(clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxHttpConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST))
                 .build();
         String serializationFactoryClass = clientConfig.getPropertyAsString(CommonClientConfigKey.DefaultSerializationFactoryClassName, JacksonSerializationFactory.class.getName());
         if (serializationFactoryClass != null) {
@@ -367,6 +382,9 @@ public class RibbonHttpAsyncClient
         }
     }
     
+    /**
+     * Close the wrapped {@link CloseableHttpAsyncClient}
+     */
     public void close() throws IOException {
         httpclient.close();
     }

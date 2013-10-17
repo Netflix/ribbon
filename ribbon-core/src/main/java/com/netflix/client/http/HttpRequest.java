@@ -1,20 +1,20 @@
 /*
-*
-* Copyright 2013 Netflix, Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
+ *
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.client.http;
 
 import java.net.URI;
@@ -28,6 +28,12 @@ import com.google.common.collect.Multimap;
 import com.netflix.client.ClientRequest;
 import com.netflix.client.config.IClientConfig;
 
+/**
+ * Request for HTTP communication.
+ * 
+ * @author awang
+ *
+ */
 public class HttpRequest extends ClientRequest {
         
     public enum Verb {
@@ -142,6 +148,12 @@ public class HttpRequest extends ClientRequest {
         return entity;
     }
         
+    /**
+     * Test if the request is retriable. If the request is
+     * a {@link Verb#GET} and {@link Builder#setRetriable(boolean)}
+     * is not called, returns true. Otherwise, returns value passed in
+     * {@link Builder#setRetriable(boolean)}
+     */
     @Override
     public boolean isRetriable() {
         if (this.verb == Verb.GET && isRetriable == null) {
@@ -154,6 +166,9 @@ public class HttpRequest extends ClientRequest {
         return new Builder();
     }
 
+    /**
+     * Return a new instance of HttpRequest replacing the URI.
+     */
     @Override
     public HttpRequest replaceUri(URI newURI) {
         return (new Builder()).uri(newURI)

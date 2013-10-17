@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.AsyncBackupRequestsExecutor.ExecutionResult;
+import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.AsyncLoadBalancingHttpClient;
 import com.netflix.client.http.BufferedHttpResponseCallback;
@@ -30,6 +31,12 @@ import com.netflix.client.http.HttpResponse;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.Server;
 
+/**
+ * An example that shows using the load balancing feature of {@link AsyncLoadBalancingClient}
+ * 
+ * @author awang
+ *
+ */
 public class AsyncLoadBalancingClientExample {
 
 

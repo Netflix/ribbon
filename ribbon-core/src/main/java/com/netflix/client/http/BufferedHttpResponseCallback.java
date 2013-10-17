@@ -19,6 +19,13 @@ package com.netflix.client.http;
 
 import com.netflix.client.BufferedResponseCallback;
 
+/**
+ * A convenient class to represent buffered HTTP response callback and hide the generic types of its
+ * parent class.
+ * 
+ * @author awang
+ *
+ */
 public abstract class BufferedHttpResponseCallback extends BufferedResponseCallback<HttpResponse> {
 
 }

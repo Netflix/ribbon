@@ -25,6 +25,12 @@ import com.netflix.client.http.BufferedHttpResponseCallback;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 
+/**
+ * A simple async http client application that handles buffered response
+ *  
+ * @author awang
+ *
+ */
 public class AsyncClientSampleApp {
 
     public static void main(String[] args) throws Exception {
@@ -53,6 +59,7 @@ public class AsyncClientSampleApp {
                     System.err.println("cancelled");
                 }
             });
+            // this is to make sure the application will not exit until there is a response
             HttpResponse response = future.get();
             System.out.println("Status from response " + response.getStatus());
         } finally {

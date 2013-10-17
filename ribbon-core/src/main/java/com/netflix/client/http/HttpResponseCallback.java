@@ -18,6 +18,16 @@
 package com.netflix.client.http;
 
 import com.netflix.client.ResponseCallback;
+import com.netflix.client.StreamDecoder;
 
+/**
+ * A convenient interface for HTTP response callback to hide the generic types from
+ * its parent interface.
+ * 
+ * @author awang
+ *
+ * @param <T> Type of of object that can be formed from partial 
+ *             content in the native stream. See {@link StreamDecoder}.
+ */
 public interface HttpResponseCallback<T> extends ResponseCallback<HttpResponse, T> {
 }

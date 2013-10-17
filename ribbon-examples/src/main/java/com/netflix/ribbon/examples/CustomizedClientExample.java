@@ -34,6 +34,7 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.AsyncBufferingHttpClient;
+import com.netflix.client.http.AsyncHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
@@ -44,6 +45,13 @@ import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 import com.thoughtworks.xstream.XStream;
 
+/**
+ * An example shows how to customize the {@link AsyncHttpClient} with
+ * {@link SerializationFactory} and timeouts
+ * 
+ * @author awang
+ *
+ */
 public class CustomizedClientExample extends ExampleAppWithLocalResource {
     @Override
     public void run() throws Exception {

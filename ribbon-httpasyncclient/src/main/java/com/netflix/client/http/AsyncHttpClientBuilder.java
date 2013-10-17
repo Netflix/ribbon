@@ -20,7 +20,10 @@ package com.netflix.client.http;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import rx.Observable;
+
 import com.netflix.client.AsyncClient;
+import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.LoadBalancerErrorHandler;
@@ -37,10 +40,24 @@ import com.netflix.loadbalancer.Server;
 import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.SerializationFactory;
 
+/**
+ * Builder to build an asynchronous HTTP client.
+ * 
+ * @author awang
+ *
+ * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
+ */
 public class AsyncHttpClientBuilder<T> {
     
     private AsyncHttpClientBuilder() {}
     
+    /**
+     * Builder for building an {@link AsyncLoadBalancingClient}
+     * 
+     * @author awang
+     *
+     * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
+     */
     public static class LoadBalancerClientBuilder<T> {
         
         AsyncLoadBalancingHttpClient<T> lbClient;
@@ -80,15 +97,28 @@ public class AsyncHttpClientBuilder<T> {
             }
         }
 
+        /**
+         * Set the errorHandler for the load balancer
+         *
+         * @see LoadBalancerErrorHandler
+         */
         public LoadBalancerClientBuilder<T> withErrorHandler(LoadBalancerErrorHandler<HttpRequest, HttpResponse> errorHandler) {
             lbClient.setErrorHandler(errorHandler);
             return this;
         }
         
+        /**
+         * Build an {@link AsyncLoadBalancingClient} that is capable of handling both buffered and streaming content
+         * @return
+         */
         public AsyncLoadBalancingHttpClient<T> build() {
             return lbClient;
         }
         
+        /**
+         * Build an {@link AsyncLoadBalancingClient} wrapped by an {@link ObservableAsyncClient}
+         * @return
+         */
         public ObservableAsyncClient<HttpRequest, HttpResponse, T> observableClient() {
             return new ObservableAsyncClient<HttpRequest, HttpResponse, T>(lbClient);
         }
@@ -103,12 +133,19 @@ public class AsyncHttpClientBuilder<T> {
         return withApacheAsyncClient(config);
     }
     
+    /**
+     * Build a client with the configuration based on {@link ClientFactory#getNamedConfig(String)}
+     */
     public static AsyncHttpClientBuilder<ByteBuffer> withApacheAsyncClient(String name) {
         IClientConfig config = ClientFactory.getNamedConfig(name);
         return withApacheAsyncClient(config);
     }
 
-    
+    /**
+     * Start a builder based on Apache's HttpAsyncClient
+     * 
+     * @param clientConfig configuration to be used by the client
+     */
     public static AsyncHttpClientBuilder<ByteBuffer> withApacheAsyncClient(IClientConfig clientConfig) {
         AsyncHttpClientBuilder<ByteBuffer> builder = new AsyncHttpClientBuilder<ByteBuffer>();
         builder.client = new RibbonHttpAsyncClient(clientConfig);
@@ -117,35 +154,65 @@ public class AsyncHttpClientBuilder<T> {
         return builder;
     }
 
+    /**
+     * Build an {@link AsyncLoadBalancingClient} with the specified load balancer
+     *  
+     * @param lb
+     * @return
+     */
     public LoadBalancerClientBuilder<T> withLoadBalancer(ILoadBalancer lb) {
         LoadBalancerClientBuilder<T> lbBuilder = new LoadBalancerClientBuilder<T>(this.client, lb, this.defaultErrorHandler);
         return lbBuilder;
     }
     
+    /**
+     * Build an {@link AsyncLoadBalancingClient} with the load balancer created from the
+     * the same client configuration
+     * @return
+     */
     public LoadBalancerClientBuilder<T> withLoadBalancer() {
         LoadBalancerClientBuilder<T> lbBuilder = new LoadBalancerClientBuilder<T>(this.client, this.config, this.defaultErrorHandler);
         return lbBuilder;        
     }
     
+    /**
+     * Create an {@link AsyncLoadBalancingClient} with a {@link BaseLoadBalancer} and a fixed server list
+     * @param serverList
+     * @return
+     */
     public LoadBalancerClientBuilder<T> balancingWithServerList(List<Server> serverList) {
         LoadBalancerClientBuilder<T> lbBuilder = new LoadBalancerClientBuilder<T>(this.client, serverList, this.defaultErrorHandler);
         return lbBuilder;                
     }
     
+    /**
+     * add a {@link SerializationFactory}
+     * 
+     *  @see AsyncClient#addSerializationFactory(SerializationFactory)
+     */
     public AsyncHttpClientBuilder<T> withSerializationFactory(
             SerializationFactory<ContentTypeBasedSerializerKey> factory) {
         client.addSerializationFactory(factory);
         return this;
     }
     
+    /**
+     * Build a client that is capable of handling both buffered and non-buffered (streaming) response
+     */
     public AsyncHttpClient<T> buildClient() {
         return (AsyncHttpClient<T>) client;
     }
     
+    /**
+     * Build a client that is capable of handling buffered response
+     */
     public AsyncBufferingHttpClient buildBufferingClient() {
         return (AsyncBufferingHttpClient) client;
     }
     
+    /**
+     * Build an {@link ObservableAsyncClient} that provides {@link Observable} APIs
+     */
     public ObservableAsyncClient<HttpRequest, HttpResponse, T> observableClient() {
         return new ObservableAsyncClient<HttpRequest, HttpResponse, T>(client);
     }

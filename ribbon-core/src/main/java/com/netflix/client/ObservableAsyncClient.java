@@ -20,6 +20,7 @@ package com.netflix.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -32,6 +33,15 @@ import rx.Observable.OnSubscribeFunc;
 import rx.subscriptions.CompositeSubscription;
 import rx.subscriptions.Subscriptions;
 
+/**
+ * A class that wraps an asynchronous client and return {@link Observable} as result of execution.
+ * 
+ * @author awang
+ *
+ * @param <T> Type of the request
+ * @param <S> Type of the response
+ * @param <U> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
+ */
 public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse, U> implements Closeable {
 
     public static class StreamEvent<U extends IResponse, E> {
@@ -60,6 +70,9 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
         this.client = client;
     }
     
+    /**
+     * Execute a request and return {@link Observable} of the fully buffered response.
+     */
     public Observable<S> execute(final T request) {
         final OnSubscribeFunc<S> onSubscribeFunc = new OnSubscribeFunc<S>() {
             @Override
@@ -101,6 +114,12 @@ public class ObservableAsyncClient<T extends ClientRequest, S extends IResponse,
         });
     }
     
+    /**
+     * Execute a request and return {@link Observable} of the individual entities delivered by the {@link StreamDecoder}
+     * whenever some content is available in the I/O channel.
+     *
+     * @param <E> Type of entity delivered from {@link StreamDecoder}
+     */
     public <E> Observable<StreamEvent<S, E>> stream(final T request, final StreamDecoder<E, U> decoder) {
         final OnSubscribeFunc<StreamEvent<S, E>> onSubscribeFunc = new OnSubscribeFunc<StreamEvent<S, E>>() {
             @Override

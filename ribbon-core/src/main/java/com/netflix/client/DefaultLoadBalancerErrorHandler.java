@@ -24,6 +24,16 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+/**
+ * A default {@link LoadBalancerErrorHandler}. The implementation is limited to
+ * known exceptions in java.net. Specific client implementation should provide its own
+ * {@link LoadBalancerErrorHandler}
+ * 
+ * @author awang
+ *
+ * @param <T> Type of request
+ * @param <S> Type of response
+ */
 public class DefaultLoadBalancerErrorHandler<T extends ClientRequest, S extends IResponse> 
         implements LoadBalancerErrorHandler<T, S> {
 
@@ -36,6 +46,11 @@ public class DefaultLoadBalancerErrorHandler<T extends ClientRequest, S extends 
             Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class);
 
     
+    /**
+     * @return false if request is not retriable. otherwise, return true if
+     *            {@link ConnectException} or {@link SocketTimeoutException} 
+     *            is a cause in the Throwable. 
+     */
     @Override
     public boolean isRetriableException(T request, Throwable e,
             boolean sameServer) {
@@ -46,11 +61,17 @@ public class DefaultLoadBalancerErrorHandler<T extends ClientRequest, S extends 
         }
     }
 
+    /**
+     * @return true if {@link SocketException} or {@link SocketTimeoutException} is a cause in the Throwable.
+     */
     @Override
     public boolean isCircuitTrippingException(Throwable e) {
         return LoadBalancerContext.isPresentAsCause(e, circuitRelated);        
     }
 
+    /**
+     * always return false
+     */
     @Override
     public boolean isCircuitTrippinErrorgResponse(S response) {
         return false;

@@ -20,6 +20,7 @@ package com.netflix.ribbon.examples;
 import java.net.URI;
 import java.util.concurrent.Future;
 
+import com.netflix.client.AsyncClient;
 import com.netflix.client.http.AsyncBufferingHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.BufferedHttpResponseCallback;
@@ -27,7 +28,12 @@ import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
 
-
+/**
+ * An example that shows how deserialization work on the {@link AsyncClient}
+ * 
+ * @author awang
+ *
+ */
 public class GetWithDeserialization extends ExampleAppWithLocalResource {
 
     @Override
