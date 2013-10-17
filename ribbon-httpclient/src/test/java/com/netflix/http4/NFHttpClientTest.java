@@ -97,43 +97,6 @@ public class NFHttpClientTest {
 
     }
 
-    @Test
-    public void testConnectionPoolCounters() throws Exception {
-        System.out.println("Starting testConnectionPoolCounters");
-        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
-        NFHttpClient client = NFHttpClientFactory.getNamedNFHttpClient("google");
-        assertTrue(client.getConnectionManager() instanceof MonitoredConnectionManager);
-        MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) client.getConnectionManager(); 
-        connectionPoolManager.setDefaultMaxPerRoute(100);
-        connectionPoolManager.setMaxTotal(200);
-        assertTrue(connectionPoolManager.getConnectionPool() instanceof NamedConnectionPool);
-        NamedConnectionPool connectionPool = (NamedConnectionPool) connectionPoolManager.getConnectionPool(); 
-        System.out.println("Entries created: " + connectionPool.getCreatedEntryCount());
-        System.out.println("Requests count: " + connectionPool.getRequestsCount());
-        System.out.println("Free entries: " + connectionPool.getFreeEntryCount());
-        System.out.println("Deleted :" + connectionPool.getDeleteCount());
-        System.out.println("Released: " + connectionPool.getReleaseCount());
-        for (int i = 0; i < 10; i++) {
-            HttpUriRequest request = new HttpGet("http://www.google.com/");
-            HttpResponse response = client.execute(request);
-            EntityUtils.consume(response.getEntity());
-            assertEquals(200, response.getStatusLine().getStatusCode());
-            Thread.sleep(500);
-        }
-        System.out.println("Entries created: " + connectionPool.getCreatedEntryCount());
-        System.out.println("Requests count: " + connectionPool.getRequestsCount());
-        System.out.println("Free entries: " + connectionPool.getFreeEntryCount());
-        System.out.println("Deleted :" + connectionPool.getDeleteCount());
-        System.out.println("Released: " + connectionPool.getReleaseCount());
-        assertTrue(connectionPool.getCreatedEntryCount() >= 1);
-        assertTrue(connectionPool.getRequestsCount() >= 10);
-        assertTrue(connectionPool.getFreeEntryCount() <= 9);
-        assertEquals(connectionPool.getRequestsCount(), connectionPool.getFreeEntryCount() + connectionPool.getCreatedEntryCount());
-        // assertEquals(0, connectionPool.getDeleteCount());
-        assertEquals(10, connectionPool.getReleaseCount());
-        System.out.println("End testConnectionPoolCounters");
-    }
-
     
     /**
      * A thread that performs a GET.
