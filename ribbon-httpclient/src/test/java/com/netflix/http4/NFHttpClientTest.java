@@ -87,8 +87,9 @@ public class NFHttpClientTest {
         System.out.println("Deleted :" + connectionPool.getDeleteCount());
         System.out.println("Released: " + connectionPool.getReleaseCount());
         assertTrue(connectionPool.getCreatedEntryCount() >= 1);
-        assertEquals(10, connectionPool.getRequestsCount());
+        assertTrue(connectionPool.getRequestsCount() >= 10);
         assertTrue(connectionPool.getFreeEntryCount() <= 9);
+        assertEquals(connectionPool.getRequestsCount(), connectionPool.getFreeEntryCount() + connectionPool.getCreatedEntryCount());
         // assertEquals(0, connectionPool.getDeleteCount());
         assertEquals(10, connectionPool.getReleaseCount());
     }
