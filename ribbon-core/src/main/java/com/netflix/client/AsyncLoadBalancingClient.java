@@ -168,8 +168,8 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
 
         @Override
         public void completed(T response) {
-            latch.countDown();
             completeResponse = response;
+            latch.countDown();
             if (callback != null) {
                 callback.completed(response);
             }
@@ -177,8 +177,8 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
 
         @Override
         public void failed(Throwable e) {
-            latch.countDown();
             exception = e;
+            latch.countDown();
             if (callback != null) {
                 callback.failed(e);
             }
