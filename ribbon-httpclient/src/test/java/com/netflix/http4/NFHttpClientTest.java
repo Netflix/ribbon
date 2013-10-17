@@ -32,6 +32,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.junit.Test;
 
 public class NFHttpClientTest {
@@ -67,6 +69,8 @@ public class NFHttpClientTest {
 
     @Test
     public void testConnectionPoolCounters() throws Exception {
+        System.out.println("Starting testConnectionPoolCounters");
+        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         NFHttpClient client = NFHttpClientFactory.getNamedNFHttpClient("google");
         assertTrue(client.getConnectionManager() instanceof MonitoredConnectionManager);
         MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) client.getConnectionManager(); 
@@ -92,6 +96,7 @@ public class NFHttpClientTest {
         assertEquals(connectionPool.getRequestsCount(), connectionPool.getFreeEntryCount() + connectionPool.getCreatedEntryCount());
         // assertEquals(0, connectionPool.getDeleteCount());
         assertEquals(10, connectionPool.getReleaseCount());
+        System.out.println("End testConnectionPoolCounters");
     }
 
     @Test
