@@ -109,7 +109,6 @@ public class AsyncHttpClientBuilder<T> {
         
         /**
          * Build an {@link AsyncLoadBalancingClient} that is capable of handling both buffered and streaming content
-         * @return
          */
         public AsyncLoadBalancingHttpClient<T> build() {
             return lbClient;
@@ -117,7 +116,6 @@ public class AsyncHttpClientBuilder<T> {
         
         /**
          * Build an {@link AsyncLoadBalancingClient} wrapped by an {@link ObservableAsyncClient}
-         * @return
          */
         public ObservableAsyncClient<HttpRequest, HttpResponse, T> observableClient() {
             return new ObservableAsyncClient<HttpRequest, HttpResponse, T>(lbClient);
@@ -158,7 +156,6 @@ public class AsyncHttpClientBuilder<T> {
      * Build an {@link AsyncLoadBalancingClient} with the specified load balancer
      *  
      * @param lb
-     * @return
      */
     public LoadBalancerClientBuilder<T> withLoadBalancer(ILoadBalancer lb) {
         LoadBalancerClientBuilder<T> lbBuilder = new LoadBalancerClientBuilder<T>(this.client, lb, this.defaultErrorHandler);
@@ -168,7 +165,6 @@ public class AsyncHttpClientBuilder<T> {
     /**
      * Build an {@link AsyncLoadBalancingClient} with the load balancer created from the
      * the same client configuration
-     * @return
      */
     public LoadBalancerClientBuilder<T> withLoadBalancer() {
         LoadBalancerClientBuilder<T> lbBuilder = new LoadBalancerClientBuilder<T>(this.client, this.config, this.defaultErrorHandler);
@@ -178,7 +174,6 @@ public class AsyncHttpClientBuilder<T> {
     /**
      * Create an {@link AsyncLoadBalancingClient} with a {@link BaseLoadBalancer} and a fixed server list
      * @param serverList
-     * @return
      */
     public LoadBalancerClientBuilder<T> balancingWithServerList(List<Server> serverList) {
         LoadBalancerClientBuilder<T> lbBuilder = new LoadBalancerClientBuilder<T>(this.client, serverList, this.defaultErrorHandler);
