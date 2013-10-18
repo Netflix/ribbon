@@ -52,16 +52,12 @@ public abstract class AbstractLoadBalancer implements ILoadBalancer {
     /**
      * List of servers that this Loadbalancer knows about
      * 
-     * @param availableOnly
-     *            if true will only return the subset of servers that are in the
-     *            list as marked as "up" a null value will send all servers
-     * @return
+     * @param serverGroup Servers grouped by status, e.g., {@link ServerGroup#STATUS_UP}
      */
     public abstract List<Server> getServerList(ServerGroup serverGroup);
     
     /**
      * Obtain LoadBalancer related Statistics
-     * @return
      */
     public abstract LoadBalancerStats getLoadBalancerStats();    
 }

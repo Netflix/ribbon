@@ -99,7 +99,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      * <p>
      * This constructor is mainly used by {@link ClientFactory}. Calling this
      * constructor must be followed by calling {@link #init()} or
-     * {@link #initWithNiwsConfig(NiwsClientConfig)} to complete initialization.
+     * {@link #initWithNiwsConfig(IClientConfig)} to complete initialization.
      * This constructor is provided for reflection. When constructing
      * programatically, it is recommended to use other constructors.
      */
@@ -355,7 +355,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      * 
      * @param onlyAvailable
      *            if true, return only up servers.
-     * @return
      */
     public int getServerCount(boolean onlyAvailable) {
         if (onlyAvailable) {
@@ -527,7 +526,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      * 
      * @param index
      * @param availableOnly
-     * @return
      */
     public Server getServerByIndex(int index, boolean availableOnly) {
         try {

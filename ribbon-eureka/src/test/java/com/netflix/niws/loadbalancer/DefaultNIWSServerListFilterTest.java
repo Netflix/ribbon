@@ -65,6 +65,7 @@ public class DefaultNIWSServerListFilterTest {
         return createServer(zoneSuffix + "-" + "server" + hostId, "Us-east-1" + zoneSuffix);
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testZoneAffinityEnabled() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest1.ribbon.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
@@ -106,7 +107,7 @@ public class DefaultNIWSServerListFilterTest {
 
     }
 
-    
+    @SuppressWarnings({ "rawtypes", "unchecked" })    
     @Test
     public void testZoneExclusivity() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest2.ribbon.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");
@@ -145,6 +146,7 @@ public class DefaultNIWSServerListFilterTest {
         assertEquals(expected, filtered);
     }
     
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testZoneAffinityOverride() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("DefaultNIWSServerListFilterTest3.ribbon.DeploymentContextBasedVipAddresses", "l10nservicegeneral.cloud.netflix.net:7001");

@@ -32,7 +32,6 @@ public abstract class PredicateBasedRule extends ClientConfigEnabledRoundRobinRu
     /**
      * Method that provides an instance of {@link AbstractServerPredicate} to be used by this class.
      * 
-     * @return
      */
     public abstract AbstractServerPredicate getPredicate();
         

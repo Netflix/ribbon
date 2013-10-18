@@ -58,7 +58,7 @@ import com.netflix.servo.monitor.Stopwatch;
  *
  * @param <T> Request type
  * @param <S> Response type
- * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
+ * @param <U> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
  * @param <V> Type of key to find {@link Serializer} and {@link Deserializer} for the content. For example, for HTTP communication,
  *            the key type is {@link ContentTypeBasedSerializerKey}
  */

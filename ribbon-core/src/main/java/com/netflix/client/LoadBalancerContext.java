@@ -240,7 +240,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
     }
 
     /**
-     * This is called after a response is received or an exception is thrown from the {@link #execute(ClientRequest)}
+     * This is called after a response is received or an exception is thrown from the client
      * to update related stats.  
      */
     protected void noteRequestCompletion(ServerStats stats, ClientRequest request, IResponse response, Throwable e, long responseTime) {        
@@ -259,7 +259,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
     }
        
     /**
-     * Called just before {@link #execute(ClientRequest)} call.
+     * This is usually called just before client execute a request.
      */
     protected void noteOpenConnection(ServerStats serverStats, ClientRequest request) {
         if (serverStats == null) {

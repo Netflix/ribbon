@@ -26,7 +26,7 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
 
 /**
- * @See {@link HttpRequest}
+ * @see HttpRequest
  * @author awang
  *
  */

@@ -32,7 +32,6 @@ import com.netflix.client.ResponseWithTypedEntity;
 public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
     /**
      * Get the HTTP status code.
-     * @return
      */
     public int getStatus();
     
