@@ -24,11 +24,14 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.junit.Test;
 
 public class NamedConnectionPoolTest {
     @Test
     public void testConnectionPoolCounters() throws Exception {
+        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         NFHttpClient client = NFHttpClientFactory.getNamedNFHttpClient("google-NamedConnectionPoolTest");
         assertTrue(client.getConnectionManager() instanceof MonitoredConnectionManager);
         MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) client.getConnectionManager(); 
@@ -53,11 +56,13 @@ public class NamedConnectionPoolTest {
         System.out.println("Free entries: " + connectionPool.getFreeEntryCount());
         System.out.println("Deleted :" + connectionPool.getDeleteCount());
         System.out.println("Released: " + connectionPool.getReleaseCount());
-        assertEquals(1, connectionPool.getCreatedEntryCount());
-        assertEquals(10, connectionPool.getRequestsCount());
-        assertEquals(9, connectionPool.getFreeEntryCount());
+        assertTrue(connectionPool.getCreatedEntryCount() >= 1);
+        assertTrue(connectionPool.getRequestsCount() >= 10);
+        assertTrue(connectionPool.getFreeEntryCount() >= 9);
         assertEquals(0, connectionPool.getDeleteCount());
-        assertEquals(10, connectionPool.getReleaseCount());
+        assertEquals(connectionPool.getReleaseCount(), connectionPool.getRequestsCount());
+        assertEquals(connectionPool.getRequestsCount(), connectionPool.getCreatedEntryCount() + connectionPool.getFreeEntryCount());
+
     }
 
 }

@@ -30,6 +30,7 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.util.EntityUtils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 @SuppressWarnings("deprecation")
@@ -64,7 +65,7 @@ public class NFHttpClientTest {
         assertTrue(contentLen > 0);
     }
 
-    @Test
+    @Ignore
     public void testMultiThreadedClient() throws Exception {
 
         NFHttpClient client = (NFHttpClient) NFHttpClientFactory
