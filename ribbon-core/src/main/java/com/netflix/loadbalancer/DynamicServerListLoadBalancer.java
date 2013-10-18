@@ -79,6 +79,8 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     volatile ServerListFilter<T> filter;
     
     private AtomicLong lastUpdated = new AtomicLong(System.currentTimeMillis());
+    
+    protected volatile boolean serverRefreshEnabled = false;
 
     public DynamicServerListLoadBalancer() {
         super();
@@ -203,7 +205,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
                 .setNameFormat(threadName).build();
         _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(1, factory);
         keepServerListUpdated();
-
+        serverRefreshEnabled = true;
         // Add it to the shutdown hook
 
         if (_shutdownThread == null) {
@@ -312,6 +314,9 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
     @Monitor(name="NumUpdateCyclesMissed", type=DataSourceType.GAUGE)
     public int getNumberMissedCycles() {
+        if (!serverRefreshEnabled) {
+            return 0;
+        }
         return (int) ((int) (System.currentTimeMillis() - lastUpdated.get()) / refeshIntervalMills);
     }
     
