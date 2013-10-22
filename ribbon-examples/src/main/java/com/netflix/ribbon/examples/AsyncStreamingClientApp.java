@@ -29,7 +29,8 @@ import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 
 /**
- * An example shows using the streaming API of the {@link AsyncClient}
+ * An example shows using the streaming API of the {@link AsyncClient}. The application expects 
+ * Server-Sent Events from server.
  * 
  * @author awang
  *
