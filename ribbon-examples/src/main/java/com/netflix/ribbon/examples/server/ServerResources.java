@@ -89,11 +89,16 @@ public class ServerResources {
     private static ObjectMapper mapper = new ObjectMapper();
     public static final Person defaultPerson = new Person("ribbon", 1);
     
+    public static final List<Person> persons = Lists.newArrayList();
+    
     public static final List<String> streamContent = Lists.newArrayList();
     
     static {
         for (int i = 0; i < 1000; i++) {
             streamContent.add("data: line " + i);
+        }
+        for (int i = 0; i < 100; i++) {
+            persons.add(new Person(String.valueOf(i), 10));
         }
     }
     
@@ -103,6 +108,14 @@ public class ServerResources {
         String content = mapper.writeValueAsString(defaultPerson);
         return Response.ok(content).build();
     }
+    
+    @GET
+    @Path("/persons")
+    public Response getPersons() throws IOException {
+        String content = mapper.writeValueAsString(persons);
+        return Response.ok(content).build();
+    }
+
     
     @GET
     @Path("/noEntity")

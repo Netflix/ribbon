@@ -18,8 +18,10 @@
 package com.netflix.ribbon.examples;
 
 import java.net.URI;
+import java.util.List;
 import java.util.concurrent.Future;
 
+import com.google.common.reflect.TypeToken;
 import com.netflix.client.AsyncClient;
 import com.netflix.client.http.AsyncBufferingHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
@@ -36,6 +38,8 @@ import com.netflix.ribbon.examples.server.ServerResources.Person;
  */
 public class GetWithDeserialization extends ExampleAppWithLocalResource {
 
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
+    @SuppressWarnings("serial")
     @Override
     public void run() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
@@ -51,6 +55,28 @@ public class GetWithDeserialization extends ExampleAppWithLocalResource {
                 public void completed(HttpResponse response) {
                     try {
                         System.out.println(response.getEntity(Person.class));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        response.close();
+                    }
+                }
+
+                @Override
+                public void cancelled() {
+                }
+            });
+            future.get();
+            request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/persons").build();
+            future = client.execute(request, new BufferedHttpResponseCallback() {
+                @Override
+                public void failed(Throwable e) {
+                }
+
+                @Override
+                public void completed(HttpResponse response) {
+                    try {
+                        System.out.println(response.getEntity(new TypeToken<List<Person>>(){}));
                     } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
