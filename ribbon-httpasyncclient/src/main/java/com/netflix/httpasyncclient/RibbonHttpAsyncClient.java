@@ -192,16 +192,45 @@ public class RibbonHttpAsyncClient
         AbstractAsyncResponseConsumer<HttpResponse> consumer = null;
         if (decoder != null) {
             consumer = new AsyncByteConsumer<HttpResponse>() {
-                private volatile HttpResponse response;            
+                private volatile HttpResponse response;
+                ExpandableByteBuffer buffer = new ExpandableByteBuffer();
                 @Override
                 protected void onByteReceived(ByteBuffer buf, IOControl ioctrl)
                         throws IOException {
-                    E obj = decoder.decode(buf);
-                    if (obj != null && callback != null) {
-                        callback.contentReceived(obj);
+                    ByteBuffer bufferToConsume = buf;
+                    if (buffer.hasContent()) {
+                        logger.debug("internal buffer has unconsumed content");
+                        while (buf.position() < buf.limit()) {
+                            byte b = buf.get();
+                            buffer.addByte(b);
+                        }
+                        bufferToConsume = buffer.getByteBuffer();
+                        bufferToConsume.flip();
                     }
+                    while (true) {
+                        E obj = decoder.decode(bufferToConsume);
+                        if (obj != null) {
+                            if (callback != null) {
+                                callback.contentReceived(obj);
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    if (bufferToConsume.position() < bufferToConsume.limit()) {
+                        // there are leftovers
+                        logger.debug("copying leftover bytes not consumed by decoder to internal buffer for future use");
+                        // discard bytes already consumed and copy over bytes not consumed to the new buffer
+                        buffer = new ExpandableByteBuffer();
+                        while (bufferToConsume.position() < bufferToConsume.limit()) {
+                            byte b = bufferToConsume.get();
+                            buffer.addByte(b);
+                        }
+                    } else if (bufferToConsume == buffer.getByteBuffer()) {
+                        buffer.reset();
+                    } 
                 }
-
+                
                 @Override
                 protected void onResponseReceived(HttpResponse response)
                         throws HttpException, IOException {

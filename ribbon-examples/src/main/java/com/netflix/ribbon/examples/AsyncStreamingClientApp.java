@@ -18,7 +18,6 @@
 package com.netflix.ribbon.examples;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.concurrent.Future;
 
 import com.netflix.client.AsyncClient;
@@ -42,7 +41,7 @@ public class AsyncStreamingClientApp extends ExampleAppWithLocalResource {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
         AsyncHttpClient<ByteBuffer> client = AsyncHttpClientBuilder.withApacheAsyncClient().buildClient();
         try {
-            Future<HttpResponse> response = client.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, List<String>>() {
+            Future<HttpResponse> response = client.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, String>() {
                 @Override
                 public void completed(HttpResponse response) {
                 }
@@ -53,7 +52,7 @@ public class AsyncStreamingClientApp extends ExampleAppWithLocalResource {
                 }
 
                 @Override
-                public void contentReceived(List<String> element) {
+                public void contentReceived(String element) {
                     System.out.println("Get content from server: " + element);
                 }
 

@@ -158,7 +158,6 @@ public class ServerResources {
                 for (String line: streamContent) {
                     String eventLine = line + "\n";
                     output.write(eventLine.getBytes("UTF-8"));
-                    output.flush();
                     try {
                        Thread.sleep(5);
                     } catch (Exception e) { // NOPMD

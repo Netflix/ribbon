@@ -18,7 +18,7 @@
 package com.netflix.ribbon.examples;
 
 import java.nio.ByteBuffer;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import rx.util.functions.Action1;
@@ -42,20 +42,23 @@ public class StreamingObservableExample extends ExampleAppWithLocalResource {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
         ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = 
                 AsyncHttpClientBuilder.withApacheAsyncClient().observableClient();
-        final AtomicReference<HttpResponse> httpResponse = new AtomicReference<HttpResponse>(); 
+        final AtomicReference<HttpResponse> httpResponse = new AtomicReference<HttpResponse>();
+        final AtomicInteger counter = new AtomicInteger();
         try {
             observableClient.stream(request, new SSEDecoder())
             .toBlockingObservable()
-            .forEach(new Action1<StreamEvent<HttpResponse, List<String>>>() {
+            .forEach(new Action1<StreamEvent<HttpResponse, String>>() {
                 @Override
-                public void call(final StreamEvent<HttpResponse, List<String>> t1) {
+                public void call(final StreamEvent<HttpResponse, String> t1) {
                     System.out.println("Content from server: " + t1.getEvent());
+                    counter.incrementAndGet();
                     httpResponse.set(t1.getResponse());
                 }
             });
         } finally {
             httpResponse.get().close();
             observableClient.close();
+            System.out.println("\nTotal event received: " + counter.get());
         }
     }
 

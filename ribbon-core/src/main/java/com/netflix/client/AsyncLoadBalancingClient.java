@@ -18,7 +18,6 @@
 package com.netflix.client;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.List;

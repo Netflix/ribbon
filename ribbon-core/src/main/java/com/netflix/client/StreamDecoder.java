@@ -29,5 +29,16 @@ import java.nio.ByteBuffer;
  * @param <S> Type of storage used for partial content. For example, {@link ByteBuffer}.
  */
 public interface StreamDecoder<T, S> {
+    /**
+     * Decode from the input and create an entity. The client implementation should call this method in 
+     * a loop until it returns null, which means no more stream entity can be created from the unconsumed input.
+     * If there is any unconsumed input, client implementation should buffer and use it in conjunction with
+     * the next available input, for example, an HTTP chunk. In other words, the decoder should not
+     * have to buffer unconsumed input.
+     * 
+     * @param input input to read and create entity from
+     * @return Entity created, or null if nothing can be created from the unconsumed input
+     * @throws IOException
+     */
     T decode(S input) throws IOException;
 }

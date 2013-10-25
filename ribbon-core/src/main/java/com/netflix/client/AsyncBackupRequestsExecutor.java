@@ -134,7 +134,7 @@ public class AsyncBackupRequestsExecutor {
         final AtomicBoolean responseRecevied = new AtomicBoolean();
         final AtomicBoolean completedCalled = new AtomicBoolean();
         final AtomicBoolean failedCalled = new AtomicBoolean();
-        final AtomicBoolean cancelledCalled = new AtomicBoolean();
+        // final AtomicBoolean cancelledCalled = new AtomicBoolean();
         final Lock lock = new ReentrantLock();
         final Condition responseChosen = lock.newCondition();
         final Multimap<URI, Future<S>> map = ArrayListMultimap.create();
@@ -143,43 +143,65 @@ public class AsyncBackupRequestsExecutor {
             final int sequenceNumber = i;
             Future<S> future = asyncClient.execute(requests.get(i), decoder, new ResponseCallback<S, E>() {
                 private volatile boolean chosen = false;
+                private AtomicBoolean cancelledInvokedOnSameRequest = new AtomicBoolean();
                 @Override
                 public void completed(S response) {
-                    if (completedCalled.compareAndSet(false, true)  
-                            && callback != null && chosen) {
+                    // System.err.println("completed called");
+                    // Thread.dumpStack();
+                    lock.lock();
+                    boolean shouldInvokeCallback = false;
+                    try {
+                        if (chosen) {
+                            shouldInvokeCallback = true;
+                            completedCalled.set(true);
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
+                    if (callback != null && shouldInvokeCallback) {
                         callback.completed(response);
                     }
                 }
 
                 @Override
                 public void failed(Throwable e) {
-                    int count = failedCount.incrementAndGet();
-                    if ((count == numServers || chosen) && failedCalled.compareAndSet(false, true)) {
-                        lock.lock();
-                        try {
+                    lock.lock();
+                    boolean shouldInvokeCallback = false;
+                    try {
+                        int count = failedCount.incrementAndGet();
+                        if (count == numServers || chosen) { 
                             finalSequenceNumber.set(sequenceNumber);
                             responseChosen.signalAll();
-                        } finally {
-                            lock.unlock();
+                            shouldInvokeCallback = true;
+                            failedCalled.set(true);
                         }
-                        if (callback != null) {
-                            callback.failed(e);
-                        }
+                    } finally {
+                        lock.unlock();
+                    }
+                    if (shouldInvokeCallback && callback != null) {
+                        callback.failed(e);
                     }
                 }
 
                 @Override
                 public void cancelled() {
-                    int count = failedCount.incrementAndGet();
-                    if ((count == numServers || chosen) && cancelledCalled.compareAndSet(false, true)) {
+                    // avoid getting cancelled multiple times
+                    if (cancelledInvokedOnSameRequest.compareAndSet(false, true)) {
                         lock.lock();
+                        int count = failedCount.incrementAndGet();
+                        boolean shouldInvokeCallback = false;
                         try {
-                            finalSequenceNumber.set(sequenceNumber);
-                            responseChosen.signalAll();
+                            if (count == numServers || chosen) {
+                                // System.err.println("chosen:" + chosen);
+                                // System.err.println("failed count: " + failedCount.get());
+                                finalSequenceNumber.set(sequenceNumber);
+                                responseChosen.signalAll();
+                                shouldInvokeCallback = true;
+                            }
                         } finally {
                             lock.unlock();
                         }
-                        if (callback != null) {
+                        if (shouldInvokeCallback && callback != null) {
                             callback.cancelled();
                         }
                     }
@@ -188,9 +210,10 @@ public class AsyncBackupRequestsExecutor {
                 @Override
                 public void responseReceived(S response) {
                     if (responseRecevied.compareAndSet(false, true)) {
-                        chosen = true;
+                        // System.err.println("chosen=true");
                         lock.lock();
                         try {
+                            chosen = true;
                             finalSequenceNumber.set(sequenceNumber);
                             responseChosen.signalAll();
                         } finally {

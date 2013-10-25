@@ -49,7 +49,7 @@ public class EmbeddedResources {
     static List<String> streamContent = Lists.newArrayList();
     
     static {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 2000; i++) {
             streamContent.add("data: line " + i);
         }
     }
@@ -102,10 +102,6 @@ public class EmbeddedResources {
                 for (String line: streamContent) {
                     String eventLine = line + "\n";
                     output.write(eventLine.getBytes("UTF-8"));
-                    try {
-                       Thread.sleep(10);
-                    } catch (Exception e) { // NOPMD
-                    }
                 }
             }
         };
