@@ -262,7 +262,6 @@ public class LoadBalancerStats {
      * going over the list again for a different stat.
      * 
      * @param servers
-     * @return
      */
     public ZoneSnapshot getZoneSnapshot(List<? extends Server> servers) {
         if (servers == null || servers.size() == 0) {
@@ -357,7 +356,6 @@ public class LoadBalancerStats {
 
     /**
      * returns map of Stats for all servers
-     * @return
      */
     public Map<Server,ServerStats> getServerStats(){
         return serverStatsCache.asMap();

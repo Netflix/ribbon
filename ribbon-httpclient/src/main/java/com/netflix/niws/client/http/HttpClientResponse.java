@@ -17,16 +17,18 @@
 */
 package com.netflix.niws.client.http;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.netflix.client.IResponse;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.reflect.TypeToken;
 import com.netflix.client.ClientException;
+import com.netflix.client.http.HttpResponse;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
@@ -36,16 +38,21 @@ import com.sun.jersey.api.client.UniformInterfaceException;
  * @author stonse
  *
  */
-public class HttpClientResponse implements IResponse {
-    
-    private static final Logger logger = LoggerFactory.getLogger(HttpClientResponse.class);
+class HttpClientResponse implements HttpResponse {
     
     private ClientResponse bcr = null;
         
     private URI requestedURI; // the request url that got this response
     
+    private Multimap<String, String> headers = ArrayListMultimap.<String, String>create();
+
     public HttpClientResponse(ClientResponse cr){
         bcr = cr;
+        for (Map.Entry<String, List<String>> entry: bcr.getHeaders().entrySet()) {
+            if (entry.getKey() != null && entry.getValue() != null) {
+                headers.putAll(entry.getKey(), entry.getValue());
+            }
+        }
     }
 
      /**
@@ -70,8 +77,8 @@ public class HttpClientResponse implements IResponse {
     }
 
     @Override
-    public MultivaluedMap<String, String> getHeaders() {
-        return bcr.getHeaders();
+    public Map<String, Collection<String>> getHeaders() {
+        return headers.asMap();
     }
 
     public int getStatus() {
@@ -117,11 +124,19 @@ public class HttpClientResponse implements IResponse {
         return bcr;
     }
     
-    public void releaseResources() {
-        try {
-            bcr.close();
-        } catch (Exception e) {
-            logger.error("Error releasing connection", e);
-        }
+    @Override
+    public void close() {
+        bcr.close();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getEntity(TypeToken<T> type) throws Exception {
+        return (T) getEntity(type.getRawType());
+    }
+
+    @Override
+    public InputStream getInputStream() throws ClientException {
+        return getRawEntity();
     }
 }

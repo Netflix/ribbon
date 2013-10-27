@@ -17,7 +17,6 @@
 */
 package com.netflix.http4;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -29,11 +28,12 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.util.EntityUtils;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class NFHttpClientTest {
     
     @Test
@@ -65,30 +65,7 @@ public class NFHttpClientTest {
         assertTrue(contentLen > 0);
     }
 
-    @Test
-    public void testConnectionPoolCounters() throws Exception {
-        NFHttpClient client = NFHttpClientFactory.getNamedNFHttpClient("google");
-        assertTrue(client.getConnectionManager() instanceof MonitoredConnectionManager);
-        MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) client.getConnectionManager(); 
-        connectionPoolManager.setDefaultMaxPerRoute(100);
-        connectionPoolManager.setMaxTotal(200);
-        assertTrue(connectionPoolManager.getConnectionPool() instanceof NamedConnectionPool);
-        NamedConnectionPool connectionPool = (NamedConnectionPool) connectionPoolManager.getConnectionPool(); 
-        for (int i = 0; i < 10; i++) {
-            HttpUriRequest request = new HttpGet("http://www.google.com/");
-            HttpResponse response = client.execute(request);
-            EntityUtils.consume(response.getEntity());
-            assertEquals(200, response.getStatusLine().getStatusCode());
-            Thread.sleep(500);
-        }
-        assertEquals(1, connectionPool.getCreatedEntryCount());
-        assertEquals(10, connectionPool.getRequestsCount());
-        assertEquals(9, connectionPool.getFreeEntryCount());
-        assertEquals(0, connectionPool.getDeleteCount());
-        assertEquals(10, connectionPool.getReleaseCount());
-    }
-
-    @Test
+    @Ignore
     public void testMultiThreadedClient() throws Exception {
 
         NFHttpClient client = (NFHttpClient) NFHttpClientFactory
@@ -117,6 +94,7 @@ public class NFHttpClientTest {
         }
 
     }
+
     
     /**
      * A thread that performs a GET.

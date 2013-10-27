@@ -17,6 +17,7 @@
  */
 package com.netflix.loadbalancer;
 
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,8 @@ import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.servo.annotations.DataSourceType;
+import com.netflix.servo.annotations.Monitor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -73,6 +77,10 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     volatile ServerList<T> serverListImpl;
 
     volatile ServerListFilter<T> filter;
+    
+    private AtomicLong lastUpdated = new AtomicLong(System.currentTimeMillis());
+    
+    protected volatile boolean serverRefreshEnabled = false;
 
     public DynamicServerListLoadBalancer() {
         super();
@@ -197,7 +205,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
                 .setNameFormat(threadName).build();
         _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(1, factory);
         keepServerListUpdated();
-
+        serverRefreshEnabled = true;
         // Add it to the shutdown hook
 
         if (_shutdownThread == null) {
@@ -271,15 +279,16 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         List<T> servers = new ArrayList<T>();
         if (serverListImpl != null) {
             servers = serverListImpl.getUpdatedListOfServers();
-            LOGGER.debug("List of Servers obtained from Discovery client:"
-                    + servers);
+            LOGGER.debug("List of Servers for {} obtained from Discovery client: {}",
+                    getIdentifier(), servers);
 
             if (filter != null) {
                 servers = filter.getFilteredListOfServers(servers);
-                LOGGER.debug("Filtered List of Servers obtained from Discovery client:"
-                        + servers);
+                LOGGER.debug("Filtered List of Servers for {} obtained from Discovery client: {}",
+                        getIdentifier(), servers);
             }
         }
+        lastUpdated.set(System.currentTimeMillis());
         updateAllServerList(servers);
     }
 
@@ -303,6 +312,19 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         }
     }
 
+    @Monitor(name="NumUpdateCyclesMissed", type=DataSourceType.GAUGE)
+    public int getNumberMissedCycles() {
+        if (!serverRefreshEnabled) {
+            return 0;
+        }
+        return (int) ((int) (System.currentTimeMillis() - lastUpdated.get()) / refeshIntervalMills);
+    }
+    
+    @Monitor(name="LastUpdated", type=DataSourceType.INFORMATIONAL)
+    public String getLastUpdate() {
+        return new Date(lastUpdated.get()).toString();
+    }
+    
     public String toString() {
         StringBuilder sb = new StringBuilder("DynamicServerListLoadBalancer:");
         sb.append(super.toString());

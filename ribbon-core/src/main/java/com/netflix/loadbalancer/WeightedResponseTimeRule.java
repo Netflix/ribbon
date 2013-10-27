@@ -84,7 +84,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
     
     private int serverWeightTaskTimerInterval = DEFAULT_TIMER_INTERVAL;
 
-    private static final Logger logger = LoggerFactory.getLogger(ResponseTimeWeightedRule.class);
+    private static final Logger logger = LoggerFactory.getLogger(WeightedResponseTimeRule.class);
     
     // holds the accumulated weight from index 0 to current index
     // for example, element at index 2 holds the sum of weight of servers from 0 to 2

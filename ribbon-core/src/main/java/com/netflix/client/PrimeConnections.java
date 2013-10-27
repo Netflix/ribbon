@@ -262,7 +262,6 @@ public class PrimeConnections {
      * 
      * @param servers
      * @param listener
-     * @return
      */
     public List<Future<Boolean>> primeConnectionsAsync(final List<Server> servers, final PrimeConnectionListener listener) {
         if (servers == null) {

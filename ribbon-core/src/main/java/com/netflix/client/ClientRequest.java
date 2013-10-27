@@ -106,8 +106,8 @@ public class ClientRequest implements Cloneable {
      * Create a client request using a new URI. This is used by {@link AbstractLoadBalancerAwareClient#computeFinalUriWithLoadBalancer(ClientRequest)}.
      * It first tries to clone the request and if that fails it will use the copy constructor {@link #ClientRequest(ClientRequest)}.
      * Sub classes are recommended to override this method to provide more efficient implementation.
+     * 
      * @param newURI
-     * @return
      */
     public ClientRequest replaceUri(URI newURI) {
         ClientRequest req;

@@ -33,6 +33,8 @@ import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.client.testutil.SimpleSSLTestServer;
 import com.netflix.config.ConfigurationManager;
 import com.sun.jersey.api.client.ClientHandlerException;
@@ -355,10 +357,8 @@ public class SecureGetTest {
 		testServer1.accept();
 
 		URI getUri = new URI(SERVICE_URI1 + "test/");
-		MultivaluedMapImpl params = new MultivaluedMapImpl();
-		params.add("name", "test");
-		HttpClientRequest request = HttpClientRequest.newBuilder().setUri(getUri).setQueryParams(params).build();
-		HttpClientResponse response = rc.execute(request);
+        HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParams("name", "test").build();
+		HttpResponse response = rc.execute(request);
 		assertEquals(200, response.getStatus());
 	}
 
@@ -383,10 +383,8 @@ public class SecureGetTest {
 		testServer2.accept();
 
 		URI getUri = new URI(SERVICE_URI2 + "test/");
-		MultivaluedMapImpl params = new MultivaluedMapImpl();
-		params.add("name", "test");
-		HttpClientRequest request = HttpClientRequest.newBuilder().setUri(getUri).setQueryParams(params).build();
-		HttpClientResponse response = rc.execute(request);
+        HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParams("name", "test").build();
+		HttpResponse response = rc.execute(request);
 		assertEquals(200, response.getStatus());
 	}
 
@@ -416,7 +414,7 @@ public class SecureGetTest {
 		URI getUri = new URI(SERVICE_URI1 + "test/");
 		MultivaluedMapImpl params = new MultivaluedMapImpl();
 		params.add("name", "test");
-		HttpClientRequest request = HttpClientRequest.newBuilder().setUri(getUri).setQueryParams(params).build();
+        HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParams("name", "test").build();
 
 		try{
 			rc.execute(request);
@@ -447,9 +445,7 @@ public class SecureGetTest {
 		testServer2.accept();
 
 		URI getUri = new URI(SERVICE_URI2 + "test/");
-		MultivaluedMapImpl params = new MultivaluedMapImpl();
-		params.add("name", "test");
-		HttpClientRequest request = HttpClientRequest.newBuilder().setUri(getUri).setQueryParams(params).build();
+		HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParams("name", "test").build();
 		try{
 			rc.execute(request);
 

@@ -30,6 +30,8 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
+import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
@@ -39,8 +41,8 @@ public class RestClientTest {
     @Test
     public void testExecuteWithoutLB() throws Exception {
         RestClient client = (RestClient) ClientFactory.getNamedClient("google");
-        HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("http://www.google.com/")).build();
-        HttpClientResponse response = client.executeWithLoadBalancer(request);
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://www.google.com/")).build();
+        HttpResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
         response = client.execute(request);
         assertEquals(200, response.getStatus());
@@ -58,19 +60,19 @@ public class RestClientTest {
         expected.add(new URI("http://www.microsoft.com:80/"));
         expected.add(new URI("http://www.yahoo.com:80/"));
         Set<URI> result = new HashSet<URI>();
-        HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("/")).build();
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         for (int i = 0; i < 5; i++) {
-            HttpClientResponse response = client.executeWithLoadBalancer(request);
+            HttpResponse response = client.executeWithLoadBalancer(request);
             assertEquals(200, response.getStatus());
             assertTrue(response.isSuccess());
             String content = response.getEntity(String.class);
-            response.releaseResources();
+            response.close();
             assertTrue(content.length() > 100);
             result.add(response.getRequestedURI());
         }
         assertEquals(expected, result);
-        request = HttpClientRequest.newBuilder().setUri(new URI("http://www.linkedin.com/")).build();
-        HttpClientResponse response = client.executeWithLoadBalancer(request);
+        request = HttpRequest.newBuilder().uri(new URI("http://www.linkedin.com/")).build();
+        HttpResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
     }
 
@@ -80,8 +82,8 @@ public class RestClientTest {
     	ConfigurationManager.getConfigInstance().setProperty("test1.ribbon.InitializeNFLoadBalancer", "false");
         RestClient client = (RestClient) ClientFactory.getNamedClient("test1");
         assertNull(client.getLoadBalancer());
-        HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("/")).build();
-        HttpClientResponse response = client.executeWithLoadBalancer(request);
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
+        HttpResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
         assertEquals("http://google.com:80/", response.getRequestedURI().toString());
     }
@@ -90,8 +92,8 @@ public class RestClientTest {
     public void testSecureClient()  throws Exception {
     	ConfigurationManager.getConfigInstance().setProperty("test2.ribbon.IsSecure", "true");
     	RestClient client = (RestClient) ClientFactory.getNamedClient("test2");
-        HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("https://www.google.com/")).build();
-        HttpClientResponse response = client.executeWithLoadBalancer(request);
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("https://www.google.com/")).build();
+        HttpResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
     }
 
@@ -103,8 +105,8 @@ public class RestClientTest {
         Server[] servers = new Server[]{new Server("www.google.com", 443)};
         lb.addServers(Arrays.asList(servers));
         client.setLoadBalancer(lb);
-        HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("/")).build();
-        HttpClientResponse response = client.executeWithLoadBalancer(request);
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
+        HttpResponse response = client.executeWithLoadBalancer(request);
         assertEquals(200, response.getStatus());
         assertEquals("https://www.google.com:443/", response.getRequestedURI().toString());
 

@@ -28,6 +28,7 @@ import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
 import com.netflix.loadbalancer.AbstractServerList;
+import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 
 /**
  * The server list class that fetches the server information from Eureka client. ServerList is used by

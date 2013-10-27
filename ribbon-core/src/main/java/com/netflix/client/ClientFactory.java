@@ -50,7 +50,6 @@ public class ClientFactory {
      * 
      * @param restClientName
      * @param clientConfig
-     * @return
      * @throws ClientException if any errors occurs in the process, or if the client with the same name already exists
      */
     public static synchronized IClient<?, ?> registerClientFromProperties(String restClientName, IClientConfig clientConfig) throws ClientException { 
@@ -188,7 +187,6 @@ public class ClientFactory {
      *  
      * @param className Class name of the object
      * @param clientConfig IClientConfig object used for initialization.
-     * @return
      */
     @SuppressWarnings("unchecked")
 	public static Object instantiateInstanceWithClientConfig(String className, IClientConfig clientConfig) 

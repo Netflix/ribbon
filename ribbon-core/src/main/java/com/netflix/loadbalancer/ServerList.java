@@ -33,7 +33,6 @@ public interface ServerList<T extends Server> {
      * Return updated list of servers. This is called say every 30 secs
      * (configurable) by the Loadbalancer's Ping cycle
      * 
-     * @return
      */
     public List<T> getUpdatedListOfServers();   
 

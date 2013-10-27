@@ -70,11 +70,11 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
      * <p>
      * <ul>
      * <li>Servers with their concurrent connection count exceeding the client configuration for 
-     *  {@code<clientName>.<nameSpace>.ServerListSubsetFilter.eliminationConnectionThresold} (default is 0)
+     *  {@code <clientName>.<nameSpace>.ServerListSubsetFilter.eliminationConnectionThresold} (default is 0)
      * <li>Servers with their failure count exceeding the client configuration for 
-     *  {@code<clientName>.<nameSpace>.ServerListSubsetFilter.eliminationFailureThresold}  (default is 0)
+     *  {@code <clientName>.<nameSpace>.ServerListSubsetFilter.eliminationFailureThresold}  (default is 0)
      *  <li>If the servers evicted above is less than the forced eviction percentage as defined by client configuration
-     *   {@code<clientName>.<nameSpace>.ServerListSubsetFilter.forceEliminatePercent} (default is 10%, or 0.1), the
+     *   {@code <clientName>.<nameSpace>.ServerListSubsetFilter.forceEliminatePercent} (default is 10%, or 0.1), the
      *   remaining servers will be sorted by their health status and servers will worst health status will be
      *   forced evicted.
      * </ul>

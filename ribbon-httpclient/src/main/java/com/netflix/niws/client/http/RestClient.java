@@ -24,7 +24,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.security.KeyStore;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -49,10 +51,13 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.client.AbstractLoadBalancerAwareClient;
 import com.netflix.client.ClientException;
+import com.netflix.client.ClientRequest;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
@@ -82,7 +87,7 @@ import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
  * @author awang
  *
  */
-public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientRequest, HttpClientResponse> {
+public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, HttpResponse> {
 
     private Client restClient;
     private HttpClient httpClient4;
@@ -479,7 +484,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    public HttpClientResponse execute(HttpClientRequest task) throws Exception {
+    public HttpResponse execute(HttpRequest task) throws Exception {
         return execute(task.getVerb(), task.getUri(),
                 task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity());
     }
@@ -495,13 +500,6 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 
     }
 
-	@Override
-	protected int getDefaultPort() {
-		return 80;
-	}
-
-
-
     @Override
     protected int getDefaultPortFromScheme(String scheme) {
         int port = super.getDefaultPortFromScheme(scheme);
@@ -513,7 +511,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpClientRequest task) {
+    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpRequest task) {
         URI theUrl = task.getUri();
         boolean isSecure = getBooleanFromConfig(task.getOverrideConfig(), CommonClientConfigKey.IsSecure, this.isSecure);
         String scheme = theUrl.getScheme();
@@ -536,8 +534,8 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
         return new Pair<String, Integer>(scheme, port);
     }
 
-    private HttpClientResponse execute(Verb verb, URI uri,
-            MultivaluedMap<String, String> headers, MultivaluedMap<String, String> params,
+    private HttpResponse execute(HttpRequest.Verb verb, URI uri,
+            Map<String, Collection<String>> headers, Map<String, Collection<String>> params,
             IClientConfig overriddenClientConfig, Object requestEntity) throws Exception {
         HttpClientResponse thisResponse = null;
         boolean bbFollowRedirects = bFollowRedirects;
@@ -559,18 +557,23 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
 
         WebResource xResource = restClient.resource(uri.toString());
         if (params != null) {
-        	xResource = xResource.queryParams(params);
+            for (Map.Entry<String, Collection<String>> entry: params.entrySet()) {
+                String name = entry.getKey();
+                for (String value: entry.getValue()) {
+                    xResource = xResource.queryParam(name, value);
+                }
+            }
         }
         ClientResponse jerseyResponse;
 
         Builder b = xResource.getRequestBuilder();
 
         if (headers != null) {
-            Iterator<String> it = headers.keySet().iterator();
-            while (it.hasNext()) {
-                String name = it.next();
-                String value = headers.getFirst(name);
-                b = b.header(name, value);
+            for (Map.Entry<String, Collection<String>> entry: headers.entrySet()) {
+                String name = entry.getKey();
+                for (String value: entry.getValue()) {
+                    b = b.header(name, value);
+                }
             }
         }
         switch (verb) {
@@ -607,7 +610,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected boolean isRetriableException(Exception e) {
+    protected boolean isRetriableException(Throwable e) {
         boolean shouldRetry = isConnectException(e) || isSocketException(e);
         if (e instanceof ClientException
                 && ((ClientException)e).getErrorType() == ClientException.ErrorType.SERVER_THROTTLED){
@@ -617,7 +620,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpClientReques
     }
 
     @Override
-    protected boolean isCircuitBreakerException(Exception e) {
+    protected boolean isCircuitBreakerException(Throwable e) {
         return isConnectException(e) || isSocketException(e);
     }
 

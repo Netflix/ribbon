@@ -178,7 +178,6 @@ public class ServerStats {
     /**
      * Returns the count of failures in the current window
      * 
-     * @return
      */
     public long getFailureCount(){
         long count = 0;

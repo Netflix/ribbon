@@ -89,7 +89,11 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     PrioritizeVipAddressBasedServers("PrioritizeVipAddressBasedServers"),
     VipAddressResolverClassName("VipAddressResolverClassName"),
     TargetRegion("TargetRegion"),
-    RulePredicateClasses("RulePredicateClasses");
+    RulePredicateClasses("RulePredicateClasses"),
+    
+    // serialization
+    DefaultSerializationFactoryClassName("DefaultSerializationClassName");
+
 
     private final String configKey;
 
