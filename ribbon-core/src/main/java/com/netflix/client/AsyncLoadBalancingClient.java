@@ -260,12 +260,11 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
                                 + request.getUri() + ":" +  getDeepestCause(e).getMessage(), e));
                         return;
                     }
-                    logger.error("Exception while executing request which is deemed retry-able, retrying ..., Next Server Retry Attempt#:"
-                            + retries
-                            + ", URI tried:"
-                            + request.getUri());
                     try {
-                        asyncExecuteOnSingleServer(computeFinalUriWithLoadBalancer(request), decoder, this, currentRunningTask);
+                        T newRequest = computeFinalUriWithLoadBalancer(request);
+                        logger.debug("Exception while executing request which is deemed retry-able, retrying ..., Next Server Retry Attempt#: {}, URI: {}",
+                                retries, newRequest.getUri());
+                        asyncExecuteOnSingleServer(newRequest, decoder, this, currentRunningTask);
                     } catch (ClientException e1) {
                         delegate.failed(e1);
                     }

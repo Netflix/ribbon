@@ -41,7 +41,7 @@ public abstract class ExampleAppWithLocalResource {
     
     public final void runApp() throws Exception {
         PackagesResourceConfig resourceConfig = new PackagesResourceConfig("com.netflix.ribbon.examples.server");
-        ExecutorService service = Executors.newFixedThreadPool(5);
+        ExecutorService service = Executors.newFixedThreadPool(50);
         try{
             server = HttpServerFactory.create(SERVICE_URI, resourceConfig);           
             server.setExecutor(service);

@@ -69,7 +69,7 @@ project(':ribbon-eureka') {
 project(':ribbon-httpasyncclient') {
     dependencies {
         compile project(':ribbon-core')
-        compile 'org.apache.httpcomponents:httpasyncclient:4.0-beta4'       
+        compile 'org.apache.httpcomponents:httpasyncclient:4.0'
         testCompile 'com.sun.jersey:jersey-server:1.11'
         testCompile 'com.sun.jersey:jersey-core:1.11'        
         testCompile 'asm:asm-all:3.2'
