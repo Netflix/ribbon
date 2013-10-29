@@ -22,6 +22,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.List;
 
+import org.apache.http.ConnectionClosedException;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.conn.ConnectionPoolTimeoutException;
 
@@ -44,11 +45,11 @@ public class HttpAsyncClientLoadBalancerErrorHandler implements LoadBalancerErro
     @SuppressWarnings("unchecked")
     protected List<Class<? extends Throwable>> retriable = 
             Lists.<Class<? extends Throwable>>newArrayList(ConnectException.class, SocketTimeoutException.class, 
-                    NoHttpResponseException.class, ConnectionPoolTimeoutException.class);
+                    NoHttpResponseException.class, ConnectionPoolTimeoutException.class, ConnectionClosedException.class);
     
     @SuppressWarnings("unchecked")
     protected List<Class<? extends Throwable>> circuitRelated = 
-            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class);
+            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class, ConnectionClosedException.class);
     
     /**
      * @return true if request is retriable and the Throwable has any of the following type of exception as a cause: 

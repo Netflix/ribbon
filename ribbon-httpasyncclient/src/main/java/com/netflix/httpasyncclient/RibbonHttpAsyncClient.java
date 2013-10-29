@@ -211,7 +211,11 @@ public class RibbonHttpAsyncClient
                         E obj = decoder.decode(bufferToConsume);
                         if (obj != null) {
                             if (callback != null) {
-                                callback.contentReceived(obj);
+                                try {
+                                    callback.contentReceived(obj);
+                                } catch (Throwable e) {
+                                    logger.error("Error from callback", e);
+                                }
                             }
                         } else {
                             break;

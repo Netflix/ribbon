@@ -31,11 +31,15 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -75,7 +79,8 @@ public class HttpAsyncClientTest {
 
     private volatile Person person;
     
-    private RibbonHttpAsyncClient client = new RibbonHttpAsyncClient();
+    private RibbonHttpAsyncClient client = new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues()
+            .withProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, "200"));
     private static int port;
     
     static class SSEDecoder implements StreamDecoder<List<String>, ByteBuffer> {
@@ -176,14 +181,17 @@ public class HttpAsyncClientTest {
         PackagesResourceConfig resourceConfig = new PackagesResourceConfig("com.netflix.httpasyncclient");
         port = (new Random()).nextInt(1000) + 4000;
         SERVICE_URI = "http://localhost:" + port + "/";
+        ExecutorService service = Executors.newFixedThreadPool(200);
         try{
             server = HttpServerFactory.create(SERVICE_URI, resourceConfig);           
+            server.setExecutor(service);
             server.start();
-        } catch (Exception e) {
+        } catch(Exception e) {
             e.printStackTrace();
-            fail(e.getMessage());
+            fail("Unable to start server");
         }
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+
     }
 
     @Test
@@ -290,6 +298,16 @@ public class HttpAsyncClientTest {
     }
     
     @Test
+    public void testReadTimeout() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testAsync/readTimeout");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();        
+        client.execute(request, callback);
+        callback.awaitCallback();
+        assertNotNull(callback.getError());
+    }
+
+    @Test
     public void testLoadBalancingClient() throws Exception {
         AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
                 HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
@@ -345,7 +363,53 @@ public class HttpAsyncClientTest {
         assertEquals(EmbeddedResources.defaultPerson, callback.getHttpResponse().getEntity(Person.class));
         assertEquals(1, lb.getLoadBalancerStats().getSingleServerStat(good).getTotalRequestsCount());
     }
-    
+
+    @Test
+    public void testLoadBalancingClientConcurrency() throws Exception {
+        final AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ?> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
+        final Server good = new Server("localhost:" + port);
+        final Server bad = new Server("localhost:" + 33333);
+        List<Server> servers = Lists.newArrayList(good, bad, good, good);
+        lb.setServersList(servers);
+        loadBalancingClient.setLoadBalancer(lb);
+        loadBalancingClient.setMaxAutoRetriesNextServer(2);
+        URI uri = new URI("/testAsync/person");
+        final HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        int concurrency = 200;
+        ExecutorService executor = Executors.newFixedThreadPool(concurrency);
+        final CountDownLatch completeLatch = new CountDownLatch(concurrency);
+        for (int i = 0; i < concurrency; i++) {
+            final int num = i;
+            final ResponseCallbackWithLatch callback = new ResponseCallbackWithLatch();        
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        loadBalancingClient.execute(request, callback);
+                        callback.awaitCallback();       
+                        completeLatch.countDown();
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                        fail(e.getMessage());
+                    }
+                    if (callback.getError() == null) {
+                        try {
+                            assertEquals(EmbeddedResources.defaultPerson, callback.getHttpResponse().getEntity(Person.class));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            fail(e.getMessage());
+                        }
+                    }
+                }
+            });     
+        }
+        if (!completeLatch.await(60, TimeUnit.SECONDS)) {
+            fail("Not all threads have completed");
+        }
+    }
+
     @Test
     public void testLoadBalancingClientFromFactory() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("asyncclient.ribbon.listOfServers", "localhost:33333,localhost:33333,localhost:" + port);
@@ -595,5 +659,76 @@ public class HttpAsyncClientTest {
         // make sure we do not get more than 1 callback
         callback.awaitCallback();
         assertNotNull(callback.getError());
+    }
+    
+    @Test
+    public void testConcurrentStreaming() throws Exception {
+        final HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
+        final AsyncHttpClient<ByteBuffer> httpClient = AsyncHttpClientBuilder
+                .withApacheAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues()
+                        .withProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, "200"))
+                .buildClient();
+        int concurrency = 200;
+        ExecutorService executor = Executors.newFixedThreadPool(concurrency);
+        final CountDownLatch completeLatch = new CountDownLatch(concurrency);
+        final AtomicInteger successCount = new AtomicInteger();
+        for (int i = 0; i < concurrency; i++) {
+            final int num = i;
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    final List<String> results = Lists.newArrayList();
+                    final CountDownLatch latch = new CountDownLatch(1);
+                    final AtomicBoolean failed = new AtomicBoolean();
+                    try {
+                        httpClient.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, List<String>>() {
+                            @Override
+                            public void completed(HttpResponse response) {
+                                latch.countDown();    
+                            }
+
+                            @Override
+                            public void failed(Throwable e) {
+                                System.err.println("Error received " + e);
+                                e.printStackTrace();
+                                failed.set(true);
+                                latch.countDown();
+                            }
+
+                            @Override
+                            public void contentReceived(List<String> element) {
+                                results.addAll(element);
+                            }
+
+                            @Override
+                            public void cancelled() {
+                            }
+
+                            @Override
+                            public void responseReceived(HttpResponse response) {
+                            }
+                        });
+                        if (!latch.await(60, TimeUnit.SECONDS)) {
+                            fail("No callback happens within timeout");
+                        }
+                        if (!failed.get()) {
+                            successCount.incrementAndGet();
+                            assertEquals(EmbeddedResources.streamContent, results);
+                        } else {
+                            System.err.println("Thread " + num + " failed");
+                        }
+                        completeLatch.countDown();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        fail("Thread " + num + " failed due to unexpected exception");
+                    }
+                    
+                }
+            });
+        }
+        if (!completeLatch.await(60, TimeUnit.SECONDS)) {
+            fail("Some threads have not completed streaming within timeout");
+        }
+        System.out.println("Successful streaming " + successCount.get());
     }
 }

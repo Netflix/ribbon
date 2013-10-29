@@ -572,7 +572,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         if (currentRetryCount > maxRetries) {
             return false;
         }
-        logger.warn("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt#: {}, URI: {}",  
+        logger.debug("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt#: {}, URI: {}",  
                 currentRetryCount, uri);
         return true;
     }
