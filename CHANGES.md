@@ -3,6 +3,7 @@
 [pull request 51](https://github.com/Netflix/ribbon/pull/51) 
 * Added asynchronous client based on Apache's HttpAsyncClient
 * API to support async cancellable back up requests 
+* Support Observable APIs from https://github.com/Netflix/RxJava
 * Created unified serialization interface to be used by all clients
 * Builders for async clients
 * ribbion-examples sub-project created
