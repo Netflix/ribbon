@@ -8,6 +8,7 @@
 * ribbion-examples sub-project created
 * refactoring of load balancer APIs
 * Unify the request and response object used by RestClient to be the same as RibbonHttpAsyncClient
+* Replaced dependency on jersey-bundle with jersey-client.
 
 [pull request 54](https://github.com/Netflix/ribbon/pull/54)
 * Changed the dependency of HttpAsyncClient to be 4.0 GA
