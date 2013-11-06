@@ -31,6 +31,8 @@ import org.apache.http.impl.conn.tsccm.WaitingThreadAborter;
 import org.apache.http.params.HttpParams;
 
 import com.google.common.base.Preconditions;
+import com.netflix.servo.annotations.DataSourceType;
+import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
@@ -167,4 +169,10 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     public final long getDeleteCount() {
         return deleteCounter.getValue().longValue();
     }
+    
+    @Monitor(name="connectionCount", type=DataSourceType.GAUGE)
+    public int getConnectionCount() {
+        return this.getConnectionsInPool();
+    }
+    
 }
