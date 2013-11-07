@@ -163,8 +163,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         T response = null;
 
         do {
+            S resolved = computeFinalUriWithLoadBalancer(request);
             try {
-                S resolved = computeFinalUriWithLoadBalancer(request);
                 response = executeOnSingleServer(resolved);
                 done = true;
             } catch (Exception e) {      
@@ -178,7 +178,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                     if (retries > numRetriesNextServer) {
                         throw new ClientException(
                                 ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
-                                "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
+                                "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED: "
                                 + numRetriesNextServer
                                 + " retries, while making a RestClient call for:"
                                 + request.getUri() + ":" +  getDeepestCause(e).getMessage(), e);
@@ -186,7 +186,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                     logger.error("Exception while executing request which is deemed retry-able, retrying ..., Next Server Retry Attempt#:"
                             + retries
                             + ", URI tried:"
-                            + request.getUri());
+                            + resolved.getUri());
                 } else {
                     if (e instanceof ClientException) {
                         throw (ClientException) e;

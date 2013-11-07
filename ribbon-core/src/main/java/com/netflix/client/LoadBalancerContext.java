@@ -585,4 +585,12 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
             LoadBalancerErrorHandler<? super T, ? super S> errorHandler) {
         this.errorHandler = errorHandler;
     }
+
+    public final boolean isOkToRetryOnAllOperations() {
+        return okToRetryOnAllOperations;
+    }
+
+    public final void setOkToRetryOnAllOperations(boolean okToRetryOnAllOperations) {
+        this.okToRetryOnAllOperations = okToRetryOnAllOperations;
+    }
 }

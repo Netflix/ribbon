@@ -19,6 +19,7 @@ package com.netflix.niws.client.http;
 
 import java.io.File;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -604,6 +605,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         thisResponse = new HttpClientResponse(jerseyResponse);
         thisResponse.setRequestedURI(uri);
         if (thisResponse.getStatus() == 503){
+            thisResponse.close();
             throw new ClientException(ClientException.ErrorType.SERVER_THROTTLED);
         }
         return thisResponse;
@@ -611,23 +613,29 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 
     @Override
     protected boolean isRetriableException(Throwable e) {
-        boolean shouldRetry = isConnectException(e) || isSocketException(e);
         if (e instanceof ClientException
                 && ((ClientException)e).getErrorType() == ClientException.ErrorType.SERVER_THROTTLED){
-            shouldRetry = true;
+            return false;
         }
+        boolean shouldRetry = isConnectException(e) || isSocketException(e);
         return shouldRetry;
     }
 
     @Override
     protected boolean isCircuitBreakerException(Throwable e) {
+        if (e instanceof ClientException) {
+            ClientException clientException = (ClientException) e;
+            if (clientException.getErrorType() == ClientException.ErrorType.SERVER_THROTTLED) {
+                return true;
+            }
+        }
         return isConnectException(e) || isSocketException(e);
     }
 
     private static boolean isSocketException(Throwable e) {
         int levelCount = 0;
         while (e != null && levelCount < 10) {
-            if (e instanceof SocketException) {
+            if ((e instanceof SocketException) || (e instanceof SocketTimeoutException)) {
                 return true;
             }
             e = e.getCause();
