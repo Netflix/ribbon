@@ -98,7 +98,7 @@ public class NamedConnectionPool extends ConnPoolByRoute {
         releaseCounter = Monitors.newCounter(name + "_Release");
         deleteCounter = Monitors.newCounter(name + "_Delete");
         requestTimer = Monitors.newTimer(name + "RequestEntry", TimeUnit.MILLISECONDS);
-        Monitors.registerObject(this);
+        Monitors.registerObject(name, this);
     }
 
     @Override
