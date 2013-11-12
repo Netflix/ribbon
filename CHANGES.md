@@ -1,3 +1,9 @@
+### Version 0.3.1
+
+[pull request 56](https://github.com/Netflix/ribbon/pull/56)
+* Fix connection leak when RestClient throws exception on server throttle
+
+
 ### Version 0.3.0 
 
 [pull request 51](https://github.com/Netflix/ribbon/pull/51) 
