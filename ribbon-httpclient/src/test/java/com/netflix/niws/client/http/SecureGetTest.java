@@ -257,7 +257,7 @@ public class SecureGetTest {
 	private static File FILE_TS2;
 	private static File FILE_KS2;
 
-	private static String PASSWORD = "changeit";
+	public static final String PASSWORD = "changeit";
 
 
 	@BeforeClass
