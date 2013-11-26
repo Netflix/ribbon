@@ -31,6 +31,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.routing.HttpRoute;
@@ -43,6 +44,9 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.servo.annotations.DataSourceType;
@@ -85,28 +89,35 @@ public class NFHttpClient extends DefaultHttpClient {
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
 		httpHost = new HttpHost(host, port);
 		httpRoute = new HttpRoute(httpHost);
-		init();
+		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
 	}   
 
 	protected NFHttpClient(){
 		super(new ThreadSafeClientConnManager());
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
-		init();
+		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
 	}
 
-	protected NFHttpClient(String name){
+	protected NFHttpClient(String name) {
 		super(new MonitoredConnectionManager(name));
 		this.name = name;
-		init();
+		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
 	}
 
-	void init() {
+    protected NFHttpClient(String name, IClientConfig config) {
+        super(new MonitoredConnectionManager(name));
+        this.name = name;
+        init(config);
+    }
+
+	
+	void init(IClientConfig config) {
 		HttpParams params = getParams();
 
 		HttpProtocolParams.setContentCharset(params, "UTF-8");  
 		params.setParameter(ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME, 
 				ThreadSafeClientConnManager.class.getName());
-
+		HttpClientParams.setRedirecting(params, config.getPropertyAsBoolean(CommonClientConfigKey.FollowRedirects, true));
 		// set up default headers
 		List<Header> defaultHeaders = new ArrayList<Header>();
 		defaultHeaders.add(new BasicHeader("Netflix.NFHttpClient.Version", "1.0"));
