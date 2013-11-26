@@ -65,6 +65,9 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     TrustStore("TrustStore"),
     TrustStorePassword("TrustStorePassword"),
     IsClientAuthRequired("IsClientAuthRequired"), // if this is a secure rest client, must we use client auth too?
+    CustomSSLSocketFactoryClassName("CustomSSLSocketFactoryClassName"),
+
+
     IsHostnameValidationRequired("IsHostnameValidationRequired"), // must host name match name in certificate?
     IgnoreUserTokenInConnectionPoolForSecureClient("IgnoreUserTokenInConnectionPoolForSecureClient"), // see also http://hc.apache.org/httpcomponents-client-ga/tutorial/html/advanced.html
 

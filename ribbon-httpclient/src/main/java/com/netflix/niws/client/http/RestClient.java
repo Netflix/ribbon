@@ -31,6 +31,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
+import com.netflix.client.ClientFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.UserTokenHandler;
@@ -392,6 +393,23 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                     return null;
                 }
             });
+        }
+
+        // custom SSL Factory handler
+        String customSSLFactoryClassName = (String) ncc.getProperty(CommonClientConfigKey.CustomSSLSocketFactoryClassName);
+
+        if(customSSLFactoryClassName != null){
+
+            try{
+                SSLSocketFactory customSocketFactory = (SSLSocketFactory) ClientFactory.instantiateInstanceWithClientConfig(customSSLFactoryClassName, ncc);
+
+                httpClient4.getConnectionManager().getSchemeRegistry().register(new Scheme(
+                        "https",443, customSocketFactory));
+
+            }catch(Exception e){
+                throw new IllegalArgumentException("Invalid value associated with property:"
+                        + CommonClientConfigKey.CustomSSLSocketFactoryClassName, e);
+            }
         }
 
         ApacheHttpClient4Handler handler = new ApacheHttpClient4Handler(httpClient4, new BasicCookieStore(), false);
