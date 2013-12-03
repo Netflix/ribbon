@@ -23,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.http.client.HttpClient;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Monitors;
 
 /**
@@ -51,17 +53,25 @@ public class NFHttpClientFactory {
 	}
 
     public static NFHttpClient getNamedNFHttpClient(String name) {
-        return getNamedNFHttpClient(name, true);
+        return getNamedNFHttpClient(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(name), true);
     }
 
-	public static NFHttpClient getNamedNFHttpClient(String name, boolean registerMonitor){		
+    public static NFHttpClient getNamedNFHttpClient(String name, IClientConfig config) {
+        return getNamedNFHttpClient(name, config, true);
+    }
+
+    public static NFHttpClient getNamedNFHttpClient(String name, boolean registerMonitor) {       
+        return getNamedNFHttpClient(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(name), registerMonitor);
+    }
+    
+	public static NFHttpClient getNamedNFHttpClient(String name, IClientConfig config, boolean registerMonitor) {		
 		NFHttpClient client = namedClientMap.get(name);		
 		//avoid creating multiple HttpClient instances 
 		if (client == null){
 		    synchronized (lock) {
 		        client = namedClientMap.get(name);       
 		        if (client == null){
-        			client = new NFHttpClient(name);
+        			client = new NFHttpClient(name, config);
         			namedClientMap.put(name,client);
         			if (registerMonitor) {
         			    Monitors.registerObject("HttpClient_" + name, client);
