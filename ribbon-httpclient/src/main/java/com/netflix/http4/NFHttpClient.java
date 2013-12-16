@@ -89,29 +89,30 @@ public class NFHttpClient extends DefaultHttpClient {
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
 		httpHost = new HttpHost(host, port);
 		httpRoute = new HttpRoute(httpHost);
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), false);
 	}   
 
 	protected NFHttpClient(){
 		super(new ThreadSafeClientConnManager());
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), false);
 	}
 
 	protected NFHttpClient(String name) {
-		super(new MonitoredConnectionManager(name));
-		this.name = name;
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+	    this(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), true);
 	}
 
     protected NFHttpClient(String name, IClientConfig config) {
-        super(new MonitoredConnectionManager(name));
-        this.name = name;
-        init(config);
+        this(name, config, true);
     }
 
+    protected NFHttpClient(String name, IClientConfig config, boolean registerMonitor) {
+        super(new MonitoredConnectionManager(name));
+        this.name = name;
+        init(config, registerMonitor);
+    }
 	
-	void init(IClientConfig config) {
+	void init(IClientConfig config, boolean registerMonitor) {
 		HttpParams params = getParams();
 
 		HttpProtocolParams.setContentCharset(params, "UTF-8");  
@@ -132,7 +133,9 @@ public class NFHttpClient extends DefaultHttpClient {
 				new NFHttpMethodRetryHandler(this.name, this.retriesProperty.get(), false,
 						this.sleepTimeFactorMsProperty.get()));
 	    tracer = Monitors.newTimer(EXECUTE_TRACER, TimeUnit.MILLISECONDS);
-        Monitors.registerObject(name, this);
+	    if (registerMonitor) {
+            Monitors.registerObject(name, this);
+	    }
 	}
 
 	public void initConnectionCleanerTask(){
