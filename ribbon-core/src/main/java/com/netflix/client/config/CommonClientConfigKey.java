@@ -24,6 +24,7 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     Version("Version"),
     Port("Port"),
     SecurePort("SecurePort"),
+    ForcePortConfig("ForcePortConfig"),//use client port config regardless of server advertisement
     VipAddress("VipAddress"),
     DeploymentContextBasedVipAddresses("DeploymentContextBasedVipAddresses"),
     MaxAutoRetries("MaxAutoRetries"),
