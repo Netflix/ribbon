@@ -453,7 +453,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
                 host = svc.getHost();
 
                 if(shouldUseOverridePort){
-                    logger.debug("Using override port of %d on client %s", clientName);
+                    logger.debug("Using override port of %d on client %s", overridePort, clientName);
                     port = overridePort;
                 }else{
                     port = svc.getPort();
