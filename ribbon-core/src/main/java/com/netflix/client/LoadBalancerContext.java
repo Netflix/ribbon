@@ -55,10 +55,6 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
     protected int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
     protected int maxAutoRetries = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES;
 
-    protected int overridePort = DefaultClientConfigImpl.DEFAULT_PORT;
-    protected boolean shouldUseOverridePort = false;
-
-
     protected LoadBalancerErrorHandler<? super T, ? super S> errorHandler = new DefaultLoadBalancerErrorHandler<ClientRequest, IResponse>();
 
 
@@ -97,34 +93,6 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         
        okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
        tracer = getExecuteTracer();
-
-        // override client configuration and use client-defined port
-       if(clientConfig.getPropertyAsBoolean(CommonClientConfigKey.ForceClientPortConfiguration, false)){
-
-            if(clientConfig.getPropertyAsBoolean(CommonClientConfigKey.IsSecure, false)){
-
-                if(clientConfig.containsProperty(CommonClientConfigKey.SecurePort)){
-
-                    overridePort = clientConfig.getPropertyAsInteger(CommonClientConfigKey.SecurePort, DefaultClientConfigImpl.DEFAULT_PORT);
-                    shouldUseOverridePort = true;
-
-                }else{
-                    logger.warn("%s set to force client port but no secure port is set, so ignoring", clientName);
-                }
-            }else{
-
-                if(clientConfig.containsProperty(CommonClientConfigKey.Port)){
-
-                    overridePort = clientConfig.getPropertyAsInteger(CommonClientConfigKey.Port, DefaultClientConfigImpl.DEFAULT_PORT);
-                    shouldUseOverridePort = true;
-
-                }else{
-                    logger.warn("%s set to force client port but no secure port is set, so ignoring", clientName);
-                }
-            }
-        }
-
-
 
        Monitors.registerObject("Client_" + clientName, this);
     }
@@ -451,14 +419,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
                             + clientName);
                 }
                 host = svc.getHost();
-
-                if(shouldUseOverridePort){
-                    logger.debug("Using override port of %d on client %s", overridePort, clientName);
-                    port = overridePort;
-                }else{
-                    port = svc.getPort();
-                }
-
+                port = svc.getPort();
 
                 if (host == null){
                     throw new ClientException(ClientException.ErrorType.GENERAL,
