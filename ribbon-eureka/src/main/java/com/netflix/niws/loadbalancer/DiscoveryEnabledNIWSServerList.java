@@ -23,12 +23,15 @@ import java.util.List;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
 import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
 import com.netflix.loadbalancer.AbstractServerList;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The server list class that fetches the server information from Eureka client. ServerList is used by
@@ -39,6 +42,8 @@ import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
  */
 public class DiscoveryEnabledNIWSServerList extends AbstractServerList<DiscoveryEnabledServer>{
 
+    private static final Logger logger = LoggerFactory.getLogger(DiscoveryEnabledNIWSServerList.class);
+
     String clientName;
     String vipAddresses;
     boolean isSecure = false;
@@ -47,15 +52,46 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
   
     String datacenter;
     String targetRegion;
+
+    int overridePort = DefaultClientConfigImpl.DEFAULT_PORT;
+    boolean shouldUseOverridePort = false;
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
-        this.clientName = clientConfig.getClientName();
+        clientName = clientConfig.getClientName();
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
         isSecure = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.IsSecure, "false"));
         prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));        
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
         targetRegion = (String) clientConfig.getProperty(CommonClientConfigKey.TargetRegion);
+
+        // override client configuration and use client-defined port
+        if(clientConfig.getPropertyAsBoolean(CommonClientConfigKey.ForceClientPortConfiguration, false)){
+
+            if(isSecure){
+
+                if(clientConfig.containsProperty(CommonClientConfigKey.SecurePort)){
+
+                    overridePort = clientConfig.getPropertyAsInteger(CommonClientConfigKey.SecurePort, DefaultClientConfigImpl.DEFAULT_PORT);
+                    shouldUseOverridePort = true;
+
+                }else{
+                    logger.warn(clientName + " set to force client port but no secure port is set, so ignoring");
+                }
+            }else{
+
+                if(clientConfig.containsProperty(CommonClientConfigKey.Port)){
+
+                    overridePort = clientConfig.getPropertyAsInteger(CommonClientConfigKey.Port, DefaultClientConfigImpl.DEFAULT_PORT);
+                    shouldUseOverridePort = true;
+
+                }else{
+                    logger.warn(clientName + " set to force client port but no port is set, so ignoring");
+                }
+            }
+        }
+
+
     }
     
     
@@ -85,6 +121,15 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                 List<InstanceInfo> listOfinstanceInfo = discoveryClient.getInstancesByVipAddress(vipAddress, isSecure, targetRegion); 
                 for (InstanceInfo ii : listOfinstanceInfo) {
                     if (ii.getStatus().equals(InstanceStatus.UP)) {
+
+                        if(shouldUseOverridePort){
+                            if(logger.isDebugEnabled()){
+                                logger.debug("Overriding port on client name: " + clientName + " to " + overridePort);
+                            }
+
+                            ii = new InstanceInfo.Builder(ii).setPort(overridePort).build();
+                        }
+
                     	DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure);
                     	des.setZone(DiscoveryClient.getZone(ii));
                         serverList.add(des);
