@@ -54,7 +54,7 @@ public class RxNettyHttpClient {
     private ObservableHttpClient observableClient;
     private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory;
     private int connectTimeout;
-    // private int readTimeout;
+    private int readTimeout;
     private IClientConfig config;
     
     public RxNettyHttpClient() {
@@ -64,7 +64,7 @@ public class RxNettyHttpClient {
     public RxNettyHttpClient(IClientConfig config) {
         this.config = config;
         this.connectTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
-        // this.readTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);  
+        this.readTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);  
         this.serializationFactory = new JacksonSerializationFactory();
         this.observableClient = ObservableHttpClient.newBuilder()
                 .withChannelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout)

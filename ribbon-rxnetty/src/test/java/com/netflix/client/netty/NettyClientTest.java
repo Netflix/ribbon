@@ -38,6 +38,7 @@ import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 import com.netflix.ribbon.test.resources.EmbeddedResources;
 import com.netflix.ribbon.test.resources.EmbeddedResources.Person;
+import com.netflix.serialization.StringDeserializer;
 import com.netflix.serialization.TypeDef;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
@@ -72,7 +73,7 @@ public class NettyClientTest {
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         RxNettyHttpClient observableClient = new RxNettyHttpClient();
         final List<Person> result = Lists.newArrayList();
-        observableClient.execute(request, TypeDef.fromClass(Person.class)).subscribe(new Action1<Person>() {
+        observableClient.execute(request, TypeDef.fromClass(Person.class)).toBlockingObservable().forEach(new Action1<Person>() {
             @Override
             public void call(Person t1) {
                 try {
@@ -82,9 +83,31 @@ public class NettyClientTest {
                 }
             }
         });
-        Thread.sleep(5000);
         assertEquals(Lists.newArrayList(EmbeddedResources.defaultPerson), result);
     }
+    
+    @Test
+    public void testObservableWithOverrideDeserializer() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testAsync/person");
+        DefaultClientConfigImpl overrideConfig = new DefaultClientConfigImpl();
+        overrideConfig.setTypedProperty(CommonClientConfigKey.Deserializer, new StringDeserializer());
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).overrideConfig(overrideConfig).build();
+        RxNettyHttpClient observableClient = new RxNettyHttpClient();
+        final List<String> result = Lists.newArrayList();
+        observableClient.execute(request, TypeDef.fromClass(String.class)).toBlockingObservable().forEach(new Action1<String>() {
+            @Override
+            public void call(String t1) {
+                try {
+                    result.add(t1);
+                } catch (Exception e) { 
+                    e.printStackTrace();
+                }
+            }
+        });
+        List<String> expected = Lists.newArrayList("{\"name\":\"ribbon\",\"age\":1}");
+        assertEquals(expected, result);
+    }
+
     
     @Test
     public void testMultipleObsers() throws Exception {
