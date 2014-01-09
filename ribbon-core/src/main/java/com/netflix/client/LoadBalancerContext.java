@@ -245,7 +245,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
      * This is called after a response is received or an exception is thrown from the client
      * to update related stats.  
      */
-    protected void noteRequestCompletion(ServerStats stats, ClientRequest request, IResponse response, Throwable e, long responseTime) {        
+    protected void noteRequestCompletion(ServerStats stats, ClientRequest request, Object response, Throwable e, long responseTime) {        
         try {
             if (stats != null) {
                 stats.decrementActiveRequestsCount();
@@ -259,7 +259,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
             logger.error("Unexpected exception", ex);
         }            
     }
-       
+    
     /**
      * This is usually called just before client execute a request.
      */

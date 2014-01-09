@@ -21,21 +21,21 @@ import com.google.common.reflect.TypeToken;
 
 public class ContentTypeBasedSerializerKey {
     private final String contentType;
-    private final TypeToken<?> typeToken;
+    private final TypeDef<?> typeDef;
     private final Class<?> classType;
     
     public ContentTypeBasedSerializerKey(String contentType, Class<?> classType) {
         super();
         this.contentType = contentType;
-        this.typeToken = TypeToken.of(classType);
+        this.typeDef = TypeDef.fromClass(classType);
         this.classType = classType;
     }
     
-    public ContentTypeBasedSerializerKey(String contentType, TypeToken<?> typeToken) {
+    public ContentTypeBasedSerializerKey(String contentType, TypeDef<?> typeDef) {
         super();
         this.contentType = contentType;
-        this.typeToken = typeToken;
-        this.classType = typeToken.getClass();
+        this.typeDef = typeDef;
+        this.classType = typeDef.getRawType();
     }
 
 
@@ -47,10 +47,10 @@ public class ContentTypeBasedSerializerKey {
         return classType;
     }
     
-    public final TypeToken<?> getTypeToken() {
-        return typeToken;
+    public final TypeDef<?> getTypeDef() {
+        return typeDef;
     }
-    
+        
     @Override
     public int hashCode() {
         final int prime = 31;

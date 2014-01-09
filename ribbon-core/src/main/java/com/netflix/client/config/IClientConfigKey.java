@@ -23,11 +23,15 @@ package com.netflix.client.config;
  * @author awang
  *
  */
-public interface IClientConfigKey {
+public interface IClientConfigKey<T> {
 
 	/**
 	 * The string representation of the key.
 	 */
 	public String key();
+	
+	public Class<T> getType();
+	
+	public T getDefaultValue();
 
 }

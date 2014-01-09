@@ -59,6 +59,15 @@ project(':ribbon-httpclient') {
     }
 }
 
+project(':ribbon-rxnetty') {
+    dependencies {
+        compile project(':ribbon-core')
+        compile 'com.netflix.rxnetty:rx-netty:0.2.0'
+        testCompile project(':ribbon-test')        
+    }
+}
+
+
 project(':ribbon-eureka') {   
     dependencies {
         compile project(':ribbon-core')
@@ -84,6 +93,16 @@ project(':ribbon-examples') {
         compile 'com.google.code.gson:gson:2.2.4'
         compile 'com.thoughtworks.xstream:xstream:1.4.5'
         compile 'com.sun.jersey:jersey-server:1.11'
+    }
+}
+
+project(':ribbon-test') {
+    dependencies {
+        compile project(':ribbon-core')
+        compile 'com.sun.jersey:jersey-server:1.11'
+        compile 'javax.ws.rs:jsr311-api:1.1.1' 
+        compile 'com.sun.jersey:jersey-core:1.11'    
+        compile 'junit:junit:4.10'
     }
 }
 

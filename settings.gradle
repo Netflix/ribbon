@@ -1,2 +1,3 @@
 rootProject.name='ribbon' // TEMPLATE: Change this
-include 'ribbon-core','ribbon-httpclient', 'ribbon-eureka', 'ribbon-httpasyncclient', 'ribbon-examples'
+include 'ribbon-core','ribbon-httpclient', 'ribbon-eureka', 'ribbon-httpasyncclient', 'ribbon-rxnetty', 'ribbon-examples', 'ribbon-test'
+

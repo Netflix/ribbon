@@ -17,6 +17,10 @@
 */
 package com.netflix.client.config;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -140,6 +144,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
 
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
+    
+    protected Map<IClientConfigKey<?>, Object> typedProperties = new ConcurrentHashMap<IClientConfigKey<?>, Object>();
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
 
@@ -643,7 +649,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @Override
 	public Object getProperty(IClientConfigKey key){
         String propName = key.key();
-        return getProperty(propName);
+        Object value = getProperty(propName);
+        return value;
     }
 
     /* (non-Javadoc)
@@ -693,7 +700,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         final StringBuilder sb = new StringBuilder();
         String separator = "";
 
-        sb.append("NiwsClientConfig:");
+        sb.append("ClientConfig:");
         for (IClientConfigKey key: CommonClientConfigKey.values()) {
             final Object value = getProperty(key);
 
@@ -781,5 +788,36 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
         }
         return defaultValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getTypedProperty(IClientConfigKey<T> key) {
+        Object obj = properties.get(key.key());
+        Class<T> type = key.getType();
+        try {
+            return type.cast(obj);
+        } catch (ClassCastException e) {
+            if (obj instanceof String) {
+                String stringValue = (String) obj;
+                if (Integer.class.isAssignableFrom(type)) {
+                    return (T) Integer.valueOf(stringValue);
+                } else if (Boolean.class.isAssignableFrom(type)) {
+                    return (T) Boolean.valueOf(stringValue);
+                } else if (Float.class.isAssignableFrom(type)) {
+                    return (T) Float.valueOf(stringValue);
+                } else if (Long.class.isAssignableFrom(type)) {
+                    return (T) Long.valueOf(stringValue);
+                }
+                throw new IllegalArgumentException("Unable to convert string value to desired type " + type);
+            } else {
+               throw e;
+            }
+        }
+    }
+
+    @Override
+    public <T> void setTypedProperty(IClientConfigKey<T> key, T value) {
+        properties.put(key.key(), value);
     }
 }

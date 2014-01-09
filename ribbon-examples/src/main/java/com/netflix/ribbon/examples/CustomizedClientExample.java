@@ -43,6 +43,7 @@ import com.netflix.serialization.ContentTypeBasedSerializerKey;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
+import com.netflix.serialization.TypeDef;
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -125,19 +126,19 @@ class GsonSerializationFactory implements SerializationFactory<ContentTypeBasedS
 
     static final GsonCodec instance = new GsonCodec();
     @Override
-    public Optional<Deserializer> getDeserializer(ContentTypeBasedSerializerKey key) {
+    public Deserializer getDeserializer(ContentTypeBasedSerializerKey key) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
-            return Optional.<Deserializer>of(instance);
+            return instance;
         }
-        return Optional.absent();
+        return null;
     }
 
     @Override
-    public Optional<Serializer> getSerializer(ContentTypeBasedSerializerKey key) {
+    public Serializer getSerializer(ContentTypeBasedSerializerKey key) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
-            return Optional.<Serializer>of(instance);
+            return instance;
         }
-        return Optional.absent();
+        return null;
     }
 
 }
@@ -146,7 +147,7 @@ class GsonCodec implements Serializer, Deserializer {
     static Gson gson = new Gson();
 
     @Override
-    public <T> T deserialize(InputStream in, TypeToken<T> type)
+    public <T> T deserialize(InputStream in, TypeDef<T> type)
             throws IOException {
         System.out.println("Deserializing using Gson");
         return gson.fromJson(new InputStreamReader(in, "UTF-8"), type.getType());
@@ -162,21 +163,21 @@ class XStreamFactory implements SerializationFactory<ContentTypeBasedSerializerK
 
     static XmlCodec xml = new XmlCodec();
     @Override
-    public Optional<Deserializer> getDeserializer(
+    public Deserializer getDeserializer(
             ContentTypeBasedSerializerKey key) {
         if (key.getContentType().equalsIgnoreCase("application/xml")) {
-            return Optional.<Deserializer>of(xml);
+            return xml;
         } else {
-            return Optional.absent();
+            return null;
         }
     }
 
     @Override
-    public Optional<Serializer> getSerializer(ContentTypeBasedSerializerKey key) {
+    public Serializer getSerializer(ContentTypeBasedSerializerKey key) {
         if (key.getContentType().equalsIgnoreCase("application/xml")) {
-            return Optional.<Serializer>of(xml);
+            return xml;
         } else {
-            return Optional.absent();
+            return null;
         }
     }
 
@@ -188,7 +189,7 @@ class XmlCodec implements Serializer, Deserializer {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T deserialize(InputStream in, TypeToken<T> type)
+    public <T> T deserialize(InputStream in, TypeDef<T> type)
             throws IOException {
         System.out.println("Deserializing using XStream");
         return (T) xstream.fromXML(in);

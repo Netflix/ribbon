@@ -58,5 +58,13 @@ public interface IClientConfig {
     public String getPropertyAsString(IClientConfigKey key, String defaultValue);
     
     public boolean getPropertyAsBoolean(IClientConfigKey key, boolean defaultValue);
-
+    
+    /**
+     * Returns a typed property. This property must be set by {@link #setTypedProperty(IClientConfigKey, Object)}.
+     * If the property of IClientConfigKey is not set, or is set by {@link #loadProperties(String)} or {@link #setProperty(IClientConfigKey, Object)}, 
+     * this will return null.
+     */
+    public <T> T getTypedProperty(IClientConfigKey<T> key);
+    
+    public <T> void setTypedProperty(IClientConfigKey<T> key, T value);
 }

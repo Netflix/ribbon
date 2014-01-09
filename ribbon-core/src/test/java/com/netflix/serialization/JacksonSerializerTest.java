@@ -21,8 +21,12 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.List;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import com.google.common.reflect.TypeToken;
@@ -37,21 +41,25 @@ public class JacksonSerializerTest {
             people.add(new Person("person " + i, i));
         }
         JacksonSerializationFactory factory = new JacksonSerializationFactory();
-        ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey("application/json", new TypeToken<List<Person>>(){});
-        Serializer serializer = factory.getSerializer(key).get();
+        ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey("application/json", new TypeDef<List<Person>>(){});
+        Serializer serializer = factory.getSerializer(key);
         String content = new String(serializeToBytes(people, serializer), "UTF-8");
-        Deserializer deserializer = factory.getDeserializer(key).get();
-        List<Person> list = deserializer.deserialize(new ByteArrayInputStream(content.getBytes("UTF-8")), new TypeToken<List<Person>>(){});
+        Deserializer deserializer = factory.getDeserializer(key);
+        List<Person> list = deserializer.deserialize(new ByteArrayInputStream(content.getBytes("UTF-8")), new TypeDef<List<Person>>(){});
         assertEquals(people, list);
+        Type type = (new TypeToken<List<Person>>(){}).getType();
+        list = (List<Person>) deserializer.deserialize(new ByteArrayInputStream(content.getBytes("UTF-8")), TypeDef.fromType(type));
+        assertEquals(people, list);
+        
         Person person = new Person("ribbon", 1);
         byte[] bytes = serializeToBytes(person, serializer);
-        Person deserialized = deserializer.deserialize(new ByteArrayInputStream(bytes), TypeToken.of(Person.class));
+        Person deserialized = deserializer.deserialize(new ByteArrayInputStream(bytes), TypeDef.fromClass(Person.class));
         assertEquals(person, deserialized);
-        deserialized = deserializer.deserialize(new ByteArrayInputStream(bytes), TypeToken.of(Person.class));
+        deserialized = deserializer.deserialize(new ByteArrayInputStream(bytes), TypeDef.fromClass(Person.class));
         assertEquals(person, deserialized);
         
         ObjectMapper mapper = new ObjectMapper();
-        deserialized = (Person) mapper.readValue(bytes, TypeToken.of(Person.class).getRawType());
+        deserialized = (Person) mapper.readValue(bytes, TypeDef.fromClass(Person.class).getRawType());
         assertEquals(person, deserialized);
     }
     
@@ -60,6 +68,21 @@ public class JacksonSerializerTest {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         serializer.serialize(bout, obj);
         return bout.toByteArray();
+    }
+    
+    @Test
+    public void testTypeSpec() throws Exception {
+        TypeDef<Person> spec = TypeDef.fromClass(Person.class);
+        System.out.println(spec.getRawType());
+        Person person = new Person("ribbon", 1);
+        JacksonSerializationFactory factory = new JacksonSerializationFactory();
+        ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey("application/json", new TypeDef<List<Person>>(){});
+        Serializer serializer = factory.getSerializer(key);
+        byte[] bytes = serializeToBytes(person, serializer);
+        ObjectMapper mapper = new ObjectMapper();
+        Person p = (Person) mapper.readValue(bytes, spec.getRawType());
+        assertEquals(person, p);
+        
     }
 }
 

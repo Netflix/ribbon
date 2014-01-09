@@ -55,12 +55,12 @@ public class HttpRequest extends ClientRequest {
         }
     }
 
-    private Multimap<String, String> headers = ArrayListMultimap.create();
-    private Multimap<String, String> queryParams = ArrayListMultimap.create();
+    protected Multimap<String, String> headers = ArrayListMultimap.create();
+    protected Multimap<String, String> queryParams = ArrayListMultimap.create();
     private Object entity;
-    private Verb verb;
+    protected Verb verb;
     
-    private HttpRequest() {
+    HttpRequest() {
         this.verb = Verb.GET;
     }
     

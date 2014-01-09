@@ -303,7 +303,7 @@ public class RibbonHttpAsyncClient
                 builder.setEntity(httpEntity);
             } else {
                 for (SerializationFactory<ContentTypeBasedSerializerKey> f: factories) {
-                    Serializer serializer = f.getSerializer(key).orNull();
+                    Serializer serializer = f.getSerializer(key);
                     if (serializer != null) {
                         try {
                             ByteArrayOutputStream bout = new ByteArrayOutputStream();

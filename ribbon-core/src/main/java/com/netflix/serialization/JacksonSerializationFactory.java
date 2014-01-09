@@ -25,26 +25,23 @@ import java.lang.reflect.Type;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
-import com.google.common.base.Optional;
-import com.google.common.reflect.TypeToken;
-
 public class JacksonSerializationFactory implements SerializationFactory<ContentTypeBasedSerializerKey>{
 
-    private static final JsonCodec instance = new JsonCodec();
+    public static final JsonCodec instance = new JsonCodec();
     @Override
-    public Optional<Deserializer> getDeserializer(ContentTypeBasedSerializerKey key) {
+    public Deserializer getDeserializer(ContentTypeBasedSerializerKey key) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
-            return Optional.<Deserializer>of(instance);
+            return instance;
         }
-        return Optional.absent();
+        return null;
     }
 
     @Override
-    public Optional<Serializer> getSerializer(ContentTypeBasedSerializerKey key) {
+    public Serializer getSerializer(ContentTypeBasedSerializerKey key) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
-            return Optional.<Serializer>of(instance);
+            return instance;
         }
-        return Optional.absent();
+        return null;
     }
 
 }
@@ -53,7 +50,7 @@ class JsonCodec implements Serializer, Deserializer {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public <T> T deserialize(InputStream in, TypeToken<T> type)
+    public <T> T deserialize(InputStream in, TypeDef<T> type)
             throws IOException {
         return mapper.readValue(in, new TypeTokenBasedReference<T>(type));
     }
@@ -67,7 +64,7 @@ class JsonCodec implements Serializer, Deserializer {
 class TypeTokenBasedReference<T> extends TypeReference<T> {
     
     final Type type;
-    public TypeTokenBasedReference(TypeToken<T> typeToken) {
+    public TypeTokenBasedReference(TypeDef<T> typeToken) {
         type = typeToken.getType();    
         
     }
