@@ -66,7 +66,7 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NFHttpClient.class);
 
-	protected static final String EXECUTE_TRACER = "NFHttpClient__EXECUTE_REQ";
+	protected static final String EXECUTE_TRACER = "HttpClient-ExecuteTimer";
 
 	private HttpHost httpHost = null;
 	private HttpRoute httpRoute = null;
@@ -89,29 +89,30 @@ public class NFHttpClient extends DefaultHttpClient {
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
 		httpHost = new HttpHost(host, port);
 		httpRoute = new HttpRoute(httpHost);
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), false);
 	}   
 
 	protected NFHttpClient(){
 		super(new ThreadSafeClientConnManager());
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), false);
 	}
 
 	protected NFHttpClient(String name) {
-		super(new MonitoredConnectionManager(name));
-		this.name = name;
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+	    this(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), true);
 	}
 
     protected NFHttpClient(String name, IClientConfig config) {
-        super(new MonitoredConnectionManager(name));
-        this.name = name;
-        init(config);
+        this(name, config, true);
     }
 
+    protected NFHttpClient(String name, IClientConfig config, boolean registerMonitor) {
+        super(new MonitoredConnectionManager(name));
+        this.name = name;
+        init(config, registerMonitor);
+    }
 	
-	void init(IClientConfig config) {
+	void init(IClientConfig config, boolean registerMonitor) {
 		HttpParams params = getParams();
 
 		HttpProtocolParams.setContentCharset(params, "UTF-8");  
@@ -131,8 +132,10 @@ public class NFHttpClient extends DefaultHttpClient {
 		setHttpRequestRetryHandler(
 				new NFHttpMethodRetryHandler(this.name, this.retriesProperty.get(), false,
 						this.sleepTimeFactorMsProperty.get()));
-	    tracer = Monitors.newTimer(EXECUTE_TRACER, TimeUnit.MILLISECONDS);
-        Monitors.registerObject(name, this);
+	    tracer = Monitors.newTimer(EXECUTE_TRACER + "-" + name, TimeUnit.MILLISECONDS);
+	    if (registerMonitor) {
+            Monitors.registerObject(name, this);
+	    }
 	}
 
 	public void initConnectionCleanerTask(){
@@ -146,12 +149,12 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	}
 
-	@Monitor(name = "connPoolCleaner", type = DataSourceType.INFORMATIONAL)
+	@Monitor(name = "HttpClient-ConnPoolCleaner", type = DataSourceType.INFORMATIONAL)
 	public ConnectionPoolCleaner getConnPoolCleaner() {
 		return connPoolCleaner;
 	}
 
-	@Monitor(name = "connIdleEvictTimeMilliSeconds", type = DataSourceType.INFORMATIONAL)
+	@Monitor(name = "HttpClient-ConnIdleEvictTimeMilliSeconds", type = DataSourceType.INFORMATIONAL)
 	public DynamicIntProperty getConnIdleEvictTimeMilliSeconds() {
 		if (connIdleEvictTimeMilliSeconds == null){
 			connIdleEvictTimeMilliSeconds = DynamicPropertyFactory.getInstance().getIntProperty(name + ".nfhttpclient.connIdleEvictTimeMilliSeconds", 
@@ -160,7 +163,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		return connIdleEvictTimeMilliSeconds;
 	}
 
-	@Monitor(name="connectionsInPool", type = DataSourceType.GAUGE)    
+	@Monitor(name="HttpClient-ConnectionsInPool", type = DataSourceType.GAUGE)    
 	public int getConnectionsInPool() {
 		ClientConnectionManager connectionManager = this.getConnectionManager();
 		if (connectionManager != null) {
@@ -170,7 +173,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		}
 	}
 
-	@Monitor(name = "maxTotalConnections", type = DataSourceType.INFORMATIONAL)
+	@Monitor(name = "HttpClient-MaxTotalConnections", type = DataSourceType.INFORMATIONAL)
 	public int getMaxTotalConnnections() {
 		ClientConnectionManager connectionManager = this.getConnectionManager();
 		if (connectionManager != null) {
@@ -180,7 +183,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		}
 	}
 
-	@Monitor(name = "maxConnectionsPerHost", type = DataSourceType.INFORMATIONAL)
+	@Monitor(name = "HttpClient-MaxConnectionsPerHost", type = DataSourceType.INFORMATIONAL)
 	public int getMaxConnectionsPerHost() {
 		ClientConnectionManager connectionManager = this.getConnectionManager();
 		if (connectionManager != null) {
@@ -193,7 +196,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		}
 	}
 
-	@Monitor(name = "numRetries", type = DataSourceType.INFORMATIONAL)
+	@Monitor(name = "HttpClient-NumRetries", type = DataSourceType.INFORMATIONAL)
 	public int getNumRetries() {
 		return this.retriesProperty.get();
 	}
@@ -202,7 +205,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		this.connIdleEvictTimeMilliSeconds = connIdleEvictTimeMilliSeconds;
 	}
 
-	@Monitor(name = "sleepTimeFactorMs", type = DataSourceType.INFORMATIONAL)
+	@Monitor(name = "HttpClient-SleepTimeFactorMs", type = DataSourceType.INFORMATIONAL)
 	public int getSleepTimeFactorMs() {
 		return this.sleepTimeFactorMsProperty.get();
 	}

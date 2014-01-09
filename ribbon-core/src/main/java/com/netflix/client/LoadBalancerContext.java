@@ -19,12 +19,14 @@ package com.netflix.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Strings;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -520,12 +522,35 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
             }
             
             newURI = new URI(scheme, theUrl.getUserInfo(), host, port, urlPath, theUrl.getQuery(), theUrl.getFragment());
+            if (isURIEncoded(theUrl)) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(newURI.getScheme())
+                  .append("://")
+                  .append(newURI.getRawAuthority())
+                  .append(theUrl.getRawPath());
+                if (!Strings.isNullOrEmpty(theUrl.getRawQuery())) {
+                    sb.append("?").append(theUrl.getRawQuery());
+                }
+                if (!Strings.isNullOrEmpty(theUrl.getRawFragment())) {
+                    sb.append("#").append(theUrl.getRawFragment());
+                }
+                newURI = new URI(sb.toString());
+            }
             return (T) original.replaceUri(newURI);            
         } catch (URISyntaxException e) {
             throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage());
         }
     }
 
+    private boolean isURIEncoded(URI uri) {
+        String original = uri.toString();
+        try {
+            return !URLEncoder.encode(original, "UTF-8").equals(original);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
     protected boolean isRetriable(T request) {
         if (request.isRetriable()) {
             return true;            
