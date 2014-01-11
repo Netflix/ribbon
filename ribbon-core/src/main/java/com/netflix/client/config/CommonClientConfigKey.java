@@ -41,6 +41,8 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<String> VipAddress = new CommonClientConfigKey<String>("VipAddress"){};
     
+    public static final IClientConfigKey<Boolean> ForceClientPortConfiguration = new CommonClientConfigKey<Boolean>("ForceClientPortConfiguration"){}; // use client defined port regardless of server advert
+
     public static final IClientConfigKey<String> DeploymentContextBasedVipAddresses = new CommonClientConfigKey<String>("DeploymentContextBasedVipAddresses"){};
     
     public static final IClientConfigKey<Integer> MaxAutoRetries = new CommonClientConfigKey<Integer>("MaxAutoRetries"){};
@@ -310,7 +312,14 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
         RulePredicateClasses,
 
         DefaultSerializationFactoryClassName,
-
+        
+        ForceClientPortConfiguration,
+        
+        Serializer,
+        
+        Deserializer,
+        
+        CustomSSLSocketFactoryClassName
     };
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings

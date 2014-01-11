@@ -13,7 +13,7 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.JacksonSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
@@ -52,7 +52,7 @@ import rx.util.functions.Func1;
 public class RxNettyHttpClient {
 
     private ObservableHttpClient observableClient;
-    private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory;
+    private SerializationFactory<HttpSerializationContext> serializationFactory;
     private int connectTimeout;
     private int readTimeout;
     private IClientConfig config;
@@ -72,17 +72,27 @@ public class RxNettyHttpClient {
         
     }
     
-    private static class SingleEntityHandler<T> extends HttpProtocolHandlerAdapter<T> {
+    private class SingleEntityHandler<T> extends HttpProtocolHandlerAdapter<T> {
         private HttpEntityDecoder<T> decoder;
+        private HttpRequest request;
         
-        private SingleEntityHandler(HttpRequest request, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory, TypeDef<T> typeDef) {
+        private SingleEntityHandler(HttpRequest request, SerializationFactory<HttpSerializationContext> serializationFactory, TypeDef<T> typeDef) {
             decoder = new HttpEntityDecoder<T>(serializationFactory, request, typeDef);
+            this.request = request;
         }
 
         @Override
         public void configure(ChannelPipeline pipeline) {
+            int timeout = readTimeout;
+            if (request.getOverrideConfig() != null) {
+                Integer overrideTimeout = request.getOverrideConfig().getTypedProperty(CommonClientConfigKey.ReadTimeout);
+                if (overrideTimeout != null) {
+                    timeout = overrideTimeout.intValue();
+                }
+            }
             pipeline.addAfter("http-response-decoder", "http-aggregator", new HttpObjectAggregator(Integer.MAX_VALUE));
-            pipeline.addAfter("http-aggregator", "entity-decoder", decoder);
+            pipeline.addAfter("http-aggregator", SelfRemovingResponseTimeoutHandler.NAME, new SelfRemovingResponseTimeoutHandler(timeout, TimeUnit.MILLISECONDS));
+            pipeline.addAfter(SelfRemovingResponseTimeoutHandler.NAME, "entity-decoder", decoder);
         }
     }
     
@@ -147,9 +157,8 @@ public class RxNettyHttpClient {
                 serializer = request.getOverrideConfig().getTypedProperty(CommonClientConfigKey.Serializer);
             }
             if (serializer == null) {
-                String contentType = getContentType(request.getHeaders());    
-                ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(contentType, entity.getClass());
-                serializer = serializationFactory.getSerializer(key);
+                HttpSerializationContext key = new HttpSerializationContext(request.getHttpHeaders(), request.getUri());
+                serializer = serializationFactory.getSerializer(key, request.getEntityType());
             }
             if (serializer == null) {
                 throw new ClientException("Unable to find serializer");

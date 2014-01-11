@@ -27,6 +27,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.netflix.client.ClientRequest;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.serialization.TypeDef;
 
 /**
  * Request for HTTP communication.
@@ -55,9 +56,10 @@ public class HttpRequest extends ClientRequest {
         }
     }
 
-    protected Multimap<String, String> headers = ArrayListMultimap.create();
+    protected CaseInsensitiveMultiMap httpHeaders = new CaseInsensitiveMultiMap();
     protected Multimap<String, String> queryParams = ArrayListMultimap.create();
     private Object entity;
+    private TypeDef<?> entityType;
     protected Verb verb;
     
     HttpRequest() {
@@ -83,15 +85,10 @@ public class HttpRequest extends ClientRequest {
         }
         
         public Builder header(String name, String value) {
-            request.headers.put(name, value);
+            request.httpHeaders.addHeader(name, value);
             return this;
         }
         
-        Builder headers(Multimap<String, String> headers) {
-            request.headers = headers;
-            return this;
-        }
-
         Builder queryParams(Multimap<String, String> queryParams) {
             request.queryParams = queryParams;
             return this;
@@ -102,6 +99,11 @@ public class HttpRequest extends ClientRequest {
             return this;
         }
 
+        Builder headers(CaseInsensitiveMultiMap headers) {
+            request.httpHeaders = headers;
+            return this;
+        }
+        
         public Builder setRetriable(boolean retriable) {
             request.setRetriable(retriable);
             return this;
@@ -112,10 +114,18 @@ public class HttpRequest extends ClientRequest {
             return this;
         }
 
-        public Builder entity(Object entity) {
+        public Builder entity(Object entity, TypeDef<?> entityType) {
             request.entity = entity;
+            request.entityType = entityType;
             return this;
         }
+        
+        public Builder entity(Object entity) {
+            request.entity = entity;
+            request.entityType = TypeDef.fromClass(entity.getClass());
+            return this;
+        }
+
 
         public Builder verb(Verb verb) {
             request.verb = verb;
@@ -140,14 +150,26 @@ public class HttpRequest extends ClientRequest {
         return verb;
     }
     
+    /**
+     * Replaced by {@link #getHttpHeaders()}
+     */
+    @Deprecated
     public Map<String, Collection<String>>  getHeaders() {
-        return headers.asMap();
+        return httpHeaders.asMap();
+    }
+    
+    public HttpHeaders getHttpHeaders() {
+        return httpHeaders;
     }
     
     public Object getEntity() {
         return entity;
     }
         
+    public TypeDef<?> getEntityType() {
+        return entityType;
+    }
+    
     /**
      * Test if the request is retriable. If the request is
      * a {@link Verb#GET} and {@link Builder#setRetriable(boolean)}
@@ -172,8 +194,8 @@ public class HttpRequest extends ClientRequest {
     @Override
     public HttpRequest replaceUri(URI newURI) {
         return (new Builder()).uri(newURI)
-        .entity(this.getEntity())
-        .headers(this.headers)
+        .entity(this.getEntity(), this.entityType)
+        .headers(this.httpHeaders)
         .overrideConfig(this.getOverrideConfig())
         .queryParams(this.queryParams)
         .setRetriable(this.isRetriable())

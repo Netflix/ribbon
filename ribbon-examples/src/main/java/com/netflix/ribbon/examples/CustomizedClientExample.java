@@ -26,8 +26,6 @@ import java.net.URI;
 import java.util.concurrent.Future;
 
 
-import com.google.common.base.Optional;
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.netflix.client.BufferedResponseCallback;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -39,7 +37,7 @@ import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
@@ -122,11 +120,11 @@ public class CustomizedClientExample extends ExampleAppWithLocalResource {
 
 }
 
-class GsonSerializationFactory implements SerializationFactory<ContentTypeBasedSerializerKey>{
+class GsonSerializationFactory implements SerializationFactory<HttpSerializationContext>{
 
     static final GsonCodec instance = new GsonCodec();
     @Override
-    public Deserializer getDeserializer(ContentTypeBasedSerializerKey key) {
+    public <T> Deserializer<T> getDeserializer(HttpSerializationContext key, TypeDef<T> type) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
             return instance;
         }
@@ -134,7 +132,7 @@ class GsonSerializationFactory implements SerializationFactory<ContentTypeBasedS
     }
 
     @Override
-    public Serializer getSerializer(ContentTypeBasedSerializerKey key) {
+    public <T> Serializer<T> getSerializer(HttpSerializationContext key, TypeDef<T> type) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
             return instance;
         }
@@ -143,28 +141,28 @@ class GsonSerializationFactory implements SerializationFactory<ContentTypeBasedS
 
 }
 
-class GsonCodec implements Serializer, Deserializer {
+class GsonCodec<T extends Object> implements Serializer<T>, Deserializer<T> {
     static Gson gson = new Gson();
 
     @Override
-    public <T> T deserialize(InputStream in, TypeDef<T> type)
+    public T deserialize(InputStream in, TypeDef<T> type)
             throws IOException {
         System.out.println("Deserializing using Gson");
         return gson.fromJson(new InputStreamReader(in, "UTF-8"), type.getType());
     }
 
     @Override
-    public void serialize(OutputStream out, Object object) throws IOException {
+    public void serialize(OutputStream out, T object) throws IOException {
         gson.toJson(object, new OutputStreamWriter(out, "UTF-8"));
     }
 }
 
-class XStreamFactory implements SerializationFactory<ContentTypeBasedSerializerKey> {
+class XStreamFactory implements SerializationFactory<HttpSerializationContext> {
 
     static XmlCodec xml = new XmlCodec();
     @Override
-    public Deserializer getDeserializer(
-            ContentTypeBasedSerializerKey key) {
+    public <T> Deserializer<T> getDeserializer(
+            HttpSerializationContext key, TypeDef<T> type) {
         if (key.getContentType().equalsIgnoreCase("application/xml")) {
             return xml;
         } else {
@@ -173,30 +171,29 @@ class XStreamFactory implements SerializationFactory<ContentTypeBasedSerializerK
     }
 
     @Override
-    public Serializer getSerializer(ContentTypeBasedSerializerKey key) {
+    public <T> Serializer<T> getSerializer(HttpSerializationContext key, TypeDef<T> type) {
         if (key.getContentType().equalsIgnoreCase("application/xml")) {
             return xml;
         } else {
             return null;
         }
     }
-
 }
 
-class XmlCodec implements Serializer, Deserializer {
+class XmlCodec<T extends Object> implements Serializer<T>, Deserializer<T> {
 
     XStream xstream = new XStream();
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T deserialize(InputStream in, TypeDef<T> type)
+    public T deserialize(InputStream in, TypeDef<T> type)
             throws IOException {
         System.out.println("Deserializing using XStream");
         return (T) xstream.fromXML(in);
     }
 
     @Override
-    public void serialize(OutputStream out, Object object) throws IOException {
+    public void serialize(OutputStream out, T object) throws IOException {
         xstream.toXML(object, out);
     }
 

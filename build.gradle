@@ -31,7 +31,8 @@ subprojects {
         compile 'com.netflix.archaius:archaius-core:0.5.12'
         compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
         compile 'commons-collections:commons-collections:3.2.1'
-        testCompile 'junit:junit:4.10'
+        testCompile 'org.powermock:powermock-easymock-release-full:1.4.10'
+        testCompile 'org.easymock:easymock:3.1'
         testCompile 'org.slf4j:slf4j-log4j12:1.7.2'
         
     }   
@@ -56,6 +57,7 @@ project(':ribbon-httpclient') {
         testCompile 'commons-io:commons-io:2.0.1'
         testCompile 'com.sun.jersey:jersey-server:1.11'
         testCompile 'com.google.mockwebserver:mockwebserver:20130505'
+        testCompile project(':ribbon-eureka')
     }
 }
 
@@ -71,7 +73,7 @@ project(':ribbon-rxnetty') {
 project(':ribbon-eureka') {   
     dependencies {
         compile project(':ribbon-core')
-        compile 'com.netflix.eureka:eureka-client:1.1.107' 
+        compile 'com.netflix.eureka:eureka-client:1.1.107'
     }    
 }
 

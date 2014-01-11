@@ -37,7 +37,7 @@ import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.Server;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.SerializationFactory;
 
 /**
@@ -63,7 +63,7 @@ public class AsyncHttpClientBuilder<T> {
         AsyncLoadBalancingHttpClient<T> lbClient;
         
         private LoadBalancerClientBuilder(
-                AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey> client, ILoadBalancer lb, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
+                AsyncClient<HttpRequest, HttpResponse, T, HttpSerializationContext> client, ILoadBalancer lb, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
             lbClient = new AsyncLoadBalancingHttpClient<T>(client, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
             lbClient.setLoadBalancer(lb);
             if (defaultErrorHandler != null) {
@@ -72,7 +72,7 @@ public class AsyncHttpClientBuilder<T> {
         }
         
         private LoadBalancerClientBuilder(
-                AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey> client, IClientConfig clientConfig, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
+                AsyncClient<HttpRequest, HttpResponse, T, HttpSerializationContext> client, IClientConfig clientConfig, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
             lbClient = new AsyncLoadBalancingHttpClient<T>(client, clientConfig);
             ILoadBalancer loadBalancer = null;
             try {
@@ -87,7 +87,7 @@ public class AsyncHttpClientBuilder<T> {
         }
         
         private LoadBalancerClientBuilder(
-                AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey> client, List<Server> serverList, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
+                AsyncClient<HttpRequest, HttpResponse, T, HttpSerializationContext> client, List<Server> serverList, LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler) {
             lbClient = new AsyncLoadBalancingHttpClient<T>(client, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
             BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
             lb.setServersList(serverList);
@@ -122,7 +122,7 @@ public class AsyncHttpClientBuilder<T> {
         }
     }
     
-    private AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey> client;
+    private AsyncClient<HttpRequest, HttpResponse, T, HttpSerializationContext> client;
     private IClientConfig config;
     private LoadBalancerErrorHandler<HttpRequest, HttpResponse> defaultErrorHandler;
     
@@ -186,7 +186,7 @@ public class AsyncHttpClientBuilder<T> {
      *  @see AsyncClient#addSerializationFactory(SerializationFactory)
      */
     public AsyncHttpClientBuilder<T> withSerializationFactory(
-            SerializationFactory<ContentTypeBasedSerializerKey> factory) {
+            SerializationFactory<HttpSerializationContext> factory) {
         client.addSerializationFactory(factory);
         return this;
     }

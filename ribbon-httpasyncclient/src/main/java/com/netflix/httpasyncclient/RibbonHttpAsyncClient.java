@@ -64,10 +64,11 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.AsyncHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.JacksonSerializationFactory;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
+import com.netflix.serialization.TypeDef;
 
 
 /**
@@ -81,11 +82,11 @@ import com.netflix.serialization.Serializer;
  *
  */
 public class RibbonHttpAsyncClient 
-        implements AsyncClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>, 
+        implements AsyncClient<HttpRequest, com.netflix.client.http.HttpResponse, ByteBuffer, HttpSerializationContext>, 
                    AsyncHttpClient<ByteBuffer> {
 
     CloseableHttpAsyncClient httpclient;
-    private List<SerializationFactory<ContentTypeBasedSerializerKey>> factories = Lists.newArrayList();
+    private List<SerializationFactory<HttpSerializationContext>> factories = Lists.newArrayList();
     private static Logger logger = LoggerFactory.getLogger(RibbonHttpAsyncClient.class);
             
     /**
@@ -117,7 +118,7 @@ public class RibbonHttpAsyncClient
         String serializationFactoryClass = clientConfig.getPropertyAsString(CommonClientConfigKey.DefaultSerializationFactoryClassName, JacksonSerializationFactory.class.getName());
         if (serializationFactoryClass != null) {
             try {
-                factories.add((SerializationFactory<ContentTypeBasedSerializerKey>) Class.forName(serializationFactoryClass).newInstance());
+                factories.add((SerializationFactory<HttpSerializationContext>) Class.forName(serializationFactoryClass).newInstance());
             } catch (Exception e) {
                 throw new RuntimeException("Unable to instantiate serialization factory", e);
             }            
@@ -125,12 +126,12 @@ public class RibbonHttpAsyncClient
         httpclient.start();
     }
 
-    public final List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> getSerializationFactories() {
+    public final List<? extends SerializationFactory<HttpSerializationContext>> getSerializationFactories() {
         return factories;
     }
 
     @Override
-    public final void addSerializationFactory(SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory) {
+    public final void addSerializationFactory(SerializationFactory<HttpSerializationContext> serializationFactory) {
         factories.add(0, serializationFactory);
     }
 
@@ -295,15 +296,14 @@ public class RibbonHttpAsyncClient
         }
                 
         if (entity != null) {
-            String contentType = getContentType(ribbonRequest.getHeaders());    
-            ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(contentType, entity.getClass());
+            HttpSerializationContext key = new HttpSerializationContext(ribbonRequest.getHttpHeaders(), ribbonRequest.getUri());
             HttpEntity httpEntity = null;
             if (entity instanceof InputStream) {
                 httpEntity = new InputStreamEntity((InputStream) entity, -1);
                 builder.setEntity(httpEntity);
             } else {
-                for (SerializationFactory<ContentTypeBasedSerializerKey> f: factories) {
-                    Serializer serializer = f.getSerializer(key);
+                for (SerializationFactory<HttpSerializationContext> f: factories) {
+                    Serializer serializer = f.getSerializer(key, ribbonRequest.getEntityType());
                     if (serializer != null) {
                         try {
                             ByteArrayOutputStream bout = new ByteArrayOutputStream();

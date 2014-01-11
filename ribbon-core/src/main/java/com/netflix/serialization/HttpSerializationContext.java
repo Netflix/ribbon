@@ -15,16 +15,31 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.http;
+package com.netflix.serialization;
 
-import com.netflix.client.ResponseBufferingAsyncClient;
-import com.netflix.serialization.HttpSerializationContext;
+import java.net.URI;
 
-/**
- * An HTTP client that deals with buffered response.
- * 
- * @author awang
- *
- */
-public interface AsyncBufferingHttpClient extends ResponseBufferingAsyncClient<HttpRequest, HttpResponse, HttpSerializationContext>{
+import com.netflix.client.http.HttpHeaders;
+
+public class HttpSerializationContext {
+
+    private final HttpHeaders headers;
+    private final URI uri;
+    
+    public HttpSerializationContext(HttpHeaders headers, URI uri) {
+        this.headers = headers;
+        this.uri = uri;
+    }
+    
+    public final String getContentType() {
+        return headers.getFirstValue("Content-Type");
+    }
+    
+    public HttpHeaders getHeaders() {
+        return headers;
+    }
+    
+    public URI getURI() {
+        return uri;
+    }
 }

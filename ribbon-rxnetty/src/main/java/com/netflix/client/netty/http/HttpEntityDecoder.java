@@ -12,7 +12,7 @@ import com.netflix.client.ClientException;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.UnexpectedResponseException;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.TypeDef;
@@ -20,10 +20,10 @@ import com.netflix.serialization.TypeDef;
 public class HttpEntityDecoder<T> extends MessageToMessageDecoder<FullHttpResponse> {
 
     private TypeDef<T> type;
-    private SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory;
+    private SerializationFactory<HttpSerializationContext> serializationFactory;
     private HttpRequest request;
     
-    public HttpEntityDecoder(SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory, HttpRequest request, TypeDef<T> type) {
+    public HttpEntityDecoder(SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request, TypeDef<T> type) {
         this.serializationFactory = serializationFactory;
         this.type = type;
         this.request = request;
@@ -32,13 +32,12 @@ public class HttpEntityDecoder<T> extends MessageToMessageDecoder<FullHttpRespon
     @Override
     protected void decode(ChannelHandlerContext ctx, FullHttpResponse msg,
             List<Object> out) throws Exception {
-        Deserializer deserializer = null;
+        Deserializer<T> deserializer = null;
         if (request.getOverrideConfig() != null) {
             deserializer = request.getOverrideConfig().getTypedProperty(CommonClientConfigKey.Deserializer);
         }
         if (deserializer == null) {
-            String contentType = msg.headers().get(HttpHeaders.Names.CONTENT_TYPE);
-            deserializer = serializationFactory.getDeserializer(new ContentTypeBasedSerializerKey(contentType, type));
+            deserializer = serializationFactory.getDeserializer(new HttpSerializationContext(new NettyHttpHeaders(msg), request.getUri()), type);
             if (deserializer == null) {
                 ctx.fireExceptionCaught(new ClientException("Unable to find appropriate deserializer"));
             }

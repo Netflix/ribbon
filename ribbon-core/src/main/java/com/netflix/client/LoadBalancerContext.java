@@ -95,6 +95,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         
        okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
        tracer = getExecuteTracer();
+
        Monitors.registerObject("Client_" + clientName, this);
     }
 
@@ -421,6 +422,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
                 }
                 host = svc.getHost();
                 port = svc.getPort();
+
                 if (host == null){
                     throw new ClientException(ClientException.ErrorType.GENERAL,
                             "Invalid Server for :" + svc);

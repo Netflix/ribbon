@@ -20,9 +20,11 @@ package com.netflix.httpasyncclient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -36,19 +38,19 @@ import com.google.common.reflect.TypeToken;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.http.HttpHeaders;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.TypeDef;
 
 class HttpClientResponse implements com.netflix.client.http.HttpResponse {
 
-    private List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> factory;
+    private List<? extends SerializationFactory<HttpSerializationContext>> factory;
     private HttpResponse response;
     private URI requestedURI;
     private AbstractAsyncResponseConsumer<HttpResponse> consumer;
     
-    public HttpClientResponse(HttpResponse response, List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> serializationFactory, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
+    public HttpClientResponse(HttpResponse response, List<? extends SerializationFactory<HttpSerializationContext>> serializationFactory, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
         this.response = response;    
         this.factory = serializationFactory;
         this.requestedURI = requestedURI;
@@ -102,9 +104,9 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
 
     @Override
     public <T> T getEntity(TypeDef<T> type) throws ClientException {
-        ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.getFirstHeader("Content-type").getValue(), type);
-        for (SerializationFactory<ContentTypeBasedSerializerKey> f: factory) {
-            Deserializer deserializer = f.getDeserializer(key);
+        HttpSerializationContext key = new HttpSerializationContext(getHttpHeaders(), getRequestedURI());
+        for (SerializationFactory<HttpSerializationContext> f: factory) {
+            Deserializer<T> deserializer = f.getDeserializer(key, type);
             if (deserializer != null) {
                 try {
                     return deserializer.deserialize(response.getEntity().getContent(), type);
@@ -155,12 +157,12 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
     public HttpHeaders getHttpHeaders() {
         return new HttpHeaders() {
             @Override
-            public String getFirst(String headerName) {
+            public String getFirstValue(String headerName) {
                 return response.getFirstHeader(headerName).getValue();
             }
 
             @Override
-            public List<String> getAll(String headerName) {
+            public List<String> getAllValues(String headerName) {
                 List<String> values = null;
                 Header[] headers = response.getHeaders(headerName);
                 if (headers != null) {
@@ -170,6 +172,20 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
                     }
                 }
                 return values;
+            }
+
+            @Override
+            public List<Entry<String, String>> getAllHeaders() {
+                List<Entry<String, String>> all = Lists.newLinkedList();
+                for (Header header: response.getAllHeaders()) {
+                    all.add(new AbstractMap.SimpleEntry<String, String>(header.getName(), header.getValue()));
+                }
+                return all;
+            }
+
+            @Override
+            public boolean containsHeader(String name) {
+                return response.containsHeader(name);
             }
         };
     }

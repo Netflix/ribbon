@@ -126,7 +126,6 @@ public class LoadBalancerObservables  extends LoadBalancerContext<HttpRequest, H
                 HttpRequest requestWithRealServer = null;
                 try {
                     requestWithRealServer = computeFinalUriWithLoadBalancer(request);
-                    System.err.println("URI: " + requestWithRealServer.getUri());
                 } catch (Exception e) {
                     t1.onError(e);
                     return Subscriptions.empty();

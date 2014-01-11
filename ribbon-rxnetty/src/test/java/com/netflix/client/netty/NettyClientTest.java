@@ -87,7 +87,7 @@ public class NettyClientTest {
     }
     
     @Test
-    public void testObservableWithOverrideDeserializer() throws Exception {
+    public void testWithOverrideDeserializer() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         DefaultClientConfigImpl overrideConfig = new DefaultClientConfigImpl();
         overrideConfig.setTypedProperty(CommonClientConfigKey.Deserializer, new StringDeserializer());

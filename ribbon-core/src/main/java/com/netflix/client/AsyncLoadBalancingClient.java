@@ -38,7 +38,7 @@ import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
@@ -59,7 +59,7 @@ import com.netflix.servo.monitor.Stopwatch;
  * @param <S> Response type
  * @param <U> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
  * @param <V> Type of key to find {@link Serializer} and {@link Deserializer} for the content. For example, for HTTP communication,
- *            the key type is {@link ContentTypeBasedSerializerKey}
+ *            the key type is {@link HttpSerializationContext}
  */
 public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IResponse, U, V>
         extends LoadBalancerContext<T, S> implements AsyncClient<T, S, U, V> {

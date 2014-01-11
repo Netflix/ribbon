@@ -25,11 +25,11 @@ import java.lang.reflect.Type;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
-public class JacksonSerializationFactory implements SerializationFactory<ContentTypeBasedSerializerKey>{
+public class JacksonSerializationFactory implements SerializationFactory<HttpSerializationContext>{
 
     public static final JsonCodec instance = new JsonCodec();
     @Override
-    public Deserializer getDeserializer(ContentTypeBasedSerializerKey key) {
+    public <T extends Object> Deserializer<T> getDeserializer(HttpSerializationContext key, TypeDef<T> typeDef) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
             return instance;
         }
@@ -37,7 +37,7 @@ public class JacksonSerializationFactory implements SerializationFactory<Content
     }
 
     @Override
-    public Serializer getSerializer(ContentTypeBasedSerializerKey key) {
+    public <T> Serializer<T> getSerializer(HttpSerializationContext key, TypeDef<T> typeDef) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
             return instance;
         }
@@ -46,18 +46,18 @@ public class JacksonSerializationFactory implements SerializationFactory<Content
 
 }
 
-class JsonCodec implements Serializer, Deserializer {
+class JsonCodec<T extends Object> implements Serializer<T>, Deserializer<T> {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public <T> T deserialize(InputStream in, TypeDef<T> type)
+    public T deserialize(InputStream in, TypeDef<T> type)
             throws IOException {
         return mapper.readValue(in, new TypeTokenBasedReference<T>(type));
     }
     
     @Override
-    public void serialize(OutputStream out, Object object) throws IOException {
-        mapper.writeValue(out, object);
+    public void serialize(OutputStream out, T object) throws IOException {
+        mapper.writeValue(out, object);        
     }
 }
 

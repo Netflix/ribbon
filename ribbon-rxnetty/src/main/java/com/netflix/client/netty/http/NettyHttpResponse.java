@@ -5,25 +5,19 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Map.Entry;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.net.HttpHeaders;
-import com.google.common.reflect.TypeToken;
 import com.netflix.client.ClientException;
 import com.netflix.client.ResponseWithTypedEntity;
 import com.netflix.client.http.HttpUtils;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
-import com.netflix.serialization.Deserializer;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.TypeDef;
 
@@ -31,24 +25,10 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
 
     private final HttpResponse response;
     final ByteBuf content;
-    private final SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory;
+    private final SerializationFactory<HttpSerializationContext> serializationFactory;
     private final URI requestedURI;
     
-    class NettyHttpHeaders implements com.netflix.client.http.HttpHeaders {
-
-        @Override
-        public String getFirst(String headerName) {
-            return response.headers().get(headerName);
-        }
-
-        @Override
-        public List<String> getAll(String headerName) {
-            return response.headers().getAll(headerName);
-        }
-        
-    }
-    
-    public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<ContentTypeBasedSerializerKey> serializationFactory, URI requestedURI) {
+    public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<HttpSerializationContext> serializationFactory, URI requestedURI) {
         this.response = response;
         this.content = content;
         this.serializationFactory = serializationFactory;
@@ -144,6 +124,6 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
 
     @Override
     public com.netflix.client.http.HttpHeaders getHttpHeaders() {
-        return new NettyHttpHeaders();
+        return new NettyHttpHeaders(response);
     }
 }

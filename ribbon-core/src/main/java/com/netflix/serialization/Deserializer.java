@@ -20,6 +20,6 @@ package com.netflix.serialization;
 import java.io.IOException;
 import java.io.InputStream;
 
-public interface Deserializer {
-    public <T> T deserialize(InputStream in, TypeDef<T> type) throws IOException;    
+public interface Deserializer<T> {
+    public T deserialize(InputStream in, TypeDef<T> type) throws IOException;    
 }

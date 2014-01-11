@@ -17,16 +17,19 @@
 */
 package com.netflix.niws.client.http;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.ws.rs.core.MultivaluedMap;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.reflect.TypeToken;
 import com.netflix.client.ClientException;
 import com.netflix.client.http.HttpHeaders;
 import com.netflix.client.http.HttpResponse;
@@ -47,6 +50,7 @@ class HttpClientResponse implements HttpResponse {
     private URI requestedURI; // the request url that got this response
     
     private Multimap<String, String> headers = ArrayListMultimap.<String, String>create();
+    private HttpHeaders httpHeaders;
 
     public HttpClientResponse(ClientResponse cr){
         bcr = cr;
@@ -55,6 +59,34 @@ class HttpClientResponse implements HttpResponse {
                 headers.putAll(entry.getKey(), entry.getValue());
             }
         }
+        httpHeaders =  new HttpHeaders() {
+            @Override
+            public String getFirstValue(String headerName) {
+                return bcr.getHeaders().getFirst(headerName);
+            }
+            @Override
+            public List<String> getAllValues(String headerName) {
+                return bcr.getHeaders().get(headerName);
+            }
+            @Override
+            public List<Entry<String, String>> getAllHeaders() {
+                MultivaluedMap<String, String> map = bcr.getHeaders();
+                List<Entry<String, String>> result = Lists.newArrayList();
+                for (Map.Entry<String, List<String>> header: map.entrySet()) {
+                    String name = header.getKey();
+                    for (String value: header.getValue()) {
+                        result.add(new AbstractMap.SimpleEntry<String, String>(name, value));
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public boolean containsHeader(String name) {
+                return bcr.getHeaders().containsKey(name);
+            }
+        };
+
     }
 
      /**
@@ -149,7 +181,6 @@ class HttpClientResponse implements HttpResponse {
 
     @Override
     public HttpHeaders getHttpHeaders() {
-        // TODO Auto-generated method stub
-        return null;
+        return httpHeaders;
     }
 }

@@ -18,6 +18,6 @@
 package com.netflix.serialization;
 
 public interface SerializationFactory<K> {
-    public Deserializer getDeserializer(K key);  
-    public Serializer getSerializer(K key);
+    public <T> Deserializer<T> getDeserializer(K context, TypeDef<T> type);  
+    public <T> Serializer<T> getSerializer(K context, TypeDef<T> type);
 }

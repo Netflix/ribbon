@@ -68,7 +68,7 @@ import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
 import com.netflix.loadbalancer.RoundRobinRule;
 import com.netflix.loadbalancer.Server;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.net.httpserver.HttpServer;
@@ -309,8 +309,8 @@ public class HttpAsyncClientTest {
 
     @Test
     public void testLoadBalancingClient() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, HttpSerializationContext> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, HttpSerializationContext>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         List<Server> servers = Lists.newArrayList(new Server("localhost:" + port));
         lb.setServersList(servers);
@@ -326,8 +326,8 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testLoadBalancingClientFuture() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, HttpSerializationContext> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, HttpSerializationContext>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         List<Server> servers = Lists.newArrayList(new Server("localhost:" + port));
         lb.setServersList(servers);
@@ -346,7 +346,7 @@ public class HttpAsyncClientTest {
     @Test
     public void testLoadBalancingClientMultiServers() throws Exception {
         AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ?> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
+                HttpResponse, ByteBuffer, HttpSerializationContext>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server good = new Server("localhost:" + port);
         Server bad = new Server("localhost:" + 33333);
@@ -367,7 +367,7 @@ public class HttpAsyncClientTest {
     @Test
     public void testLoadBalancingClientConcurrency() throws Exception {
         final AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ?> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
+                HttpResponse, ByteBuffer, HttpSerializationContext>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         final Server good = new Server("localhost:" + port);
         final Server bad = new Server("localhost:" + 33333);
@@ -458,8 +458,8 @@ public class HttpAsyncClientTest {
         
         RibbonHttpAsyncClient timeoutClient = 
                 new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(timeoutClient);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, HttpSerializationContext> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, HttpSerializationContext>(timeoutClient);
         loadBalancingClient.setMaxAutoRetries(1);
         loadBalancingClient.setMaxAutoRetriesNextServer(1);
         Server server = new Server("www.microsoft.com:81");
@@ -481,8 +481,8 @@ public class HttpAsyncClientTest {
     public void testLoadBalancingClientWithRetryFuture() throws Exception {
         RibbonHttpAsyncClient timeoutClient = 
                 new RibbonHttpAsyncClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(timeoutClient);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, HttpSerializationContext> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, HttpSerializationContext>(timeoutClient);
         loadBalancingClient.setMaxAutoRetries(1);
         loadBalancingClient.setMaxAutoRetriesNextServer(1);
         Server server = new Server("www.microsoft.com:81");
@@ -564,8 +564,8 @@ public class HttpAsyncClientTest {
     @Test
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RV_RETURN_VALUE_IGNORED")
     public void testStreamWithLoadBalancer() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, HttpSerializationContext> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, HttpSerializationContext>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server good = new Server("localhost:" + port);
         Server bad = new Server("localhost:" + 33333);
@@ -644,8 +644,8 @@ public class HttpAsyncClientTest {
     
     @Test
     public void testParallelAllFailed() throws Exception {
-        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
-                HttpResponse, ByteBuffer, ContentTypeBasedSerializerKey>(client);
+        AsyncLoadBalancingClient<HttpRequest, HttpResponse, ByteBuffer, HttpSerializationContext> loadBalancingClient = new AsyncLoadBalancingClient<HttpRequest, 
+                HttpResponse, ByteBuffer, HttpSerializationContext>(client);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new RoundRobinRule());
         Server bad = new Server("localhost:" + 55555);
         Server bad1 = new Server("localhost:" + 33333);
