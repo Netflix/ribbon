@@ -89,10 +89,15 @@ public class EmbeddedResources {
     public static final Person defaultPerson = new Person("ribbon", 1);
     
     public static final List<String> streamContent = Lists.newArrayList();
+    public static final List<Person> entityStream = Lists.newArrayList();
     
     static {
         for (int i = 0; i < 1000; i++) {
             streamContent.add("data: line " + i);
+        }
+        
+        for (int i = 0; i < 1000; i++) {
+            entityStream.add(new Person("ribbon", i));
         }
     }
     
@@ -154,6 +159,20 @@ public class EmbeddedResources {
             }
         };
     }
-
+    
+    @GET
+    @Path("/personStream")
+    @Produces("text/event-stream")
+    public StreamingOutput getEntityStream() {
+        return new StreamingOutput() {
+            @Override
+            public void write(OutputStream output) throws IOException,
+                    WebApplicationException {
+                for (Person person: entityStream) {
+                    String eventLine = "data: " + mapper.writeValueAsString(person) + "\n\n";
+                    output.write(eventLine.getBytes("UTF-8"));
+                }
+            }
+        };
+    }
 }
-

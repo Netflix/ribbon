@@ -11,6 +11,7 @@ import com.netflix.client.LoadBalancerContext;
 import com.netflix.client.LoadBalancerErrorHandler;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
+import com.netflix.client.http.UnexpectedHttpResponseException;
 
 public class NettyHttpLoadBalancerErrorHandler implements LoadBalancerErrorHandler<HttpRequest, HttpResponse> {
 
@@ -45,6 +46,10 @@ public class NettyHttpLoadBalancerErrorHandler implements LoadBalancerErrorHandl
      */
     @Override
     public boolean isCircuitTrippingException(Throwable e) {
+        if (e instanceof UnexpectedHttpResponseException) {
+            HttpResponse response = ((UnexpectedHttpResponseException) e).getResponse();
+            return isCircuitTrippinResponse(response);
+        }
         return LoadBalancerContext.isPresentAsCause(e, circuitRelated);
     }
 
@@ -52,7 +57,10 @@ public class NettyHttpLoadBalancerErrorHandler implements LoadBalancerErrorHandl
      * @return true if the the response has status code 503 (throttle) 
      */
     @Override
-    public boolean isCircuitTrippinErrorgResponse(HttpResponse response) {
-        return response.getStatus() == 503;
+    public boolean isCircuitTrippinResponse(Object response) {
+        if (!(response instanceof HttpResponse)) {
+            return false;
+        }
+        return ((HttpResponse) response).getStatus() == 503;
     }
 }

@@ -1,8 +1,7 @@
-package com.netflix.client.netty.http;
+package com.netflix.client;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import rx.Observable;
@@ -12,37 +11,24 @@ import rx.Subscription;
 import rx.subscriptions.Subscriptions;
 import rx.util.functions.Func1;
 
-import com.netflix.client.ClientRequest;
-import com.netflix.client.IResponse;
-import com.netflix.client.LoadBalancerContext;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.http.HttpRequest;
-import com.netflix.client.http.HttpResponse;
-import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
-import com.netflix.serialization.TypeDef;
-import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
-import com.netflix.servo.monitor.Timer;
-import com.netflix.client.ClientException;
 
-public class LoadBalancerObservables  extends LoadBalancerContext<HttpRequest, HttpResponse> {
+public class LoadBalancerObservables<R extends ClientRequest, S extends IResponse> extends LoadBalancerContext<R, S> {
     
-    private RxNettyHttpClient client;
-    
-    public LoadBalancerObservables(IClientConfig clientConfig, RxNettyHttpClient client) {
+    public LoadBalancerObservables(IClientConfig clientConfig) {
         super(clientConfig);
-        this.client = client;
     }
     
     private class RetrySameServerFunc<T> implements Func1<Throwable, Observable<T>> {
 
-        private HttpRequest request;
+        private R request;
         OnSubscribeFunc<T> onSubscribe;
         private AtomicInteger counter = new AtomicInteger();
         
-        public RetrySameServerFunc(HttpRequest request, OnSubscribeFunc<T> onSubscribe) {
+        public RetrySameServerFunc(R request, OnSubscribeFunc<T> onSubscribe) {
             this.request = request;
             this.onSubscribe = onSubscribe;
         }
@@ -65,25 +51,18 @@ public class LoadBalancerObservables  extends LoadBalancerContext<HttpRequest, H
                 // try again
                 return Observable.create(onSubscribe).onErrorResumeNext(this);
             } else {
-                return Observable.create(new OnSubscribeFunc<T>() {
-
-                    @Override
-                    public Subscription onSubscribe(Observer<? super T> t1) {
-                        t1.onError(finalThrowable);
-                        return Subscriptions.empty();
-                    }
-                });
+                return Observable.error(finalThrowable);
             }
         }
     }
 
     private class RetryNextServerFunc<T> implements Func1<Throwable, Observable<T>> {
 
-        HttpRequest request;
+        R request;
         private AtomicInteger counter = new AtomicInteger();
         OnSubscribeFunc<T> onSubscribe;
         
-        RetryNextServerFunc(HttpRequest request, OnSubscribeFunc<T> onSubscribe) {
+        RetryNextServerFunc(R request, OnSubscribeFunc<T> onSubscribe) {
             this.request = request;    
             this.onSubscribe = onSubscribe;
         }
@@ -106,31 +85,25 @@ public class LoadBalancerObservables  extends LoadBalancerContext<HttpRequest, H
             if (shouldRetry) {
                 return Observable.create(onSubscribe).onErrorResumeNext(this);
             } else {
-                return Observable.create(new OnSubscribeFunc<T>() {
-                    @Override
-                    public Subscription onSubscribe(Observer<? super T> t1) {
-                        t1.onError(finalThrowable);
-                        return Subscriptions.empty();
-                    }
-                });
+                return Observable.error(finalThrowable);
                 
             }
         }
         
     }
     
-    public <T> Observable<T> execute(final HttpRequest request, final TypeDef<T> typeDef) {
+    public <T> Observable<T> retryWithLoadBalancer(final R request, final LoadBalancerObservableRequest<T, R> loadBalancerRequest) {
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
             public Subscription onSubscribe(final Observer<? super T> t1) {
-                HttpRequest requestWithRealServer = null;
+                R requestWithRealServer = null;
                 try {
                     requestWithRealServer = computeFinalUriWithLoadBalancer(request);
                 } catch (Exception e) {
                     t1.onError(e);
                     return Subscriptions.empty();
                 }
-                return executeSameServer(requestWithRealServer, typeDef).subscribe(t1);
+                return retrySameServer(requestWithRealServer, loadBalancerRequest.getSingleServerObservable(requestWithRealServer)).subscribe(t1);
             }
         };
         Observable<T> observable = Observable.create(onSubscribe);
@@ -138,7 +111,7 @@ public class LoadBalancerObservables  extends LoadBalancerContext<HttpRequest, H
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     
-    public <T> Observable<T> executeSameServer(final HttpRequest request, final TypeDef<T> typeDef) {
+    public <T> Observable<T> retrySameServer(final R request, final Observable<T> clientObservable) {
         final URI uri = request.getUri();
         Server server = new Server(uri.getHost(), uri.getPort());
         final ServerStats serverStats = getServerStats(server); 
@@ -157,12 +130,6 @@ public class LoadBalancerObservables  extends LoadBalancerContext<HttpRequest, H
 
                     @Override
                     public void onError(Throwable e) {
-                        if (serverStats != null) {
-                            serverStats.addToFailureCount();
-                        }
-                        if (errorHandler.isCircuitTrippingException(e) && serverStats != null) {
-                            serverStats.incrementSuccessiveConnectionFailureCount();
-                        }
                         recordStats(entity, e);
                         t1.onError(e);
                     }
@@ -179,7 +146,7 @@ public class LoadBalancerObservables  extends LoadBalancerContext<HttpRequest, H
                         noteRequestCompletion(serverStats, request, entity, exception, duration);
                     }
                 };
-                return client.execute(request, typeDef).subscribe(delegate);
+                return clientObservable.subscribe(delegate);
             }
         };
         

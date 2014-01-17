@@ -20,6 +20,8 @@ package com.netflix.serialization;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import com.sun.istack.internal.Nullable;
+
 public interface Serializer<T> {
-    public void serialize(OutputStream out, T object) throws IOException;    
+    public void serialize(OutputStream out, T object, @Nullable TypeDef<?> type) throws IOException;    
 }

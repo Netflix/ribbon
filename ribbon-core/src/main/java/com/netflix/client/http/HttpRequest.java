@@ -122,7 +122,6 @@ public class HttpRequest extends ClientRequest {
         
         public Builder entity(Object entity) {
             request.entity = entity;
-            request.entityType = TypeDef.fromClass(entity.getClass());
             return this;
         }
 

@@ -16,9 +16,11 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.netflix.client.ClientException;
 import com.netflix.client.ResponseWithTypedEntity;
-import com.netflix.client.http.HttpUtils;
+import com.netflix.client.http.HttpRequest;
+import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.SerializationFactory;
+import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.TypeDef;
 
 class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.http.HttpResponse {
@@ -26,20 +28,24 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
     private final HttpResponse response;
     final ByteBuf content;
     private final SerializationFactory<HttpSerializationContext> serializationFactory;
-    private final URI requestedURI;
+    private final HttpRequest request;
     
-    public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<HttpSerializationContext> serializationFactory, URI requestedURI) {
+    public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request) {
         this.response = response;
         this.content = content;
         this.serializationFactory = serializationFactory;
-        this.requestedURI = requestedURI;
+        this.request = request;
     }
     
     @Override
     @Deprecated
-    public <T> T getEntity(TypeDef<T> type) throws ClientException {
+    public <T> T getEntity(TypeDef<T> typeDef) throws ClientException {
         try {
-            return (T) HttpUtils.getEntity(this, type, this.serializationFactory);
+            Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, new NettyHttpHeaders(response), typeDef, serializationFactory);
+            if (deserializer == null) {
+                throw new ClientException("No suitable deserializer for type " + typeDef.getRawType());
+            }
+            return (T) SerializationUtils.getEntity(this, typeDef, deserializer);
         } catch (Throwable e) {
             throw new ClientException("Unable to deserialize the content", e);    
         }
@@ -48,14 +54,13 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
     @Override
     @Deprecated
     public <T> T getEntity(Class<T> type) throws ClientException {
-        try {
-            return HttpUtils.getEntity(this, TypeDef.fromClass(type), this.serializationFactory);
-        } catch (Throwable e) {
-            throw new ClientException("Unable to deserialize the content", e);    
-        }
+        return getEntity(TypeDef.fromClass(type)); 
     }
     
     private InputStream getBytesFromByteBuf() {
+        if (content == null) {
+            throw new IllegalStateException("There is no content (ByteBuf) from the HttpResponse");
+        }
         return new ByteBufInputStream(content);
     }
 
@@ -71,7 +76,7 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
 
     @Override
     public URI getRequestedURI() {
-        return requestedURI;
+        return request.getUri();
     }
 
     @Override
@@ -118,8 +123,7 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
 
     @Override
     public String getStatusLine() {
-        // TODO Auto-generated method stub
-        return null;
+        return response.getStatus().reasonPhrase();
     }
 
     @Override

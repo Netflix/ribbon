@@ -242,20 +242,35 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         return niwsClientException;
     }
 
+    private void recordStats(ServerStats stats, long responseTime) {
+        stats.decrementActiveRequestsCount();
+        stats.incrementNumRequests();
+        stats.noteResponseTime(responseTime);
+    }
+    
     /**
      * This is called after a response is received or an exception is thrown from the client
      * to update related stats.  
      */
-    protected void noteRequestCompletion(ServerStats stats, ClientRequest request, Object response, Throwable e, long responseTime) {        
+    protected void noteRequestCompletion(ServerStats stats, ClientRequest request, Object response, Throwable e, long responseTime) {
         try {
-            if (stats != null) {
-                stats.decrementActiveRequestsCount();
-                stats.incrementNumRequests();
-                stats.noteResponseTime(responseTime);
-                if (response != null) {
-                    stats.clearSuccessiveConnectionFailureCount();                    
+            recordStats(stats, responseTime);
+            LoadBalancerErrorHandler<? super T, ? super S> errorHandler = getErrorHandler();
+            if (errorHandler != null && response != null) {
+                if (errorHandler.isCircuitTrippinResponse(response)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
+                }                
+            } else if (errorHandler != null && e != null) {
+                if (errorHandler.isCircuitTrippingException(e)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
                 }
-            }            
+            }
         } catch (Throwable ex) {
             logger.error("Unexpected exception", ex);
         }            

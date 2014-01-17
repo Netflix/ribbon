@@ -66,5 +66,5 @@ public interface IClientConfig {
      */
     public <T> T getTypedProperty(IClientConfigKey<T> key);
     
-    public <T> void setTypedProperty(IClientConfigKey<T> key, T value);
+    public <T> IClientConfig setTypedProperty(IClientConfigKey<T> key, T value);
 }

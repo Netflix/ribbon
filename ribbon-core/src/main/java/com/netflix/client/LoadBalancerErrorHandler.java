@@ -43,14 +43,17 @@ public interface LoadBalancerErrorHandler<T extends ClientRequest, S extends IRe
 
     /**
      * Test if an exception should be treated as circuit failure. For example, 
-     * a {@link ConnectException} is a circuit failure. 
+     * a {@link ConnectException} is a circuit failure. This is used to determine
+     * whether successive exceptions of such should trip the circuit breaker to a particular
+     * host by the load balancer. If false but a server response is absent, 
+     * load balancer will also close the circuit upon getting such exception.
      */
     public boolean isCircuitTrippingException(Throwable e);
     
     /**
-     * Test if an error response should be treated as circuit failure. For example,
+     * Test if a response should be treated as circuit failure. For example,
      * HTTP throttling (503 status code) might be considered circuit failure where 
      * load balancer should avoid sending next request to such server.   
      */
-    public boolean isCircuitTrippinErrorgResponse(S response);
+    public boolean isCircuitTrippinResponse(Object response);
 }

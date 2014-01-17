@@ -19,12 +19,15 @@ package com.netflix.client.config;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-
-import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.google.common.reflect.TypeToken;
+import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 import com.netflix.serialization.Deserializer;
 
@@ -169,189 +172,60 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     public static final IClientConfigKey<String> RulePredicateClasses = new CommonClientConfigKey<String>("RulePredicateClasses"){};
     
     // serialization
-    public static final IClientConfigKey<String> DefaultSerializationFactoryClassName = new CommonClientConfigKey<String>("DefaultSerializationClassName"){};
+    public static final IClientConfigKey<String> DefaultSerializationFactoryClassName = new CommonClientConfigKey<String>("DefaultSerializationFactoryClassName"){};
+    public static final IClientConfigKey<SerializationFactory> DefaultSerializationFactory = new CommonClientConfigKey<SerializationFactory>("DefaultSerializationFactory"){};
     
     // serializer
     public static final IClientConfigKey<Serializer> Serializer = new CommonClientConfigKey<Serializer>("Serializer"){};
 
     public static final IClientConfigKey<Deserializer> Deserializer = new CommonClientConfigKey<Deserializer>("Deserializer"){};
     
-    static final IClientConfigKey[] keys = { AppName,
-
-        Version,
-
-        Port,
-
-        SecurePort,
-
-        VipAddress,
-
-        DeploymentContextBasedVipAddresses,
-
-        MaxAutoRetries,
-
-        MaxAutoRetriesNextServer,
-
-        OkToRetryOnAllOperations,
-
-        RequestSpecificRetryOn,
-
-        ReceiveBuffferSize,
-
-        EnablePrimeConnections,
-
-        PrimeConnectionsClassName,
-
-        MaxRetriesPerServerPrimeConnection,
-
-        MaxTotalTimeToPrimeConnections,
-
-        MinPrimeConnectionsRatio,
-
-        PrimeConnectionsURI,
-
-        PoolMaxThreads,
-
-        PoolMinThreads,
-
-        PoolKeepAliveTime,
-
-        PoolKeepAliveTimeUnits,
-
-        // HTTP Client Related
-        MaxHttpConnectionsPerHost,
-
-        MaxTotalHttpConnections,
-
-        IsSecure,
-
-        GZipPayload,
-
-        ConnectTimeout,
-
-        ReadTimeout,
-
-        SendBufferSize,
-
-        StaleCheckingEnabled,
-
-        Linger,
-
-        ConnectionManagerTimeout,
-
-        FollowRedirects,
-
-        ConnectionPoolCleanerTaskEnabled,
-
-        ConnIdleEvictTimeMilliSeconds,
-
-        ConnectionCleanerRepeatInterval,
-
-        EnableGZIPContentEncodingFilter,
-
-        ProxyHost,
-
-        ProxyPort,
-
-        KeyStore,
-
-        KeyStorePassword,
-
-        TrustStore,
-
-        TrustStorePassword,
-
-        // if this is a secure rest client, must we use client auth too?
-        IsClientAuthRequired,
-
-        // must host name match name in certificate?
-        IsHostnameValidationRequired,
-
-        // see also
-        // http://hc.apache.org/httpcomponents-client-ga/tutorial/html/advanced.html
-        IgnoreUserTokenInConnectionPoolForSecureClient,
-
-        // Client implementation
-        ClientClassName,
-
-        // LoadBalancer Related
-        InitializeNFLoadBalancer,
-
-        NFLoadBalancerClassName,
-
-        NFLoadBalancerRuleClassName,
-
-        NFLoadBalancerPingClassName,
-
-        NFLoadBalancerPingInterval,
-
-        NFLoadBalancerMaxTotalPingTime,
-
-        NIWSServerListClassName,
-
-        NIWSServerListFilterClassName,
-
-        ServerListRefreshInterval,
-
-        EnableMarkingServerDownOnReachingFailureLimit,
-
-        ServerDownFailureLimit,
-
-        ServerDownStatWindowInMillis,
-
-        EnableZoneAffinity,
-
-        EnableZoneExclusivity,
-
-        PrioritizeVipAddressBasedServers,
-
-        VipAddressResolverClassName,
-
-        TargetRegion,
-
-        RulePredicateClasses,
-
-        DefaultSerializationFactoryClassName,
+    private static final Set<IClientConfigKey> keys = new HashSet<IClientConfigKey>();
         
-        ForceClientPortConfiguration,
-        
-        Serializer,
-        
-        Deserializer,
-        
-        CustomSSLSocketFactoryClassName
-    };
-
-    @edu.umd.cs.findbugs.annotations.SuppressWarnings
-    public static IClientConfigKey[] values() {
-        return keys;
+    static {
+        for (Field f: CommonClientConfigKey.class.getDeclaredFields()) {
+            if (Modifier.isStatic(f.getModifiers()) //&& Modifier.isPublic(f.getModifiers())
+                    && IClientConfigKey.class.isAssignableFrom(f.getType())) {
+                try {
+                    keys.add((IClientConfigKey) f.get(null));
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
     }
 
+    /**
+     * @deprecated see {@link #key()} 
+     */
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings
+    @Deprecated
+    public static IClientConfigKey[] values() {
+       return keys().toArray(new IClientConfigKey[0]);
+    }
+
+    /**
+     * return all the public static keys defined in this class 
+     */
+    public static Set<IClientConfigKey> keys() {
+        return keys;
+    }
+    
     private final String configKey;
-    private T defaultValue;
     private final Class<T> type;
     
     @SuppressWarnings("unchecked")
-    protected CommonClientConfigKey(String configKey, T defaultValue) {
+    protected CommonClientConfigKey(String configKey) {
         this.configKey = configKey;
-        this.defaultValue = defaultValue;
-        if (defaultValue != null) {
-            type = (Class<T>) defaultValue.getClass();
-        } else {
-            Type superclass = getClass().getGenericSuperclass();
-            checkArgument(superclass instanceof ParameterizedType,
-                "%s isn't parameterized", superclass);
-            Type runtimeType = ((ParameterizedType) superclass).getActualTypeArguments()[0];
-            type = (Class<T>) TypeToken.of(runtimeType).getRawType();
-        }
+        Type superclass = getClass().getGenericSuperclass();
+        checkArgument(superclass instanceof ParameterizedType,
+            "%s isn't parameterized", superclass);
+        Type runtimeType = ((ParameterizedType) superclass).getActualTypeArguments()[0];
+        type = (Class<T>) TypeToken.of(runtimeType).getRawType();
     }
     
-    protected CommonClientConfigKey(String configKey) {
-        this(configKey, null);
-    }
-
     @Override
-    public Class<T> getType() {
+    public Class<T> type() {
         return type;
     }
 
@@ -366,11 +240,5 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     @Override
     public String toString() {
         return configKey;
-    }
-
-    @Override
-    @Nullable
-    public T getDefaultValue() {
-        return defaultValue;
     }
 }

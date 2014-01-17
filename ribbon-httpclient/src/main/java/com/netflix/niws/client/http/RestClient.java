@@ -125,6 +125,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 
     public RestClient(Client jerseyClient) {
         this.restClient = jerseyClient;
+        this.setErrorHandler(new HttpClientLoadBalancerErrorHandler());
     }
 
     @Override
@@ -147,6 +148,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                 Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ReadTimeout))));
 
         this.restClient = apacheHttpClientSpecificInitialization();
+        this.setErrorHandler(new HttpClientLoadBalancerErrorHandler());
     }
 
     protected Client apacheHttpClientSpecificInitialization() {

@@ -17,17 +17,10 @@
  */
 package com.netflix.serialization;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Type;
-
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
-
 public class JacksonSerializationFactory implements SerializationFactory<HttpSerializationContext>{
 
-    public static final JsonCodec instance = new JsonCodec();
+    public static final JacksonCodec instance = JacksonCodec.getInstance();
+
     @Override
     public <T extends Object> Deserializer<T> getDeserializer(HttpSerializationContext key, TypeDef<T> typeDef) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
@@ -44,33 +37,4 @@ public class JacksonSerializationFactory implements SerializationFactory<HttpSer
         return null;
     }
 
-}
-
-class JsonCodec<T extends Object> implements Serializer<T>, Deserializer<T> {
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    @Override
-    public T deserialize(InputStream in, TypeDef<T> type)
-            throws IOException {
-        return mapper.readValue(in, new TypeTokenBasedReference<T>(type));
-    }
-    
-    @Override
-    public void serialize(OutputStream out, T object) throws IOException {
-        mapper.writeValue(out, object);        
-    }
-}
-
-class TypeTokenBasedReference<T> extends TypeReference<T> {
-    
-    final Type type;
-    public TypeTokenBasedReference(TypeDef<T> typeToken) {
-        type = typeToken.getType();    
-        
-    }
-
-    @Override
-    public Type getType() {
-        return type;
-    }
 }

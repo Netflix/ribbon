@@ -32,4 +32,9 @@ class NettyHttpHeaders implements com.netflix.client.http.HttpHeaders {
     public boolean containsHeader(String name) {
         return delegate.headers().contains(name);
     }
+    
+    @Override
+    public String toString() {
+        return delegate.toString();
+    }
 }

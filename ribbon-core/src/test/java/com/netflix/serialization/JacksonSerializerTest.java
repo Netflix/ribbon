@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -32,6 +33,8 @@ import org.apache.commons.collections.map.CaseInsensitiveMap;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.ObjectWriter;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.Test;
 import com.google.common.reflect.TypeToken;
 import com.google.common.collect.Lists;
@@ -52,7 +55,7 @@ public class JacksonSerializerTest {
         headers.addHeader("Content-tYpe", "application/json");
         HttpSerializationContext key = new HttpSerializationContext(headers, null);
         Serializer<List<Person>> serializer = factory.getSerializer(key, typeDef);
-        String content = new String(serializeToBytes(people, serializer), "UTF-8");
+        String content = new String(serializeToBytes(people, serializer, null), "UTF-8");
         Deserializer<List<Person>> deserializer = factory.getDeserializer(key, typeDef);
         List<Person> list = deserializer.deserialize(new ByteArrayInputStream(content.getBytes("UTF-8")), new TypeDef<List<Person>>(){});
         assertEquals(people, list);
@@ -64,11 +67,15 @@ public class JacksonSerializerTest {
         Person person = new Person("ribbon", 1);
         Deserializer<Person> personDeserializer = factory.getDeserializer(key, TypeDef.fromClass(Person.class));
         Serializer<Person> personSerializer = factory.getSerializer(key, TypeDef.fromClass(Person.class));
-        byte[] bytes = serializeToBytes(person, personSerializer);
+        byte[] bytes = serializeToBytes(person, personSerializer, null);
         Person deserialized = personDeserializer.deserialize(new ByteArrayInputStream(bytes), TypeDef.fromClass(Person.class));
         assertEquals(person, deserialized);
         deserialized = personDeserializer.deserialize(new ByteArrayInputStream(bytes), TypeDef.fromClass(Person.class));
         assertEquals(person, deserialized);
+        
+        Deserializer<String> stringDeserializer = factory.getDeserializer(key, TypeDef.fromClass(String.class));
+        String raw = stringDeserializer.deserialize(new ByteArrayInputStream(bytes), TypeDef.fromClass(String.class));
+        assertEquals("{\"name\":\"ribbon\",\"age\":1}", raw);
         
         ObjectMapper mapper = new ObjectMapper();
         deserialized = (Person) mapper.readValue(bytes, TypeDef.fromClass(Person.class).getRawType());
@@ -76,9 +83,9 @@ public class JacksonSerializerTest {
     }
     
     
-    private byte[] serializeToBytes(Object obj, Serializer serializer) throws Exception {
+    private byte[] serializeToBytes(Object obj, Serializer serializer, TypeDef<?> type) throws Exception {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        serializer.serialize(bout, obj);
+        serializer.serialize(bout, obj, type);
         return bout.toByteArray();
     }
     
@@ -97,11 +104,25 @@ public class JacksonSerializerTest {
         headers.addHeader("Content-tYpe", "application/json");
         HttpSerializationContext key = new HttpSerializationContext(headers, null);
         Serializer<List<Person>> serializer = factory.getSerializer(key, new TypeDef<List<Person>>(){});
-        byte[] bytes = serializeToBytes(person, serializer);
+        byte[] bytes = serializeToBytes(person, serializer, null);
         ObjectMapper mapper = new ObjectMapper();
         Person p = (Person) mapper.readValue(bytes, spec.getRawType());
         assertEquals(person, p);
-        
+    }
+    
+    @Test
+    public void testSerializeAsSuperType() throws Exception {
+        MyObj obj = new MyObj("ribbon", 1, true);
+        JacksonSerializationFactory factory = new JacksonSerializationFactory();
+        CaseInsensitiveMultiMap headers = new CaseInsensitiveMultiMap();
+        headers.addHeader("Content-tYpe", "application/json");
+        HttpSerializationContext key = new HttpSerializationContext(headers, null);
+        Serializer<Person> serializer = factory.getSerializer(key, TypeDef.fromClass(Person.class));
+        String content = new String(serializeToBytes(obj, serializer, TypeDef.fromClass(Person.class)), "UTF-8");
+        assertEquals("{\"name\":\"ribbon\",\"age\":1}", content);
+
+        content = new String(serializeToBytes(obj, serializer, null), "UTF-8");
+        assertEquals("{\"name\":\"ribbon\",\"age\":1,\"child\":true}", content);
     }
 }
 
@@ -144,5 +165,29 @@ class Person {
         } else if (!name.equals(other.name))
             return false;
         return true;
+    }
+}
+
+@edu.umd.cs.findbugs.annotations.SuppressWarnings
+class MyObj extends Person {
+    
+    private boolean child;
+    
+    public MyObj(String name, int age, boolean child) {
+        super(name, age);
+        this.child = child;
+    }
+    
+    public MyObj() {
+        super();
+        this.child = false;
+    }
+
+    public final boolean isChild() {
+        return child;
+    }
+
+    public final void setChild(boolean child) {
+        this.child = child;
     }
 }

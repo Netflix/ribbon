@@ -152,7 +152,7 @@ class GsonCodec<T extends Object> implements Serializer<T>, Deserializer<T> {
     }
 
     @Override
-    public void serialize(OutputStream out, T object) throws IOException {
+    public void serialize(OutputStream out, T object, TypeDef<?> type) throws IOException {
         gson.toJson(object, new OutputStreamWriter(out, "UTF-8"));
     }
 }
@@ -193,7 +193,7 @@ class XmlCodec<T extends Object> implements Serializer<T>, Deserializer<T> {
     }
 
     @Override
-    public void serialize(OutputStream out, T object) throws IOException {
+    public void serialize(OutputStream out, T object, TypeDef<?> type) throws IOException {
         xstream.toXML(object, out);
     }
 

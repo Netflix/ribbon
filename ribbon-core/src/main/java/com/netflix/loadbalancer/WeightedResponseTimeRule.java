@@ -80,13 +80,8 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
         }
 
         @Override
-        public Class<Integer> getType() {
+        public Class<Integer> type() {
             return Integer.class;
-        }
-
-        @Override
-        public Integer getDefaultValue() {
-            return DEFAULT_TIMER_INTERVAL;
         }
     };
     

@@ -794,7 +794,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @Override
     public <T> T getTypedProperty(IClientConfigKey<T> key) {
         Object obj = properties.get(key.key());
-        Class<T> type = key.getType();
+        Class<T> type = key.type();
         try {
             return type.cast(obj);
         } catch (ClassCastException e) {
@@ -817,7 +817,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
-    public <T> void setTypedProperty(IClientConfigKey<T> key, T value) {
+    public <T> IClientConfig setTypedProperty(IClientConfigKey<T> key, T value) {
         properties.put(key.key(), value);
+        return this;
     }
 }

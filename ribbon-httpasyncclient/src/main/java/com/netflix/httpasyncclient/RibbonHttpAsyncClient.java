@@ -307,7 +307,7 @@ public class RibbonHttpAsyncClient
                     if (serializer != null) {
                         try {
                             ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                            serializer.serialize(bout, entity);
+                            serializer.serialize(bout, entity, ribbonRequest.getEntityType());
                             httpEntity = new ByteArrayEntity(bout.toByteArray());
                             builder.setEntity(httpEntity);
                             break;

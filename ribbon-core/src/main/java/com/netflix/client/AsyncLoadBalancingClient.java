@@ -323,12 +323,6 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
             public void failed(Throwable e) {
                 thisException = e;
                 onComplete();
-                if (serverStats != null) {
-                    serverStats.addToFailureCount();
-                }
-                if (errorHandler.isCircuitTrippingException(e) && serverStats != null) {
-                    serverStats.incrementSuccessiveConnectionFailureCount();
-                }
                 boolean shouldRetry = retryOkayOnOperation && numRetries > 0 && errorHandler.isRetriableException(request, e, true);
                 if (shouldRetry) {
                     if (!handleSameServerRetry(uri, retries.incrementAndGet(), numRetries, e)) {
@@ -363,7 +357,7 @@ public class AsyncLoadBalancingClient<T extends ClientRequest, S extends IRespon
 
             @Override
             public void responseReceived(S response) {
-                if (errorHandler.isCircuitTrippinErrorgResponse(response)) {
+                if (errorHandler.isCircuitTrippinResponse(response)) {
                     serverStats.incrementSuccessiveConnectionFailureCount();
                 }
                 callback.responseReceived(response);

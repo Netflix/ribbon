@@ -18,7 +18,8 @@
 package com.netflix.client.config;
 
 /**
- * Defines the key used in {@link IClientConfig}
+ * Defines the key used in {@link IClientConfig}. See {@link CommonClientConfigKey}
+ * for the commonly defined client configuration keys.
  * 
  * @author awang
  *
@@ -30,8 +31,5 @@ public interface IClientConfigKey<T> {
 	 */
 	public String key();
 	
-	public Class<T> getType();
-	
-	public T getDefaultValue();
-
+	public Class<T> type();
 }

@@ -11,12 +11,8 @@ import com.netflix.config.ConfigurationManager;
 public class DefaultClientConfigImplTest {
     
     class NewConfigKey<T> extends CommonClientConfigKey<T> {
-        protected NewConfigKey(String configKey, T defaultValue) {
-            super(configKey, defaultValue);
-        }
-
         protected NewConfigKey(String configKey) {
-            this(configKey, null);
+            super(configKey);
         }
     }
     
@@ -34,12 +30,12 @@ public class DefaultClientConfigImplTest {
     @Test
     public void testNewType() {
         CommonClientConfigKey<Date> key = new CommonClientConfigKey<Date>("date") {};
-        assertEquals(Date.class, key.getType());
+        assertEquals(Date.class, key.type());
     }
     
     @Test
     public void testSubClass() {
         NewConfigKey<Date> key = new NewConfigKey<Date>("date") {};
-        assertEquals(Date.class, key.getType());        
+        assertEquals(Date.class, key.type());        
     }
 }
