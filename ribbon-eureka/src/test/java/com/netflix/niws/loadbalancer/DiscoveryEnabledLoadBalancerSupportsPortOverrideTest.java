@@ -79,8 +79,8 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
 
 
-        expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy", false, "region")).andReturn(getDummyInstanceInfo("dummy", "http://www.host.com", 7000)).anyTimes();
-        expect(mockedDiscoveryClient.getInstancesByVipAddress("secureDummy", true, "region")).andReturn(getDummyInstanceInfo("secureDummy", "http://www.host.com", 7001)).anyTimes();
+        expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy", false, "region")).andReturn(getDummyInstanceInfo("dummy", "http://www.host.com", 8001)).anyTimes();
+        expect(mockedDiscoveryClient.getInstancesByVipAddress("secureDummy", true, "region")).andReturn(getDummyInstanceInfo("secureDummy", "http://www.host.com", 8002)).anyTimes();
 
         replay(DiscoveryManager.class);
         replay(DiscoveryClient.class);
@@ -116,7 +116,9 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(7000, serverList.get(0).getPort());
+        Assert.assertEquals(8001, serverList.get(0).getPort());                              // vip indicated
+        Assert.assertEquals(8001, serverList.get(0).getInstanceInfo().getPort());            // vip indicated
+        Assert.assertEquals(7002, serverList.get(0).getInstanceInfo().getSecurePort());      // 7002 is the secure default
     }
 
     @Test
@@ -124,7 +126,7 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.DeploymentContextBasedVipAddresses", "secureDummy");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.IsSecure", "true");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.SecurePort", "6999");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.SecurePort", "6002");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.TargetRegion", "region");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
 
@@ -139,7 +141,9 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(7001, serverList.get(0).getPort());
+        Assert.assertEquals(8002, serverList.get(0).getPort());                         // vip indicated
+        Assert.assertEquals(8002, serverList.get(0).getInstanceInfo().getPort());       // vip indicated
+        Assert.assertEquals(7002, serverList.get(0).getInstanceInfo().getSecurePort()); // 7002 is the secure default
     }
 
     @Test
@@ -147,13 +151,11 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.DeploymentContextBasedVipAddresses", "dummy");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.IsSecure", "false");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.Port", "6999");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.Port", "6001");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.TargetRegion", "region");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.ForceClientPortConfiguration", "true");
-
-
 
         DiscoveryEnabledNIWSServerList deList = new DiscoveryEnabledNIWSServerList();
 
@@ -164,7 +166,9 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(6999, serverList.get(0).getPort());
+        Assert.assertEquals(6001, serverList.get(0).getPort());                           // client property indicated
+        Assert.assertEquals(6001, serverList.get(0).getInstanceInfo().getPort());         // client property indicated
+        Assert.assertEquals(7002, serverList.get(0).getInstanceInfo().getSecurePort());   // 7002 is the secure default
     }
 
 
@@ -173,7 +177,7 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.DeploymentContextBasedVipAddresses", "secureDummy");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.IsSecure", "true");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.SecurePort", "6998");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.SecurePort", "6002");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.TargetRegion", "region");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
 
@@ -190,7 +194,9 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(6998, serverList.get(0).getPort());
+        Assert.assertEquals(8002, serverList.get(0).getPort());                           // vip indicated
+        Assert.assertEquals(8002, serverList.get(0).getInstanceInfo().getPort());         // vip indicated
+        Assert.assertEquals(6002, serverList.get(0).getInstanceInfo().getSecurePort());   // client property indicated
     }
 
 
