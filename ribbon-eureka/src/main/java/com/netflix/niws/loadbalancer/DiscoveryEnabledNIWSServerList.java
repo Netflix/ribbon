@@ -127,7 +127,11 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                                 logger.debug("Overriding port on client name: " + clientName + " to " + overridePort);
                             }
 
-                            ii = new InstanceInfo.Builder(ii).setPort(overridePort).build();
+                            if(isSecure){
+                                ii = new InstanceInfo.Builder(ii).setSecurePort(overridePort).build();
+                            }else{
+                                ii = new InstanceInfo.Builder(ii).setPort(overridePort).build();
+                            }
                         }
 
                     	DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure);
