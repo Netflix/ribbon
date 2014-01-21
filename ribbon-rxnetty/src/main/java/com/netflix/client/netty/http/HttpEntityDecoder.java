@@ -35,7 +35,6 @@ public class HttpEntityDecoder<T> extends MessageToMessageDecoder<FullHttpRespon
             List<Object> out) throws Exception {
         int statusCode = msg.getStatus().code();
         if (type.getRawType().isAssignableFrom(HttpResponse.class)) {
-            msg.content().retain();
             out.add(new NettyHttpResponse(msg, msg.content(), serializationFactory, request));
         } else if (statusCode >= 200 && statusCode < 300) {
             if (msg.content().isReadable()) {

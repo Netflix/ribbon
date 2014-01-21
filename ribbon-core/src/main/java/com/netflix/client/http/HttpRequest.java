@@ -70,6 +70,13 @@ public class HttpRequest extends ClientRequest {
         
         private HttpRequest request = new HttpRequest(); 
         
+        public Builder() {
+        }
+
+        public Builder(HttpRequest request) {
+            this.request = request;
+        }
+        
         public Builder uri(URI uri) {
             request.setUri(uri);
             return this;
@@ -109,10 +116,20 @@ public class HttpRequest extends ClientRequest {
             return this;
         }
 
+        /**
+         * @deprecated see {@link #queryParam(String, String)}
+         */
+        @Deprecated
         public Builder queryParams(String name, String value) {
             request.queryParams.put(name, value);
             return this;
         }
+        
+        public Builder queryParam(String name, String value) {
+            request.queryParams.put(name, value);
+            return this;
+        }
+
 
         public Builder entity(Object entity, TypeDef<?> entityType) {
             request.entity = entity;
@@ -186,6 +203,11 @@ public class HttpRequest extends ClientRequest {
     public static Builder newBuilder() {
         return new Builder();
     }
+    
+    public static Builder newBuilder(HttpRequest toCopy) {
+        return new Builder(toCopy);
+    }
+
 
     /**
      * Return a new instance of HttpRequest replacing the URI.

@@ -31,10 +31,16 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.netflix.client.ClientException;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpHeaders;
+import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
+import com.netflix.serialization.Deserializer;
+import com.netflix.serialization.Serializer;
 import com.netflix.serialization.TypeDef;
 import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
 /**
@@ -45,15 +51,17 @@ import com.sun.jersey.api.client.UniformInterfaceException;
  */
 class HttpClientResponse implements HttpResponse {
     
-    private ClientResponse bcr = null;
-        
-    private URI requestedURI; // the request url that got this response
-    
-    private Multimap<String, String> headers = ArrayListMultimap.<String, String>create();
-    private HttpHeaders httpHeaders;
+    private final ClientResponse bcr;
+            
+    private final Multimap<String, String> headers = ArrayListMultimap.<String, String>create();
+    private final HttpHeaders httpHeaders;
+    private final URI requestedURI;
+    private final IClientConfig overrideConfig;
 
-    public HttpClientResponse(ClientResponse cr){
+    public HttpClientResponse(ClientResponse cr, URI requestedURI, IClientConfig config){
         bcr = cr;
+        this.requestedURI = requestedURI;
+        this.overrideConfig = config;
         for (Map.Entry<String, List<String>> entry: bcr.getHeaders().entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
                 headers.putAll(entry.getKey(), entry.getValue());
@@ -101,13 +109,7 @@ class HttpClientResponse implements HttpResponse {
        
     
     public <T> T getEntity(Class<T> c) throws Exception {
-        T t = null;
-        try {
-            t = this.bcr.getEntity(c);
-        } catch (UniformInterfaceException e) {
-            throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage(), e.getCause());
-        } 
-        return t;
+        return getEntity(TypeDef.fromClass(c));
     }
 
     @Override
@@ -133,13 +135,9 @@ class HttpClientResponse implements HttpResponse {
         
     @Override
     public URI getRequestedURI() {
-       return this.requestedURI;
+       return requestedURI;
     }
     
-    public void setRequestedURI(URI requestedURI) {
-        this.requestedURI = requestedURI;
-    }
-
     @Override
     public Object getPayload() throws ClientException {
         if (hasEntity()) {
@@ -166,7 +164,19 @@ class HttpClientResponse implements HttpResponse {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getEntity(TypeDef<T> type) throws Exception {
-        return (T) getEntity(type.getRawType());
+        if (overrideConfig != null) {
+            Deserializer deserializer = overrideConfig.getPropertyWithType(CommonClientConfigKey.Deserializer, null);
+            if (deserializer != null) {
+                return (T) deserializer.deserialize(getInputStream(), type);
+            }
+        }
+        T t = null;
+        try {
+            t = this.bcr.getEntity(new GenericType<T>(type.getType()){});
+        } catch (UniformInterfaceException e) {
+            throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage(), e.getCause());
+        } 
+        return t;    
     }
 
     @Override

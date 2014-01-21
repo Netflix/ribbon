@@ -8,9 +8,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -33,6 +31,9 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
     public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request) {
         this.response = response;
         this.content = content;
+        if (content != null) {
+            content.retain();
+        }
         this.serializationFactory = serializationFactory;
         this.request = request;
     }

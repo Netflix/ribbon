@@ -140,7 +140,7 @@ public class EmbeddedResources {
     @GET
     @Path("/throttle")
     public Response throttle() {
-        return Response.status(Response.Status.SERVICE_UNAVAILABLE).build();
+        return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("Rate exceeds limit").build();
     }
     
     @GET
@@ -160,6 +160,12 @@ public class EmbeddedResources {
         };
     }
     
+    @GET
+    @Path("/redirect")
+    public Response redirect(@QueryParam("port") int port) {
+        return Response.status(301).header("Location", "http://localhost:" + port + "/testAsync/person").build();
+    }
+
     @GET
     @Path("/personStream")
     @Produces("text/event-stream")

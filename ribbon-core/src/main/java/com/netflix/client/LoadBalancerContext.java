@@ -275,7 +275,49 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
             logger.error("Unexpected exception", ex);
         }            
     }
-    
+        
+    /**
+     * This is called after an error is thrown from the client
+     * to update related stats.  
+     */
+    protected void noteError(ServerStats stats, ClientRequest request, Throwable e, long responseTime) {
+        try {
+            recordStats(stats, responseTime);
+            LoadBalancerErrorHandler<? super T, ? super S> errorHandler = getErrorHandler();
+            if (errorHandler != null && e != null) {
+                if (errorHandler.isCircuitTrippingException(e)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
+                }
+            }
+        } catch (Throwable ex) {
+            logger.error("Unexpected exception", ex);
+        }            
+    }
+
+    /**
+     * This is called after a response is received from the client
+     * to update related stats.  
+     */
+    protected void noteResponse(ServerStats stats, ClientRequest request, Object response, long responseTime) {
+        try {
+            recordStats(stats, responseTime);
+            LoadBalancerErrorHandler<? super T, ? super S> errorHandler = getErrorHandler();
+            if (errorHandler != null && response != null) {
+                if (errorHandler.isCircuitTrippinResponse(response)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
+                }                
+            } 
+        } catch (Throwable ex) {
+            logger.error("Unexpected exception", ex);
+        }            
+    }
+
     /**
      * This is usually called just before client execute a request.
      */

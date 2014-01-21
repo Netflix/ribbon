@@ -792,7 +792,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getTypedProperty(IClientConfigKey<T> key) {
+    public <T> T getPropertyWithType(IClientConfigKey<T> key) {
         Object obj = properties.get(key.key());
         Class<T> type = key.type();
         try {
@@ -800,14 +800,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
         } catch (ClassCastException e) {
             if (obj instanceof String) {
                 String stringValue = (String) obj;
-                if (Integer.class.isAssignableFrom(type)) {
+                if (Integer.class.equals(type)) {
                     return (T) Integer.valueOf(stringValue);
-                } else if (Boolean.class.isAssignableFrom(type)) {
+                } else if (Boolean.class.equals(type)) {
                     return (T) Boolean.valueOf(stringValue);
-                } else if (Float.class.isAssignableFrom(type)) {
+                } else if (Float.class.equals(type)) {
                     return (T) Float.valueOf(stringValue);
-                } else if (Long.class.isAssignableFrom(type)) {
+                } else if (Long.class.equals(type)) {
                     return (T) Long.valueOf(stringValue);
+                } else if (Double.class.equals(type)) {
+                    return (T) Double.valueOf(stringValue);
+                    
                 }
                 throw new IllegalArgumentException("Unable to convert string value to desired type " + type);
             } else {
@@ -817,8 +820,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
-    public <T> IClientConfig setTypedProperty(IClientConfigKey<T> key, T value) {
+    public <T> IClientConfig setPropertyWithType(IClientConfigKey<T> key, T value) {
         properties.put(key.key(), value);
         return this;
+    }
+
+    @Override
+    public <T> T getPropertyWithType(IClientConfigKey<T> key, T defaultValue) {
+        T value = getPropertyWithType(key);
+        if (value == null) {
+            value = defaultValue;
+        }
+        return value;
     }
 }

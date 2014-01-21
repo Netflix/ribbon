@@ -19,12 +19,10 @@ package com.netflix.serialization;
 
 public class JacksonSerializationFactory implements SerializationFactory<HttpSerializationContext>{
 
-    public static final JacksonCodec instance = JacksonCodec.getInstance();
-
     @Override
     public <T extends Object> Deserializer<T> getDeserializer(HttpSerializationContext key, TypeDef<T> typeDef) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
-            return instance;
+            return JacksonCodec.getInstance();
         }
         return null;
     }
@@ -32,7 +30,7 @@ public class JacksonSerializationFactory implements SerializationFactory<HttpSer
     @Override
     public <T> Serializer<T> getSerializer(HttpSerializationContext key, TypeDef<T> typeDef) {
         if (key.getContentType().equalsIgnoreCase("application/json")) {
-            return instance;
+            return JacksonCodec.getInstance();
         }
         return null;
     }

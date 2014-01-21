@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -25,6 +27,8 @@ import rx.util.functions.Action1;
 import rx.util.functions.Func1;
 
 import com.google.common.collect.Lists;
+import com.google.mockwebserver.MockResponse;
+import com.google.mockwebserver.MockWebServer;
 import com.netflix.client.ClientException;
 import com.netflix.client.LoadBalancerObservables;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -64,7 +68,7 @@ public class NettyClientTest {
         PackagesResourceConfig resourceConfig = new PackagesResourceConfig("com.netflix.ribbon.test.resources");
         port = (new Random()).nextInt(1000) + 4000;
         SERVICE_URI = "http://localhost:" + port + "/";
-        ExecutorService service = Executors.newFixedThreadPool(200);
+        ExecutorService service = Executors.newFixedThreadPool(20);
         try{
             server = HttpServerFactory.create(SERVICE_URI, resourceConfig);           
             server.setExecutor(service);
@@ -73,6 +77,7 @@ public class NettyClientTest {
             e.printStackTrace();
             fail("Unable to start server");
         }
+        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
     }
     
     @Test
@@ -93,12 +98,40 @@ public class NettyClientTest {
         });
         assertEquals(Lists.newArrayList(EmbeddedResources.defaultPerson), result);
     }
-    
+
+    @Test
+    public void testRedirect() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testAsync/redirect");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).queryParam("port", String.valueOf(port)).build();
+        RxNettyHttpClient observableClient = new RxNettyHttpClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.ReadTimeout, 1000000));
+        final List<Person> result = Lists.newArrayList();
+        observableClient.createEntityObservable(request, TypeDef.fromClass(Person.class)).subscribe(new Action1<Person>() {
+            @Override
+            public void call(Person t1) {
+                try {
+                    result.add(t1);
+                } catch (Exception e) { 
+                    e.printStackTrace();
+                }
+            }
+        }, new Action1<Throwable>() {
+
+            @Override
+            public void call(Throwable t1) {
+                t1.printStackTrace();
+            }
+            
+        }
+        );
+        Thread.sleep(2000);
+        assertEquals(Lists.newArrayList(EmbeddedResources.defaultPerson), result);
+    }
+
     @Test
     public void testWithOverrideDeserializer() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         DefaultClientConfigImpl overrideConfig = new DefaultClientConfigImpl();
-        overrideConfig.setTypedProperty(CommonClientConfigKey.Deserializer, new StringDeserializer());
+        overrideConfig.setPropertyWithType(CommonClientConfigKey.Deserializer, StringDeserializer.getInstance());
         HttpRequest request = HttpRequest.newBuilder().uri(uri).overrideConfig(overrideConfig).build();
         RxNettyHttpClient observableClient = new RxNettyHttpClient();
         final List<String> result = Lists.newArrayList();
@@ -261,11 +294,10 @@ public class NettyClientTest {
     @Test
     public void testObservableWithMultipleServers() throws Exception {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
-        RxNettyHttpClient observableClient = new RxNettyHttpClient(config);
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         
-        RxNettyHttpLoadBalancingClient lbObservables = new RxNettyHttpLoadBalancingClient(observableClient);
+        RxNettyHttpLoadBalancingClient lbObservables = new RxNettyHttpLoadBalancingClient(config);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         Server badServer = new Server("localhost:12345");
         Server goodServer = new Server("localhost:" + port);
@@ -293,13 +325,78 @@ public class NettyClientTest {
     }
     
     @Test
-    public void testObservableWithMultipleServersFailed() throws Exception {
+    public void testHttpResponseObservableWithMultipleServers() throws Exception {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
-        RxNettyHttpClient observableClient = new RxNettyHttpClient(config);
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         
-        RxNettyHttpLoadBalancingClient lbObservables = new RxNettyHttpLoadBalancingClient(observableClient);
+        RxNettyHttpLoadBalancingClient lbObservables = new RxNettyHttpLoadBalancingClient(config);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
+        Server badServer = new Server("localhost:12345");
+        Server goodServer = new Server("localhost:" + port);
+        List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
+        lb.setServersList(servers);
+        lbObservables.setLoadBalancer(lb);
+        lbObservables.setMaxAutoRetries(1);
+        lbObservables.setMaxAutoRetriesNextServer(3);
+        Observable<HttpResponse> observableWithRetries = lbObservables.createFullHttpResponseObservable(request);
+        ObserverWithLatch<HttpResponse> observer = new ObserverWithLatch<HttpResponse>();
+        observableWithRetries.subscribe(observer);
+        observer.await();
+        assertEquals(200, observer.obj.getStatus());
+    }
+
+    
+    @Test
+    public void testLoadBalancingObservablesWithReadTimeout() throws Exception {
+        MockWebServer server = new MockWebServer();
+        String content = "{\"name\": \"ribbon\", \"age\": 2}";
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "application/json")
+                .setBody(content));       
+        server.play();
+
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues()
+                .setPropertyWithType(CommonClientConfigKey.ReadTimeout, 100);
+        URI uri = new URI("/testAsync/readTimeout");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        
+        RxNettyHttpLoadBalancingClient lbObservables = new RxNettyHttpLoadBalancingClient(config);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
+        Server goodServer = new Server("localhost:" + server.getPort());
+        Server badServer = new Server("localhost:" + port);
+        List<Server> servers = Lists.newArrayList(goodServer, badServer, badServer, goodServer);
+        lb.setServersList(servers);
+        lbObservables.setLoadBalancer(lb);
+        lbObservables.setMaxAutoRetries(1);
+        lbObservables.setMaxAutoRetriesNextServer(3);
+        Observable<Person> observableWithRetries = lbObservables.createEntityObservable(request, TypeDef.fromClass(Person.class));
+        ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
+        observableWithRetries.subscribe(observer);
+        observer.await();
+        assertEquals("ribbon", observer.obj.name);
+        assertEquals(2, observer.obj.age);
+        ServerStats stats = lbObservables.getServerStats(badServer);
+        server.shutdown();
+        // two requests to bad server because retry same server is set to 1
+        assertEquals(4, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getActiveRequestsCount());
+        assertEquals(4, stats.getSuccessiveConnectionFailureCount());
+        
+        stats = lbObservables.getServerStats(goodServer);
+        // two requests to bad server because retry same server is set to 1
+        assertEquals(1, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getActiveRequestsCount());
+        assertEquals(0, stats.getSuccessiveConnectionFailureCount());
+    }
+
+    
+    @Test
+    public void testObservableWithMultipleServersFailed() throws Exception {
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
+        URI uri = new URI("/testAsync/person");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        
+        RxNettyHttpLoadBalancingClient lbObservables = new RxNettyHttpLoadBalancingClient(config);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         Server badServer = new Server("localhost:12345");
         Server badServer1 = new Server("localhost:12346");
@@ -326,7 +423,7 @@ public class NettyClientTest {
     @Test
     public void testStream() throws Exception {
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/personStream")
-                .overrideConfig(new DefaultClientConfigImpl().setTypedProperty(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance()))
+                .overrideConfig(new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance()))
                 .build();
         RxNettyHttpClient observableClient = new RxNettyHttpClient();
         final List<Person> result = Lists.newArrayList();
@@ -339,6 +436,32 @@ public class NettyClientTest {
         assertEquals(EmbeddedResources.entityStream, result);
     }
     
+    @Test
+    public void testStreamWithLoadBalancer() throws Exception {
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
+        RxNettyHttpLoadBalancingClient lbObservables = new RxNettyHttpLoadBalancingClient(config);
+        HttpRequest request = HttpRequest.newBuilder().uri("/testAsync/personStream")
+                .overrideConfig(new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance()))
+                .build();
+        final List<Person> result = Lists.newArrayList();
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
+        Server goodServer = new Server("localhost:" + port);
+        Server badServer = new Server("localhost:12245");
+        List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
+        lb.setServersList(servers);
+        lbObservables.setLoadBalancer(lb);
+        lbObservables.setMaxAutoRetries(1);
+        lbObservables.setMaxAutoRetriesNextServer(3);
+
+        lbObservables.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class)).toBlockingObservable().forEach(new Action1<ServerSentEvent<Person>>() {
+            @Override
+            public void call(ServerSentEvent<Person> t1) {
+                result.add(t1.getEntity());
+            }
+        });
+        assertEquals(EmbeddedResources.entityStream, result);
+    }
+
     
     @Test
     public void testNoEntity() throws Exception {
@@ -403,6 +526,29 @@ public class NettyClientTest {
         assertNull(p);
         assertTrue(throwable.get() instanceof UnexpectedHttpResponseException);
         assertEquals("Service Unavailable", throwable.get().getMessage());
-        assertEquals(503, ((UnexpectedHttpResponseException) throwable.get()).getStatusCode());
+        UnexpectedHttpResponseException ex =  (UnexpectedHttpResponseException) throwable.get();
+        assertEquals(503, ex.getStatusCode());
+        String body = ex.getResponse().getEntity(String.class);
+        assertEquals("Rate exceeds limit", body);
+    }
+
+    @Test
+    public void testUnexpectedResponse() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testAsync/throttle");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        RxNettyHttpClient client = new RxNettyHttpClient();
+        Observable<HttpResponse> responseObservable = client.createFullHttpResponseObservable(request);
+        final AtomicReference<HttpResponse> response = new AtomicReference<HttpResponse>();
+        responseObservable.toBlockingObservable().forEach(new Action1<HttpResponse>() {
+
+            @Override
+            public void call(HttpResponse t1) {
+                response.set(t1);
+            }
+            
+        });
+        assertEquals(503, response.get().getStatus());
+        String body = response.get().getEntity(String.class);
+        assertEquals("Rate exceeds limit", body);
     }
 }

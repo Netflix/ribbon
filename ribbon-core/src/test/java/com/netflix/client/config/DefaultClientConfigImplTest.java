@@ -22,9 +22,9 @@ public class DefaultClientConfigImplTest {
         DefaultClientConfigImpl config = new DefaultClientConfigImpl();
         config.loadProperties("myclient");
         assertEquals("1000", config.getProperty(CommonClientConfigKey.ConnectTimeout));
-        assertEquals(1000, config.getTypedProperty(CommonClientConfigKey.ConnectTimeout).intValue());
-        config.setTypedProperty(CommonClientConfigKey.ConnectTimeout, 2000);
-        assertEquals(2000, config.getTypedProperty(CommonClientConfigKey.ConnectTimeout).intValue());
+        assertEquals(1000, config.getPropertyWithType(CommonClientConfigKey.ConnectTimeout).intValue());
+        config.setPropertyWithType(CommonClientConfigKey.ConnectTimeout, 2000);
+        assertEquals(2000, config.getPropertyWithType(CommonClientConfigKey.ConnectTimeout).intValue());
     }
     
     @Test

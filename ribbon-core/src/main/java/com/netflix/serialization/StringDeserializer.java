@@ -9,6 +9,16 @@ import com.google.common.io.CharStreams;
 import com.google.common.io.Closeables;
 
 public class StringDeserializer implements Deserializer<String> {
+    
+    private static final StringDeserializer instance = new StringDeserializer();
+    
+    private StringDeserializer() {
+    }
+
+    public static final StringDeserializer getInstance() {
+        return instance;
+    }
+    
     @Override
     public String deserialize(InputStream in, TypeDef<String> type)
             throws IOException {

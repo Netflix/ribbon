@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import com.netflix.client.ResponseWithTypedEntity;
+import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.TypeDef;
 
 /**
@@ -37,8 +38,14 @@ public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
      */
     public int getStatus();
     
+    /**
+     * Get the reason phrase of HTTP status
+     */
     public String getStatusLine();
     
+    /**
+     * @see #getHttpHeaders()
+     */
     @Override
     @Deprecated
     public Map<String, Collection<String>> getHeaders();
@@ -49,9 +56,15 @@ public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
     
     public InputStream getInputStream();
     
+    /**
+     * @deprecated See APIs in {@link SerializationUtils} to deserialize HTTP content 
+     */
     @Deprecated
     public <T> T getEntity(Class<T> type) throws Exception;
     
+    /**
+     * @deprecated See APIs in {@link SerializationUtils} to deserialize HTTP content 
+     */
     @Deprecated
     public <T> T getEntity(TypeDef<T> type) throws Exception;
 }

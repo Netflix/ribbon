@@ -72,6 +72,9 @@ import com.netflix.niws.cert.AbstractSslContextFactory;
 import com.netflix.niws.client.ClientSslSocketFactoryException;
 import com.netflix.niws.client.URLSslContextFactory;
 import com.netflix.niws.client.http.HttpClientRequest.Verb;
+import com.netflix.serialization.SerializationUtils;
+import com.netflix.serialization.Serializer;
+import com.netflix.serialization.TypeDef;
 import com.netflix.util.Pair;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -507,7 +510,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     @Override
     public HttpResponse execute(HttpRequest task) throws Exception {
         return execute(task.getVerb(), task.getUri(),
-                task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity());
+                task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity(), task.getEntityType());
     }
 
 
@@ -557,7 +560,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 
     private HttpResponse execute(HttpRequest.Verb verb, URI uri,
             Map<String, Collection<String>> headers, Map<String, Collection<String>> params,
-            IClientConfig overriddenClientConfig, Object requestEntity) throws Exception {
+            IClientConfig overriddenClientConfig, Object requestEntity, TypeDef<?> entityType) throws Exception {
         HttpClientResponse thisResponse = null;
         boolean bbFollowRedirects = bFollowRedirects;
         // read overriden props
@@ -597,18 +600,28 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                 }
             }
         }
+        Object entity = requestEntity;
+        if (overriddenClientConfig != null) {
+            Serializer serializer = overriddenClientConfig.getPropertyWithType(CommonClientConfigKey.Serializer, null);
+            if (serializer != null) {
+                String content = SerializationUtils.serializeToString(serializer, entity, 
+                        entityType == null ? TypeDef.fromClass(entity.getClass()) : entityType);
+                entity = content;
+            }
+        }
+        
         switch (verb) {
         case GET:
             jerseyResponse = b.get(ClientResponse.class);
             break;
         case POST:
-            jerseyResponse = b.post(ClientResponse.class, requestEntity);
+            jerseyResponse = b.post(ClientResponse.class, entity);
             break;
         case PUT:
-            jerseyResponse = b.put(ClientResponse.class, requestEntity);
+            jerseyResponse = b.put(ClientResponse.class, entity);
             break;
         case DELETE:
-            jerseyResponse = b.delete(ClientResponse.class, requestEntity);
+            jerseyResponse = b.delete(ClientResponse.class, entity);
             break;
         case HEAD:
             jerseyResponse = b.head();
@@ -622,8 +635,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                     "You have to one of the REST verbs such as GET, POST etc.");
         }
 
-        thisResponse = new HttpClientResponse(jerseyResponse);
-        thisResponse.setRequestedURI(uri);
+        thisResponse = new HttpClientResponse(jerseyResponse, uri, overriddenClientConfig);
         if (thisResponse.getStatus() == 503){
             thisResponse.close();
             throw new ClientException(ClientException.ErrorType.SERVER_THROTTLED);

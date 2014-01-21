@@ -1,6 +1,7 @@
 package com.netflix.serialization;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import com.netflix.client.config.CommonClientConfigKey;
@@ -16,19 +17,29 @@ public class SerializationUtils {
         return deserializer.deserialize(in, typeDef);
     }
     
+    public static <T> String serializeToString(Serializer<T> serializer, T obj, TypeDef<?> typeDef) 
+            throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        serializer.serialize(out, obj, typeDef);
+        return new String(out.toByteArray(), "UTF-8");
+    }
+    
     public static <T> T getEntity(HttpResponse response, TypeDef<T> type, Deserializer<T> deserializer) throws IOException {
         return deserializer.deserialize(response.getInputStream(), type);
     }
     
-    public static <T> Deserializer<T> getDeserializer(HttpRequest request, HttpHeaders responseHeaders, TypeDef<T> typeDef, SerializationFactory<HttpSerializationContext> serializationFactory) {
+    public static <T> Deserializer<T> getDeserializer(HttpRequest request, HttpHeaders responseHeaders, TypeDef<T> typeDef, 
+            SerializationFactory<HttpSerializationContext> serializationFactory) {
         Deserializer<T> deserializer = null;
         if (request.getOverrideConfig() != null) {
-            deserializer = request.getOverrideConfig().getTypedProperty(CommonClientConfigKey.Deserializer);
+            deserializer = (Deserializer<T>) request.getOverrideConfig().getPropertyWithType(CommonClientConfigKey.Deserializer);
         }
         if (deserializer == null && serializationFactory != null) {
             deserializer = serializationFactory.getDeserializer(new HttpSerializationContext(responseHeaders, request.getUri()), typeDef);
         }
+        if (deserializer == null && typeDef.getRawType().equals(String.class)) {
+            return (Deserializer<T>) StringDeserializer.getInstance();
+        }
         return deserializer;
     }
-
 }
