@@ -18,16 +18,18 @@
 package com.netflix.client.config;
 
 /**
- * Defines the key used in {@link IClientConfig}
+ * Defines the key used in {@link IClientConfig}. See {@link CommonClientConfigKey}
+ * for the commonly defined client configuration keys.
  * 
  * @author awang
  *
  */
-public interface IClientConfigKey {
+public interface IClientConfigKey<T> {
 
 	/**
 	 * The string representation of the key.
 	 */
 	public String key();
-
+	
+	public Class<T> type();
 }

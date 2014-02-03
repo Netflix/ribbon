@@ -15,19 +15,31 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.http;
+package com.netflix.serialization;
 
-import java.nio.ByteBuffer;
+import java.net.URI;
 
-import com.netflix.client.AsyncClient;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.client.http.HttpHeaders;
 
-/**
- * An asynchronous HTTP client.
- *  
- * @author awang
- *
- * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
- */
-public interface AsyncHttpClient<T> extends AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey>, AsyncBufferingHttpClient {
+public class HttpSerializationContext {
+
+    private final HttpHeaders headers;
+    private final URI uri;
+    
+    public HttpSerializationContext(HttpHeaders headers, URI uri) {
+        this.headers = headers;
+        this.uri = uri;
+    }
+    
+    public final String getContentType() {
+        return headers.getFirstValue("Content-Type");
+    }
+    
+    public HttpHeaders getHeaders() {
+        return headers;
+    }
+    
+    public URI getURI() {
+        return uri;
+    }
 }

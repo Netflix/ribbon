@@ -29,6 +29,7 @@ import com.netflix.client.http.BufferedHttpResponseCallback;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
+import com.netflix.serialization.TypeDef;
 
 /**
  * An example that shows how deserialization work on the {@link AsyncClient}
@@ -76,7 +77,7 @@ public class GetWithDeserialization extends ExampleAppWithLocalResource {
                 @Override
                 public void completed(HttpResponse response) {
                     try {
-                        System.out.println(response.getEntity(new TypeToken<List<Person>>(){}));
+                        System.out.println(response.getEntity(new TypeDef<List<Person>>(){}));
                     } catch (Exception e) {
                         e.printStackTrace();
                     } finally {

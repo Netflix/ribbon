@@ -20,9 +20,11 @@ package com.netflix.httpasyncclient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -30,22 +32,25 @@ import org.apache.http.HttpResponse;
 import org.apache.http.nio.protocol.AbstractAsyncResponseConsumer;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.reflect.TypeToken;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientException.ErrorType;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.client.http.HttpHeaders;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.SerializationFactory;
+import com.netflix.serialization.TypeDef;
 
 class HttpClientResponse implements com.netflix.client.http.HttpResponse {
 
-    private List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> factory;
+    private List<? extends SerializationFactory<HttpSerializationContext>> factory;
     private HttpResponse response;
     private URI requestedURI;
     private AbstractAsyncResponseConsumer<HttpResponse> consumer;
     
-    public HttpClientResponse(HttpResponse response, List<? extends SerializationFactory<ContentTypeBasedSerializerKey>> serializationFactory, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
+    public HttpClientResponse(HttpResponse response, List<? extends SerializationFactory<HttpSerializationContext>> serializationFactory, URI requestedURI, AbstractAsyncResponseConsumer<HttpResponse> consumer) {
         this.response = response;    
         this.factory = serializationFactory;
         this.requestedURI = requestedURI;
@@ -94,18 +99,18 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
 
     @Override
     public <T> T getEntity(Class<T> type) throws ClientException {
-        return getEntity(TypeToken.of(type));
+        return getEntity(TypeDef.fromClass(type));
     }
 
     @Override
-    public <T> T getEntity(TypeToken<T> type) throws ClientException {
-        ContentTypeBasedSerializerKey key = new ContentTypeBasedSerializerKey(response.getFirstHeader("Content-type").getValue(), type);
-        for (SerializationFactory<ContentTypeBasedSerializerKey> f: factory) {
-            Deserializer deserializer = f.getDeserializer(key).orNull();
+    public <T> T getEntity(TypeDef<T> type) throws ClientException {
+        HttpSerializationContext key = new HttpSerializationContext(getHttpHeaders(), getRequestedURI());
+        for (SerializationFactory<HttpSerializationContext> f: factory) {
+            Deserializer<T> deserializer = f.getDeserializer(key, type);
             if (deserializer != null) {
                 try {
-                    return deserializer.deserialize(response.getEntity().getContent(), type);
-                } catch (IOException e) {
+                    return getEntity(type, deserializer);
+                } catch (Exception e) {
                     throw new ClientException(e);
                 }
             }
@@ -119,11 +124,11 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
     }
 
     @Override
-    public InputStream getInputStream() throws ClientException {
+    public InputStream getInputStream() {
         try {
             return response.getEntity().getContent();
         } catch (Exception e) {
-            throw new ClientException(ErrorType.GENERAL, "Unable to get InputStream", e);
+            throw new RuntimeException("Unable to get InputStream", e);
         }
     }
 
@@ -142,5 +147,52 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
         }    
         
     }
-    
+
+    @Override
+    public String getStatusLine() {
+        return response.getStatusLine().toString();
+    }
+
+    @Override
+    public HttpHeaders getHttpHeaders() {
+        return new HttpHeaders() {
+            @Override
+            public String getFirstValue(String headerName) {
+                return response.getFirstHeader(headerName).getValue();
+            }
+
+            @Override
+            public List<String> getAllValues(String headerName) {
+                List<String> values = null;
+                Header[] headers = response.getHeaders(headerName);
+                if (headers != null) {
+                    values = Lists.newArrayList();
+                    for (Header header: headers) {
+                        values.add(header.getValue());
+                    }
+                }
+                return values;
+            }
+
+            @Override
+            public List<Entry<String, String>> getAllHeaders() {
+                List<Entry<String, String>> all = Lists.newLinkedList();
+                for (Header header: response.getAllHeaders()) {
+                    all.add(new AbstractMap.SimpleEntry<String, String>(header.getName(), header.getValue()));
+                }
+                return all;
+            }
+
+            @Override
+            public boolean containsHeader(String name) {
+                return response.containsHeader(name);
+            }
+        };
+    }
+
+    @Override
+    public <T> T getEntity(TypeDef<T> type, Deserializer<T> deserializer)
+            throws Exception {
+        return deserializer.deserialize(response.getEntity().getContent(), type);
+    }
 }

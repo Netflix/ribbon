@@ -73,17 +73,7 @@ import com.netflix.client.config.IClientConfigKey;
  */
 public class ResponseTimeWeightedRule extends RoundRobinRule {
 
-    public static final IClientConfigKey WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY = new IClientConfigKey() {
-        @Override
-        public String key() {
-            return "ServerWeightTaskTimerInterval";
-        }
-        
-        @Override
-        public String toString() {
-            return key();
-        }
-    };
+    public static final IClientConfigKey<Integer> WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY = WeightedResponseTimeRule.WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY;
     
     public static final int DEFAULT_TIMER_INTERVAL = 30 * 1000;
     

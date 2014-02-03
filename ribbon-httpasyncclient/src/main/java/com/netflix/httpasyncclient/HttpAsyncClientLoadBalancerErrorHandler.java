@@ -79,7 +79,10 @@ public class HttpAsyncClientLoadBalancerErrorHandler implements LoadBalancerErro
      * @return true if the the response has status code 503 (throttle) 
      */
     @Override
-    public boolean isCircuitTrippinErrorgResponse(HttpResponse response) {
-        return response.getStatus() == 503;
+    public boolean isCircuitTrippinResponse(Object response) {
+        if (!(response instanceof HttpResponse)) {
+            return false;
+        }
+        return ((HttpResponse) response).getStatus() == 503;
     }
 }

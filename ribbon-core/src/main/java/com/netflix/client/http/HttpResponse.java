@@ -18,10 +18,13 @@
 package com.netflix.client.http;
 
 import java.io.Closeable;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 
 import com.netflix.client.ResponseWithTypedEntity;
+import com.netflix.serialization.SerializationUtils;
+import com.netflix.serialization.TypeDef;
 
 /**
  * Response for HTTP communication.
@@ -35,7 +38,33 @@ public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
      */
     public int getStatus();
     
-    public Map<String, Collection<String>> getHeaders();  
+    /**
+     * Get the reason phrase of HTTP status
+     */
+    public String getStatusLine();
     
+    /**
+     * @see #getHttpHeaders()
+     */
+    @Override
+    @Deprecated
+    public Map<String, Collection<String>> getHeaders();
+    
+    public HttpHeaders getHttpHeaders();
+
     public void close();
+    
+    public InputStream getInputStream();
+    
+    /**
+     * @deprecated use {@link #getEntity(TypeDef, com.netflix.serialization.Deserializer)} 
+     */
+    @Deprecated
+    public <T> T getEntity(Class<T> type) throws Exception;
+    
+    /**
+     * @deprecated use {@link #getEntity(TypeDef, com.netflix.serialization.Deserializer)} 
+     */
+    @Deprecated
+    public <T> T getEntity(TypeDef<T> type) throws Exception;
 }

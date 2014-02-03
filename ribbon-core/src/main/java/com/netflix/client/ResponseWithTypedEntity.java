@@ -19,7 +19,8 @@ package com.netflix.client;
 
 import java.io.InputStream;
 
-import com.google.common.reflect.TypeToken;
+import com.netflix.serialization.Deserializer;
+import com.netflix.serialization.TypeDef;
 
 /**
  * A response type that includes a typed entity in its content.
@@ -31,8 +32,10 @@ public interface ResponseWithTypedEntity extends IResponse {
     
     public <T> T getEntity(Class<T> type) throws Exception;
     
-    public <T> T getEntity(TypeToken<T> type) throws Exception;
+    public <T> T getEntity(TypeDef<T> type) throws Exception;
     
+    public <T> T getEntity(TypeDef<T> type, Deserializer<T> deserializer) throws Exception;
+
     public boolean hasEntity();
     
     public InputStream getInputStream() throws ClientException;

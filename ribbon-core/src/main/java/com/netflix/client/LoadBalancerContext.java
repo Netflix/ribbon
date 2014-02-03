@@ -19,12 +19,14 @@ package com.netflix.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Strings;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -93,6 +95,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         
        okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
        tracer = getExecuteTracer();
+
        Monitors.registerObject("Client_" + clientName, this);
     }
 
@@ -239,25 +242,82 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         return niwsClientException;
     }
 
+    private void recordStats(ServerStats stats, long responseTime) {
+        stats.decrementActiveRequestsCount();
+        stats.incrementNumRequests();
+        stats.noteResponseTime(responseTime);
+    }
+    
     /**
      * This is called after a response is received or an exception is thrown from the client
      * to update related stats.  
      */
-    protected void noteRequestCompletion(ServerStats stats, ClientRequest request, IResponse response, Throwable e, long responseTime) {        
+    protected void noteRequestCompletion(ServerStats stats, ClientRequest request, Object response, Throwable e, long responseTime) {
         try {
-            if (stats != null) {
-                stats.decrementActiveRequestsCount();
-                stats.incrementNumRequests();
-                stats.noteResponseTime(responseTime);
-                if (response != null) {
-                    stats.clearSuccessiveConnectionFailureCount();                    
+            recordStats(stats, responseTime);
+            LoadBalancerErrorHandler<? super T, ? super S> errorHandler = getErrorHandler();
+            if (errorHandler != null && response != null) {
+                if (errorHandler.isCircuitTrippinResponse(response)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
+                }                
+            } else if (errorHandler != null && e != null) {
+                if (errorHandler.isCircuitTrippingException(e)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
                 }
-            }            
+            }
         } catch (Throwable ex) {
             logger.error("Unexpected exception", ex);
         }            
     }
-       
+        
+    /**
+     * This is called after an error is thrown from the client
+     * to update related stats.  
+     */
+    protected void noteError(ServerStats stats, ClientRequest request, Throwable e, long responseTime) {
+        try {
+            recordStats(stats, responseTime);
+            LoadBalancerErrorHandler<? super T, ? super S> errorHandler = getErrorHandler();
+            if (errorHandler != null && e != null) {
+                if (errorHandler.isCircuitTrippingException(e)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
+                }
+            }
+        } catch (Throwable ex) {
+            logger.error("Unexpected exception", ex);
+        }            
+    }
+
+    /**
+     * This is called after a response is received from the client
+     * to update related stats.  
+     */
+    protected void noteResponse(ServerStats stats, ClientRequest request, Object response, long responseTime) {
+        try {
+            recordStats(stats, responseTime);
+            LoadBalancerErrorHandler<? super T, ? super S> errorHandler = getErrorHandler();
+            if (errorHandler != null && response != null) {
+                if (errorHandler.isCircuitTrippinResponse(response)) {
+                    stats.incrementSuccessiveConnectionFailureCount();                    
+                    stats.addToFailureCount();
+                } else {
+                    stats.clearSuccessiveConnectionFailureCount();
+                }                
+            } 
+        } catch (Throwable ex) {
+            logger.error("Unexpected exception", ex);
+        }            
+    }
+
     /**
      * This is usually called just before client execute a request.
      */
@@ -419,6 +479,7 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
                 }
                 host = svc.getHost();
                 port = svc.getPort();
+
                 if (host == null){
                     throw new ClientException(ClientException.ErrorType.GENERAL,
                             "Invalid Server for :" + svc);
@@ -518,12 +579,35 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
             }
             
             newURI = new URI(scheme, theUrl.getUserInfo(), host, port, urlPath, theUrl.getQuery(), theUrl.getFragment());
+            if (isURIEncoded(theUrl)) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(newURI.getScheme())
+                  .append("://")
+                  .append(newURI.getRawAuthority())
+                  .append(theUrl.getRawPath());
+                if (!Strings.isNullOrEmpty(theUrl.getRawQuery())) {
+                    sb.append("?").append(theUrl.getRawQuery());
+                }
+                if (!Strings.isNullOrEmpty(theUrl.getRawFragment())) {
+                    sb.append("#").append(theUrl.getRawFragment());
+                }
+                newURI = new URI(sb.toString());
+            }
             return (T) original.replaceUri(newURI);            
         } catch (URISyntaxException e) {
             throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage());
         }
     }
 
+    private boolean isURIEncoded(URI uri) {
+        String original = uri.toString();
+        try {
+            return !URLEncoder.encode(original, "UTF-8").equals(original);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
     protected boolean isRetriable(T request) {
         if (request.isRetriable()) {
             return true;            

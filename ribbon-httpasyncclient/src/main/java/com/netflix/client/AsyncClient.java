@@ -20,7 +20,7 @@ package com.netflix.client;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.Serializer;
 
@@ -33,7 +33,7 @@ import com.netflix.serialization.Serializer;
  * @param <S> Response type
  * @param <U> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
  * @param <V> Type of key to find {@link Serializer} and {@link Deserializer} for the content. For example, for HTTP communication,
- *            the key type is {@link ContentTypeBasedSerializerKey}
+ *            the key type is {@link HttpSerializationContext}
  */
 public interface AsyncClient<T extends ClientRequest, S extends IResponse, U, V> extends ResponseBufferingAsyncClient<T, S, V> {
     /**

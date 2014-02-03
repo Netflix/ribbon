@@ -31,9 +31,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.HttpRequest.Verb;
+import com.netflix.serialization.JacksonCodec;
+import com.netflix.serialization.Serializer;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
@@ -75,6 +80,18 @@ public class GetPostTest {
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(TestObject.class).name.equals("test"));
     }
+    
+    @Test
+    public void testGetJson() throws Exception {
+        URI getUri = new URI(SERVICE_URI + "test/getJsonObject");
+        MultivaluedMapImpl params = new MultivaluedMapImpl();
+        params.add("name", "test");
+        IClientConfig overrideConfig = new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance());
+        HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParam("name", "test").overrideConfig(overrideConfig).build();
+        HttpResponse response = client.execute(request);
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getEntity(TestObject.class).name.equals("test"));
+    }
 
     @Test
     public void testPost() throws Exception {
@@ -86,6 +103,25 @@ public class GetPostTest {
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(TestObject.class).name.equals("fromClient"));
     }
+    
+    @Test
+    public void testPostWithJson() throws Exception {
+        URI getUri = new URI(SERVICE_URI + "test/setJsonObject");
+        TestObject obj = new TestObject();
+        obj.name = "fromClient";
+        IClientConfig overrideConfig = new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Serializer, JacksonCodec.getInstance())
+                .setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance());
+        HttpRequest request = HttpRequest.newBuilder().verb(Verb.POST)
+                .uri(getUri)
+                .entity(obj)
+                .overrideConfig(overrideConfig)
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse response = client.execute(request);
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getEntity(TestObject.class).name.equals("fromClient"));
+    }
+
     
     @Test
     public void testChunkedEncoding() throws Exception {

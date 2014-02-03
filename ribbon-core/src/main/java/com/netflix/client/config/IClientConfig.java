@@ -40,8 +40,16 @@ public interface IClientConfig {
 
 	public Map<String, Object> getProperties();
 
+    /**
+     * @deprecated use {@link #setPropertyWithType(IClientConfigKey, Object)} 
+     */
+	@Deprecated
 	public void setProperty(IClientConfigKey key, Object value);
 
+    /**
+     * @deprecated use {@link #getPropertyWithType(IClientConfigKey)}
+     */
+    @Deprecated
 	public Object getProperty(IClientConfigKey key);
 
 	public Object getProperty(IClientConfigKey key, Object defaultVal);
@@ -58,5 +66,19 @@ public interface IClientConfig {
     public String getPropertyAsString(IClientConfigKey key, String defaultValue);
     
     public boolean getPropertyAsBoolean(IClientConfigKey key, boolean defaultValue);
+    
+    /**
+     * Returns a typed property. This property must be set by {@link #setPropertyWithType(IClientConfigKey, Object)}.
+     * If the property of IClientConfigKey is not set, it returns null.
+     */
+    public <T> T getPropertyWithType(IClientConfigKey<T> key);
+    
+    /**
+     * Returns a typed property. This property must be set by {@link #setPropertyWithType(IClientConfigKey, Object)}.
+     * If the property of IClientConfigKey is not set, it returns the default value passed in as the parameter.
+     */
+    public <T> T getPropertyWithType(IClientConfigKey<T> key, T defaultValue);
 
+    
+    public <T> IClientConfig setPropertyWithType(IClientConfigKey<T> key, T value);
 }

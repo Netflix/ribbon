@@ -116,13 +116,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 response = execute(request);        
                 done = true;
             } catch (Throwable e) {
-                if (serverStats != null) {
-                    serverStats.addToFailureCount();
-                }
                 lastException = e;
-                if (isCircuitBreakerException(e) && serverStats != null) {
-                    serverStats.incrementSuccessiveConnectionFailureCount();
-                }
                 boolean shouldRetry = retryOkayOnOperation && numRetries >= 0 && isRetriableException(e);
                 if (shouldRetry) {
                     retries++;
@@ -137,7 +131,9 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
                 }
             } finally {
                 w.stop();
-                noteRequestCompletion(serverStats, request, response, lastException, w.getDuration(TimeUnit.MILLISECONDS));
+                if (serverStats != null) {
+                    noteRequestCompletion(serverStats, request, response, lastException, w.getDuration(TimeUnit.MILLISECONDS));
+                }
             }
         } while (!done); 
         return response;

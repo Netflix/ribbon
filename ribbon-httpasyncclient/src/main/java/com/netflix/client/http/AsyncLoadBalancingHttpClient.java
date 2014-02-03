@@ -23,7 +23,7 @@ import com.netflix.client.AsyncClient;
 import com.netflix.client.AsyncLoadBalancingClient;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.serialization.ContentTypeBasedSerializerKey;
+import com.netflix.serialization.HttpSerializationContext;
 
 /**
  * An asynchronous HTTP client that is capable of load balancing from an {@link ILoadBalancer}. 
@@ -34,10 +34,10 @@ import com.netflix.serialization.ContentTypeBasedSerializerKey;
  * @param <T> Type of storage used for delivering partial content, for example, {@link ByteBuffer}
  */
 public class AsyncLoadBalancingHttpClient<T> 
-        extends AsyncLoadBalancingClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey>
+        extends AsyncLoadBalancingClient<HttpRequest, HttpResponse, T, HttpSerializationContext>
         implements AsyncHttpClient<T> {
     
-    public AsyncLoadBalancingHttpClient(AsyncClient<HttpRequest, HttpResponse, T, ContentTypeBasedSerializerKey> client, IClientConfig config) {
+    public AsyncLoadBalancingHttpClient(AsyncClient<HttpRequest, HttpResponse, T, HttpSerializationContext> client, IClientConfig config) {
         super(client, config);
     }    
 }

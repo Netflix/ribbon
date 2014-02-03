@@ -23,6 +23,7 @@ import java.net.SocketTimeoutException;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import com.netflix.client.http.HttpResponse;
 
 /**
  * A default {@link LoadBalancerErrorHandler}. The implementation is limited to
@@ -73,7 +74,7 @@ public class DefaultLoadBalancerErrorHandler<T extends ClientRequest, S extends 
      * always return false
      */
     @Override
-    public boolean isCircuitTrippinErrorgResponse(S response) {
+    public boolean isCircuitTrippinResponse(Object response) {
         return false;
     }
 }
