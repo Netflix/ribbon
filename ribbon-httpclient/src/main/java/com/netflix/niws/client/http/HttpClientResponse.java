@@ -167,7 +167,7 @@ class HttpClientResponse implements HttpResponse {
         if (overrideConfig != null) {
             Deserializer deserializer = overrideConfig.getPropertyWithType(CommonClientConfigKey.Deserializer, null);
             if (deserializer != null) {
-                return (T) deserializer.deserialize(getInputStream(), type);
+                return (T) getEntity(type, deserializer);
             }
         }
         T t = null;
@@ -193,4 +193,12 @@ class HttpClientResponse implements HttpResponse {
     public HttpHeaders getHttpHeaders() {
         return httpHeaders;
     }
+
+    @Override
+    public <T> T getEntity(TypeDef<T> type, Deserializer<T> deserializer)
+            throws Exception {
+        return deserializer.deserialize(getInputStream(), type);
+    }
+    
+    
 }

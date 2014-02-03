@@ -4,12 +4,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.ReferenceCounted;
 
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.netflix.client.ClientException;
@@ -21,7 +23,7 @@ import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.TypeDef;
 
-class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.http.HttpResponse {
+class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.http.HttpResponse, ReferenceCounted {
 
     private final HttpResponse response;
     final ByteBuf content;
@@ -31,9 +33,6 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
     public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request) {
         this.response = response;
         this.content = content;
-        if (content != null) {
-            content.retain();
-        }
         this.serializationFactory = serializationFactory;
         this.request = request;
     }
@@ -46,7 +45,7 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
             if (deserializer == null) {
                 throw new ClientException("No suitable deserializer for type " + typeDef.getRawType());
             }
-            return (T) SerializationUtils.getEntity(this, typeDef, deserializer);
+            return getEntity(typeDef, deserializer);
         } catch (Throwable e) {
             throw new ClientException("Unable to deserialize the content", e);    
         }
@@ -130,5 +129,53 @@ class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.h
     @Override
     public com.netflix.client.http.HttpHeaders getHttpHeaders() {
         return new NettyHttpHeaders(response);
+    }
+
+    @Override
+    public <T> T getEntity(TypeDef<T> type, Deserializer<T> deserializer)
+            throws Exception {
+        Preconditions.checkNotNull(deserializer);
+        return deserializer.deserialize(getInputStream(), type);
+    }
+
+    @Override
+    public int refCnt() {
+        if (content == null) {
+            return 0;
+        } else {
+            return content.refCnt();
+        }
+    }
+
+    @Override
+    public ReferenceCounted retain() {
+        if (content != null) {
+            content.retain();
+        } 
+        return this;
+    }
+
+    @Override
+    public ReferenceCounted retain(int increment) {
+        if (content != null) {
+            content.retain(increment);
+        } 
+        return this;
+    }
+
+    @Override
+    public boolean release() {
+        if (content != null) {
+            return content.release();
+        }
+        return true;
+    }
+
+    @Override
+    public boolean release(int decrement) {
+        if (content != null) {
+            return content.release(decrement);
+        }
+        return true;
     }
 }

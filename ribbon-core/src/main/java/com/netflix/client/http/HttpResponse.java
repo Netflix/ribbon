@@ -57,13 +57,13 @@ public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
     public InputStream getInputStream();
     
     /**
-     * @deprecated See APIs in {@link SerializationUtils} to deserialize HTTP content 
+     * @deprecated use {@link #getEntity(TypeDef, com.netflix.serialization.Deserializer)} 
      */
     @Deprecated
     public <T> T getEntity(Class<T> type) throws Exception;
     
     /**
-     * @deprecated See APIs in {@link SerializationUtils} to deserialize HTTP content 
+     * @deprecated use {@link #getEntity(TypeDef, com.netflix.serialization.Deserializer)} 
      */
     @Deprecated
     public <T> T getEntity(TypeDef<T> type) throws Exception;

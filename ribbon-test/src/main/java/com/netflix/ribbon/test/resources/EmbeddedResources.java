@@ -137,6 +137,16 @@ public class EmbeddedResources {
         return Response.ok(mapper.writeValueAsString(person)).build();
     }
     
+    @POST
+    @Path("/postTimeout")
+    public Response postWithTimeout(String content) {
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+        }
+        return Response.ok().build();
+    }
+    
     @GET
     @Path("/throttle")
     public Response throttle() {

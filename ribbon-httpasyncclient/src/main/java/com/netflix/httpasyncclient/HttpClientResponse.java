@@ -109,8 +109,8 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
             Deserializer<T> deserializer = f.getDeserializer(key, type);
             if (deserializer != null) {
                 try {
-                    return deserializer.deserialize(response.getEntity().getContent(), type);
-                } catch (IOException e) {
+                    return getEntity(type, deserializer);
+                } catch (Exception e) {
                     throw new ClientException(e);
                 }
             }
@@ -189,5 +189,10 @@ class HttpClientResponse implements com.netflix.client.http.HttpResponse {
             }
         };
     }
-    
+
+    @Override
+    public <T> T getEntity(TypeDef<T> type, Deserializer<T> deserializer)
+            throws Exception {
+        return deserializer.deserialize(response.getEntity().getContent(), type);
+    }
 }

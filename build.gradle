@@ -64,7 +64,7 @@ project(':ribbon-httpclient') {
 project(':ribbon-rxnetty') {
     dependencies {
         compile project(':ribbon-core')
-        compile 'com.netflix.rxnetty:rx-netty:0.2.1'
+        compile 'com.netflix.rxnetty:rx-netty:0.2.4'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }

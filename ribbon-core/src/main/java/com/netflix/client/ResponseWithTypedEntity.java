@@ -19,6 +19,7 @@ package com.netflix.client;
 
 import java.io.InputStream;
 
+import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.TypeDef;
 
 /**
@@ -33,6 +34,8 @@ public interface ResponseWithTypedEntity extends IResponse {
     
     public <T> T getEntity(TypeDef<T> type) throws Exception;
     
+    public <T> T getEntity(TypeDef<T> type, Deserializer<T> deserializer) throws Exception;
+
     public boolean hasEntity();
     
     public InputStream getInputStream() throws ClientException;

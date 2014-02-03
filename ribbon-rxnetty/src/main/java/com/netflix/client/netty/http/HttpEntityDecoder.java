@@ -1,8 +1,12 @@
 package com.netflix.client.netty.http;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.FullHttpResponse;
 
 import java.util.List;
@@ -18,45 +22,31 @@ import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.TypeDef;
 
-public class HttpEntityDecoder<T> extends MessageToMessageDecoder<FullHttpResponse> {
+public class HttpEntityDecoder<T> extends ByteToMessageDecoder {
 
-    private TypeDef<T> type;
-    private SerializationFactory<HttpSerializationContext> serializationFactory;
-    private HttpRequest request;
+    public static final String NAME = "http-entity-decoder";
     
-    public HttpEntityDecoder(SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request, TypeDef<T> type) {
-        this.serializationFactory = serializationFactory;
+    private TypeDef<T> type;
+    private Deserializer<T> deserializer;
+    
+    public HttpEntityDecoder(Deserializer<T> deserializer, TypeDef<T> type) {
         this.type = type;
-        this.request = request;
+        this.deserializer = deserializer;
     }
     
     @Override
-    protected void decode(ChannelHandlerContext ctx, FullHttpResponse msg,
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in,
             List<Object> out) throws Exception {
-        int statusCode = msg.getStatus().code();
-        if (type.getRawType().isAssignableFrom(HttpResponse.class)) {
-            out.add(new NettyHttpResponse(msg, msg.content(), serializationFactory, request));
-        } else if (statusCode >= 200 && statusCode < 300) {
-            if (msg.content().isReadable()) {
-                HttpHeaders headers = new NettyHttpHeaders(msg);
-                Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, headers, type, serializationFactory);
-                if (deserializer == null) {
-                    ctx.fireExceptionCaught(new ClientException("Unable to find appropriate deserializer for type " 
-                            + type.getRawType() + ", and headers " + headers));
-                    return;
+        if (in.isReadable()) {
+            try {
+                T obj = deserializer.deserialize(new ByteBufInputStream(in), type);
+                if (obj != null) {
+                    out.add(obj);
                 }
-                try {
-                    T obj = deserializer.deserialize(new ByteBufInputStream(msg.content()), type);
-                    if (obj != null) {
-                        out.add(obj);
-                    }
-                } catch (Exception e) {
-                    ctx.fireExceptionCaught(e);
-                }
+            } catch (Exception e) {
+                ctx.fireExceptionCaught(e);
             }
-        } else {
-            // Specific entity is expected but status code is unexpected
-            ctx.fireExceptionCaught(new UnexpectedHttpResponseException(new NettyHttpResponse(msg, msg.content(), serializationFactory, request)));
         }
+        
     }
 }

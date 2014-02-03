@@ -4,6 +4,9 @@ import java.net.URI;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 import rx.Observable.OnSubscribeFunc;
 import rx.Observer;
@@ -17,6 +20,8 @@ import com.netflix.loadbalancer.ServerStats;
 import com.netflix.servo.monitor.Stopwatch;
 
 public class LoadBalancerObservables<R extends ClientRequest, S extends IResponse> extends LoadBalancerContext<R, S> {
+    
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancerObservables.class);
     
     public LoadBalancerObservables(IClientConfig clientConfig) {
         super(clientConfig);
@@ -35,6 +40,7 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
         
         @Override
         public Observable<T> call(final Throwable error) {
+            logger.debug("Get error during retry on same server", error);
             int maxRetries = getNumberRetriesOnSameServer(request.getOverrideConfig());
             boolean shouldRetry = isRetriable(request) && maxRetries > 0 && errorHandler.isRetriableException(request, error, true);
             final Throwable finalThrowable;
@@ -68,6 +74,7 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
         }
         @Override
         public Observable<T> call(Throwable t1) {
+            logger.debug("Get error during retry on next server", t1);            
             int maxRetriesNextServer = getRetriesNextServer(request.getOverrideConfig());
             boolean shouldRetry = isRetriable(request) && maxRetriesNextServer > 0 && errorHandler.isRetriableException(request, t1, false);
             final Throwable finalThrowable;
@@ -92,7 +99,7 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
         
     }
     
-    public <T> Observable<T> retryWithLoadBalancer(final R request, final LoadBalancerObservableRequest<T, R> loadBalancerRequest) {
+    public <T> Observable<T> retryWithLoadBalancer(final R request, final ClientObservableProvider<T, R> loadBalancerRequest) {
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
             public Subscription onSubscribe(final Observer<? super T> t1) {
@@ -100,10 +107,11 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
                 try {
                     requestWithRealServer = computeFinalUriWithLoadBalancer(request);
                 } catch (Exception e) {
+                    logger.error("Unexpected error", e);
                     t1.onError(e);
                     return Subscriptions.empty();
                 }
-                return retrySameServer(requestWithRealServer, loadBalancerRequest.getSingleServerObservable(requestWithRealServer)).subscribe(t1);
+                return retrySameServer(requestWithRealServer, loadBalancerRequest).subscribe(t1);
             }
         };
         Observable<T> observable = Observable.create(onSubscribe);
@@ -111,7 +119,7 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     
-    public <T> Observable<T> retrySameServer(final R request, final Observable<T> clientObservable) {
+    public <T> Observable<T> retrySameServer(final R request, final ClientObservableProvider<T, R> loadBalancerRequest) {
         final URI uri = request.getUri();
         Server server = new Server(uri.getHost(), uri.getPort());
         final ServerStats serverStats = getServerStats(server); 
@@ -146,7 +154,7 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
                         noteRequestCompletion(serverStats, request, entity, exception, duration);
                     }
                 };
-                return clientObservable.subscribe(delegate);
+                return loadBalancerRequest.getObservableForEndpoint(request).subscribe(delegate);
             }
         };
         

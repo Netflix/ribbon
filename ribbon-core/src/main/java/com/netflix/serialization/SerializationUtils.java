@@ -23,11 +23,7 @@ public class SerializationUtils {
         serializer.serialize(out, obj, typeDef);
         return new String(out.toByteArray(), "UTF-8");
     }
-    
-    public static <T> T getEntity(HttpResponse response, TypeDef<T> type, Deserializer<T> deserializer) throws IOException {
-        return deserializer.deserialize(response.getInputStream(), type);
-    }
-    
+        
     public static <T> Deserializer<T> getDeserializer(HttpRequest request, HttpHeaders responseHeaders, TypeDef<T> typeDef, 
             SerializationFactory<HttpSerializationContext> serializationFactory) {
         Deserializer<T> deserializer = null;
