@@ -49,6 +49,7 @@ import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.Serializer;
 import com.netflix.serialization.TypeDef;
+import com.sun.istack.internal.Nullable;
 
 public class NettyHttpClient {
 
@@ -68,13 +69,14 @@ public class NettyHttpClient {
     }
     
     
-    public NettyHttpClient(IClientConfig config, SerializationFactory<HttpSerializationContext> serializationFactory, 
-            Bootstrap bootStrap) {
+    public NettyHttpClient(IClientConfig config, @Nullable SerializationFactory<HttpSerializationContext> serializationFactory, 
+            @Nullable Bootstrap bootStrap) {
+        Preconditions.checkNotNull(config);
         this.config = config;
         this.connectTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         this.readTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);  
-        this.serializationFactory = serializationFactory;
-        this.bootStrap = bootStrap;
+        this.serializationFactory = (serializationFactory == null) ? new JacksonSerializationFactory() : serializationFactory;
+        this.bootStrap = (bootStrap == null) ? new Bootstrap().group(new NioEventLoopGroup()) : bootStrap;
     }
     
     protected EventLoopGroup getNextEventGroupLoop() {

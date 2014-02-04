@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.ribbon.examples;
+package com.netflix.ribbon.examples.httpasyncclient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,6 +36,7 @@ import com.netflix.client.http.AsyncHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
+import com.netflix.ribbon.examples.ExampleAppWithLocalResource;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
 import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.Deserializer;

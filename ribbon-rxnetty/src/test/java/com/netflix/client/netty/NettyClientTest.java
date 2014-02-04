@@ -36,6 +36,7 @@ import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpRequest.Verb;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.UnexpectedHttpResponseException;
+import com.netflix.client.netty.http.NettyHttpClientBuilder.NettyHttpLoadBalancingClientBuilder;
 import com.netflix.client.netty.http.NettyHttpLoadBalancerErrorHandler;
 import com.netflix.client.netty.http.NettyHttpClient;
 import com.netflix.client.netty.http.NettyHttpLoadBalancingClient;
@@ -82,7 +83,8 @@ public class NettyClientTest {
     public void testObservable() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
-        NettyHttpClient observableClient = new NettyHttpClient();
+        NettyHttpClient observableClient = NettyHttpLoadBalancingClientBuilder.newBuilder()
+                .build();
         final List<Person> result = Lists.newArrayList();
         observableClient.createEntityObservable(request, TypeDef.fromClass(Person.class)).toBlockingObservable().forEach(new Action1<Person>() {
             @Override
@@ -327,13 +329,15 @@ public class NettyClientTest {
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         
-        NettyHttpLoadBalancingClient lbObservables = new NettyHttpLoadBalancingClient(config);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         Server badServer = new Server("localhost:12345");
         Server goodServer = new Server("localhost:" + port);
         List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
-        lb.setServersList(servers);
-        lbObservables.setLoadBalancer(lb);
+        NettyHttpLoadBalancingClient lbObservables = NettyHttpLoadBalancingClientBuilder.newBuilder()
+                .withClientConfig(config)
+                .withLoadBalancer(lb)
+                .withInitialServerList(servers)
+                .build();
         lbObservables.setMaxAutoRetries(1);
         lbObservables.setMaxAutoRetriesNextServer(3);
         Observable<Person> observableWithRetries = lbObservables.createEntityObservable(request, TypeDef.fromClass(Person.class));
@@ -360,13 +364,16 @@ public class NettyClientTest {
         URI uri = new URI("/testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         
-        NettyHttpLoadBalancingClient lbObservables = new NettyHttpLoadBalancingClient(config);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         Server badServer = new Server("localhost:12345");
         Server goodServer = new Server("localhost:" + port);
         List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
-        lb.setServersList(servers);
-        lbObservables.setLoadBalancer(lb);
+        NettyHttpLoadBalancingClient lbObservables = NettyHttpLoadBalancingClientBuilder.newBuilder()
+                .withClientConfig(config)
+                .withLoadBalancer(lb)
+                .withInitialServerList(servers)
+                .build();
+
         lbObservables.setMaxAutoRetries(1);
         lbObservables.setMaxAutoRetriesNextServer(3);
         

@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.ribbon.examples;
+package com.netflix.ribbon.examples.httpasyncclient;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

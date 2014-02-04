@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.ribbon.examples;
+package com.netflix.ribbon.examples.httpasyncclient;
 
 import java.net.URI;
 import java.util.concurrent.Future;
@@ -26,6 +26,7 @@ import com.netflix.client.http.BufferedHttpResponseCallback;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.HttpRequest.Verb;
+import com.netflix.ribbon.examples.ExampleAppWithLocalResource;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
 
 /**

@@ -156,12 +156,8 @@ public class ServerResources {
             public void write(OutputStream output) throws IOException,
                     WebApplicationException {
                 for (String line: streamContent) {
-                    String eventLine = line + "\n";
+                    String eventLine = line + "\n\n";
                     output.write(eventLine.getBytes("UTF-8"));
-                    try {
-                       Thread.sleep(5);
-                    } catch (Exception e) { // NOPMD
-                    }
                 }
                 output.close();
             }

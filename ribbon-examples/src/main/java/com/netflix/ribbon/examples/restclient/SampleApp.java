@@ -16,7 +16,7 @@
 *
 */
 
-package com.netflix.ribbon.examples;
+package com.netflix.ribbon.examples.restclient;
 
 import java.net.URI;
 

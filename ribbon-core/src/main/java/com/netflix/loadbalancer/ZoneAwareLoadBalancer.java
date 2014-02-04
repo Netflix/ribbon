@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.client.ClientFactory;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicBooleanProperty;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicPropertyFactory;
@@ -66,7 +67,15 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
     void setUpServerList(List<Server> upServerList) {
         this.upServerList = upServerList;
     }
-        
+    
+    public ZoneAwareLoadBalancer() {
+        super();
+    }
+
+    public ZoneAwareLoadBalancer(IClientConfig niwsClientConfig) {
+        super(niwsClientConfig);
+    }
+
     @Override
     protected void setServerListForZones(Map<String, List<Server>> zoneServersMap) {
         super.setServerListForZones(zoneServersMap);

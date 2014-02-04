@@ -33,8 +33,8 @@ import com.sun.net.httpserver.HttpServer;
  */
 public abstract class ExampleAppWithLocalResource {
 
-    int port = (new Random()).nextInt(1000) + 4000; 
-    String SERVICE_URI = "http://localhost:" + port + "/";
+    public int port = (new Random()).nextInt(1000) + 4000; 
+    public String SERVICE_URI = "http://localhost:" + port + "/";
     HttpServer server = null;
     
     public abstract void run() throws Exception;

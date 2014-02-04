@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.ribbon.examples;
+package com.netflix.ribbon.examples.httpasyncclient;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
@@ -26,6 +26,7 @@ import com.netflix.client.http.AsyncHttpClient;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
+import com.netflix.ribbon.examples.ExampleAppWithLocalResource;
 
 /**
  * An example shows using the streaming API of the {@link AsyncClient}. The application expects 

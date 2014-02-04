@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.ribbon.examples;
+package com.netflix.ribbon.examples.httpasyncclient;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,6 +28,7 @@ import com.netflix.client.ObservableAsyncClient.StreamEvent;
 import com.netflix.client.http.AsyncHttpClientBuilder;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
+import com.netflix.ribbon.examples.ExampleAppWithLocalResource;
 
 /**
  * A streaming example with the {@link ObservableAsyncClient}
