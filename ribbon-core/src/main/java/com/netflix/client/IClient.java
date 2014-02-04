@@ -17,6 +17,8 @@
 */
 package com.netflix.client;
 
+import com.netflix.client.config.IClientConfig;
+
 
 /**
  * A client that can execute a single request. 
@@ -30,5 +32,5 @@ public interface IClient<S extends ClientRequest, T extends IResponse> {
 	 * Execute the request and return the response. It is expected that there is no retry and all exceptions
      * are thrown directly.
 	 */
-    public T execute(S request) throws Exception; 
+    public T execute(S request, IClientConfig requestConfig) throws Exception; 
 }

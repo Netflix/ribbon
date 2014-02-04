@@ -26,10 +26,20 @@ package com.netflix.client.config;
  */
 public interface IClientConfigKey<T> {
 
+    @SuppressWarnings("rawtypes")
+    public static final class CommonKeys extends CommonClientConfigKey {
+        private CommonKeys(String configKey) {
+            super(configKey);
+        }
+    }
+    
 	/**
-	 * The string representation of the key.
+	 * @return string representation of the key used for hash purpose.
 	 */
 	public String key();
 	
+	/**
+     * @return Data type for the key. For example, Integer.class.
+	 */
 	public Class<T> type();
 }

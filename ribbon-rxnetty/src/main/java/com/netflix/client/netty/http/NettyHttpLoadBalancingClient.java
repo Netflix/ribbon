@@ -53,54 +53,54 @@ public class NettyHttpLoadBalancingClient extends NettyHttpClient {
 
     @Override
     public <T> Observable<ServerSentEvent<T>> createServerSentEventEntityObservable(
-            final HttpRequest request, final TypeDef<T> typeDef) {
+            final HttpRequest request, final TypeDef<T> typeDef, final IClientConfig requestConfig) {
         return lbObservables.retryWithLoadBalancer(request, new ClientObservableProvider<ServerSentEvent<T>, HttpRequest>() {
 
             @Override
             public Observable<ServerSentEvent<T>> getObservableForEndpoint(
                     HttpRequest request) {
-                return delegate.createServerSentEventEntityObservable(request, typeDef);
+                return delegate.createServerSentEventEntityObservable(request, typeDef, requestConfig);
             }
             
-        });
+        }, requestConfig);
     }
 
     @Override
     public Observable<ObservableHttpResponse<SSEEvent>> createServerSentEventObservable(
-            HttpRequest request) {
+            HttpRequest request, final IClientConfig requestConfig) {
         return lbObservables.retryWithLoadBalancer(request, new ClientObservableProvider<ObservableHttpResponse<SSEEvent>, HttpRequest>() {
 
             @Override
             public Observable<ObservableHttpResponse<SSEEvent>> getObservableForEndpoint(HttpRequest _request) {
-                return delegate.createServerSentEventObservable(_request);
+                return delegate.createServerSentEventObservable(_request, requestConfig);
             }
-        });
+        }, requestConfig);
     }
 
     @Override
     public Observable<HttpResponse> createFullHttpResponseObservable(
-            HttpRequest request) {
+            HttpRequest request, final IClientConfig requestConfig) {
         return lbObservables.retryWithLoadBalancer(request, new ClientObservableProvider<HttpResponse, HttpRequest>() {
 
             @Override
             public Observable<HttpResponse> getObservableForEndpoint(
                     HttpRequest request) {
-                return delegate.createFullHttpResponseObservable(request);
+                return delegate.createFullHttpResponseObservable(request, requestConfig);
             }
             
-        });
+        }, requestConfig);
     }
 
     @Override
     public <T> Observable<T> createEntityObservable(HttpRequest request,
-            final TypeDef<T> typeDef) {
+            final TypeDef<T> typeDef, final IClientConfig requestConfig) {
         return lbObservables.retryWithLoadBalancer(request, new ClientObservableProvider<T, HttpRequest>() {
 
             @Override
             public Observable<T> getObservableForEndpoint(HttpRequest _request) {
-                return delegate.createEntityObservable(_request, typeDef);
+                return delegate.createEntityObservable(_request, typeDef, requestConfig);
             }
-        });
+        }, requestConfig);
    }
 
     public void setLoadBalancer(ILoadBalancer lb) {

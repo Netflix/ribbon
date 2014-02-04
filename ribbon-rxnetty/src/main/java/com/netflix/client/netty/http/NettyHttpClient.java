@@ -36,7 +36,6 @@ import rx.util.functions.Func1;
 
 import com.google.common.base.Preconditions;
 import com.netflix.client.ClientException;
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
@@ -54,8 +53,6 @@ import com.sun.istack.internal.Nullable;
 public class NettyHttpClient {
 
     private SerializationFactory<HttpSerializationContext> serializationFactory;
-    private int connectTimeout;
-    private int readTimeout;
     private IClientConfig config;
     private Bootstrap bootStrap;
     
@@ -73,8 +70,6 @@ public class NettyHttpClient {
             @Nullable Bootstrap bootStrap) {
         Preconditions.checkNotNull(config);
         this.config = config;
-        this.connectTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ConnectTimeout, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
-        this.readTimeout = config.getPropertyAsInteger(CommonClientConfigKey.ReadTimeout, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);  
         this.serializationFactory = (serializationFactory == null) ? new JacksonSerializationFactory() : serializationFactory;
         this.bootStrap = (bootStrap == null) ? new Bootstrap().group(new NioEventLoopGroup()) : bootStrap;
     }
@@ -84,28 +79,30 @@ public class NettyHttpClient {
     }
     
     private static class SingleEntityConfigurator<T> implements PipelineConfigurator<T, FullHttpRequest> {
-        private HttpRequest request;
-        private TypeDef<T> typeDef;
-        private SerializationFactory<HttpSerializationContext> serializationFactory;
+        private final HttpRequest request;
+        private final TypeDef<T> typeDef;
+        private final SerializationFactory<HttpSerializationContext> serializationFactory;
+        private final IClientConfig requestConfig;
         
         private final PipelineConfigurator<FullHttpResponse, FullHttpRequest> configurator;
 
         public SingleEntityConfigurator(PipelineConfigurator<FullHttpResponse, FullHttpRequest> pipelineConfigurator,
-                HttpRequest request, SerializationFactory<HttpSerializationContext> serializationFactory, TypeDef<T> typeDef) {
+                HttpRequest request, IClientConfig requestConfig, SerializationFactory<HttpSerializationContext> serializationFactory, TypeDef<T> typeDef) {
             this.configurator = pipelineConfigurator;
             this.request = request;
             this.serializationFactory = serializationFactory;
             this.typeDef = typeDef;
+            this.requestConfig = requestConfig;
         }
 
         @Override
         public void configureNewPipeline(ChannelPipeline pipeline) {
             configurator.configureNewPipeline(pipeline);
-            pipeline.addLast(FullHttpResponseHandler.NAME, new FullHttpResponseHandler<T>(serializationFactory, request, typeDef));
+            pipeline.addLast(FullHttpResponseHandler.NAME, new FullHttpResponseHandler<T>(serializationFactory, request, typeDef, requestConfig));
         }
     }
         
-    private FullHttpRequest getHttpRequest(HttpRequest request) throws ClientException {
+    private FullHttpRequest getHttpRequest(HttpRequest request, IClientConfig requestConfig) throws ClientException {
         FullHttpRequest r = null;
         Object entity = request.getEntity();
         String uri = request.getUri().toString();
@@ -126,10 +123,7 @@ public class NettyHttpClient {
             if (entity instanceof ByteBuf) {
                 buf = (ByteBuf) entity;
             } else {
-                Serializer serializer = null;
-                if (request.getOverrideConfig() != null) {
-                    serializer = request.getOverrideConfig().getPropertyWithType(CommonClientConfigKey.Serializer);
-                }
+                Serializer serializer = getProperty(IClientConfigKey.CommonKeys.Serializer, request, requestConfig);
                 if (serializer == null) {
                     HttpSerializationContext key = new HttpSerializationContext(request.getHttpHeaders(), request.getUri());
                     serializer = serializationFactory.getSerializer(key, request.getEntityType());
@@ -172,9 +166,24 @@ public class NettyHttpClient {
     public SerializationFactory<HttpSerializationContext> getSerializationFactory() {
         return serializationFactory;
     }
+
+    protected <S> S getProperty(IClientConfigKey<S> key, HttpRequest request, @Nullable IClientConfig requestConfig) {
+        if (requestConfig != null && requestConfig.getPropertyWithType(key) != null) {
+            return requestConfig.getPropertyWithType(key);
+        } else if (request.getOverrideConfig() != null && request.getOverrideConfig().getPropertyWithType(key) != null) {
+            return request.getOverrideConfig().getPropertyWithType(key);
+        } else {
+            return config.getPropertyWithType(key);
+        }
+    }
     
     public <T> Observable<ServerSentEvent<T>> createServerSentEventEntityObservable(final HttpRequest request, final TypeDef<T> typeDef) {
-        Observable<ObservableHttpResponse<SSEEvent>> observable = createServerSentEventObservable(request);
+        return createServerSentEventEntityObservable(request, typeDef, null);
+    }
+
+    public <T> Observable<ServerSentEvent<T>> createServerSentEventEntityObservable(final HttpRequest request, 
+            final TypeDef<T> typeDef, @Nullable final IClientConfig requestConfig) {
+        Observable<ObservableHttpResponse<SSEEvent>> observable = createServerSentEventObservable(request, requestConfig);
         return observable.flatMap(new Func1<ObservableHttpResponse<SSEEvent>, Observable<ServerSentEvent<T>>>() {
 
             @Override
@@ -190,7 +199,7 @@ public class NettyHttpClient {
 
                             @Override
                             public ServerSentEvent<T> call(SSEEvent t1) {
-                                final Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, new NettyHttpHeaders(response), typeDef, serializationFactory);
+                                final Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, requestConfig, new NettyHttpHeaders(response), typeDef, serializationFactory);
                                 try {
                                     return new ServerSentEvent<T>(t1.getEventId(), t1.getEventName(), 
                                             SerializationUtils.deserializeFromString(deserializer, t1.getEventData(), typeDef));
@@ -210,19 +219,35 @@ public class NettyHttpClient {
     }
 
     public Observable<ObservableHttpResponse<SSEEvent>> createServerSentEventObservable(final HttpRequest request) {
-        return createObservableHttpResponse(request, PipelineConfigurators.sseClientConfigurator(), RxClient.ClientConfig.DEFAULT_CONFIG);
+        return createServerSentEventObservable(request, null);
+    }
+
+    public Observable<ObservableHttpResponse<SSEEvent>> createServerSentEventObservable(final HttpRequest request, @Nullable IClientConfig requestConfig) {
+        return createObservableHttpResponse(request, PipelineConfigurators.sseClientConfigurator(), requestConfig, RxClient.ClientConfig.DEFAULT_CONFIG);
+    }
+
+    public Observable<HttpResponse> createFullHttpResponseObservable(final HttpRequest request) {
+        return createFullHttpResponseObservable(request, null);
     }
     
-    public Observable<HttpResponse> createFullHttpResponseObservable(final HttpRequest request) {
-        return createEntityObservable(request, TypeDef.fromClass(HttpResponse.class));
+    public Observable<HttpResponse> createFullHttpResponseObservable(final HttpRequest request, @Nullable IClientConfig requestConfig) {
+        return createEntityObservable(request, TypeDef.fromClass(HttpResponse.class), requestConfig);
     }
     
     public <T> Observable<T> createEntityObservable(final HttpRequest request, TypeDef<T> typeDef) {
+        return createEntityObservable(request, typeDef, null);
+    }
+    
+    public <T> Observable<T> createEntityObservable(final HttpRequest request, TypeDef<T> typeDef, @Nullable IClientConfig requestConfig) {
+        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, request, requestConfig);
         RxClient.ClientConfig clientConfig = new RxClient.ClientConfig.Builder(RxClient.ClientConfig.DEFAULT_CONFIG)
-        .readTimeout(readTimeout, TimeUnit.MILLISECONDS).build();
+        .readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS).build();
 
         Observable<ObservableHttpResponse<T>> observableHttpResponse = createObservableHttpResponse(
-                request, new SingleEntityConfigurator<T>(PipelineConfigurators.fullHttpMessageClientConfigurator(), request, serializationFactory, typeDef), clientConfig);
+                request,  
+                new SingleEntityConfigurator<T>(PipelineConfigurators.fullHttpMessageClientConfigurator(), request, requestConfig, serializationFactory, typeDef),
+                requestConfig,
+                clientConfig);
         return observableHttpResponse.flatMap(new Func1<ObservableHttpResponse<T>, Observable<T>>() {
             @Override
             public Observable<T> call(ObservableHttpResponse<T> t1) {
@@ -231,51 +256,60 @@ public class NettyHttpClient {
         });
     }    
 
-    
-    private <T> T getProperty(IClientConfigKey<T> key, IClientConfig overrideConfig) {
-        T value = null;
-        if (overrideConfig != null) {
-            value = overrideConfig.getPropertyWithType(key);
-        }
-        if (value == null) {
-            value = getConfig().getPropertyWithType(key);
-        }
-        return value;
-    }
-        
     public <T> Observable<ObservableHttpResponse<T>> createObservableHttpResponse(final HttpRequest request, 
-            final PipelineConfigurator<T, FullHttpRequest> protocolHandler, final RxClient.ClientConfig clientConfig) {
+            final PipelineConfigurator<T, FullHttpRequest> protocolHandler,
+            final RxClient.ClientConfig rxClientConfig) {
+        return createObservableHttpResponse(request, protocolHandler, null, rxClientConfig);
+    }
+    
+    public <T> Observable<ObservableHttpResponse<T>> createObservableHttpResponse(final HttpRequest request, 
+            final PipelineConfigurator<T, FullHttpRequest> protocolHandler, @Nullable final IClientConfig requestConfig, 
+            final RxClient.ClientConfig rxClientConfig) {
         Preconditions.checkNotNull(request);
         Preconditions.checkNotNull(protocolHandler);
-        Preconditions.checkNotNull(clientConfig);
+        Preconditions.checkNotNull(rxClientConfig);
         HttpClientBuilder<FullHttpRequest, T> clientBuilder =
                 new HttpClientBuilder<FullHttpRequest, T>(request.getUri().getHost(), request.getUri().getPort());
+        int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, request, requestConfig);
         HttpClient<FullHttpRequest, T> client = clientBuilder.channelOption(
-                ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout).eventloop(getNextEventGroupLoop())
-                .pipelineConfigurator(protocolHandler).config(clientConfig).build();
+                ChannelOption.CONNECT_TIMEOUT_MILLIS, requestConnectTimeout).eventloop(getNextEventGroupLoop())
+                .pipelineConfigurator(protocolHandler).config(rxClientConfig).build();
                 
         FullHttpRequest r = null;
         try {
-            r = getHttpRequest(request);
+            r = getHttpRequest(request, requestConfig);
         } catch (final Exception e) {
             return Observable.error(e);
         }
         return client.submit(r);
     }   
-    
+
     public <T> Subscription observeEntity(HttpRequest request, TypeDef<T> entityType, Observer<T> observer) {
-        Preconditions.checkNotNull(observer);
-        return createEntityObservable(request, entityType).subscribe(observer);
+        return observeEntity(request, entityType, observer, null);
     }
+
     
+    public <T> Subscription observeEntity(HttpRequest request, TypeDef<T> entityType, Observer<T> observer, @Nullable IClientConfig requestConfig) {
+        Preconditions.checkNotNull(observer);
+        return createEntityObservable(request, entityType, requestConfig).subscribe(observer);
+    }
+
     public Subscription observeHttpResponse(HttpRequest request, Observer<HttpResponse> observer) {
-        Preconditions.checkNotNull(observer);
-        return createFullHttpResponseObservable(request).subscribe(observer);
+        return observeHttpResponse(request, observer, null);
     }
     
-    public Subscription observeServerSentEvent(HttpRequest request, Observer<? super SSEEvent> observer) {
+    public Subscription observeHttpResponse(HttpRequest request, Observer<HttpResponse> observer, @Nullable IClientConfig requestConfig) {
         Preconditions.checkNotNull(observer);
-        return createServerSentEventObservable(request).flatMap(new Func1<ObservableHttpResponse<SSEEvent>, Observable<SSEEvent>>() {
+        return createFullHttpResponseObservable(request, requestConfig).subscribe(observer);
+    }
+
+    public Subscription observeServerSentEvent(HttpRequest request,Observer<? super SSEEvent> observer) {
+        return observeServerSentEvent(request, observer, null);
+    }
+    
+    public Subscription observeServerSentEvent(HttpRequest request,Observer<? super SSEEvent> observer, @Nullable IClientConfig requestConfig) {
+        Preconditions.checkNotNull(observer);
+        return createServerSentEventObservable(request, requestConfig).flatMap(new Func1<ObservableHttpResponse<SSEEvent>, Observable<SSEEvent>>() {
             @Override
             public Observable<SSEEvent> call(ObservableHttpResponse<SSEEvent> t1) {
                 return t1.content();
@@ -285,16 +319,28 @@ public class NettyHttpClient {
     }
 
     public <T> Subscription observeServerSentEventEntity(HttpRequest request, TypeDef<T> entityType, Observer<ServerSentEvent<T>> observer) {
+        return observeServerSentEventEntity(request, entityType, observer, null);
+    }
+    
+    public <T> Subscription observeServerSentEventEntity(HttpRequest request, TypeDef<T> entityType, Observer<ServerSentEvent<T>> observer, @Nullable IClientConfig requestConfig) {
         Preconditions.checkNotNull(observer);
-        return createServerSentEventEntityObservable(request, entityType)
+        return createServerSentEventEntityObservable(request, entityType, requestConfig)
                 .subscribe(observer);
     }
-    
+
     public <T> T execute(HttpRequest request, TypeDef<T> responseEntityType) throws Exception {
-        return createEntityObservable(request, responseEntityType).toBlockingObservable().last();
+        return execute(request, responseEntityType, null);
     }
     
+    public <T> T execute(HttpRequest request, TypeDef<T> responseEntityType, @Nullable IClientConfig requestConfig) throws Exception {
+        return createEntityObservable(request, responseEntityType, requestConfig).toBlockingObservable().last();
+    }
+
     public HttpResponse execute(HttpRequest request) throws Exception {
-        return createFullHttpResponseObservable(request).toBlockingObservable().last();
+        return execute(request, (IClientConfig) null);
+    }
+    
+    public HttpResponse execute(HttpRequest request, @Nullable IClientConfig requestConfig) throws Exception {
+        return createFullHttpResponseObservable(request, requestConfig).toBlockingObservable().last();
     }
 }

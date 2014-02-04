@@ -507,10 +507,15 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         return result;
     }
 
+    public HttpResponse execute(HttpRequest task) throws Exception  {
+        return execute(task, null);
+    }
+    
     @Override
-    public HttpResponse execute(HttpRequest task) throws Exception {
+    public HttpResponse execute(HttpRequest task, IClientConfig requestConfig) throws Exception {
+        IClientConfig config = (requestConfig == null) ? task.getOverrideConfig() : requestConfig;
         return execute(task.getVerb(), task.getUri(),
-                task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity(), task.getEntityType());
+                task.getHeaders(), task.getQueryParams(), config, task.getEntity(), task.getEntityType());
     }
 
 

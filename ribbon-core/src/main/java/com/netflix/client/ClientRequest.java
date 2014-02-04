@@ -45,12 +45,16 @@ public class ClientRequest implements Cloneable {
 
     /**
      * Constructor to set all fields. 
+     * @deprecated request configuration should be now be passed 
+     *            as a method parameter to client's execution API 
+     *
      * 
      * @param uri  URI to set
      * @param loadBalancerKey the object that is used by {@link ILoadBalancer#chooseServer(Object)}, can be null
      * @param isRetriable if the operation is retriable on failures
      * @param overrideConfig client configuration that is used for this specific request. can be null. 
      */
+    @Deprecated
     public ClientRequest(URI uri, Object loadBalancerKey, boolean isRetriable, IClientConfig overrideConfig) {
         this.uri = uri;
         this.loadBalancerKey = loadBalancerKey;
@@ -58,6 +62,12 @@ public class ClientRequest implements Cloneable {
         this.overrideConfig = overrideConfig;
     }
 
+    public ClientRequest(URI uri, Object loadBalancerKey, boolean isRetriable) {
+        this.uri = uri;
+        this.loadBalancerKey = loadBalancerKey;
+        this.isRetriable = isRetriable;
+    }
+    
     public ClientRequest(ClientRequest request) {
         this.uri = request.uri;
         this.loadBalancerKey = request.loadBalancerKey;
@@ -93,10 +103,20 @@ public class ClientRequest implements Cloneable {
         return this;
     }
 
+    /**
+     * @deprecated request configuration should be now be passed 
+     *            as a method parameter to client's execution API 
+     */
+    @Deprecated
     public final IClientConfig getOverrideConfig() {
         return overrideConfig;
     }
 
+    /**
+     * @deprecated request configuration should be now be passed 
+     *            as a method parameter to client's execution API 
+     */
+    @Deprecated
     protected final ClientRequest setOverrideConfig(IClientConfig overrideConfig) {
         this.overrideConfig = overrideConfig;
         return this;

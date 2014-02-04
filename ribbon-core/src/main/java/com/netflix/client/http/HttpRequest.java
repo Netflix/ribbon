@@ -101,6 +101,11 @@ public class HttpRequest extends ClientRequest {
             return this;
         }
 
+        /**
+         * @deprecated request configuration should be now be passed 
+         *            as a method parameter to client's execution API 
+         */
+        @Deprecated
         public Builder overrideConfig(IClientConfig config) {
             request.setOverrideConfig(config);
             return this;

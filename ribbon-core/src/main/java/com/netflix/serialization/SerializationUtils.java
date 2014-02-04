@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpHeaders;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
@@ -24,11 +25,12 @@ public class SerializationUtils {
         return new String(out.toByteArray(), "UTF-8");
     }
         
-    public static <T> Deserializer<T> getDeserializer(HttpRequest request, HttpHeaders responseHeaders, TypeDef<T> typeDef, 
+    public static <T> Deserializer<T> getDeserializer(HttpRequest request, IClientConfig requestConfig, HttpHeaders responseHeaders, TypeDef<T> typeDef, 
             SerializationFactory<HttpSerializationContext> serializationFactory) {
         Deserializer<T> deserializer = null;
-        if (request.getOverrideConfig() != null) {
-            deserializer = (Deserializer<T>) request.getOverrideConfig().getPropertyWithType(CommonClientConfigKey.Deserializer);
+        IClientConfig config = (requestConfig == null) ? request.getOverrideConfig() : requestConfig;
+        if (config != null) {
+         deserializer = (Deserializer<T>) config.getPropertyWithType(CommonClientConfigKey.Deserializer);
         }
         if (deserializer == null && serializationFactory != null) {
             deserializer = serializationFactory.getDeserializer(new HttpSerializationContext(responseHeaders, request.getUri()), typeDef);

@@ -29,19 +29,21 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
     
     private class RetrySameServerFunc<T> implements Func1<Throwable, Observable<T>> {
 
-        private R request;
-        OnSubscribeFunc<T> onSubscribe;
-        private AtomicInteger counter = new AtomicInteger();
-        
-        public RetrySameServerFunc(R request, OnSubscribeFunc<T> onSubscribe) {
+        private final R request;
+        private final OnSubscribeFunc<T> onSubscribe;
+        private final AtomicInteger counter = new AtomicInteger();
+        private final IClientConfig requestConfig;
+
+        public RetrySameServerFunc(R request, OnSubscribeFunc<T> onSubscribe, IClientConfig requestConfig) {
             this.request = request;
             this.onSubscribe = onSubscribe;
+            this.requestConfig = (requestConfig == null) ? request.getOverrideConfig() : requestConfig;
         }
         
         @Override
         public Observable<T> call(final Throwable error) {
             logger.debug("Get error during retry on same server", error);
-            int maxRetries = getNumberRetriesOnSameServer(request.getOverrideConfig());
+            int maxRetries = getNumberRetriesOnSameServer(requestConfig);
             boolean shouldRetry = isRetriable(request) && maxRetries > 0 && errorHandler.isRetriableException(request, error, true);
             final Throwable finalThrowable;
             URI uri = request.getUri();
@@ -64,18 +66,20 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
 
     private class RetryNextServerFunc<T> implements Func1<Throwable, Observable<T>> {
 
-        R request;
-        private AtomicInteger counter = new AtomicInteger();
-        OnSubscribeFunc<T> onSubscribe;
+        private final R request;
+        private final AtomicInteger counter = new AtomicInteger();
+        private final OnSubscribeFunc<T> onSubscribe;
+        private final IClientConfig requestConfig;
         
-        RetryNextServerFunc(R request, OnSubscribeFunc<T> onSubscribe) {
+        RetryNextServerFunc(R request, OnSubscribeFunc<T> onSubscribe, IClientConfig requestConfig) {
             this.request = request;    
             this.onSubscribe = onSubscribe;
+            this.requestConfig = (requestConfig == null) ? request.getOverrideConfig() : requestConfig;
         }
         @Override
         public Observable<T> call(Throwable t1) {
-            logger.debug("Get error during retry on next server", t1);            
-            int maxRetriesNextServer = getRetriesNextServer(request.getOverrideConfig());
+            logger.debug("Get error during retry on next server", t1);   
+            int maxRetriesNextServer = getRetriesNextServer(requestConfig);
             boolean shouldRetry = isRetriable(request) && maxRetriesNextServer > 0 && errorHandler.isRetriableException(request, t1, false);
             final Throwable finalThrowable;
             if (shouldRetry && counter.incrementAndGet() > maxRetriesNextServer) {
@@ -99,7 +103,7 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
         
     }
     
-    public <T> Observable<T> retryWithLoadBalancer(final R request, final ClientObservableProvider<T, R> loadBalancerRequest) {
+    public <T> Observable<T> retryWithLoadBalancer(final R request, final ClientObservableProvider<T, R> clientObservableProvider, final IClientConfig requestConfig) {
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
             public Subscription onSubscribe(final Observer<? super T> t1) {
@@ -111,15 +115,15 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
                     t1.onError(e);
                     return Subscriptions.empty();
                 }
-                return retrySameServer(requestWithRealServer, loadBalancerRequest).subscribe(t1);
+                return retrySameServer(requestWithRealServer, clientObservableProvider, requestConfig).subscribe(t1);
             }
         };
         Observable<T> observable = Observable.create(onSubscribe);
-        RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(request, onSubscribe);
+        RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(request, onSubscribe, requestConfig);
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     
-    public <T> Observable<T> retrySameServer(final R request, final ClientObservableProvider<T, R> loadBalancerRequest) {
+    public <T> Observable<T> retrySameServer(final R request, final ClientObservableProvider<T, R> clientObservableProvider, final IClientConfig requestConfig) {
         final URI uri = request.getUri();
         Server server = new Server(uri.getHost(), uri.getPort());
         final ServerStats serverStats = getServerStats(server); 
@@ -154,12 +158,12 @@ public class LoadBalancerObservables<R extends ClientRequest, S extends IRespons
                         noteRequestCompletion(serverStats, request, entity, exception, duration);
                     }
                 };
-                return loadBalancerRequest.getObservableForEndpoint(request).subscribe(delegate);
+                return clientObservableProvider.getObservableForEndpoint(request).subscribe(delegate);
             }
         };
         
         Observable<T> observable = Observable.create(onSubscribe);
-        RetrySameServerFunc<T> retrySameServerFunc = new RetrySameServerFunc<T>(request, onSubscribe);
+        RetrySameServerFunc<T> retrySameServerFunc = new RetrySameServerFunc<T>(request, onSubscribe, requestConfig);
         return observable.onErrorResumeNext(retrySameServerFunc);
     }
 }

@@ -1,6 +1,7 @@
 package com.netflix.client.netty.http;
 
 import com.netflix.client.ClientException;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpHeaders;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
@@ -18,18 +19,20 @@ import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.FullHttpResponse;
 
-public class FullHttpResponseHandler<T> extends ChannelInboundHandlerAdapter {
+class FullHttpResponseHandler<T> extends ChannelInboundHandlerAdapter {
 
     public static final String NAME = "http-response-handler";
     
     private final HttpRequest request;
     private final SerializationFactory<HttpSerializationContext> serializationFactory;
     private final TypeDef<T> type;
+    private final IClientConfig requestConfig;
     
-    public FullHttpResponseHandler(SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request, TypeDef<T> type) {
+    FullHttpResponseHandler(SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request, TypeDef<T> type, IClientConfig requestConfig) {
         this.request = request;
         this.serializationFactory = serializationFactory;
         this.type = type;
+        this.requestConfig = requestConfig;
     }
     
     @Override
@@ -43,12 +46,12 @@ public class FullHttpResponseHandler<T> extends ChannelInboundHandlerAdapter {
             ctx.fireChannelRead(newResponse);
             
             if (type.getRawType().isAssignableFrom(HttpResponse.class)) {
-                ctx.fireChannelRead(new NettyHttpResponse(response, response.content(), serializationFactory, request));
+                ctx.fireChannelRead(new NettyHttpResponse(response, response.content(), serializationFactory, request, requestConfig));
             } else {
                 int statusCode = response.getStatus().code();
                 if (statusCode >= 200 && statusCode < 300) {
                     HttpHeaders headers = new NettyHttpHeaders(response);
-                    Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, headers, type, serializationFactory);
+                    Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, requestConfig, headers, type, serializationFactory);
                     if (deserializer == null) {
                         ctx.fireExceptionCaught(new ClientException("Unable to find appropriate deserializer for type " 
                                 + type.getRawType() + ", and headers " + headers));
@@ -60,7 +63,7 @@ public class FullHttpResponseHandler<T> extends ChannelInboundHandlerAdapter {
                 } else {
                     // assume there is no need to further look into the content of the response,
                     // pass null as the content to ensure buffer will be released.
-                    ctx.fireExceptionCaught(new UnexpectedHttpResponseException(new NettyHttpResponse(response, null, serializationFactory, request)));
+                    ctx.fireExceptionCaught(new UnexpectedHttpResponseException(new NettyHttpResponse(response, null, serializationFactory, request, requestConfig)));
                 }
             }
             // mark the end of the content so that content observers will get OnCompleted() call

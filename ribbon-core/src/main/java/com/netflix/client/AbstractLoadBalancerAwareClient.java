@@ -77,7 +77,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * retries and update server stats.
      *  
      */
-    protected T executeOnSingleServer(S request) throws ClientException {
+    protected T executeOnSingleServer(S request, IClientConfig requestConfig) throws ClientException {
         boolean done = false;
         int retries = 0;
 
@@ -94,7 +94,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             LoadBalancerStats lbStats = ((AbstractLoadBalancer) lb).getLoadBalancerStats();
             serverStats = lbStats.getSingleServerStat(server);
         }
-        IClientConfig overriddenClientConfig = request.getOverrideConfig();
+        IClientConfig overriddenClientConfig = requestConfig == null ? request.getOverrideConfig() : requestConfig;
         if (overriddenClientConfig!=null){
             try {
                 numRetries = Integer.parseInt(""+overriddenClientConfig.getProperty(CommonClientConfigKey.MaxAutoRetries,maxAutoRetries));
@@ -113,7 +113,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             noteOpenConnection(serverStats, request);
             Stopwatch w = tracer.start();
             try {
-                response = execute(request);        
+                response = execute(request, requestConfig);        
                 done = true;
             } catch (Throwable e) {
                 lastException = e;
@@ -138,7 +138,11 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         } while (!done); 
         return response;
     }
-    
+
+    public T executeWithLoadBalancer(S request) throws ClientException {
+        return executeWithLoadBalancer(request, null);
+    }
+
     /**
      * This method should be used when the caller wants to dispatch the request to a server chosen by
      * the load balancer, instead of specifying the server in the request's URI. 
@@ -148,20 +152,21 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * @param request request to be dispatched to a server chosen by the load balancer. The URI can be a partial
      * URI which does not contain the host name or the protocol.
      */
-    public T executeWithLoadBalancer(S request) throws ClientException {
+    public T executeWithLoadBalancer(S request, IClientConfig requestConfig) throws ClientException {
         int retries = 0;
         boolean done = false;
 
         final boolean retryOkayOnOperation = isRetriable(request);
 
-        final int numRetriesNextServer = getRetriesNextServer(request.getOverrideConfig()); 
+        IClientConfig config = (requestConfig == null) ? request.getOverrideConfig() : requestConfig;
+        final int numRetriesNextServer = getRetriesNextServer(config); 
 
         T response = null;
 
         do {
             S resolved = computeFinalUriWithLoadBalancer(request);
             try {
-                response = executeOnSingleServer(resolved);
+                response = executeOnSingleServer(resolved, config);
                 done = true;
             } catch (Exception e) {      
                 boolean shouldRetry = false;

@@ -16,6 +16,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.netflix.client.ClientException;
 import com.netflix.client.ResponseWithTypedEntity;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.serialization.Deserializer;
 import com.netflix.serialization.HttpSerializationContext;
@@ -26,22 +27,24 @@ import com.netflix.serialization.TypeDef;
 class NettyHttpResponse implements ResponseWithTypedEntity, com.netflix.client.http.HttpResponse, ReferenceCounted {
 
     private final HttpResponse response;
-    final ByteBuf content;
+    private final ByteBuf content;
     private final SerializationFactory<HttpSerializationContext> serializationFactory;
     private final HttpRequest request;
+    private final IClientConfig requestConfig;
     
-    public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request) {
+    public NettyHttpResponse(HttpResponse response, ByteBuf content, SerializationFactory<HttpSerializationContext> serializationFactory, HttpRequest request, IClientConfig requestConfig) {
         this.response = response;
         this.content = content;
         this.serializationFactory = serializationFactory;
         this.request = request;
+        this.requestConfig = requestConfig;
     }
     
     @Override
     @Deprecated
     public <T> T getEntity(TypeDef<T> typeDef) throws ClientException {
         try {
-            Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, new NettyHttpHeaders(response), typeDef, serializationFactory);
+            Deserializer<T> deserializer = SerializationUtils.getDeserializer(request, requestConfig, new NettyHttpHeaders(response), typeDef, serializationFactory);
             if (deserializer == null) {
                 throw new ClientException("No suitable deserializer for type " + typeDef.getRawType());
             }

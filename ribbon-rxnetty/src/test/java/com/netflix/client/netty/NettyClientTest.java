@@ -125,10 +125,10 @@ public class NettyClientTest {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         DefaultClientConfigImpl overrideConfig = new DefaultClientConfigImpl();
         overrideConfig.setPropertyWithType(CommonClientConfigKey.Deserializer, StringDeserializer.getInstance());
-        HttpRequest request = HttpRequest.newBuilder().uri(uri).overrideConfig(overrideConfig).build();
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
         NettyHttpClient observableClient = new NettyHttpClient();
         final List<String> result = Lists.newArrayList();
-        observableClient.createEntityObservable(request, TypeDef.fromClass(String.class)).toBlockingObservable().forEach(new Action1<String>() {
+        observableClient.createEntityObservable(request, TypeDef.fromClass(String.class), overrideConfig).toBlockingObservable().forEach(new Action1<String>() {
             @Override
             public void call(String t1) {
                 try {
@@ -285,7 +285,7 @@ public class NettyClientTest {
                     HttpRequest request) {
                 return observableClient.createEntityObservable(request, TypeDef.fromClass(HttpResponse.class));
             }
-        });  
+        }, null);  
         ObserverWithLatch<HttpResponse> observer = new ObserverWithLatch<HttpResponse>();
         observableWithRetries.subscribe(observer);
         observer.await();
@@ -312,7 +312,7 @@ public class NettyClientTest {
                     HttpRequest request) {
                 return observableClient.createEntityObservable(request, TypeDef.fromClass(HttpResponse.class));
             }
-        });  
+        }, null);  
         ObserverWithLatch<HttpResponse> observer = new ObserverWithLatch<HttpResponse>();
         observableWithRetries.subscribe(observer);
         observer.await();
@@ -540,12 +540,12 @@ public class NettyClientTest {
     
     @Test
     public void testStream() throws Exception {
+        IClientConfig overrideConfig = new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance());
         HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/personStream")
-                .overrideConfig(new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance()))
                 .build();
         NettyHttpClient observableClient = new NettyHttpClient();
         final List<Person> result = Lists.newArrayList();
-        observableClient.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class)).subscribe(new Action1<ServerSentEvent<Person>>() {
+        observableClient.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class), overrideConfig).subscribe(new Action1<ServerSentEvent<Person>>() {
             @Override
             public void call(ServerSentEvent<Person> t1) {
                 // System.out.println(t1);
@@ -567,8 +567,8 @@ public class NettyClientTest {
     public void testStreamWithLoadBalancer() throws Exception {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
         NettyHttpLoadBalancingClient lbObservables = new NettyHttpLoadBalancingClient(config);
+        IClientConfig requestconfig = new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance());
         HttpRequest request = HttpRequest.newBuilder().uri("/testAsync/personStream")
-                .overrideConfig(new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance()))
                 .build();
         final List<Person> result = Lists.newArrayList();
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
@@ -580,7 +580,7 @@ public class NettyClientTest {
         lbObservables.setMaxAutoRetries(1);
         lbObservables.setMaxAutoRetriesNextServer(3);
 
-        lbObservables.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class)).toBlockingObservable().forEach(new Action1<ServerSentEvent<Person>>() {
+        lbObservables.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class), requestconfig).toBlockingObservable().forEach(new Action1<ServerSentEvent<Person>>() {
             @Override
             public void call(ServerSentEvent<Person> t1) {
                 result.add(t1.getEntity());
