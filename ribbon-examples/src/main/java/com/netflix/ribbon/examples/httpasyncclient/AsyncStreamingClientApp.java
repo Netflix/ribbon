@@ -39,10 +39,10 @@ public class AsyncStreamingClientApp extends ExampleAppWithLocalResource {
 
     @Override
     public void run() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
+        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/customEvent").build();
         AsyncHttpClient<ByteBuffer> client = AsyncHttpClientBuilder.withApacheAsyncClient().buildClient();
         try {
-            Future<HttpResponse> response = client.execute(request, new SSEDecoder(), new ResponseCallback<HttpResponse, String>() {
+            Future<HttpResponse> response = client.execute(request, new LineEventDecoder(), new ResponseCallback<HttpResponse, String>() {
                 @Override
                 public void completed(HttpResponse response) {
                 }

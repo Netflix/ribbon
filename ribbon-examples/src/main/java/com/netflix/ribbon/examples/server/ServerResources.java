@@ -165,6 +165,42 @@ public class ServerResources {
     }
     
     @GET
+    @Path("/personStream")
+    @Produces("text/event-stream")
+    public StreamingOutput getPersonStream() {
+        return new StreamingOutput() {            
+            @Override
+            public void write(OutputStream output) throws IOException,
+                    WebApplicationException {
+                for (Person p: persons) {
+                    String eventLine = "data: " + mapper.writeValueAsString(p)
+                            + "\n\n";
+                    output.write(eventLine.getBytes("UTF-8"));
+                }
+                output.close();
+            }
+        };
+    }
+
+    
+    @GET
+    @Path("/customEvent")
+    public StreamingOutput getCustomeEvents() {
+        return new StreamingOutput() {            
+            @Override
+            public void write(OutputStream output) throws IOException,
+                    WebApplicationException {
+                for (String line: streamContent) {
+                    String eventLine = line + "\n";
+                    output.write(eventLine.getBytes("UTF-8"));
+                }
+                output.close();
+            }
+        };
+    }
+
+    
+    @GET
     @Path("/getXml")
     @Produces("application/xml")
     public Response getXml() {

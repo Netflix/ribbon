@@ -24,14 +24,14 @@ import com.netflix.client.StreamDecoder;
 
 /**
  * A {@link StreamDecoder} used by some sample application. This decoder decodes
- * content of ByteBuffer into list of Server-Sent Event string. 
+ * content of ByteBuffer into list of single line event string. 
  * <p>
  * This code is copied from https://github.com/Netflix/RxJava/tree/master/rxjava-contrib/rxjava-apache-http
  *  
  * @author awang
  *
  */
-public class SSEDecoder implements StreamDecoder<String, ByteBuffer> {
+public class LineEventDecoder implements StreamDecoder<String, ByteBuffer> {
 
     public String decode(ByteBuffer input) throws IOException {
         if (input == null || !input.hasRemaining()) {

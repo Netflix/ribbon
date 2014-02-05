@@ -736,15 +736,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return propertyNameSpace;
 	}
 
+	public static DefaultClientConfigImpl getEmptyConfig() {
+	    return new DefaultClientConfigImpl();
+	}
+	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
 		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
 	}
 	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
-	    DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-	    config.loadDefaultValues();
-	    return config;
-	}
+        return getClientConfigWithDefaultValues("default", DEFAULT_PROPERTY_NAME_SPACE);
+    }
 
 
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {

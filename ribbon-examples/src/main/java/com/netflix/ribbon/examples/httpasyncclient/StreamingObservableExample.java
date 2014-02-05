@@ -40,13 +40,13 @@ public class StreamingObservableExample extends ExampleAppWithLocalResource {
 
     @Override
     public void run() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream").build();
+        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/customEvent").build();
         ObservableAsyncClient<HttpRequest, HttpResponse, ByteBuffer> observableClient = 
                 AsyncHttpClientBuilder.withApacheAsyncClient().observableClient();
         final AtomicReference<HttpResponse> httpResponse = new AtomicReference<HttpResponse>();
         final AtomicInteger counter = new AtomicInteger();
         try {
-            observableClient.stream(request, new SSEDecoder())
+            observableClient.stream(request, new LineEventDecoder())
             .toBlockingObservable()
             .forEach(new Action1<StreamEvent<HttpResponse, String>>() {
                 @Override

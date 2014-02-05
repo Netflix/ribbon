@@ -39,6 +39,7 @@ public abstract class ExampleAppWithLocalResource {
     
     public abstract void run() throws Exception;
     
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings
     public final void runApp() throws Exception {
         PackagesResourceConfig resourceConfig = new PackagesResourceConfig("com.netflix.ribbon.examples.server");
         ExecutorService service = Executors.newFixedThreadPool(50);
@@ -54,5 +55,6 @@ public abstract class ExampleAppWithLocalResource {
             }
             service.shutdownNow();
         }
+        System.exit(0);
     }
 }
