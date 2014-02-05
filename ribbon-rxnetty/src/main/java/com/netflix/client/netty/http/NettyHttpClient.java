@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
@@ -48,7 +50,6 @@ import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.Serializer;
 import com.netflix.serialization.TypeDef;
-import com.sun.istack.internal.Nullable;
 
 public class NettyHttpClient {
 
