@@ -10,14 +10,12 @@ import com.netflix.client.http.HttpResponse;
 import com.netflix.client.netty.http.NettyHttpClientBuilder.NettyHttpLoadBalancingClientBuilder;
 import com.netflix.client.netty.http.NettyHttpLoadBalancingClient;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
-import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 
 public class LoadBalancingExample {
     public static void main(String[] args) throws Exception {
         NettyHttpLoadBalancingClient client = NettyHttpLoadBalancingClientBuilder.newBuilder()
-                .withLoadBalancer(new BaseLoadBalancer())
-                .withInitialServerList(Lists.newArrayList(new Server("www.google.com:80"), new Server("www.microsoft.com:80"), new Server("www.yahoo.com:80")))
+                .withFixedServerList(Lists.newArrayList(new Server("www.google.com:80"), new Server("www.microsoft.com:80"), new Server("www.yahoo.com:80")))
                 .build();
         HttpRequest request = HttpRequest.newBuilder().uri("/").build();
         final CountDownLatch latch = new CountDownLatch(3); 

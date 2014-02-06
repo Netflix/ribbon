@@ -85,7 +85,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
     protected LoadBalancerStats lbStats;
 
-    private volatile Counter counter;
+    private volatile Counter counter = Monitors.newCounter("LoadBalancer_ChooseServer");
 
     private PrimeConnections primeConnections;
 
@@ -109,7 +109,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         setRule(DEFAULT_RULE);
         setupPingTask();
         lbStats = new LoadBalancerStats(DEFAULT_NAME);
-        counter = createCounter();
     }
 
     public BaseLoadBalancer(String lbName, IRule rule, LoadBalancerStats lbStats) {
@@ -130,7 +129,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         setRule(rule);
         setupPingTask();
         lbStats = stats;
-        counter = createCounter();
         init();
     }
 

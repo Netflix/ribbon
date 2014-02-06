@@ -1,3 +1,21 @@
+/*
+ *
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.netflix.client.netty.http;
 
 import java.util.List;
@@ -15,11 +33,18 @@ import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.BaseLoadBalancer;
+import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.Server;
 import com.netflix.serialization.HttpSerializationContext;
 import com.netflix.serialization.SerializationFactory;
 
+/**
+ * Builder for NettyHttpClient.
+ * 
+ * @author awang
+ *
+ */
 public class NettyHttpClientBuilder {
 
     private NettyHttpClientBuilder() {}
@@ -77,7 +102,7 @@ public class NettyHttpClientBuilder {
         }
 
         @Override
-        public NettyHttpLoadBalancingClientBuilder withInitialServerList(
+        public NettyHttpLoadBalancingClientBuilder withFixedServerList(
                 List<Server> serverList) {
             Preconditions.checkNotNull(serverList);
             this.serverList = serverList;
@@ -94,12 +119,19 @@ public class NettyHttpClientBuilder {
             Preconditions.checkNotNull(clientBuilder.clientConfig);
             Preconditions.checkNotNull(errorHandler);
             if (lb == null) {
-                try {
-                    lb = ClientFactory.registerNamedLoadBalancerFromclientConfig(clientBuilder.clientConfig.getClientName(), 
-                            clientBuilder.clientConfig);
-                } catch (ClientException e) {
-                    throw new RuntimeException(e);
-                }                   
+                if (serverList == null) {
+                    try {
+                        lb = ClientFactory.registerNamedLoadBalancerFromclientConfig(clientBuilder.clientConfig.getClientName(), 
+                                clientBuilder.clientConfig);
+                    } catch (ClientException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    // we just create a simple load balancer for static server list
+                    lb = new BaseLoadBalancer(clientBuilder.clientConfig);
+                }
+            } else if (lb instanceof DynamicServerListLoadBalancer && serverList != null) {
+                throw new IllegalArgumentException("Cannot use static server list on DynamicServerListLoadBalancer");
             }
             if (serverList != null && (lb instanceof BaseLoadBalancer)) {
                 ((BaseLoadBalancer) lb).setServersList(serverList);
@@ -138,7 +170,7 @@ public class NettyHttpClientBuilder {
         return this;
     }
 
-    public NettyHttpLoadBalancingClientBuilder withInitialServerList(List<Server> serverList) {   
+    public NettyHttpLoadBalancingClientBuilder withFixedServerList(List<Server> serverList) {   
         Preconditions.checkNotNull(serverList);
         return new NettyHttpLoadBalancingClientBuilder(this, serverList);
     }

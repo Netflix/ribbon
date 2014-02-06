@@ -17,11 +17,22 @@
  */
 package com.netflix.serialization;
 
+
+/**
+ * A {@link SerializationFactory} that uses Jackson for serialization and deserialization. 
+ * It returns a {@link JacksonCodec} from the get methods if content-type from Http 
+ * headers is "application/json" or "text/event-stream" (for deserialization only). Otherwise it turns null. 
+ * The {@link TypeDef} parameter is not used.
+ *  
+ * @author awang
+ *
+ */
 public class JacksonSerializationFactory implements SerializationFactory<HttpSerializationContext>{
 
     @Override
     public <T extends Object> Deserializer<T> getDeserializer(HttpSerializationContext key, TypeDef<T> typeDef) {
-        if (key.getContentType().equalsIgnoreCase("application/json")) {
+        if (key.getContentType().equalsIgnoreCase("application/json")
+                || key.getContentType().equalsIgnoreCase("text/event-stream")) {
             return JacksonCodec.getInstance();
         }
         return null;
@@ -34,5 +45,4 @@ public class JacksonSerializationFactory implements SerializationFactory<HttpSer
         }
         return null;
     }
-
 }

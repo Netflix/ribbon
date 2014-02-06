@@ -1,6 +1,26 @@
+/*
+ *
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.client.netty;
 
 import static org.junit.Assert.*;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import java.net.URI;
 import java.util.IdentityHashMap;
@@ -15,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -192,6 +213,20 @@ public class NettyClientTest {
     }
     
     @Test
+    public void testBlockingFullResponse() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testAsync/person");
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        NettyHttpClient observableClient = new NettyHttpClient();
+        HttpResponse response = observableClient.execute(request, TypeDef.fromClass(HttpResponse.class));
+        try {
+            Person person = response.getEntity(TypeDef.fromClass(Person.class), JacksonCodec.<Person>getInstance());
+            assertEquals(EmbeddedResources.defaultPerson, person);
+        } finally {
+            response.close();
+        }
+    }
+
+    @Test
     public void testFullResponseWithDeserializer() throws Exception {
         URI uri = new URI(SERVICE_URI + "testAsync/person");
         HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
@@ -234,6 +269,30 @@ public class NettyClientTest {
         assertEquals(1, result.size());
         assertEquals(myPerson, result.get(0));
     }
+    
+    @Test
+    public void testPostWithByteBuf() throws Exception {
+        URI uri = new URI(SERVICE_URI + "testAsync/person");
+        Person myPerson = new Person("netty", 5);
+        ObjectMapper mapper = new ObjectMapper();
+        byte[] raw = mapper.writeValueAsBytes(myPerson);
+        ByteBuf buffer = Unpooled.copiedBuffer(raw);
+        HttpRequest request = HttpRequest.newBuilder().uri(uri).verb(Verb.POST).entity(buffer).header("Content-type", "application/json").build();
+        NettyHttpClient observableClient = new NettyHttpClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.ReadTimeout, 1000000));
+        final List<Person> result = Lists.newArrayList();
+        observableClient.createEntityObservable(request, TypeDef.fromClass(Person.class)).toBlockingObservable().forEach(new Action1<Person>() {
+            @Override
+            public void call(Person t1) {
+                try {
+                    result.add(t1);
+                } catch (Exception e) { // NOPMD
+                }
+            }
+        });
+        assertEquals(1, result.size());
+        assertEquals(myPerson, result.get(0));
+    }
+
 
     @Test
     public void testConnectTimeoutObservable() throws Exception {
@@ -336,7 +395,7 @@ public class NettyClientTest {
         NettyHttpLoadBalancingClient lbObservables = NettyHttpLoadBalancingClientBuilder.newBuilder()
                 .withClientConfig(config)
                 .withLoadBalancer(lb)
-                .withInitialServerList(servers)
+                .withFixedServerList(servers)
                 .build();
         lbObservables.setMaxAutoRetries(1);
         lbObservables.setMaxAutoRetriesNextServer(3);
@@ -371,7 +430,7 @@ public class NettyClientTest {
         NettyHttpLoadBalancingClient lbObservables = NettyHttpLoadBalancingClientBuilder.newBuilder()
                 .withClientConfig(config)
                 .withLoadBalancer(lb)
-                .withInitialServerList(servers)
+                .withFixedServerList(servers)
                 .build();
 
         lbObservables.setMaxAutoRetries(1);
@@ -567,7 +626,6 @@ public class NettyClientTest {
     public void testStreamWithLoadBalancer() throws Exception {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
         NettyHttpLoadBalancingClient lbObservables = new NettyHttpLoadBalancingClient(config);
-        IClientConfig requestconfig = new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance());
         HttpRequest request = HttpRequest.newBuilder().uri("/testAsync/personStream")
                 .build();
         final List<Person> result = Lists.newArrayList();
@@ -580,7 +638,7 @@ public class NettyClientTest {
         lbObservables.setMaxAutoRetries(1);
         lbObservables.setMaxAutoRetriesNextServer(3);
 
-        lbObservables.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class), requestconfig).toBlockingObservable().forEach(new Action1<ServerSentEvent<Person>>() {
+        lbObservables.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class)).toBlockingObservable().forEach(new Action1<ServerSentEvent<Person>>() {
             @Override
             public void call(ServerSentEvent<Person> t1) {
                 result.add(t1.getEntity());

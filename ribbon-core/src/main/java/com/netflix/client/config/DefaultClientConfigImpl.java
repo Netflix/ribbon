@@ -796,6 +796,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @Override
     public <T> T getPropertyWithType(IClientConfigKey<T> key) {
         Object obj = properties.get(key.key());
+        if (obj == null) {
+            return null;
+        }
         Class<T> type = key.type();
         try {
             return type.cast(obj);
