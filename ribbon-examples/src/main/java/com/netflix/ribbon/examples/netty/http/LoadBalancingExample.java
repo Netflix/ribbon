@@ -7,14 +7,15 @@ import rx.Observer;
 import com.google.common.collect.Lists;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
-import com.netflix.client.netty.http.NettyHttpClientBuilder.NettyHttpLoadBalancingClientBuilder;
+import com.netflix.client.netty.http.NettyHttpClient;
+import com.netflix.client.netty.http.NettyHttpClientBuilder;
 import com.netflix.client.netty.http.NettyHttpLoadBalancingClient;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.Server;
 
 public class LoadBalancingExample {
     public static void main(String[] args) throws Exception {
-        NettyHttpLoadBalancingClient client = NettyHttpLoadBalancingClientBuilder.newBuilder()
+        NettyHttpClient client = NettyHttpClientBuilder.newBuilder()
                 .withFixedServerList(Lists.newArrayList(new Server("www.google.com:80"), new Server("www.microsoft.com:80"), new Server("www.yahoo.com:80")))
                 .build();
         HttpRequest request = HttpRequest.newBuilder().uri("/").build();
@@ -40,6 +41,7 @@ public class LoadBalancingExample {
             client.observeHttpResponse(request, observer);
         }
         latch.await();        
-        System.out.println(((AbstractLoadBalancer) client.getLoadBalancer()).getLoadBalancerStats());
+        NettyHttpLoadBalancingClient lbClient = (NettyHttpLoadBalancingClient) client;
+        System.out.println(((AbstractLoadBalancer) lbClient.getLoadBalancer()).getLoadBalancerStats());
     }
 }
