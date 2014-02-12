@@ -20,7 +20,6 @@ package com.netflix.client;
 import java.net.URI;
 
 import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.ILoadBalancer;
 
 /**
  * An object that represents a common client request that is suitable for all communication protocol. 

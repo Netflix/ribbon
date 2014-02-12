@@ -40,6 +40,19 @@ subprojects {
 
 project(':ribbon-core') {
     dependencies {
+    }
+}
+
+project(':ribbon-http') {
+    dependencies {
+        compile project(':ribbon-core')    
+    }
+}
+
+
+project(':ribbon-loadbalancer') {
+    dependencies {
+        compile project(':ribbon-core')
         compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
         compile 'com.netflix.rxjava:rxjava-core:0.16.1'
     }
@@ -48,6 +61,8 @@ project(':ribbon-core') {
 project(':ribbon-httpclient') {
     dependencies {
         compile project(':ribbon-core')
+        compile project(':ribbon-http')
+        compile project(':ribbon-loadbalancer')
         compile 'org.apache.httpcomponents:httpclient:4.2.1' 
         compile 'com.sun.jersey:jersey-client:1.11'
         compile 'com.sun.jersey:jersey-core:1.11'
@@ -64,6 +79,9 @@ project(':ribbon-httpclient') {
 project(':ribbon-rxnetty') {
     dependencies {
         compile project(':ribbon-core')
+        compile project(':ribbon-http')
+        compile project(':ribbon-loadbalancer')
+        compile project(':ribbon-core')    
         compile 'com.netflix.rxnetty:rx-netty:0.2.4'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
@@ -74,25 +92,14 @@ project(':ribbon-rxnetty') {
 project(':ribbon-eureka') {   
     dependencies {
         compile project(':ribbon-core')
+        compile project(':ribbon-loadbalancer')
         compile 'com.netflix.eureka:eureka-client:1.1.107'
     }    
-}
-
-project(':ribbon-httpasyncclient') {
-    dependencies {
-        compile project(':ribbon-core')
-        compile 'org.apache.httpcomponents:httpasyncclient:4.0'
-        testCompile 'com.sun.jersey:jersey-server:1.11'
-        testCompile 'com.sun.jersey:jersey-core:1.11'        
-        testCompile 'asm:asm-all:3.2'
-        testCompile 'commons-io:commons-io:2.0.1' 
-    }
 }
 
 project(':ribbon-examples') {
     dependencies {
         compile project(':ribbon-httpclient')
-        compile project(':ribbon-httpasyncclient')
         compile project(':ribbon-rxnetty')
         compile 'com.google.code.gson:gson:2.2.4'
         compile 'com.thoughtworks.xstream:xstream:1.4.5'

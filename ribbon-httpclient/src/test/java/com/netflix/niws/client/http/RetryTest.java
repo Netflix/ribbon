@@ -30,6 +30,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpRequest.Verb;
 import com.netflix.client.http.HttpResponse;
@@ -37,6 +39,7 @@ import com.netflix.config.ConfigurationManager;
 import com.netflix.http4.MonitoredConnectionManager;
 import com.netflix.http4.NFHttpClient;
 import com.netflix.http4.NFHttpClientFactory;
+import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
 import com.netflix.loadbalancer.Server;
@@ -69,7 +72,10 @@ public class RetryTest {
         ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon.NFLoadBalancerClassName", BaseLoadBalancer.class.getName());
         ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon.client.NFLoadBalancerPingClassName", DummyPing.class.getName());
 
-        ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon.ReadTimeout", "5000");
+        ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon.ReadTimeout", "1000");
+        ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon." + CommonClientConfigKey.ConnectTimeout, "500");
+        ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon." + CommonClientConfigKey.OkToRetryOnAllOperations, "true");
+
         client = (RestClient) ClientFactory.getNamedClient("RetryTest");
 
         lb = (BaseLoadBalancer) client.getLoadBalancer();
@@ -91,6 +97,8 @@ public class RetryTest {
         client.setMaxAutoRetriesNextServer(0);
         client.setOkToRetryOnAllOperations(false);
         lb.setServersList(Lists.newArrayList(localServer));
+        // reset the server index
+        lb.setRule(new AvailabilityFilteringRule());
         lb.getLoadBalancerStats().getSingleServerStat(localServer).clearSuccessiveConnectionFailureCount();
     }
     
@@ -123,11 +131,10 @@ public class RetryTest {
     @Test
     public void testThrottledWithRetryNextServer() throws Exception {
         int connectionCount = connectionPoolManager.getConnectionsInPool();
-        client.setMaxAutoRetriesNextServer(2);
         URI localUrl = new URI("/test/get503");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request);
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -140,11 +147,10 @@ public class RetryTest {
       
     @Test
     public void testReadTimeout() throws Exception {
-        client.setMaxAutoRetriesNextServer(2);
         URI localUrl = new URI("/test/getReadtimeout");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request);
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -153,11 +159,10 @@ public class RetryTest {
     
     @Test
     public void testReadTimeoutWithRetriesNextServe() throws Exception {
-        client.setMaxAutoRetriesNextServer(2);
         URI localUrl = new URI("/test/getReadtimeout");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request);
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -166,11 +171,10 @@ public class RetryTest {
 
     @Test
     public void postReadTimeout() throws Exception {
-        client.setMaxAutoRetriesNextServer(2);
         URI localUrl = new URI("/test/postReadtimeout");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).build();
         try {
-            client.executeWithLoadBalancer(request);
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -180,28 +184,42 @@ public class RetryTest {
     
     
     @Test
-    public void testAggressiveRetries() throws Exception {
-        client.setMaxAutoRetriesNextServer(2);
-        client.setOkToRetryOnAllOperations(true);
+    public void testRetriesOnPost() throws Exception {
         URI localUrl = new URI("/test/postReadtimeout");
-        HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).build();
+        HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).setRetriable(true).build();
         try {
-            client.executeWithLoadBalancer(request);
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
         ServerStats stats = lb.getLoadBalancerStats().getSingleServerStat(localServer); 
+        // No retry because Read timeout is not retriable by default for POST
+        assertEquals(1, stats.getSuccessiveConnectionFailureCount());
+    }
+    
+    @Test
+    public void testRetriesOnPostWithConnectException() throws Exception {
+        URI localUrl = new URI("/test");
+        lb.setServersList(Lists.newArrayList(new Server("www.google.com:81")));
+        HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).setRetriable(true).build();
+        try {
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            fail("Exception expected");
+        } catch (ClientException e) { // NOPMD
+        }
+        ServerStats stats = lb.getLoadBalancerStats().getSingleServerStat(new Server("www.google.com:81")); 
+        // No retry because Read timeout is not retriable by default for POST
         assertEquals(3, stats.getSuccessiveConnectionFailureCount());
     }
+
     
     @Test
     public void testSuccessfulRetries() throws Exception {
         lb.setServersList(Lists.newArrayList(new Server("localhost:12987"), new Server("localhost:12987"), localServer));
-        client.setMaxAutoRetriesNextServer(2);
         URI localUrl = new URI("/test/getObject");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).queryParams("name", "ribbon").build();
         try {
-            HttpResponse response = client.executeWithLoadBalancer(request);
+            HttpResponse response = client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             assertEquals(200, response.getStatus());
         } catch (ClientException e) { 
             fail("Unexpected exception");

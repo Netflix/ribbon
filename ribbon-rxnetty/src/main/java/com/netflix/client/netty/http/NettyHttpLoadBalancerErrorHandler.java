@@ -24,39 +24,36 @@ import java.util.List;
 
 
 import com.google.common.collect.Lists;
-import com.netflix.client.LoadBalancerContext;
-import com.netflix.client.LoadBalancerErrorHandler;
-import com.netflix.client.http.HttpRequest;
+import com.netflix.client.DefaultLoadBalancerErrorHandler;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.UnexpectedHttpResponseException;
 
-public class NettyHttpLoadBalancerErrorHandler implements LoadBalancerErrorHandler<HttpRequest, HttpResponse> {
+public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerErrorHandler {
 
     @SuppressWarnings("unchecked")
-    protected List<Class<? extends Throwable>> retriable = 
+    private List<Class<? extends Throwable>> retriable = 
             Lists.<Class<? extends Throwable>>newArrayList(ConnectException.class, SocketTimeoutException.class, 
                     io.netty.handler.timeout.ReadTimeoutException.class, io.netty.channel.ConnectTimeoutException.class);
     
     @SuppressWarnings("unchecked")
-    protected List<Class<? extends Throwable>> circuitRelated = 
+    private List<Class<? extends Throwable>> circuitRelated = 
             Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class, 
                     io.netty.handler.timeout.ReadTimeoutException.class, io.netty.channel.ConnectTimeoutException.class);
     
-    /**
-     * @return true if request is retriable and the Throwable has any of the following type of exception as a cause: 
-     * {@link ConnectException}, {@link SocketTimeoutException}, {@link NoHttpResponseException}, {@link ConnectionPoolTimeoutException}
-     * 
-     */
-    @Override
-    public boolean isRetriableException(HttpRequest request, Throwable e,
-            boolean sameServer) {
-        if (request.isRetriable() && LoadBalancerContext.isPresentAsCause(e, retriable)) {
-            return true;
-        } else {
-            return false;
-        }
+    public NettyHttpLoadBalancerErrorHandler() {
+        super();
     }
 
+    public NettyHttpLoadBalancerErrorHandler(IClientConfig clientConfig) {
+        super(clientConfig);
+    }
+    
+    public NettyHttpLoadBalancerErrorHandler(int retrySameServer, int retryNextServer, boolean retryEnabled) {
+        super(retrySameServer, retryNextServer, retryEnabled);
+    }
+    
     /**
      * @return true if the Throwable has one of the following exception type as a cause: 
      * {@link SocketException}, {@link SocketTimeoutException}
@@ -67,7 +64,7 @@ public class NettyHttpLoadBalancerErrorHandler implements LoadBalancerErrorHandl
             HttpResponse response = ((UnexpectedHttpResponseException) e).getResponse();
             return isCircuitTrippinResponse(response);
         }
-        return LoadBalancerContext.isPresentAsCause(e, circuitRelated);
+        return super.isCircuitTrippingException(e);
     }
 
     /**
@@ -79,5 +76,15 @@ public class NettyHttpLoadBalancerErrorHandler implements LoadBalancerErrorHandl
             return false;
         }
         return ((HttpResponse) response).getStatus() == 503;
+    }
+
+    @Override
+    protected List<Class<? extends Throwable>> getRetriableExceptions() {
+        return retriable;
+    }
+
+    @Override
+    protected List<Class<? extends Throwable>> getCircuitRelatedExceptions() {
+        return circuitRelated;
     }
 }

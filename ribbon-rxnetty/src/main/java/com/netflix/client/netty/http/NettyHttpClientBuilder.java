@@ -25,7 +25,7 @@ import io.netty.bootstrap.Bootstrap;
 import com.google.common.base.Preconditions;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
-import com.netflix.client.LoadBalancerErrorHandler;
+import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -57,7 +57,7 @@ public class NettyHttpClientBuilder {
         private final NettyHttpClientBuilder clientBuilder;
         private ILoadBalancer lb;
         private List<Server> serverList;
-        private LoadBalancerErrorHandler<HttpRequest, HttpResponse> errorHandler = new NettyHttpLoadBalancerErrorHandler();
+        private RetryHandler errorHandler;
 
         private NettyHttpLoadBalancingClientBuilder(NettyHttpClientBuilder clientBuilder, ILoadBalancer lb) {
             this.clientBuilder = clientBuilder;
@@ -69,7 +69,7 @@ public class NettyHttpClientBuilder {
             this.serverList = serverList;
         }
 
-        public NettyHttpLoadBalancingClientBuilder withLoadBalancerErrorHandler(LoadBalancerErrorHandler<HttpRequest, HttpResponse> errorHandler) {
+        public NettyHttpLoadBalancingClientBuilder withLoadBalancerErrorHandler(RetryHandler errorHandler) {
             Preconditions.checkNotNull(errorHandler);
             this.errorHandler = errorHandler;
             return this;
@@ -136,9 +136,11 @@ public class NettyHttpClientBuilder {
             if (serverList != null && (lb instanceof BaseLoadBalancer)) {
                 ((BaseLoadBalancer) lb).setServersList(serverList);
             }
-            NettyHttpLoadBalancingClient client = new NettyHttpLoadBalancingClient(clientBuilder.clientConfig, 
+            if (errorHandler == null) {
+                errorHandler = new NettyHttpLoadBalancerErrorHandler(clientBuilder.clientConfig);
+            }
+            NettyHttpLoadBalancingClient client = new NettyHttpLoadBalancingClient(lb, clientBuilder.clientConfig, 
                     errorHandler, clientBuilder.serializationFactory, clientBuilder.bootStrap);
-            client.setLoadBalancer(lb);
             return client;
         }
     }

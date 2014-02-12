@@ -110,7 +110,7 @@ public class NettyHttpClient implements Closeable {
     private IClientConfig config;
     private Bootstrap bootStrap;
     
-    public static IClientConfigKey<Boolean> AutoRetainResponse = new CommonClientConfigKey<Boolean>("AutoRetainResponse"){};
+    public static final IClientConfigKey<Boolean> AutoRetainResponse = new CommonClientConfigKey<Boolean>("AutoRetainResponse"){};
     
     public NettyHttpClient() {
         this(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), new JacksonSerializationFactory(), 
