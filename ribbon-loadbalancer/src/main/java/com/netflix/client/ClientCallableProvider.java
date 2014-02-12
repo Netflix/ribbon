@@ -1,6 +1,5 @@
 package com.netflix.client;
 
-import java.util.concurrent.Callable;
 
 import com.netflix.loadbalancer.Server;
 

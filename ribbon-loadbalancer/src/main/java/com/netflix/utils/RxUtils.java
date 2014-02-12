@@ -10,7 +10,7 @@ public class RxUtils {
 
             @Override
             public Observable<T> call(Throwable t1) {
-                if (t1 instanceof RuntimeException) {
+                if ((t1 instanceof RuntimeException) && t1.getCause() != null) {
                     return Observable.error(t1.getCause());
                 } else {
                     return Observable.error(t1);

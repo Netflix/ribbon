@@ -328,61 +328,6 @@ public class NettyClientTest {
         assertTrue(personObserver.error instanceof io.netty.handler.timeout.ReadTimeoutException);      
     }
     
-    
-    @Test
-    public void testSameServerObservable() throws Exception {
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1");
-        final NettyHttpClient observableClient = new NettyHttpClient(config);
-        final HttpRequest request = HttpRequest.newBuilder().uri("http://www.google.com:81/").build();
-        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
-        LoadBalancerExecutor lbObservables = new LoadBalancerExecutor(lb, config);
-        lbObservables.setLoadBalancer(lb);
-        lbObservables.setMaxAutoRetries(2);
-        // lbObservables.setErrorHandler(new NettyHttpLoadBalancerErrorHandler());
-        Observable<HttpResponse> observableWithRetries = lbObservables.retrySameServer(new Server(request.getUri().getAuthority()), new ClientObservableProvider<HttpResponse>() {
-
-            @Override
-            public Observable<HttpResponse> getObservableForEndpoint(Server server) {
-                return observableClient.createEntityObservable(request, TypeDef.fromClass(HttpResponse.class));
-            }
-        }, new NettyHttpLoadBalancerErrorHandler(2, 0, true));  
-        ObserverWithLatch<HttpResponse> observer = new ObserverWithLatch<HttpResponse>();
-        observableWithRetries.subscribe(observer);
-        observer.await();
-        ServerStats stats = lbObservables.getServerStats(new Server("www.google.com:81"));
-        assertEquals(3, stats.getTotalRequestsCount());
-        assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(3, stats.getSuccessiveConnectionFailureCount());
-    }
-    
-    @Test
-    public void testSameServerObservableWithSuccess() throws Exception {
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
-        final NettyHttpClient observableClient = new NettyHttpClient(config);
-        final HttpRequest request = HttpRequest.newBuilder().uri("http://www.google.com:80/").build();
-        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
-        LoadBalancerExecutor lbObservables = new LoadBalancerExecutor(lb, config);
-        lbObservables.setLoadBalancer(lb);
-        lbObservables.setMaxAutoRetries(1);
-        // lbObservables.setErrorHandler(new NettyHttpLoadBalancerErrorHandler());
-        Observable<HttpResponse> observableWithRetries = lbObservables.retrySameServer(new Server(request.getUri().getAuthority()),  new ClientObservableProvider<HttpResponse>() {
-
-            @Override
-            public Observable<HttpResponse> getObservableForEndpoint(
-                    Server server) {
-                return observableClient.createEntityObservable(request, TypeDef.fromClass(HttpResponse.class));
-            }
-        }, new NettyHttpLoadBalancerErrorHandler());  
-        ObserverWithLatch<HttpResponse> observer = new ObserverWithLatch<HttpResponse>();
-        observableWithRetries.subscribe(observer);
-        observer.await();
-        assertEquals(200, observer.obj.getStatus());
-        ServerStats stats = lbObservables.getServerStats(new Server("www.google.com:80"));
-        assertEquals(1, stats.getTotalRequestsCount());
-        assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(0, stats.getSuccessiveConnectionFailureCount());
-    }
-    
     @Test
     public void testObservableWithMultipleServers() throws Exception {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");

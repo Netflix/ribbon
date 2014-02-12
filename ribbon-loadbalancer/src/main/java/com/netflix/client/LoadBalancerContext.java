@@ -439,9 +439,7 @@ public class LoadBalancerContext implements IClientConfigAware {
      * <li> if host is missing but none of the above applies, throws ClientException
      * 
      * @param original Original URI passed from caller
-     * @return new request with the final URI  
      */
-    @SuppressWarnings("unchecked")
     protected Server getServerFromLoadBalancer(@Nullable URI original, @Nullable Object loadBalancerKey) throws ClientException {
         String host = null;
         int port = -1;

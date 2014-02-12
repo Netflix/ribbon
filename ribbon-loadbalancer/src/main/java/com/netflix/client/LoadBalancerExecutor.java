@@ -144,15 +144,42 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         
     }
 
-    public <T> T retryWithLoadBalancer(final URI loadBalancerURI, final ClientCallableProvider<T> clientCallableProvider, 
-            @Nullable final RetryHandler errorHandler, @Nullable final Object loadBalancerKey) throws Exception {
+    /**
+     * Retry execution with load balancer with the given {@link ClientCallableProvider} that provides the logic to
+     * execute network call synchronously with a given {@link Server}. 
+     * 
+     * @param clientCallableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     * @param loadBalancerURI An optional URI that may contain a real host name and port to use as a fallback to the {@link LoadBalancerExecutor} 
+     *                        if it does not have a load balancer or cannot find a server from its server list. For example, the URI contains
+     *                        "www.google.com:80" will force the {@link LoadBalancerExecutor} to use www.google.com:80 as the actual server to
+     *                        carry out the retry execution. See {@link LoadBalancerContext#getServerFromLoadBalancer(URI, Object)}
+     * @param retryHandler  an optional handler to determine the retry logic of the {@link LoadBalancerExecutor}. If null, the default {@link RetryHandler}
+     *                   of this {@link LoadBalancerExecutor} will be used.
+     * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
+     * @throws Exception If any exception happens in the exception
+     */
+    public <T> T retryWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, @Nullable final URI loadBalancerURI, 
+            @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) throws Exception {
         return RxUtils.getSingleValueWithRealErrorCause(
-                retryWithLoadBalancer(loadBalancerURI, CallableToObservable.toObsevableProvider(clientCallableProvider), 
-                errorHandler, loadBalancerKey));
+                retryWithLoadBalancer(CallableToObservable.toObsevableProvider(clientCallableProvider), loadBalancerURI, 
+                retryHandler, loadBalancerKey));
     }
     
-    public <T> Observable<T> retryWithLoadBalancer(final URI loadBalancerURI, final ClientObservableProvider<T> clientObservableProvider, 
-            @Nullable final RetryHandler errorHandler, @Nullable final Object loadBalancerKey) {
+    /**
+     * Create an {@link Observable} that retries execution with load balancer with the given {@link ClientObservableProvider} that provides the logic to
+     * execute network call asynchronously with a given {@link Server}. 
+     * 
+     * @param clientObservableProvider interface that provides the logic to execute network call asynchronously with a given {@link Server}
+     * @param loadBalancerURI An optional URI that may contain a real host name and port to be used by {@link LoadBalancerExecutor} 
+     *                        if it does not have a load balancer or cannot find a server from its server list. For example, the URI contains
+     *                        "www.google.com:80" will force the {@link LoadBalancerExecutor} to use www.google.com:80 as the actual server to
+     *                        carry out the retry execution. See {@link LoadBalancerContext#getServerFromLoadBalancer(URI, Object)}
+     * @param retryHandler  an optional handler to determine the retry logic of the {@link LoadBalancerExecutor}. If null, the default {@link RetryHandler}
+     *                   of this {@link LoadBalancerExecutor} will be used.
+     * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
+     */
+    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final URI loadBalancerURI, 
+            @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
             public Subscription onSubscribe(final Observer<? super T> t1) {
@@ -164,15 +191,15 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                     t1.onError(e);
                     return Subscriptions.empty();
                 }
-                return retrySameServer(server, clientObservableProvider, errorHandler).subscribe(t1);
+                return retrySameServer(server, clientObservableProvider, retryHandler).subscribe(t1);
             }
         };
         Observable<T> observable = Observable.create(onSubscribe);
-        RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(loadBalancerURI, onSubscribe, errorHandler);
+        RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(loadBalancerURI, onSubscribe, retryHandler);
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     
-    public <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
+    protected <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
         final ServerStats serverStats = getServerStats(server); 
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
