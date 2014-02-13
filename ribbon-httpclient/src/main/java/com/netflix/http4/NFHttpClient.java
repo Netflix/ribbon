@@ -84,6 +84,9 @@ public class NFHttpClient extends DefaultHttpClient {
 	
 	private Timer tracer; 
 
+	private DynamicIntProperty maxTotalConnectionProperty;
+	private DynamicIntProperty maxConnectionPerHostProperty;
+	
 	protected NFHttpClient(String host, int port){
 		super(new ThreadSafeClientConnManager());
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
@@ -136,6 +139,22 @@ public class NFHttpClient extends DefaultHttpClient {
 	    if (registerMonitor) {
             Monitors.registerObject(name, this);
 	    }
+	    maxTotalConnectionProperty = new DynamicIntProperty(this.name + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxTotalHttpConnections.key(), 
+	            DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS);
+	    maxTotalConnectionProperty.addCallback(new Runnable() {
+            @Override
+            public void run() {
+                ((ThreadSafeClientConnManager) getConnectionManager()).setMaxTotal(maxTotalConnectionProperty.get());
+            }
+	    });
+	    maxConnectionPerHostProperty = new DynamicIntProperty(this.name + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxHttpConnectionsPerHost.key(), 
+	            DefaultClientConfigImpl.DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST);
+	    maxConnectionPerHostProperty.addCallback(new Runnable() {
+            @Override
+            public void run() {
+                ((ThreadSafeClientConnManager) getConnectionManager()).setDefaultMaxPerRoute(maxConnectionPerHostProperty.get());
+            }
+        });
 	}
 
 	public void initConnectionCleanerTask(){
