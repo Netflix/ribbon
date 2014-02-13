@@ -64,7 +64,7 @@ project(':ribbon-httpclient') {
 project(':ribbon-eureka') {   
     dependencies {
         compile project(':ribbon-core')
-        compile 'com.netflix.eureka:eureka-client:1.1.107'
+        compile 'com.netflix.eureka:eureka-client:1.1.126'
     }    
 }
 
