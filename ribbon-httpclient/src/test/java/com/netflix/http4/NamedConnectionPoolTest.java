@@ -28,10 +28,13 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.junit.Test;
 
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.config.ConfigurationManager;
+
 public class NamedConnectionPoolTest {
     @Test
     public void testConnectionPoolCounters() throws Exception {
-        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         NFHttpClient client = NFHttpClientFactory.getNamedNFHttpClient("google-NamedConnectionPoolTest");
         assertTrue(client.getConnectionManager() instanceof MonitoredConnectionManager);
         MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) client.getConnectionManager(); 
@@ -62,6 +65,10 @@ public class NamedConnectionPoolTest {
         assertEquals(0, connectionPool.getDeleteCount());
         assertEquals(connectionPool.getReleaseCount(), connectionPool.getRequestsCount());
         assertEquals(connectionPool.getRequestsCount(), connectionPool.getCreatedEntryCount() + connectionPool.getFreeEntryCount());
+        ConfigurationManager.getConfigInstance().setProperty("google-NamedConnectionPoolTest.ribbon." + CommonClientConfigKey.MaxTotalHttpConnections.key(), "50");
+        ConfigurationManager.getConfigInstance().setProperty("google-NamedConnectionPoolTest.ribbon." + CommonClientConfigKey.MaxHttpConnectionsPerHost.key(), "10");
+        assertEquals(50, connectionPoolManager.getMaxTotal());
+        assertEquals(10, connectionPoolManager.getDefaultMaxPerRoute());
 
     }
 
