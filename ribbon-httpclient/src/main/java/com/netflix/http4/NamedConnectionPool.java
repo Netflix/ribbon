@@ -121,9 +121,9 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     @Override
     protected BasicPoolEntry createEntry(RouteSpecificPool rospl,
             ClientConnectionOperator op) {
+        createEntryCounter.increment();
         Stopwatch stopWatch = creationTimer.start();
         try {
-            createEntryCounter.increment();
             return super.createEntry(rospl, op);
         } finally {
             stopWatch.stop();
