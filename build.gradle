@@ -82,7 +82,7 @@ project(':ribbon-rxnetty') {
         compile project(':ribbon-http')
         compile project(':ribbon-loadbalancer')
         compile project(':ribbon-core')    
-        compile 'com.netflix.rxnetty:rx-netty:0.2.4'
+        compile 'com.netflix.rxnetty:rx-netty:0.2.6'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }
