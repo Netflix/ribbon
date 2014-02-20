@@ -22,6 +22,7 @@ import static org.junit.Assert.*;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
@@ -34,6 +35,7 @@ public class DynamicServerListLoadBalancerTest {
     public static class MyServerList extends AbstractServerList<Server> {
 
         public final static CountDownLatch latch = new CountDownLatch(5);
+        public final static AtomicInteger counter = new AtomicInteger(0);
         
         public static final List<Server> list = Lists.newArrayList(new Server("www.google.com:80"));
         
@@ -50,6 +52,7 @@ public class DynamicServerListLoadBalancerTest {
 
         @Override
         public List<Server> getUpdatedListOfServers() {
+            counter.incrementAndGet();
             latch.countDown();
             return list;
         }
@@ -61,7 +64,7 @@ public class DynamicServerListLoadBalancerTest {
     }
 
     @Test
-    public void testDynamicServerListLoadBalancer() {
+    public void testDynamicServerListLoadBalancer() throws Exception {
         DefaultClientConfigImpl config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
         config.setProperty(CommonClientConfigKey.NIWSServerListClassName, MyServerList.class.getName());
         config.setProperty(CommonClientConfigKey.NFLoadBalancerClassName, DynamicServerListLoadBalancer.class.getName());
@@ -72,6 +75,13 @@ public class DynamicServerListLoadBalancerTest {
         } catch (InterruptedException e) { // NOPMD
         }
         assertEquals(lb.getServerList(false), MyServerList.list);
+        lb.stopServerListRefreshing();
+        Thread.sleep(1000);
+        int count = MyServerList.counter.get();
+        assertTrue(count >= 5);
+        Thread.sleep(1000);
+        assertEquals(count, MyServerList.counter.get());
+        
     }
 }
 

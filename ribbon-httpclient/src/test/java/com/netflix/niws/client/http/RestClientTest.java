@@ -30,6 +30,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
@@ -50,15 +51,14 @@ public class RestClientTest {
 
     @Test
     public void testExecuteWithLB() throws Exception {
+        ConfigurationManager.getConfigInstance().setProperty("allservices.ribbon." + CommonClientConfigKey.ReadTimeout, "10000");
         RestClient client = (RestClient) ClientFactory.getNamedClient("allservices");
         BaseLoadBalancer lb = new BaseLoadBalancer();
-        Server[] servers = new Server[]{new Server("www.google.com", 80), new Server("www.yahoo.com", 80), new Server("www.microsoft.com", 80)};
+        Server[] servers = new Server[]{new Server("www.google.com", 80)};
         lb.addServers(Arrays.asList(servers));
         client.setLoadBalancer(lb);
         Set<URI> expected = new HashSet<URI>();
         expected.add(new URI("http://www.google.com:80/"));
-        expected.add(new URI("http://www.microsoft.com:80/"));
-        expected.add(new URI("http://www.yahoo.com:80/"));
         Set<URI> result = new HashSet<URI>();
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         for (int i = 0; i < 5; i++) {
