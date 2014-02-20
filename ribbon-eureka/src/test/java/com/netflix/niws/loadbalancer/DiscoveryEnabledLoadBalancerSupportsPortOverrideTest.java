@@ -260,10 +260,6 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         Assert.assertEquals(8001, serverList2.get(0).getPort());                           // client property indicated in ii
         Assert.assertEquals(8001, serverList2.get(0).getInstanceInfo().getPort());         // client property indicated in ii
         Assert.assertEquals(7002, serverList2.get(0).getInstanceInfo().getSecurePort());   // 7002 is the secure default
-
-
-
-
     }
 
 
