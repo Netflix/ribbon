@@ -11,7 +11,16 @@ import com.thoughtworks.xstream.XStream;
 
 public class XmlCodec<T extends Object> implements Serializer<T>, Deserializer<T> {
 
-    XStream xstream = new XStream();
+    static XStream xstream = new XStream();
+    
+    static XmlCodec instance = new XmlCodec();
+    
+    private XmlCodec() {
+    }
+    
+    public static <T> XmlCodec<T> getInstance() {
+        return instance;
+    }
 
     @SuppressWarnings("unchecked")
     @Override

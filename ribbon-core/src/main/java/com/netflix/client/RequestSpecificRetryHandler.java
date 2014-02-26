@@ -1,23 +1,30 @@
 package com.netflix.client;
 
+import java.net.SocketException;
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 
-public class RequestSpecificRetryHandler<T extends ClientRequest> implements RetryHandler {
+public class RequestSpecificRetryHandler implements RetryHandler {
 
-    protected final T request;
     private final RetryHandler fallback;
     private int retrySameServer = -1;
     private int retryNextServer = -1;
-
+    private final boolean okToRetryOnConnectErrors;
+    private final boolean okToRetryOnAllErrors;
     
-    public RequestSpecificRetryHandler(T request, @Nullable IClientConfig requestConfig, RetryHandler delegate) {
-        Preconditions.checkNotNull(request);
+    protected List<Class<? extends Throwable>> connectionRelated = 
+            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class);
+
+    public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors, @Nullable IClientConfig requestConfig, RetryHandler delegate) {
         Preconditions.checkNotNull(delegate);
-        this.request = request;
+        this.okToRetryOnConnectErrors = okToRetryOnConnectErrors;
+        this.okToRetryOnAllErrors = okToRetryOnAllErrors;
         this.fallback = delegate;
         if (requestConfig != null) {
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetries)) {
@@ -29,9 +36,20 @@ public class RequestSpecificRetryHandler<T extends ClientRequest> implements Ret
         }
     }
     
+    public boolean isConnectionException(Throwable e) {
+        return Utils.isPresentAsCause(e, connectionRelated);
+    }
+
     @Override
     public boolean isRetriableException(Throwable e, boolean sameServer) {
-        return request.isRetriable() && fallback.isRetriableException(e, sameServer);
+        if (!fallback.isRetriableException(e, sameServer)) {
+            return false;
+        } 
+        if (okToRetryOnAllErrors) {
+            return true;
+        } else {
+            return okToRetryOnConnectErrors && isConnectionException(e);
+        }
     }
 
     @Override

@@ -31,6 +31,8 @@ import java.net.ConnectException;
  */
 public interface RetryHandler {
 
+    public static final RetryHandler DEFAULT = new DefaultLoadBalancerErrorHandler();
+    
     /**
      * Test if an exception is retriable for the load balancer
      * 
@@ -60,5 +62,6 @@ public interface RetryHandler {
     public int getMaxRetriesOnSameServer();
     
     public int getMaxRetriesOnNextServer();
+    
 }
 

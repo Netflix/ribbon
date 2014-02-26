@@ -106,7 +106,7 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
             }
         };
         
-        RequestSpecificRetryHandler<S> handler = getRequestSpecificRetryHandler(request, requestConfig);
+        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
         
         try {
             return RxUtils.getSingleValueWithRealErrorCause(retrySameServer(new Server(host, port), toObsevableProvider(callableProvider), handler));
@@ -142,7 +142,7 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
                 return execute(requestForServer, requestConfig);
             }
         };
-        RequestSpecificRetryHandler<S> handler = getRequestSpecificRetryHandler(request, requestConfig);
+        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
         
         try {
             return RxUtils.getSingleValueWithRealErrorCause(retryWithLoadBalancer(toObsevableProvider(callableProvider), request.getUri(), handler, request.getLoadBalancerKey()));
@@ -156,7 +156,7 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
         
     }
     
-    public abstract RequestSpecificRetryHandler<S> getRequestSpecificRetryHandler(S request, IClientConfig requestConfig);
+    public abstract RequestSpecificRetryHandler getRequestSpecificRetryHandler(S request, IClientConfig requestConfig);
 
     @Deprecated
     protected boolean isRetriable(S request) {

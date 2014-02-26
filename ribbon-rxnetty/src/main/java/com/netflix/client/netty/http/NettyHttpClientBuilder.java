@@ -117,7 +117,6 @@ public class NettyHttpClientBuilder {
         @Override
         public NettyHttpLoadBalancingClient build() {
             Preconditions.checkNotNull(clientBuilder.clientConfig);
-            Preconditions.checkNotNull(errorHandler);
             if (lb == null) {
                 if (serverList == null) {
                     try {

@@ -9,16 +9,26 @@ import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.Utils;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.http.HttpRequest.Verb;
 
-public class HttpRequestRetryHandler extends RequestSpecificRetryHandler<HttpRequest>{
+public class HttpRequestRetryHandler extends RequestSpecificRetryHandler{
+
+    public HttpRequestRetryHandler(boolean okToRetryOnConnectErrors,
+            boolean okToRetryOnAllErrors, IClientConfig requestConfig,
+            RetryHandler delegate) {
+        super(okToRetryOnConnectErrors, okToRetryOnAllErrors, requestConfig, delegate);
+        // TODO Auto-generated constructor stub
+    }
+    /*
     @SuppressWarnings("unchecked")
     protected List<Class<? extends Throwable>> connectionRelated = 
             Lists.<Class<? extends Throwable>>newArrayList(SocketException.class);
 
-    public HttpRequestRetryHandler(HttpRequest request,
-            IClientConfig requestConfig, RetryHandler delegate) {
-        super(request, requestConfig, delegate);
+    private final String httpMethod;
+    
+    public HttpRequestRetryHandler(boolean okToRetryOnRequest,
+            String httpMethod, IClientConfig requestConfig, RetryHandler delegate) {
+        super(okToRetryOnRequest, requestConfig, delegate);
+        this.httpMethod = httpMethod;
     }
 
     public boolean isConnectionException(Throwable e) {
@@ -28,9 +38,9 @@ public class HttpRequestRetryHandler extends RequestSpecificRetryHandler<HttpReq
     @Override
     public boolean isRetriableException(Throwable e, boolean sameServer) {
         boolean retryable = super.isRetriableException(e, sameServer);
-        if(retryable && request.getVerb() != Verb.GET) {
+        if(retryable && httpMethod.equalsIgnoreCase("GET")) {
             return isConnectionException(e);
         }
         return retryable;
-    }
+    } */
 }

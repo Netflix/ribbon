@@ -1,5 +1,8 @@
 package com.netflix.ribbon.examples.netty.http;
 
+import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.protocol.http.client.HttpRequest;
+
 import java.net.URI;
 import java.util.Map;
 
@@ -8,7 +11,6 @@ import rx.util.functions.Action1;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.UnexpectedHttpResponseException;
 import com.netflix.client.netty.http.NettyHttpClient;
 import com.netflix.client.netty.http.NettyHttpClientBuilder;
@@ -20,13 +22,12 @@ public class EntityDeserializationExample extends ExampleAppWithLocalResource {
 
     @Override
     public void run() throws Exception {
-        URI uri = new URI(SERVICE_URI + "testAsync/person");
-        HttpRequest request = HttpRequest.newBuilder().uri(uri).build();
+        HttpRequest<ByteBuf> request = HttpRequest.createGet(SERVICE_URI + "testAsync/person");
         NettyHttpClient observableClient = NettyHttpClientBuilder.newBuilder()
                 .build();
 
         // deserialize using the default Jackson deserializer
-        observableClient.createEntityObservable(request, TypeDef.fromClass(Person.class)).toBlockingObservable().forEach(new Action1<Person>() {
+        observableClient.createEntityObservable("localhost", port, request, TypeDef.fromClass(Person.class), null).toBlockingObservable().forEach(new Action1<Person>() {
             @Override
             public void call(Person t1) {
                 try {
@@ -38,7 +39,7 @@ public class EntityDeserializationExample extends ExampleAppWithLocalResource {
         });
 
         // deserialize as Map using the default Jackson deserializer
-        observableClient.createEntityObservable(request, new TypeDef<Map<String, Object>>(){})
+        observableClient.createEntityObservable("localhost", port, request, new TypeDef<Map<String, Object>>(){}, null)
         .toBlockingObservable()
         .forEach(new Action1<Map<String, Object>>() {
             @Override
@@ -53,9 +54,9 @@ public class EntityDeserializationExample extends ExampleAppWithLocalResource {
 
         // deserialize using Xml deserializer
         IClientConfig requestConfig = DefaultClientConfigImpl.getEmptyConfig()
-                .setPropertyWithType(IClientConfigKey.CommonKeys.Deserializer, new XmlCodec<Person>());
-        request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/getXml").build();
-        observableClient.createEntityObservable(request, TypeDef.fromClass(Person.class), requestConfig)
+                .setPropertyWithType(IClientConfigKey.CommonKeys.Deserializer, XmlCodec.<Person>getInstance());
+        request = HttpRequest.createGet(SERVICE_URI + "testAsync/getXml");
+        observableClient.createEntityObservable("localhost", port, request, TypeDef.fromClass(Person.class), requestConfig)
         .toBlockingObservable()
         .forEach(new Action1<Person>() {
             @Override
@@ -69,8 +70,8 @@ public class EntityDeserializationExample extends ExampleAppWithLocalResource {
         });
 
         // URI does not exist, will get UnexpectedResponseException
-        request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/NotFound").build();
-        observableClient.createEntityObservable(request, TypeDef.fromClass(Person.class))
+        request = HttpRequest.createGet(SERVICE_URI + "testAsync/NotFound");
+        observableClient.createEntityObservable("localhost", port, request, TypeDef.fromClass(Person.class), null)
         .subscribe(new Action1<Person>() {
             @Override
             public void call(Person t1) {
@@ -86,7 +87,6 @@ public class EntityDeserializationExample extends ExampleAppWithLocalResource {
                 if (t1 instanceof UnexpectedHttpResponseException) {
                     UnexpectedHttpResponseException ex = (UnexpectedHttpResponseException) t1;
                     System.out.println(ex.getStatusCode());
-                    System.out.println(ex.getResponse().getStatusLine());
                 }
             }
 

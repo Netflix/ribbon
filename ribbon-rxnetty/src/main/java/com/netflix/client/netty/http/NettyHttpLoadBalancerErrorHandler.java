@@ -17,6 +17,8 @@
  */
 package com.netflix.client.netty.http;
 
+import io.reactivex.netty.protocol.http.client.HttpResponse;
+
 import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -27,7 +29,6 @@ import com.google.common.collect.Lists;
 import com.netflix.client.DefaultLoadBalancerErrorHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.http.HttpResponse;
 import com.netflix.client.http.UnexpectedHttpResponseException;
 
 public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerErrorHandler {
@@ -61,8 +62,7 @@ public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerErrorH
     @Override
     public boolean isCircuitTrippingException(Throwable e) {
         if (e instanceof UnexpectedHttpResponseException) {
-            HttpResponse response = ((UnexpectedHttpResponseException) e).getResponse();
-            return isCircuitTrippinResponse(response);
+            return ((UnexpectedHttpResponseException) e).getStatusCode() == 503;
         }
         return super.isCircuitTrippingException(e);
     }
@@ -75,7 +75,7 @@ public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerErrorH
         if (!(response instanceof HttpResponse)) {
             return false;
         }
-        return ((HttpResponse) response).getStatus() == 503;
+        return ((HttpResponse<?>) response).getStatus().code() == 503;
     }
 
     @Override

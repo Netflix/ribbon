@@ -26,12 +26,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.security.KeyStore;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
-
-import com.netflix.client.ClientFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.UserTokenHandler;
@@ -53,14 +49,13 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.client.AbstractLoadBalancerAwareClient;
 import com.netflix.client.ClientException;
-import com.netflix.client.ClientRequest;
+import com.netflix.client.ClientFactory;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.http.HttpRequest;
-import com.netflix.client.http.HttpRequestRetryHandler;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicIntProperty;
@@ -74,7 +69,6 @@ import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.niws.cert.AbstractSslContextFactory;
 import com.netflix.niws.client.ClientSslSocketFactoryException;
 import com.netflix.niws.client.URLSslContextFactory;
-import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.Serializer;
 import com.netflix.serialization.TypeDef;
@@ -717,9 +711,16 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 	}
 
     @Override
-    public RequestSpecificRetryHandler<HttpRequest> getRequestSpecificRetryHandler(
+    public RequestSpecificRetryHandler getRequestSpecificRetryHandler(
             HttpRequest request, IClientConfig requestConfig) {
-        return new HttpRequestRetryHandler(request, requestConfig, this.getErrorHandler());
+        if (!request.isRetriable()) {
+            return new RequestSpecificRetryHandler(false, false, requestConfig, this.getErrorHandler());
+        }
+        if (request.getVerb() != HttpRequest.Verb.GET) {
+            return new RequestSpecificRetryHandler(true, false, requestConfig, this.getErrorHandler());
+        } else {
+            return new RequestSpecificRetryHandler(true, true, requestConfig, this.getErrorHandler());
+        } 
     }
 }
 

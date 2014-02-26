@@ -106,13 +106,11 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
 
     private class RetryNextServerFunc<T> implements Func1<Throwable, Observable<T>> {
 
-        private final URI requestedURI;
         private final AtomicInteger counter = new AtomicInteger();
         private final OnSubscribeFunc<T> onSubscribe;
         private final RetryHandler callErrorHandler;
         
-        RetryNextServerFunc(URI requestedURI, OnSubscribeFunc<T> onSubscribe, RetryHandler errorHandler) {
-            this.requestedURI = requestedURI;    
+        RetryNextServerFunc(OnSubscribeFunc<T> onSubscribe, RetryHandler errorHandler) {
             this.onSubscribe = onSubscribe;
             this.callErrorHandler = errorHandler == null ? getErrorHandler() : errorHandler;
         }
@@ -128,8 +126,8 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                         ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
                         "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
                                 + maxRetriesNextServer
-                                + " retries, while making a RestClient call for:"
-                                + requestedURI + ":" +  getDeepestCause(t1).getMessage(), t1);
+                                + " retries, while making a call with load balancer: "
+                                +  getDeepestCause(t1).getMessage(), t1);
                 shouldRetry = false;
             } else {
                 finalThrowable = t1;
@@ -165,6 +163,19 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                 retryHandler, loadBalancerKey));
     }
     
+    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
+        return retryWithLoadBalancer(clientObservableProvider, null, retryHandler, loadBalancerKey);
+    }
+
+    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler) {
+        return retryWithLoadBalancer(clientObservableProvider, null, retryHandler, null);
+    }
+    
+    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider) {
+        return retryWithLoadBalancer(clientObservableProvider, null, new DefaultLoadBalancerErrorHandler(), null);
+    }
+
+    
     /**
      * Create an {@link Observable} that retries execution with load balancer with the given {@link ClientObservableProvider} that provides the logic to
      * execute network call asynchronously with a given {@link Server}. 
@@ -195,7 +206,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
             }
         };
         Observable<T> observable = Observable.create(onSubscribe);
-        RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(loadBalancerURI, onSubscribe, retryHandler);
+        RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(onSubscribe, retryHandler);
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     

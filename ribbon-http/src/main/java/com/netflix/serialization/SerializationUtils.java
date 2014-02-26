@@ -3,6 +3,7 @@ package com.netflix.serialization;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
 
 import com.google.common.base.Preconditions;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -22,20 +23,25 @@ public class SerializationUtils {
     
     public static <T> String serializeToString(Serializer<T> serializer, T obj, TypeDef<?> typeDef) 
             throws IOException {
+        return new String(serializeToBytes(serializer, obj, typeDef), "UTF-8");
+    }
+    
+    public static <T> byte[] serializeToBytes(Serializer<T> serializer, T obj, TypeDef<?> typeDef) 
+            throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         serializer.serialize(out, obj, typeDef);
-        return new String(out.toByteArray(), "UTF-8");
+        return out.toByteArray();
     }
+
         
-    public static <T> Deserializer<T> getDeserializer(HttpRequest request, IClientConfig requestConfig, HttpHeaders responseHeaders, TypeDef<T> typeDef, 
+    public static <T> Deserializer<T> getDeserializer(URI requestURI, IClientConfig requestConfig, HttpHeaders responseHeaders, TypeDef<T> typeDef, 
             SerializationFactory<HttpSerializationContext> serializationFactory) {
         Deserializer<T> deserializer = null;
-        IClientConfig config = (requestConfig == null) ? request.getOverrideConfig() : requestConfig;
-        if (config != null) {
-            deserializer = (Deserializer<T>) config.getPropertyWithType(CommonClientConfigKey.Deserializer);
+        if (requestConfig != null) {
+            deserializer = (Deserializer<T>) requestConfig.getPropertyWithType(CommonClientConfigKey.Deserializer);
         }
         if (deserializer == null && serializationFactory != null) {
-            deserializer = serializationFactory.getDeserializer(new HttpSerializationContext(responseHeaders, request.getUri()), typeDef);
+            deserializer = serializationFactory.getDeserializer(new HttpSerializationContext(responseHeaders, requestURI), typeDef);
         }
         if (deserializer == null && typeDef.getRawType().equals(String.class)) {
             return (Deserializer<T>) StringDeserializer.getInstance();

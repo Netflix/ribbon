@@ -1,7 +1,9 @@
 package com.netflix.ribbon.examples.netty.http;
 
-import io.reactivex.netty.protocol.http.ObservableHttpResponse;
-import io.reactivex.netty.protocol.text.sse.SSEEvent;
+import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.protocol.http.client.HttpRequest;
+import io.reactivex.netty.protocol.http.client.HttpResponse;
+import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
 import java.util.List;
 
@@ -13,10 +15,9 @@ import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.http.HttpRequest;
 import com.netflix.client.netty.http.NettyHttpClient;
 import com.netflix.client.netty.http.NettyHttpClientBuilder;
-import com.netflix.client.netty.http.ServerSentEvent;
+import com.netflix.client.netty.http.ServerSentEventWithEntity;
 import com.netflix.ribbon.examples.ExampleAppWithLocalResource;
 import com.netflix.ribbon.examples.server.ServerResources.Person;
 import com.netflix.serialization.JacksonCodec;
@@ -28,14 +29,13 @@ public class SeverSentEventExample extends ExampleAppWithLocalResource {
     public void run() throws Exception {
         // Get the events and parse each data line using Jackson deserializer
         IClientConfig overrideConfig = new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance());
-        HttpRequest request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/personStream")
-                .build();
+        HttpRequest<ByteBuf> request = HttpRequest.createGet(SERVICE_URI + "testAsync/personStream");
         NettyHttpClient observableClient = NettyHttpClientBuilder.newBuilder().build();
         final List<Person> result = Lists.newArrayList();
-        observableClient.createServerSentEventEntityObservable(request, TypeDef.fromClass(Person.class), overrideConfig)
-        .subscribe(new Action1<ServerSentEvent<Person>>() {
+        observableClient.createServerSentEventEntityObservable("localhost", port, request, TypeDef.fromClass(Person.class), overrideConfig)
+        .subscribe(new Action1<ServerSentEventWithEntity<Person>>() {
             @Override
-            public void call(ServerSentEvent<Person> t1) {
+            public void call(ServerSentEventWithEntity<Person> t1) {
                 // System.out.println(t1);
                 result.add(t1.getEntity());
             }
@@ -51,20 +51,19 @@ public class SeverSentEventExample extends ExampleAppWithLocalResource {
         System.out.println(result);
         
         // Get the events as raw string
-        request = HttpRequest.newBuilder().uri(SERVICE_URI + "testAsync/stream")
-                .build();
-        observableClient.createServerSentEventObservable(request)
-            .flatMap(new Func1<ObservableHttpResponse<SSEEvent>, Observable<SSEEvent>>() {
+        request = HttpRequest.createGet(SERVICE_URI + "testAsync/stream");
+        observableClient.createServerSentEventObservable("localhost", port, request)
+            .flatMap(new Func1<HttpResponse<ServerSentEvent>, Observable<ServerSentEvent>>() {
                 @Override
-                public Observable<SSEEvent> call(
-                        ObservableHttpResponse<SSEEvent> t1) {
-                    return t1.content();
+                public Observable<ServerSentEvent> call(
+                        HttpResponse<ServerSentEvent> t1) {
+                    return t1.getContent();
                 }
             }).toBlockingObservable()
-            .forEach(new Action1<SSEEvent>(){
+            .forEach(new Action1<ServerSentEvent>(){
 
                 @Override
-                public void call(SSEEvent t1) {
+                public void call(ServerSentEvent t1) {
                     System.out.println(t1);
                 }
             });

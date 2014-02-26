@@ -17,12 +17,12 @@
  */
 package com.netflix.client.netty.http;
 
-public class ServerSentEvent<T> {
+public class ServerSentEventWithEntity<T> {
     private final String id;
     private final String name;
     private final T entity;
     
-    public ServerSentEvent(String eventId, String eventName, T eventData) {
+    public ServerSentEventWithEntity(String eventId, String eventName, T eventData) {
         super();
         this.id = eventId;
         this.name = eventName;

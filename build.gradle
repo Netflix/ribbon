@@ -54,7 +54,7 @@ project(':ribbon-loadbalancer') {
     dependencies {
         compile project(':ribbon-core')
         compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
-        compile 'com.netflix.rxjava:rxjava-core:0.16.1'
+        compile 'com.netflix.rxjava:rxjava-core:[0.17,)'
     }
 }
 
@@ -82,7 +82,7 @@ project(':ribbon-rxnetty') {
         compile project(':ribbon-http')
         compile project(':ribbon-loadbalancer')
         compile project(':ribbon-core')    
-        compile 'com.netflix.rxnetty:rx-netty:0.2.6'
+        compile 'com.netflix.rxnetty:rx-netty:0.2.8'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }
