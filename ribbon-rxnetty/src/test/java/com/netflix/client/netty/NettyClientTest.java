@@ -477,7 +477,7 @@ public class NettyClientTest {
         List<Server> servers = Lists.newArrayList(goodServer, badServer, goodServer, goodServer);
         lb.setServersList(servers);
         lbObservables.setLoadBalancer(lb);
-        RetryHandler handler = new RequestSpecificRetryHandler(true, true, null, errorHandler) {
+        RetryHandler handler = new RequestSpecificRetryHandler(true, true, errorHandler, null) {
             @Override
             public boolean isRetriableException(Throwable e, boolean sameServer) {
                 return true;

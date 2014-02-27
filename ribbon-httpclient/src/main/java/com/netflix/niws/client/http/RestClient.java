@@ -714,12 +714,12 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     public RequestSpecificRetryHandler getRequestSpecificRetryHandler(
             HttpRequest request, IClientConfig requestConfig) {
         if (!request.isRetriable()) {
-            return new RequestSpecificRetryHandler(false, false, requestConfig, this.getErrorHandler());
+            return new RequestSpecificRetryHandler(false, false, this.getErrorHandler(), requestConfig);
         }
         if (request.getVerb() != HttpRequest.Verb.GET) {
-            return new RequestSpecificRetryHandler(true, false, requestConfig, this.getErrorHandler());
+            return new RequestSpecificRetryHandler(true, false, this.getErrorHandler(), requestConfig);
         } else {
-            return new RequestSpecificRetryHandler(true, true, requestConfig, this.getErrorHandler());
+            return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
         } 
     }
 }

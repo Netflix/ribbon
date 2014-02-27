@@ -19,7 +19,6 @@ package com.netflix.client.netty.http;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.protocol.http.client.HttpRequest;
 import io.reactivex.netty.protocol.http.client.HttpResponse;
@@ -82,7 +81,7 @@ public class NettyHttpLoadBalancingClient extends NettyHttpClient {
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpRequest<?> request, IClientConfig requestConfig) {
         boolean okToRetryOnAllErrors = request.getMethod().equals(HttpMethod.GET);
-        return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, requestConfig, lbObservables.getErrorHandler());
+        return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, lbObservables.getErrorHandler(), requestConfig);
     }
         
         
@@ -94,7 +93,7 @@ public class NettyHttpLoadBalancingClient extends NettyHttpClient {
     */
     public <I, O> Observable<ServerSentEventWithEntity<O>> createServerSentEventEntityObservable(
             final HttpRequest<I> request, final TypeDef<O> typeDef, final IClientConfig requestConfig, final Object loadBalancerKey) {
-        return lbObservables.retryWithLoadBalancer(new ClientObservableProvider<ServerSentEventWithEntity<O>>() {
+        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<ServerSentEventWithEntity<O>>() {
 
             @Override
             public Observable<ServerSentEventWithEntity<O>> getObservableForEndpoint(Server server) {
@@ -106,7 +105,7 @@ public class NettyHttpLoadBalancingClient extends NettyHttpClient {
 
     public <I> Observable<HttpResponse<ServerSentEvent>> createServerSentEventObservable(
             final HttpRequest<I> request, final IClientConfig requestConfig, Object loadBalancerKey) {
-        return lbObservables.retryWithLoadBalancer(new ClientObservableProvider<HttpResponse<ServerSentEvent>>() {
+        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<HttpResponse<ServerSentEvent>>() {
 
             @Override
             public Observable<HttpResponse<ServerSentEvent>> getObservableForEndpoint(Server server) {
@@ -115,10 +114,18 @@ public class NettyHttpLoadBalancingClient extends NettyHttpClient {
             
         }, getRequestRetryHandler(request, requestConfig), loadBalancerKey);
     }
+    
+    public <I> Observable<HttpResponse<ServerSentEvent>> createServerSentEventObservable(final HttpRequest<I> request) {
+        return createServerSentEventObservable(request, null, null);
+    }
 
+    public <I> Observable<HttpResponse<ByteBuf>> createFullHttpResponseObservable(final HttpRequest<I> request) {
+        return createFullHttpResponseObservable(request, null, null);
+    }
+    
     public <I> Observable<HttpResponse<ByteBuf>> createFullHttpResponseObservable(
             final HttpRequest<I> request, final IClientConfig requestConfig, Object loadBalancerKey) {
-        return lbObservables.retryWithLoadBalancer(new ClientObservableProvider<HttpResponse<ByteBuf>>() {
+        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<HttpResponse<ByteBuf>>() {
 
             @Override
             public Observable<HttpResponse<ByteBuf>> getObservableForEndpoint(
@@ -130,11 +137,15 @@ public class NettyHttpLoadBalancingClient extends NettyHttpClient {
         }, getRequestRetryHandler(request, requestConfig), loadBalancerKey);
     }
 
+    public <I, O> Observable<O> createEntityObservable(final HttpRequest<I> request, final TypeDef<O> typeDef) {
+        return createEntityObservable(request, typeDef, null, null, null);
+    }
+    
     public <I, O> Observable<O> createEntityObservable(final HttpRequest<I> request,
-            final TypeDef<O> typeDef, final IClientConfig requestConfig, @Nullable final RetryHandler retryHandler, Object loadBalancerKey) {
+            final TypeDef<O> typeDef, @Nullable final IClientConfig requestConfig, @Nullable final RetryHandler retryHandler, @Nullable Object loadBalancerKey) {
         final RetryHandler handler = retryHandler == null ? 
                 getRequestRetryHandler(request, requestConfig) : retryHandler;
-        return lbObservables.retryWithLoadBalancer(new ClientObservableProvider<O>() {
+        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<O>() {
 
             @Override
             public Observable<O> getObservableForEndpoint(Server server) {

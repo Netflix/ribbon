@@ -13,11 +13,11 @@ import org.apache.http.conn.HttpHostConnectException;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.ClientException;
-import com.netflix.client.DefaultLoadBalancerErrorHandler;
+import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpResponse;
 
-public class HttpClientLoadBalancerErrorHandler extends DefaultLoadBalancerErrorHandler {
+public class HttpClientLoadBalancerErrorHandler extends DefaultLoadBalancerRetryHandler {
 
     @SuppressWarnings("unchecked")
     protected List<Class<? extends Throwable>> retriable = 

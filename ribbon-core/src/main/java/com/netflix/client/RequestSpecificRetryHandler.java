@@ -21,11 +21,15 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     protected List<Class<? extends Throwable>> connectionRelated = 
             Lists.<Class<? extends Throwable>>newArrayList(SocketException.class);
 
-    public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors, @Nullable IClientConfig requestConfig, RetryHandler delegate) {
-        Preconditions.checkNotNull(delegate);
+    public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors) {
+        this(okToRetryOnConnectErrors, okToRetryOnAllErrors, RetryHandler.DEFAULT, null);    
+    }
+    
+    public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors, RetryHandler baseRetryHandler, @Nullable IClientConfig requestConfig) {
+        Preconditions.checkNotNull(baseRetryHandler);
         this.okToRetryOnConnectErrors = okToRetryOnConnectErrors;
         this.okToRetryOnAllErrors = okToRetryOnAllErrors;
-        this.fallback = delegate;
+        this.fallback = baseRetryHandler;
         if (requestConfig != null) {
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetries)) {
                 retrySameServer = requestConfig.getPropertyWithType(CommonClientConfigKey.MaxAutoRetries); 

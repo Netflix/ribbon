@@ -26,12 +26,12 @@ import java.util.List;
 
 
 import com.google.common.collect.Lists;
-import com.netflix.client.DefaultLoadBalancerErrorHandler;
+import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.UnexpectedHttpResponseException;
 
-public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerErrorHandler {
+public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerRetryHandler {
 
     @SuppressWarnings("unchecked")
     private List<Class<? extends Throwable>> retriable = 

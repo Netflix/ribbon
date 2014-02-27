@@ -145,7 +145,7 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
         RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
         
         try {
-            return RxUtils.getSingleValueWithRealErrorCause(retryWithLoadBalancer(toObsevableProvider(callableProvider), request.getUri(), handler, request.getLoadBalancerKey()));
+            return RxUtils.getSingleValueWithRealErrorCause(executeWithLoadBalancer(toObsevableProvider(callableProvider), request.getUri(), handler, request.getLoadBalancerKey()));
         } catch (Exception e) {
             if (e instanceof ClientException) {
                 throw (ClientException) e;

@@ -59,7 +59,7 @@ public class LoadBalancerContext implements IClientConfigAware {
     protected int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
     protected int maxAutoRetries = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES;
 
-    protected RetryHandler errorHandler = new DefaultLoadBalancerErrorHandler();
+    protected RetryHandler errorHandler = new DefaultLoadBalancerRetryHandler();
 
 
     boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
@@ -98,7 +98,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         maxAutoRetriesNextServer = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer);
 
         okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
-        errorHandler = new DefaultLoadBalancerErrorHandler(clientConfig);
+        errorHandler = new DefaultLoadBalancerRetryHandler(clientConfig);
         
         tracer = getExecuteTracer();
 

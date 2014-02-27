@@ -37,7 +37,7 @@ import com.netflix.client.config.IClientConfig;
  * @param <T> Type of request
  * @param <S> Type of response
  */
-public class DefaultLoadBalancerErrorHandler implements RetryHandler {
+public class DefaultLoadBalancerRetryHandler implements RetryHandler {
 
     @SuppressWarnings("unchecked")
     private List<Class<? extends Throwable>> retriable = 
@@ -51,19 +51,19 @@ public class DefaultLoadBalancerErrorHandler implements RetryHandler {
     protected final int retryNextServer;
     protected final boolean retryEnabled;
 
-    public DefaultLoadBalancerErrorHandler() {
+    public DefaultLoadBalancerRetryHandler() {
         this.retrySameServer = 0;
         this.retryNextServer = 0;
         this.retryEnabled = false;
     }
     
-    public DefaultLoadBalancerErrorHandler(int retrySameServer, int retryNextServer, boolean retryEnabled) {
+    public DefaultLoadBalancerRetryHandler(int retrySameServer, int retryNextServer, boolean retryEnabled) {
         this.retrySameServer = retrySameServer;
         this.retryNextServer = retryNextServer;
         this.retryEnabled = retryEnabled;
     }
     
-    public DefaultLoadBalancerErrorHandler(IClientConfig clientConfig) {
+    public DefaultLoadBalancerRetryHandler(IClientConfig clientConfig) {
         this.retrySameServer = clientConfig.getPropertyWithType(CommonClientConfigKey.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
         this.retryNextServer = clientConfig.getPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER);
         this.retryEnabled = clientConfig.getPropertyWithType(CommonClientConfigKey.OkToRetryOnAllOperations, false);

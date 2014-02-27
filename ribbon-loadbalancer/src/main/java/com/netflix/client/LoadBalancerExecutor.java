@@ -66,7 +66,6 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         }
     } 
     
-    
     private class RetrySameServerFunc<T> implements Func1<Throwable, Observable<T>> {
 
         private final Server server;
@@ -156,23 +155,23 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
      * @throws Exception If any exception happens in the exception
      */
-    public <T> T retryWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, @Nullable final URI loadBalancerURI, 
+    public <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, @Nullable final URI loadBalancerURI, 
             @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) throws Exception {
         return RxUtils.getSingleValueWithRealErrorCause(
-                retryWithLoadBalancer(CallableToObservable.toObsevableProvider(clientCallableProvider), loadBalancerURI, 
+                executeWithLoadBalancer(CallableToObservable.toObsevableProvider(clientCallableProvider), loadBalancerURI, 
                 retryHandler, loadBalancerKey));
     }
     
-    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
-        return retryWithLoadBalancer(clientObservableProvider, null, retryHandler, loadBalancerKey);
+    public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
+        return executeWithLoadBalancer(clientObservableProvider, null, retryHandler, loadBalancerKey);
     }
 
-    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler) {
-        return retryWithLoadBalancer(clientObservableProvider, null, retryHandler, null);
+    public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler) {
+        return executeWithLoadBalancer(clientObservableProvider, null, retryHandler, null);
     }
     
-    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider) {
-        return retryWithLoadBalancer(clientObservableProvider, null, new DefaultLoadBalancerErrorHandler(), null);
+    public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider) {
+        return executeWithLoadBalancer(clientObservableProvider, null, new DefaultLoadBalancerRetryHandler(), null);
     }
 
     
@@ -189,7 +188,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      *                   of this {@link LoadBalancerExecutor} will be used.
      * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
      */
-    public <T> Observable<T> retryWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final URI loadBalancerURI, 
+    <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final URI loadBalancerURI, 
             @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
@@ -210,7 +209,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     
-    protected <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
+    <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
         final ServerStats serverStats = getServerStats(server); 
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
