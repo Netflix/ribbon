@@ -17,7 +17,7 @@
  */
 package com.netflix.client.netty.http;
 
-import io.reactivex.netty.protocol.http.client.HttpResponse;
+import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
 import java.net.ConnectException;
 import java.net.SocketException;
@@ -72,10 +72,10 @@ public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerRetryH
      */
     @Override
     public boolean isCircuitTrippinResponse(Object response) {
-        if (!(response instanceof HttpResponse)) {
+        if (!(response instanceof HttpClientResponse)) {
             return false;
         }
-        return ((HttpResponse<?>) response).getStatus().code() == 503;
+        return ((HttpClientResponse<?>) response).getStatus().code() == 503;
     }
 
     @Override

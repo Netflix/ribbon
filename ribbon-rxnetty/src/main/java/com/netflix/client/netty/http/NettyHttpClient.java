@@ -37,8 +37,8 @@ import io.reactivex.netty.protocol.http.HttpObjectAggregationConfigurator;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientPipelineConfigurator;
-import io.reactivex.netty.protocol.http.client.HttpRequest;
-import io.reactivex.netty.protocol.http.client.HttpResponse;
+import io.reactivex.netty.protocol.http.client.HttpClientRequest;
+import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
 import java.io.Closeable;
@@ -72,11 +72,11 @@ import com.netflix.serialization.TypeDef;
 /**
  * An HTTP client built on top of Netty and RxJava. The core APIs are
  * 
- *  <li>{@link #createEntityObservable(HttpRequest, TypeDef, IClientConfig)}
- *  <li>{@link #createFullHttpResponseObservable(HttpRequest, IClientConfig)}
- *  <li>{@link #createServerSentEventEntityObservable(HttpRequest, TypeDef, IClientConfig)}
- *  <li>{@link #createServerSentEventObservable(HttpRequest, IClientConfig)}
- *  <li>{@link #createObservableHttpResponse(HttpRequest, PipelineConfigurator, IClientConfig, io.reactivex.netty.client.RxClient.ClientConfig)}
+ *  <li>{@link #createEntityObservable(HttpClientRequest, TypeDef, IClientConfig)}
+ *  <li>{@link #createFullHttpResponseObservable(HttpClientRequest, IClientConfig)}
+ *  <li>{@link #createServerSentEventEntityObservable(HttpClientRequest, TypeDef, IClientConfig)}
+ *  <li>{@link #createServerSentEventObservable(HttpClientRequest, IClientConfig)}
+ *  <li>{@link #createObservableHttpResponse(HttpClientRequest, PipelineConfigurator, IClientConfig, io.reactivex.netty.client.RxClient.ClientConfig)}
  *  <br/><br/>
  *  <p/>
  *  These APIs return an {@link Observable}, but does not start execution of the request. Once an {@link Observer} is subscribed to the returned
@@ -159,7 +159,7 @@ public class NettyHttpClient implements Closeable {
         }
     }
 
-    private void setHost(HttpRequest<?> request, String host) {
+    private void setHost(HttpClientRequest<?> request, String host) {
         request.getHeaders().set(HttpHeaders.Names.HOST, host);
     }
 
@@ -180,12 +180,12 @@ public class NettyHttpClient implements Closeable {
      * Create an Observable of {@link SSEEvent}.
      * 
      * @see class description of {@link NettyHttpClient}
-     * @see #createServerSentEventObservable(HttpRequest, IClientConfig)
+     * @see #createServerSentEventObservable(HttpClientRequest, IClientConfig)
      */
-    public <I> Observable<ServerSentEvent> createSSEEventObservable(String host, int port, final HttpRequest<I> request, IClientConfig requestConfig) {
-        return createServerSentEventObservable(host, port, request, requestConfig).flatMap(new Func1<HttpResponse<ServerSentEvent>, Observable<ServerSentEvent>>() {
+    public <I> Observable<ServerSentEvent> createSSEEventObservable(String host, int port, final HttpClientRequest<I> request, IClientConfig requestConfig) {
+        return createServerSentEventObservable(host, port, request, requestConfig).flatMap(new Func1<HttpClientResponse<ServerSentEvent>, Observable<ServerSentEvent>>() {
             @Override
-            public Observable<ServerSentEvent> call(HttpResponse<ServerSentEvent> t1) {
+            public Observable<ServerSentEvent> call(HttpClientResponse<ServerSentEvent> t1) {
                 return t1.getContent();
             }
         });
@@ -207,12 +207,12 @@ public class NettyHttpClient implements Closeable {
      * @param typeDef The runtime type of T
      * @param <T> type of each event 
      */
-    public <I, T> Observable<ServerSentEventWithEntity<T>> createServerSentEventEntityObservable(String host, int port, final HttpRequest<I> request, 
+    public <I, T> Observable<ServerSentEventWithEntity<T>> createServerSentEventEntityObservable(String host, int port, final HttpClientRequest<I> request, 
             final TypeDef<T> typeDef, @Nullable final IClientConfig requestConfig) {
-        Observable<HttpResponse<ServerSentEvent>> observable = createServerSentEventObservable(host, port, request, requestConfig);
-        return observable.flatMap(new Func1<HttpResponse<ServerSentEvent>, Observable<ServerSentEventWithEntity<T>>>() {
+        Observable<HttpClientResponse<ServerSentEvent>> observable = createServerSentEventObservable(host, port, request, requestConfig);
+        return observable.flatMap(new Func1<HttpClientResponse<ServerSentEvent>, Observable<ServerSentEventWithEntity<T>>>() {
             @Override
-            public Observable<ServerSentEventWithEntity<T>> call(final HttpResponse<ServerSentEvent> observableResponse) {
+            public Observable<ServerSentEventWithEntity<T>> call(final HttpClientResponse<ServerSentEvent> observableResponse) {
                 int status = observableResponse.getStatus().code();
                 if (status < 200 && status >= 300) {
                     return Observable.error(new ClientException("Unexpected response status: " + status));
@@ -242,7 +242,7 @@ public class NettyHttpClient implements Closeable {
      * 
      * @see class description of {@link NettyHttpClient} 
      */
-    public <I> Observable<HttpResponse<ServerSentEvent>> createServerSentEventObservable(String host, int port, final HttpRequest<I> request) {
+    public <I> Observable<HttpClientResponse<ServerSentEvent>> createServerSentEventObservable(String host, int port, final HttpClientRequest<I> request) {
         return createServerSentEventObservable(host, port, request, null);
     }
 
@@ -251,33 +251,33 @@ public class NettyHttpClient implements Closeable {
      * 
      * @see class description of {@link NettyHttpClient} 
      */
-    public <I> Observable<HttpResponse<ServerSentEvent>> createServerSentEventObservable(String host, int port, final HttpRequest<I> request, @Nullable IClientConfig requestConfig) {
+    public <I> Observable<HttpClientResponse<ServerSentEvent>> createServerSentEventObservable(String host, int port, final HttpClientRequest<I> request, @Nullable IClientConfig requestConfig) {
         return createObservableHttpResponse(host, port, request, PipelineConfigurators.<I>sseClientConfigurator(), requestConfig, RxClient.ClientConfig.DEFAULT_CONFIG);
     }
 
     /**
-     * Create an Observable of {@link HttpResponse} using the client's default configuration.
+     * Create an Observable of {@link HttpClientResponse} using the client's default configuration.
      * 
      * @see class description of {@link NettyHttpClient}
-     * @see #createFullHttpResponseObservable(HttpRequest, IClientConfig) 
+     * @see #createFullHttpResponseObservable(HttpClientRequest, IClientConfig) 
      */
-    public Observable<HttpResponse<ByteBuf>> createFullHttpResponseObservable(String host, int port, final HttpRequest<ByteBuf> request) {
+    public Observable<HttpClientResponse<ByteBuf>> createFullHttpResponseObservable(String host, int port, final HttpClientRequest<ByteBuf> request) {
         return createFullHttpResponseObservable(host, port, request, null);
     }
     
     /**
-     * Create an Observable of {@link HttpResponse}.
+     * Create an Observable of {@link HttpClientResponse}.
      * <p/>
-     * <b>Note: If you want to access the {@link HttpResponse} from a different thread other than the one that calls {@link Observer#onNext(Object)}, 
-     * you need to cast the {@link HttpResponse} into {@link io.netty.util.ReferenceCounted} and call {@link ReferenceCounted#retain()} inside
+     * <b>Note: If you want to access the {@link HttpClientResponse} from a different thread other than the one that calls {@link Observer#onNext(Object)}, 
+     * you need to cast the {@link HttpClientResponse} into {@link io.netty.util.ReferenceCounted} and call {@link ReferenceCounted#retain()} inside
      * {@link Observer#onNext(Object)}, in which
      * case you are also responsible to call {@link io.netty.util.ReferenceCounted#release()} when the reference is no longer needed. If 
-     * the intention is to use {@link Observable#toBlockingObservable()} and blocks until the response is available, you should use {@link #execute(HttpRequest, IClientConfig)} where 
+     * the intention is to use {@link Observable#toBlockingObservable()} and blocks until the response is available, you should use {@link #execute(HttpClientRequest, IClientConfig)} where 
      * the retaining of the ByteBuf is automatically handled. 
      * 
      * @see class description of {@link NettyHttpClient} 
      */
-    public <I> Observable<HttpResponse<ByteBuf>> createFullHttpResponseObservable(String host, int port, final HttpRequest<I> request, @Nullable IClientConfig requestConfig) {
+    public <I> Observable<HttpClientResponse<ByteBuf>> createFullHttpResponseObservable(String host, int port, final HttpClientRequest<I> request, @Nullable IClientConfig requestConfig) {
         int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig);
         RxClient.ClientConfig clientConfig = new RxClient.ClientConfig.Builder(RxClient.ClientConfig.DEFAULT_CONFIG)
         .readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS).build();
@@ -308,21 +308,21 @@ public class NettyHttpClient implements Closeable {
      *
      * @see class description of {@link NettyHttpClient} 
      */
-    public <I, O> Observable<O> createEntityObservable(String host, int port, final HttpRequest<I> request, final TypeDef<O> type, @Nullable final IClientConfig requestConfig) {
+    public <I, O> Observable<O> createEntityObservable(String host, int port, final HttpClientRequest<I> request, final TypeDef<O> type, @Nullable final IClientConfig requestConfig) {
         int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig);
         RxClient.ClientConfig clientConfig = new RxClient.ClientConfig.Builder(RxClient.ClientConfig.DEFAULT_CONFIG)
         .readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS).build();
 
-        Observable<HttpResponse<ByteBuf>> observableHttpResponse = createObservableHttpResponse(host, port,
+        Observable<HttpClientResponse<ByteBuf>> observableHttpResponse = createObservableHttpResponse(host, port,
                 request,  
                 PipelineConfigurators.<I, ByteBuf>httpClientConfigurator(), 
                 requestConfig,
                 clientConfig);
-        return observableHttpResponse.flatMap(new Func1<HttpResponse<ByteBuf>, Observable<O>>() {
+        return observableHttpResponse.flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<O>>() {
             Deserializer<O> deserializer = null;
 
             @Override
-            public Observable<O> call(final HttpResponse<ByteBuf> t1) {
+            public Observable<O> call(final HttpClientResponse<ByteBuf> t1) {
                 int statusCode = t1.getStatus().code();
                 if (statusCode >= 200 && statusCode < 300) {
                     NettyHttpHeaders headers = new NettyHttpHeaders(t1.getHeaders());
@@ -363,8 +363,8 @@ public class NettyHttpClient implements Closeable {
      * and produce custom observable content.
      *  
      */
-    public <I,O> Observable<HttpResponse<O>> createObservableHttpResponse(String host, int port, final HttpRequest<I> request, 
-            final PipelineConfigurator<HttpResponse<O>, HttpRequest<I>> configurator,
+    public <I,O> Observable<HttpClientResponse<O>> createObservableHttpResponse(String host, int port, final HttpClientRequest<I> request, 
+            final PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> configurator,
             final RxClient.ClientConfig rxClientConfig) {
         return createObservableHttpResponse(host, port, request, configurator, null, rxClientConfig);
     }
@@ -373,17 +373,17 @@ public class NettyHttpClient implements Closeable {
      * Create an Observable of ObservableHttpResponse. Use this API if you need to manipulate the Netty pipeline
      * and produce custom observable content.
      */
-    <I,O> Observable<HttpResponse<O>> createObservableHttpResponse(String host, int port, final HttpRequest<I> request, 
-            final  PipelineConfigurator<HttpResponse<O>, HttpRequest<I>> configurator, @Nullable final IClientConfig requestConfig, 
+    <I,O> Observable<HttpClientResponse<O>> createObservableHttpResponse(String host, int port, final HttpClientRequest<I> request, 
+            final  PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> configurator, @Nullable final IClientConfig requestConfig, 
             final RxClient.ClientConfig rxClientConfig) {
         Preconditions.checkNotNull(request);
         Preconditions.checkNotNull(configurator);
         Preconditions.checkNotNull(rxClientConfig);
-        /*
-        PipelineConfigurator<HttpResponse<O>, HttpRequest<I>> composite 
-            = new PipelineConfiguratorComposite<HttpResponse<O>, HttpRequest<I>>(configurator,
+        
+        PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> composite 
+            = new PipelineConfiguratorComposite<HttpClientResponse<O>, HttpClientRequest<I>>(configurator,
                 debug);
-        */
+        
         HttpClientBuilder<I, O> clientBuilder =
                 new HttpClientBuilder<I, O>(host, port).pipelineConfigurator(configurator);
         int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, requestConfig);
@@ -406,7 +406,7 @@ public class NettyHttpClient implements Closeable {
      * 
      * @param <T> type of the entity
      *  @see class description of {@link NettyHttpClient}
-     *  @see #createEntityObservable(HttpRequest, TypeDef, IClientConfig)
+     *  @see #createEntityObservable(HttpClientRequest, TypeDef, IClientConfig)
      */
     /*
     public <I, O> Subscription observeEntity(String host, int port, HttpRequest<I> request, TypeDef<O> entityType, Observer<O> observer) {

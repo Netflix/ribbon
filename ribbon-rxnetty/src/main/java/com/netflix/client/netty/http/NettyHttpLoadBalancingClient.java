@@ -20,8 +20,9 @@ package com.netflix.client.netty.http;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpMethod;
-import io.reactivex.netty.protocol.http.client.HttpRequest;
-import io.reactivex.netty.protocol.http.client.HttpResponse;
+import io.reactivex.netty.protocol.http.client.HttpClientRequest;
+import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
 import javax.annotation.Nullable;
@@ -79,83 +80,84 @@ public class NettyHttpLoadBalancingClient extends NettyHttpClient {
         return delegate.getSerializationFactory();
     }
 
-    private RequestSpecificRetryHandler getRequestRetryHandler(HttpRequest<?> request, IClientConfig requestConfig) {
+    private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
         boolean okToRetryOnAllErrors = request.getMethod().equals(HttpMethod.GET);
         return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, lbObservables.getErrorHandler(), requestConfig);
     }
         
-        
-    /*
-    <I> HttpRequest createRequest(Server server, HttpRequest<I> original) {
-        URI uri = lbObservables.reconstructURIWithServer(server, original.getUri());
-        return original.replaceUri(uri);
+    public <I> HttpClientRequest<I> getRepeatableRequest(HttpClientRequest<I> original) {
+        return new RepeatableContentHttpRequest<I>(original);
     }
-    */
+    
     public <I, O> Observable<ServerSentEventWithEntity<O>> createServerSentEventEntityObservable(
-            final HttpRequest<I> request, final TypeDef<O> typeDef, final IClientConfig requestConfig, final Object loadBalancerKey) {
+            HttpClientRequest<I> request, final TypeDef<O> typeDef, final IClientConfig requestConfig, final Object loadBalancerKey) {
+        final HttpClientRequest<I> repeatbleRequest = new RepeatableContentHttpRequest<I>(request);
         return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<ServerSentEventWithEntity<O>>() {
 
             @Override
             public Observable<ServerSentEventWithEntity<O>> getObservableForEndpoint(Server server) {
-                return delegate.createServerSentEventEntityObservable(server.getHost(), server.getPort(), request, typeDef, requestConfig);
+                return delegate.createServerSentEventEntityObservable(server.getHost(), server.getPort(), repeatbleRequest, typeDef, requestConfig);
             }
 
         }, getRequestRetryHandler(request, requestConfig), loadBalancerKey);
     }
 
-    public <I> Observable<HttpResponse<ServerSentEvent>> createServerSentEventObservable(
-            final HttpRequest<I> request, final IClientConfig requestConfig, Object loadBalancerKey) {
-        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<HttpResponse<ServerSentEvent>>() {
+    public <I> Observable<HttpClientResponse<ServerSentEvent>> createServerSentEventObservable(
+            final HttpClientRequest<I> request, final IClientConfig requestConfig, Object loadBalancerKey) {
+        final HttpClientRequest<I> repeatbleRequest = new RepeatableContentHttpRequest<I>(request);
+        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<ServerSentEvent>>() {
 
             @Override
-            public Observable<HttpResponse<ServerSentEvent>> getObservableForEndpoint(Server server) {
-                return delegate.createServerSentEventObservable(server.getHost(), server.getPort(), request, requestConfig);
+            public Observable<HttpClientResponse<ServerSentEvent>> getObservableForEndpoint(Server server) {
+                return delegate.createServerSentEventObservable(server.getHost(), server.getPort(), repeatbleRequest, requestConfig);
             }
             
         }, getRequestRetryHandler(request, requestConfig), loadBalancerKey);
     }
     
-    public <I> Observable<HttpResponse<ServerSentEvent>> createServerSentEventObservable(final HttpRequest<I> request) {
+    public <I> Observable<HttpClientResponse<ServerSentEvent>> createServerSentEventObservable(final HttpClientRequest<I> request) {
         return createServerSentEventObservable(request, null, null);
     }
 
-    public <I> Observable<HttpResponse<ByteBuf>> createFullHttpResponseObservable(final HttpRequest<I> request) {
+    public <I> Observable<HttpClientResponse<ByteBuf>> createFullHttpResponseObservable(final HttpClientRequest<I> request) {
         return createFullHttpResponseObservable(request, null, null);
     }
     
-    public <I> Observable<HttpResponse<ByteBuf>> createFullHttpResponseObservable(
-            final HttpRequest<I> request, final IClientConfig requestConfig, Object loadBalancerKey) {
-        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<HttpResponse<ByteBuf>>() {
+    public <I> Observable<HttpClientResponse<ByteBuf>> createFullHttpResponseObservable(
+            final HttpClientRequest<I> request, final IClientConfig requestConfig, Object loadBalancerKey) {
+        final HttpClientRequest<I> repeatbleRequest = new RepeatableContentHttpRequest<I>(request);
+        return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<ByteBuf>>() {
 
             @Override
-            public Observable<HttpResponse<ByteBuf>> getObservableForEndpoint(
+            public Observable<HttpClientResponse<ByteBuf>> getObservableForEndpoint(
                     Server server) {
                 System.err.println("Trying server: " + server);
-                return delegate.createFullHttpResponseObservable(server.getHost(), server.getPort(), request, requestConfig);
+                return delegate.createFullHttpResponseObservable(server.getHost(), server.getPort(), repeatbleRequest, requestConfig);
             }
             
         }, getRequestRetryHandler(request, requestConfig), loadBalancerKey);
     }
 
-    public <I, O> Observable<O> createEntityObservable(final HttpRequest<I> request, final TypeDef<O> typeDef) {
+    public <I, O> Observable<O> createEntityObservable(final HttpClientRequest<I> request, final TypeDef<O> typeDef) {
         return createEntityObservable(request, typeDef, null, null, null);
     }
     
-    public <I, O> Observable<O> createEntityObservable(final HttpRequest<I> request,
+    public <I, O> Observable<O> createEntityObservable(final HttpClientRequest<I> request,
             final TypeDef<O> typeDef, @Nullable final IClientConfig requestConfig, @Nullable final RetryHandler retryHandler, @Nullable Object loadBalancerKey) {
         final RetryHandler handler = retryHandler == null ? 
                 getRequestRetryHandler(request, requestConfig) : retryHandler;
+                final HttpClientRequest<I> repeatbleRequest = new RepeatableContentHttpRequest<I>(request);
         return lbObservables.executeWithLoadBalancer(new ClientObservableProvider<O>() {
 
             @Override
             public Observable<O> getObservableForEndpoint(Server server) {
-                return delegate.createEntityObservable(server.getHost(), server.getPort(), request, typeDef, requestConfig);
+                return delegate.createEntityObservable(server.getHost(), server.getPort(), repeatbleRequest, typeDef, requestConfig);
             }
         }, handler, loadBalancerKey);
    }
 
     
-    public <I, O> Observable<O> createEntityObservable(final HttpRequest<I> request,
+    public <I, O> Observable<O> createEntityObservable(final HttpClientRequest<I> request,
             final TypeDef<O> typeDef, final IClientConfig requestConfig, Object loadBalancerKey) {
         return createEntityObservable(request, typeDef, requestConfig, null, loadBalancerKey);
    }
