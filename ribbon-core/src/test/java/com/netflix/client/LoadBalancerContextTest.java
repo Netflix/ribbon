@@ -78,6 +78,13 @@ public class LoadBalancerContextTest {
         HttpRequest newRequest = context.computeFinalUriWithLoadBalancer(request);
         assertEquals(uri + queryString, newRequest.getUri().toString());        
     }
+    
+    @Test
+    public void testComputeFinalUriWithLoadBalancer_regressionRaw() throws ClientException {
+        HttpRequest request = HttpRequest.newBuilder().uri("/test?ampersand=foo%26bar").build();
+        HttpRequest newRequest = context.computeFinalUriWithLoadBalancer(request);
+        assertEquals("http://www.example.com:8080/test?ampersand=foo%26bar", newRequest.getUri().toString());
+    }
 }
 
 class MyLoadBalancerContext extends LoadBalancerContext<HttpRequest, HttpResponse> {
