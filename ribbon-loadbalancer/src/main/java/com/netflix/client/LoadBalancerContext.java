@@ -590,12 +590,12 @@ public class LoadBalancerContext implements IClientConfigAware {
         }
 
         try {
-            newURI = new URI(scheme, original.getUserInfo(), host, port, urlPath, original.getQuery(), original.getFragment());
-            if (isURIEncoded(original)) {
                 StringBuilder sb = new StringBuilder();
-                sb.append(newURI.getScheme())
+                sb.append(scheme)
                 .append("://")
-                .append(newURI.getRawAuthority())
+                .append(host)
+                .append(":")
+                .append(port)
                 .append(original.getRawPath());
                 if (!Strings.isNullOrEmpty(original.getRawQuery())) {
                     sb.append("?").append(original.getRawQuery());
@@ -604,7 +604,6 @@ public class LoadBalancerContext implements IClientConfigAware {
                     sb.append("#").append(original.getRawFragment());
                 }
                 newURI = new URI(sb.toString());
-            }
             return newURI;
         } catch (URISyntaxException e) {
             // this should not really happen

@@ -21,6 +21,8 @@ package com.netflix.client.netty.http;
 import java.util.List;
 
 import io.netty.bootstrap.Bootstrap;
+import io.reactivex.netty.client.pool.ChannelPool;
+import io.reactivex.netty.client.pool.DefaultChannelPool;
 
 import com.google.common.base.Preconditions;
 import com.netflix.client.ClientException;
@@ -52,6 +54,8 @@ public class NettyHttpClientBuilder {
     private IClientConfig clientConfig = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
     private Bootstrap bootStrap;
     private SerializationFactory<HttpSerializationContext> serializationFactory;
+    private ChannelPool channelPool = new DefaultChannelPool(
+            DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
 
     public static class NettyHttpLoadBalancingClientBuilder extends NettyHttpClientBuilder {
         private final NettyHttpClientBuilder clientBuilder;
@@ -87,6 +91,13 @@ public class NettyHttpClientBuilder {
             clientBuilder.withClientConfig(clientConfig);
             return this;
         }
+        
+        @Override
+        public NettyHttpLoadBalancingClientBuilder withChannelPool(ChannelPool channelPool) {
+            clientBuilder.withChannelPool(channelPool);
+            return this;
+        }
+
 
         @Override
         public NettyHttpClientBuilder withSerializationFactory(
@@ -158,6 +169,13 @@ public class NettyHttpClientBuilder {
         this.clientConfig = clientConfig;
         return this;
     }
+    
+    public NettyHttpClientBuilder withChannelPool(ChannelPool channelPool) {
+        Preconditions.checkNotNull(clientConfig);
+        this.channelPool = channelPool;
+        return this;
+    }
+
 
     public NettyHttpClientBuilder withSerializationFactory(SerializationFactory<HttpSerializationContext> serializationFactory) {
         Preconditions.checkNotNull(serializationFactory);

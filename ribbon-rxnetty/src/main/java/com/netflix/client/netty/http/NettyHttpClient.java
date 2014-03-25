@@ -30,6 +30,8 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.ReferenceCounted;
 import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.client.pool.ChannelPool;
+import io.reactivex.netty.client.pool.DefaultChannelPool;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfiguratorComposite;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
@@ -51,7 +53,7 @@ import javax.annotation.Nullable;
 
 import rx.Observable;
 import rx.Observer;
-import rx.util.functions.Func1;
+import rx.functions.Func1;
 
 import com.google.common.base.Preconditions;
 import com.netflix.client.ClientException;
@@ -104,6 +106,9 @@ public class NettyHttpClient implements Closeable {
 
     private SerializationFactory<HttpSerializationContext> serializationFactory;
     private IClientConfig config;
+    private ChannelPool channelPool = new DefaultChannelPool(
+            DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
+ 
     
     public static final IClientConfigKey<Boolean> AutoRetainResponse = new CommonClientConfigKey<Boolean>("AutoRetainResponse"){};
     
@@ -252,7 +257,7 @@ public class NettyHttpClient implements Closeable {
      * @see class description of {@link NettyHttpClient} 
      */
     public <I> Observable<HttpClientResponse<ServerSentEvent>> createServerSentEventObservable(String host, int port, final HttpClientRequest<I> request, @Nullable IClientConfig requestConfig) {
-        return createObservableHttpResponse(host, port, request, PipelineConfigurators.<I>sseClientConfigurator(), requestConfig, RxClient.ClientConfig.DEFAULT_CONFIG);
+        return createObservableHttpResponse(host, port, request, PipelineConfigurators.<I>sseClientConfigurator(), requestConfig, null, RxClient.ClientConfig.DEFAULT_CONFIG);
     }
 
     /**
@@ -281,7 +286,7 @@ public class NettyHttpClient implements Closeable {
         int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig);
         RxClient.ClientConfig clientConfig = new RxClient.ClientConfig.Builder(RxClient.ClientConfig.DEFAULT_CONFIG)
         .readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS).build();
-        return createObservableHttpResponse(host, port, request, PipelineConfigurators.<I,ByteBuf>httpClientConfigurator(), requestConfig, clientConfig);
+        return createObservableHttpResponse(host, port, request, PipelineConfigurators.<I,ByteBuf>httpClientConfigurator(), requestConfig, channelPool, clientConfig);
     }
     
     /**
@@ -317,6 +322,7 @@ public class NettyHttpClient implements Closeable {
                 request,  
                 PipelineConfigurators.<I, ByteBuf>httpClientConfigurator(), 
                 requestConfig,
+                channelPool,
                 clientConfig);
         return observableHttpResponse.flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<O>>() {
             Deserializer<O> deserializer = null;
@@ -366,7 +372,7 @@ public class NettyHttpClient implements Closeable {
     public <I,O> Observable<HttpClientResponse<O>> createObservableHttpResponse(String host, int port, final HttpClientRequest<I> request, 
             final PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> configurator,
             final RxClient.ClientConfig rxClientConfig) {
-        return createObservableHttpResponse(host, port, request, configurator, null, rxClientConfig);
+        return createObservableHttpResponse(host, port, request, configurator, null, null, rxClientConfig);
     }
         
     /**
@@ -374,7 +380,8 @@ public class NettyHttpClient implements Closeable {
      * and produce custom observable content.
      */
     <I,O> Observable<HttpClientResponse<O>> createObservableHttpResponse(String host, int port, final HttpClientRequest<I> request, 
-            final  PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> configurator, @Nullable final IClientConfig requestConfig, 
+            final  PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> configurator, 
+            @Nullable final IClientConfig requestConfig, @Nullable ChannelPool channelPool,
             final RxClient.ClientConfig rxClientConfig) {
         Preconditions.checkNotNull(request);
         Preconditions.checkNotNull(configurator);
@@ -385,7 +392,7 @@ public class NettyHttpClient implements Closeable {
                 debug);
         
         HttpClientBuilder<I, O> clientBuilder =
-                new HttpClientBuilder<I, O>(host, port).pipelineConfigurator(configurator);
+                new HttpClientBuilder<I, O>(host, port).pipelineConfigurator(configurator).channelPool(channelPool);
         int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, requestConfig);
         HttpClient<I, O> client = clientBuilder.channelOption(
                 ChannelOption.CONNECT_TIMEOUT_MILLIS, requestConnectTimeout).config(rxClientConfig).build();
