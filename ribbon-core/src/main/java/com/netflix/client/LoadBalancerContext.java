@@ -394,7 +394,6 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
      */
     @SuppressWarnings("unchecked")
     protected T computeFinalUriWithLoadBalancer(T original) throws ClientException{
-        URI newURI;
         URI theUrl = original.getUri();
 
         if (theUrl == null){
@@ -514,40 +513,26 @@ public abstract class LoadBalancerContext<T extends ClientRequest, S extends IRe
         // just verify that at this point we have a full URL
 
         try {
-            String urlPath = "";
-            if (theUrl.getRawPath() != null && theUrl.getRawPath().startsWith("/")) {
-                urlPath = theUrl.getRawPath();
-            } else {
-                urlPath = "/" + theUrl.getRawPath();
+            StringBuilder sb = new StringBuilder();
+            sb.append(scheme).append("://");
+            if (!Strings.isNullOrEmpty(theUrl.getRawUserInfo())) {
+                sb.append(theUrl.getRawUserInfo()).append("@");
             }
-            
-            newURI = new URI(scheme, theUrl.getUserInfo(), host, port, urlPath, theUrl.getQuery(), theUrl.getFragment());
-            if (isURIEncoded(theUrl)) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(newURI.getScheme())
-                  .append("://")
-                  .append(newURI.getRawAuthority())
-                  .append(theUrl.getRawPath());
-                if (!Strings.isNullOrEmpty(theUrl.getRawQuery())) {
-                    sb.append("?").append(theUrl.getRawQuery());
-                }
-                if (!Strings.isNullOrEmpty(theUrl.getRawFragment())) {
-                    sb.append("#").append(theUrl.getRawFragment());
-                }
-                newURI = new URI(sb.toString());
+            sb.append(host);
+            if (port >= 0) {
+                sb.append(":").append(port);
             }
+            sb.append(theUrl.getRawPath());
+            if (!Strings.isNullOrEmpty(theUrl.getRawQuery())) {
+                sb.append("?").append(theUrl.getRawQuery());
+            }
+            if (!Strings.isNullOrEmpty(theUrl.getRawFragment())) {
+                sb.append("#").append(theUrl.getRawFragment());
+            }
+            URI newURI = new URI(sb.toString());
             return (T) original.replaceUri(newURI);            
         } catch (URISyntaxException e) {
             throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage());
-        }
-    }
-
-    private boolean isURIEncoded(URI uri) {
-        String original = uri.toString();
-        try {
-            return !URLEncoder.encode(original, "UTF-8").equals(original);
-        } catch (Exception e) {
-            return false;
         }
     }
     
