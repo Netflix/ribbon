@@ -21,22 +21,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.DefaultLastHttpContent;
-import io.netty.handler.codec.http.FullHttpResponse;
 
 import java.util.List;
 
-import com.netflix.client.ClientException;
-import com.netflix.client.http.HttpHeaders;
-import com.netflix.client.http.HttpRequest;
-import com.netflix.client.http.HttpResponse;
-import com.netflix.client.http.UnexpectedHttpResponseException;
 import com.netflix.serialization.Deserializer;
-import com.netflix.serialization.HttpSerializationContext;
-import com.netflix.serialization.SerializationFactory;
-import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.TypeDef;
 
 public class HttpEntityDecoder<T> extends ByteToMessageDecoder {

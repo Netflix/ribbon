@@ -26,8 +26,8 @@ import java.util.List;
 
 
 import com.google.common.collect.Lists;
+import com.netflix.client.ClientException;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.UnexpectedHttpResponseException;
 
@@ -63,8 +63,21 @@ public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerRetryH
     public boolean isCircuitTrippingException(Throwable e) {
         if (e instanceof UnexpectedHttpResponseException) {
             return ((UnexpectedHttpResponseException) e).getStatusCode() == 503;
+        } else if (e instanceof ClientException) {
+            return ((ClientException) e).getErrorType() == ClientException.ErrorType.SERVER_THROTTLED;
         }
         return super.isCircuitTrippingException(e);
+    }
+    
+    @Override
+    public boolean isRetriableException(Throwable e, boolean sameServer) {
+        if (e instanceof ClientException) {
+            ClientException ce = (ClientException) e;
+            if (ce.getErrorType() == ClientException.ErrorType.SERVER_THROTTLED) {
+                return !sameServer && retryEnabled;
+            }
+        }
+        return super.isRetriableException(e, sameServer);
     }
 
     /**

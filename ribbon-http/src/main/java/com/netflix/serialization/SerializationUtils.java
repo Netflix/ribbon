@@ -32,20 +32,4 @@ public class SerializationUtils {
         serializer.serialize(out, obj, typeDef);
         return out.toByteArray();
     }
-
-        
-    public static <T> Deserializer<T> getDeserializer(URI requestURI, IClientConfig requestConfig, HttpHeaders responseHeaders, TypeDef<T> typeDef, 
-            SerializationFactory<HttpSerializationContext> serializationFactory) {
-        Deserializer<T> deserializer = null;
-        if (requestConfig != null) {
-            deserializer = (Deserializer<T>) requestConfig.getPropertyWithType(CommonClientConfigKey.Deserializer);
-        }
-        if (deserializer == null && serializationFactory != null) {
-            deserializer = serializationFactory.getDeserializer(new HttpSerializationContext(responseHeaders, requestURI), typeDef);
-        }
-        if (deserializer == null && typeDef.getRawType().equals(String.class)) {
-            return (Deserializer<T>) StringDeserializer.getInstance();
-        }
-        return deserializer;
-    }
 }

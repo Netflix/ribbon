@@ -46,12 +46,16 @@ public class RequestSpecificRetryHandler implements RetryHandler {
 
     @Override
     public boolean isRetriableException(Throwable e, boolean sameServer) {
-        if (!fallback.isRetriableException(e, sameServer)) {
-            return false;
-        } 
         if (okToRetryOnAllErrors) {
             return true;
-        } else {
+        } else if (e instanceof ClientException) {
+            ClientException ce = (ClientException) e;
+            if (ce.getErrorType() == ClientException.ErrorType.SERVER_THROTTLED) {
+                return !sameServer;
+            } else {
+                return false;
+            }
+        } else  {
             return okToRetryOnConnectErrors && isConnectionException(e);
         }
     }

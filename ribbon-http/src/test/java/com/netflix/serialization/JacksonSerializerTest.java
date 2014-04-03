@@ -41,7 +41,8 @@ import com.google.common.collect.Lists;
 import com.netflix.client.http.CaseInsensitiveMultiMap;
 import com.netflix.client.http.HttpHeaders;
 
-public class JacksonSerializerTest {    
+public class JacksonSerializerTest {   
+    /*
     @SuppressWarnings("serial")
     @Test
     public void testSerializeList() throws Exception {
@@ -123,7 +124,7 @@ public class JacksonSerializerTest {
 
         content = new String(serializeToBytes(obj, serializer, null), "UTF-8");
         assertEquals("{\"name\":\"ribbon\",\"age\":1,\"child\":true}", content);
-    }
+    } */
 }
 
 @XmlRootElement
