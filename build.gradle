@@ -43,13 +43,6 @@ project(':ribbon-core') {
     }
 }
 
-project(':ribbon-http') {
-    dependencies {
-        compile project(':ribbon-core')    
-    }
-}
-
-
 project(':ribbon-loadbalancer') {
     dependencies {
         compile project(':ribbon-core')
@@ -61,7 +54,6 @@ project(':ribbon-loadbalancer') {
 project(':ribbon-httpclient') {
     dependencies {
         compile project(':ribbon-core')
-        compile project(':ribbon-http')
         compile project(':ribbon-loadbalancer')
         compile 'org.apache.httpcomponents:httpclient:4.2.1' 
         compile 'com.sun.jersey:jersey-client:1.11'
@@ -79,10 +71,9 @@ project(':ribbon-httpclient') {
 project(':ribbon-rxnetty') {
     dependencies {
         compile project(':ribbon-core')
-        compile project(':ribbon-http')
         compile project(':ribbon-loadbalancer')
         compile project(':ribbon-core')    
-        // compile 'com.netflix.rxnetty:rx-netty:0.2.8'
+        compile 'com.netflix.rxnetty:rx-netty:0.3.2'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }

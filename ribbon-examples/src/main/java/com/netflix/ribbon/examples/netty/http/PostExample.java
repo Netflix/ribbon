@@ -1,7 +1,6 @@
 package com.netflix.ribbon.examples.netty.http;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.HttpRequest;
 
 import java.net.URI;
 
@@ -21,6 +20,7 @@ public class PostExample extends ExampleAppWithLocalResource {
 
     @Override
     public void run() throws Exception {
+        /*
         Person myPerson = new Person("netty", 5);
         HttpRequest<ByteBuf> request = HttpRequest.createPost(SERVICE_URI + "testAsync/person").withHeader("Content-type", "application/json")
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), myPerson, null));
@@ -36,7 +36,7 @@ public class PostExample extends ExampleAppWithLocalResource {
                 } catch (Exception e) { // NOPMD
                 }
             }
-        });
+        }); */
     }
     
     public static void main(String[] args) throws Exception {

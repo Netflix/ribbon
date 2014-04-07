@@ -1,7 +1,6 @@
 package com.netflix.ribbon.examples.netty.http;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.HttpRequest;
 
 import java.net.URI;
 import java.util.Map;
@@ -22,7 +21,8 @@ public class EntityDeserializationExample extends ExampleAppWithLocalResource {
 
     @Override
     public void run() throws Exception {
-        HttpRequest<ByteBuf> request = HttpRequest.createGet(SERVICE_URI + "testAsync/person");
+        /*
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
         NettyHttpClient observableClient = NettyHttpClientBuilder.newBuilder()
                 .build();
 
@@ -92,10 +92,12 @@ public class EntityDeserializationExample extends ExampleAppWithLocalResource {
 
         });
         Thread.sleep(2000);
+        */
     }
 
     public static void main(String[] args) throws Exception {
         new EntityDeserializationExample().runApp();
     }
+    
 }
 

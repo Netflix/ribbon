@@ -1,8 +1,6 @@
 package com.netflix.ribbon.examples.netty.http;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.HttpRequest;
-import io.reactivex.netty.protocol.http.client.HttpResponse;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -15,6 +13,7 @@ import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.Server;
 
 public class LoadBalancingExample {
+    /*
     public static void main(String[] args) throws Exception {
         NettyHttpLoadBalancingClient client = NettyHttpClientBuilder.newBuilder()
                 .withFixedServerList(Lists.newArrayList(new Server("www.google.com:80"), new Server("www.microsoft.com:80"), new Server("www.yahoo.com:80")))
@@ -46,4 +45,5 @@ public class LoadBalancingExample {
         NettyHttpLoadBalancingClient lbClient = (NettyHttpLoadBalancingClient) client;
         System.out.println(((AbstractLoadBalancer) lbClient.getLoadBalancer()).getLoadBalancerStats());
     }
+    */
 }

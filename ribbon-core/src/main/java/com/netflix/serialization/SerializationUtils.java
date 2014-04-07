@@ -3,14 +3,8 @@ package com.netflix.serialization;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URI;
 
 import com.google.common.base.Preconditions;
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.client.http.HttpHeaders;
-import com.netflix.client.http.HttpRequest;
-import com.netflix.client.http.HttpResponse;
 
 public class SerializationUtils {
 

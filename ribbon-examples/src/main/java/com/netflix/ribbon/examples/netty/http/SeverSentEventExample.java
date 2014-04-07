@@ -1,8 +1,6 @@
 package com.netflix.ribbon.examples.netty.http;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.HttpRequest;
-import io.reactivex.netty.protocol.http.client.HttpResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
 import java.util.List;
@@ -27,6 +25,7 @@ public class SeverSentEventExample extends ExampleAppWithLocalResource {
 
     @Override
     public void run() throws Exception {
+        /*
         // Get the events and parse each data line using Jackson deserializer
         IClientConfig overrideConfig = new DefaultClientConfigImpl().setPropertyWithType(CommonClientConfigKey.Deserializer, JacksonCodec.getInstance());
         HttpRequest<ByteBuf> request = HttpRequest.createGet(SERVICE_URI + "testAsync/personStream");
@@ -66,7 +65,7 @@ public class SeverSentEventExample extends ExampleAppWithLocalResource {
                 public void call(ServerSentEvent t1) {
                     System.out.println(t1);
                 }
-            });
+            }); */
     }
     
     public static void main(String[] args) throws Exception {

@@ -4,8 +4,6 @@ import java.io.IOException;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import io.reactivex.netty.protocol.http.client.HttpRequest;
-import io.reactivex.netty.protocol.http.client.HttpResponse;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.util.functions.Action1;
@@ -18,6 +16,12 @@ import com.netflix.serialization.TypeDef;
 
 public class HttpResponseDeserialization extends ExampleAppWithLocalResource {
 
+    @Override
+    public void run() throws Exception {
+        // TODO Auto-generated method stub
+        
+    }
+/*
     @Override
     public void run() throws Exception {
         HttpRequest<ByteBuf> request = HttpRequest.createGet(SERVICE_URI + "testAsync/getXml");
@@ -56,6 +60,6 @@ public class HttpResponseDeserialization extends ExampleAppWithLocalResource {
     public static void main(String[] args) throws Exception {
         new HttpResponseDeserialization().runApp();
     }
-
+*/
 }
 

@@ -116,7 +116,7 @@ public class NettyHttpClient extends AbstractNettyHttpClient<ByteBuf> implements
     }
 
     @Override
-    protected <I> HttpClient<I, ByteBuf> getRxClient(String host, int port, IClientConfig requestConfig) {
+    protected <I> HttpClient<I, ByteBuf> getRxClient(String host, int port, HttpClientRequest<I> request, IClientConfig requestConfig) {
         HttpClientBuilder<I, ByteBuf> clientBuilder =
                 new HttpClientBuilder<I, ByteBuf>(host, port).pipelineConfigurator(PipelineConfigurators.<I, ByteBuf>httpClientConfigurator());
         int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, requestConfig);

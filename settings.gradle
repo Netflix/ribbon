@@ -1,3 +1,3 @@
 rootProject.name='ribbon'
-include 'ribbon-core', 'ribbon-http', 'ribbon-loadbalancer', 'ribbon-httpclient', 'ribbon-eureka', 'ribbon-rxnetty', 'ribbon-examples', 'ribbon-test'
+include 'ribbon-core', 'ribbon-loadbalancer', 'ribbon-httpclient', 'ribbon-eureka', 'ribbon-rxnetty', 'ribbon-examples', 'ribbon-test'
 

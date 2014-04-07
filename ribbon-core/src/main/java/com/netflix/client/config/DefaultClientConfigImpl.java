@@ -814,7 +814,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
                     return (T) Long.valueOf(stringValue);
                 } else if (Double.class.equals(type)) {
                     return (T) Double.valueOf(stringValue);
-                    
+                } else if (TimeUnit.class.equals(type)) {
+                    return (T) TimeUnit.valueOf(stringValue);
                 }
                 throw new IllegalArgumentException("Unable to convert string value to desired type " + type);
             } else {

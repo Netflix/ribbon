@@ -20,7 +20,6 @@ package com.netflix.client;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -561,15 +560,6 @@ public class LoadBalancerContext implements IClientConfigAware {
         return new Server(host, port);
     }
 
-    private static boolean isURIEncoded(URI uri) {
-        String original = uri.toString();
-        try {
-            return !URLEncoder.encode(original, "UTF-8").equals(original);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     public URI reconstructURIWithServer(Server server, URI original) {
         String host = server.getHost();
         int port = server .getPort();
@@ -577,36 +567,31 @@ public class LoadBalancerContext implements IClientConfigAware {
                 && port == original.getPort()) {
             return original;
         }
-        URI newURI;
         String scheme = original.getScheme();
         if (scheme == null) {
             scheme = deriveSchemeAndPortFromPartialUri(original).first();
         }
-        String urlPath = "";
-        if (original.getRawPath() != null && original.getRawPath().startsWith("/")) {
-            urlPath = original.getRawPath();
-        } else {
-            urlPath = "/" + original.getRawPath();
-        }
 
         try {
-                StringBuilder sb = new StringBuilder();
-                sb.append(scheme)
-                .append("://")
-                .append(host)
-                .append(":")
-                .append(port)
-                .append(original.getRawPath());
-                if (!Strings.isNullOrEmpty(original.getRawQuery())) {
-                    sb.append("?").append(original.getRawQuery());
-                }
-                if (!Strings.isNullOrEmpty(original.getRawFragment())) {
-                    sb.append("#").append(original.getRawFragment());
-                }
-                newURI = new URI(sb.toString());
-            return newURI;
+            StringBuilder sb = new StringBuilder();
+            sb.append(scheme).append("://");
+            if (!Strings.isNullOrEmpty(original.getRawUserInfo())) {
+                sb.append(original.getRawUserInfo()).append("@");
+            }
+            sb.append(host);
+            if (port >= 0) {
+                sb.append(":").append(port);
+            }
+            sb.append(original.getRawPath());
+            if (!Strings.isNullOrEmpty(original.getRawQuery())) {
+                sb.append("?").append(original.getRawQuery());
+            }
+            if (!Strings.isNullOrEmpty(original.getRawFragment())) {
+                sb.append("#").append(original.getRawFragment());
+            }
+            URI newURI = new URI(sb.toString());
+            return newURI;            
         } catch (URISyntaxException e) {
-            // this should not really happen
             throw new RuntimeException(e);
         }
     }

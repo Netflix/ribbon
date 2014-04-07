@@ -31,7 +31,7 @@ public class SSEClient extends AbstractNettyHttpClient<ServerSentEvent> {
 
     @Override
     protected <I> HttpClient<I, ServerSentEvent> getRxClient(String host,
-            int port, IClientConfig requestConfig) {
+            int port, HttpClientRequest<I> request, IClientConfig requestConfig) {
         HttpClientBuilder<I, ServerSentEvent> clientBuilder =
                 new HttpClientBuilder<I, ServerSentEvent>(host, port).pipelineConfigurator(PipelineConfigurators.<I>sseClientConfigurator());
         int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, requestConfig);
