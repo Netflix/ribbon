@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +36,8 @@ import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.config.DynamicIntProperty;
+import com.netflix.config.DynamicProperty;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.google.common.annotations.VisibleForTesting;
@@ -57,7 +60,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
     boolean isSecure = false;
     boolean useTunnel = false;
-    private Thread _shutdownThread;
+    private static Thread _shutdownThread;
 
     // to keep track of modification of server lists
     protected AtomicBoolean serverListUpdateInProgress = new AtomicBoolean(
@@ -70,7 +73,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
                                                                          // 30
                                                                          // secs
 
-    private ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
+    private static ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
 
     private long refeshIntervalMills = LISTOFSERVERS_CACHE_REPEAT_INTERVAL;
 
@@ -81,7 +84,31 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     private AtomicLong lastUpdated = new AtomicLong(System.currentTimeMillis());
     
     protected volatile boolean serverRefreshEnabled = false;
+    private final static String CORE_THREAD = "DynamicServerListLoadBalancer.ThreadPoolSize";
+    private final static DynamicIntProperty poolSizeProp = new DynamicIntProperty(CORE_THREAD, 2);
+    
+    private volatile ScheduledFuture<?> scheduledFuture;
 
+    static {
+        int coreSize = poolSizeProp.get();
+        ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true).build();
+        _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(coreSize, factory);
+        poolSizeProp.addCallback(new Runnable() {
+            @Override
+            public void run() {
+                _serverListRefreshExecutor.setCorePoolSize(poolSizeProp.get());
+            }
+        
+        });
+        _shutdownThread = new Thread(new Runnable() {
+            public void run() {
+                LOGGER.info("Shutting down the Executor Pool for DynamicServerListLoadBalancer");
+                shutdownExecutorPool();
+            }
+        });
+        Runtime.getRuntime().addShutdownHook(_shutdownThread);
+    }
+    
     public DynamicServerListLoadBalancer() {
         super();
     }
@@ -200,26 +227,8 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
      * feature enabled
      */
     public void enableAndInitLearnNewServersFeature() {
-        String threadName = "DynamicServerListLoadBalancer-" + getIdentifier();
-        ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true)
-                .setNameFormat(threadName).build();
-        _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(1, factory);
         keepServerListUpdated();
         serverRefreshEnabled = true;
-        // Add it to the shutdown hook
-
-        if (_shutdownThread == null) {
-
-            _shutdownThread = new Thread(new Runnable() {
-                public void run() {
-                    LOGGER.info("Shutting down the Executor Pool for "
-                            + getIdentifier());
-                    shutdownExecutorPool();
-                }
-            });
-
-            Runtime.getRuntime().addShutdownHook(_shutdownThread);
-        }
     }
 
     private String getIdentifier() {
@@ -227,13 +236,13 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     }
 
     private void keepServerListUpdated() {
-        _serverListRefreshExecutor.scheduleAtFixedRate(
+        scheduledFuture = _serverListRefreshExecutor.scheduleAtFixedRate(
                 new ServerListRefreshExecutorThread(),
                 LISTOFSERVERS_CACHE_UPDATE_DELAY, refeshIntervalMills,
                 TimeUnit.MILLISECONDS);
     }
 
-    public void shutdownExecutorPool() {
+    private static void shutdownExecutorPool() {
         if (_serverListRefreshExecutor != null) {
             _serverListRefreshExecutor.shutdown();
 
@@ -250,6 +259,13 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         }
     }
 
+    public void stopServerListRefreshing() {
+        serverRefreshEnabled = false;
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(true);
+        }
+    }
+    
     /**
      * Class that updates the list of Servers This is based on the method used
      * by the client * Appropriate Filters are applied before coming up with the
@@ -261,6 +277,9 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     class ServerListRefreshExecutorThread implements Runnable {
 
         public void run() {
+            if (!serverRefreshEnabled) {
+                return;
+            }
             try {
                 updateListOfServers();
 
@@ -323,6 +342,15 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     @Monitor(name="LastUpdated", type=DataSourceType.INFORMATIONAL)
     public String getLastUpdate() {
         return new Date(lastUpdated.get()).toString();
+    }
+    
+    @Monitor(name="NumThreads", type=DataSourceType.GAUGE) 
+    public int getCoreThreads() {
+        if (_serverListRefreshExecutor != null) {
+            return _serverListRefreshExecutor.getCorePoolSize();
+        } else {
+            return 0;
+        }
     }
     
     public String toString() {

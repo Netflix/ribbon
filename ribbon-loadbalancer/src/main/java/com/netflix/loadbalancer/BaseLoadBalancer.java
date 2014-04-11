@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -31,6 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.PrimeConnections;
@@ -92,6 +94,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     private volatile boolean enablePrimingConnections = false;
     
     private IClientConfig config;
+    
+    private List<ServerListChangeListener> changeListeners = new CopyOnWriteArrayList<ServerListChangeListener>();
 
     /**
      * Default constructor which sets name as "default", sets null ping, and
@@ -199,6 +203,14 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             this.setPrimeConnections(primeConnections);
         }
         init();
+    }
+
+    public void addServerListChangeListener(ServerListChangeListener listener) {
+        changeListeners.add(listener);
+    }
+    
+    public void removeServerListChangeListener(ServerListChangeListener listener) {
+        changeListeners.remove(listener);
     }
 
     public IClientConfig getClientConfig() {
@@ -466,6 +478,17 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             boolean listChanged = false;
             if (!allServerList.equals(allServers)) {
                 listChanged = true;
+                if (changeListeners != null && changeListeners.size() > 0) {
+                   List<Server> oldList = ImmutableList.copyOf(allServerList);
+                   List<Server> newList = ImmutableList.copyOf(allServers);                   
+                   for (ServerListChangeListener l: changeListeners) {
+                       try {
+                           l.serverListChanged(oldList, newList);
+                       } catch (Throwable e) {
+                           logger.error("Error invoking server list change listener", e);
+                       }
+                   }
+                }
             }
             if (isEnablePrimingConnections()) {
                 for (Server server : allServers) {

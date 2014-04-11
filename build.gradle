@@ -64,7 +64,6 @@ project(':ribbon-httpclient') {
         testCompile 'commons-io:commons-io:2.0.1'
         testCompile 'com.sun.jersey:jersey-server:1.11'
         testCompile 'com.google.mockwebserver:mockwebserver:20130505'
-        testCompile project(':ribbon-eureka')
     }
 }
 
@@ -84,7 +83,7 @@ project(':ribbon-eureka') {
     dependencies {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
-        compile 'com.netflix.eureka:eureka-client:1.1.107'
+        compile 'com.netflix.eureka:eureka-client:1.1.126'
     }    
 }
 

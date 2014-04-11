@@ -64,6 +64,24 @@ public class LoadBalancerContextTest {
     }
     
     @Test
+    public void testPreservesUserInfo() throws Exception {
+        // %3A == ":" -- ensure user info is not decoded
+        String uri = "http://us%3Aer:pass@localhost:8080?foo=bar";
+        URI requestedURI = new URI(uri);
+        Server server = context.getServerFromLoadBalancer(requestedURI, null);
+        URI newURI = context.reconstructURIWithServer(server, requestedURI);
+        assertEquals(uri, newURI.toString());
+    }
+    
+    @Test
+    public void testQueryWithoutPath() throws Exception {
+        String uri = "?foo=bar";
+        URI requestedURI = new URI(uri);
+        Server server = context.getServerFromLoadBalancer(requestedURI, null);
+        URI newURI = context.reconstructURIWithServer(server, requestedURI);
+        assertEquals("http://www.example.com:8080?foo=bar", newURI.toString());
+    }
+    @Test
     public void testEncodedPathAndHostChange() throws Exception {
         String uri = "/abc%2Fxyz";
         URI request = new URI(uri);

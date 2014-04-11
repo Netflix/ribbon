@@ -33,7 +33,6 @@ import org.apache.http.util.EntityUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
-@SuppressWarnings("deprecation")
 public class NFHttpClientTest {
     
     @Test
@@ -136,7 +135,6 @@ public class NFHttpClientTest {
                 System.out.println(id + " - connection released");
             }
         }
-       
     }
 
 }
