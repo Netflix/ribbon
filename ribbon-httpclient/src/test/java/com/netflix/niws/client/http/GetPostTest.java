@@ -114,10 +114,9 @@ public class GetPostTest {
         HttpRequest request = HttpRequest.newBuilder().verb(Verb.POST)
                 .uri(getUri)
                 .entity(obj)
-                .overrideConfig(overrideConfig)
                 .header("Content-Type", "application/json")
                 .build();
-        HttpResponse response = client.execute(request);
+        HttpResponse response = client.execute(request, overrideConfig);
         assertEquals(200, response.getStatus());
         assertTrue(response.getEntity(TestObject.class).name.equals("fromClient"));
     }

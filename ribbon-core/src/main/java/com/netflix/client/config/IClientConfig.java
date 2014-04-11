@@ -20,7 +20,8 @@ package com.netflix.client.config;
 import java.util.Map;
 
 /**
- * Defines the client configuration used by various APIs to initialize clients or load balancers.
+ * Defines the client configuration used by various APIs to initialize clients or load balancers
+ * and for method execution. The default implementation is {@link DefaultClientConfigImpl}.
  * 
  * @author awang
  *
@@ -68,17 +69,27 @@ public interface IClientConfig {
     public boolean getPropertyAsBoolean(IClientConfigKey key, boolean defaultValue);
     
     /**
-     * Returns a typed property. This property must be set by {@link #setPropertyWithType(IClientConfigKey, Object)}.
-     * If the property of IClientConfigKey is not set, it returns null.
+     * Returns a typed property. If the property of IClientConfigKey is not set, it returns null.
+     * <p/>
+     * For {@link DefaultClientConfigImpl}, if the value of the property is String, 
+     * it will do basic type conversion from String to the following type:
+     * <li>Integer</li>
+     * <li>Boolean</li>
+     * <li>Float</li>
+     * <li>Long</li>
+     * <li>Double</li>
+     * <br/><br/>
      */
     public <T> T getPropertyWithType(IClientConfigKey<T> key);
     
     /**
-     * Returns a typed property. This property must be set by {@link #setPropertyWithType(IClientConfigKey, Object)}.
-     * If the property of IClientConfigKey is not set, it returns the default value passed in as the parameter.
+     * Returns a typed property. If the property of IClientConfigKey is not set, 
+     * it returns the default value passed in as the parameter.
      */
     public <T> T getPropertyWithType(IClientConfigKey<T> key, T defaultValue);
 
-    
+    /**
+     * Set the typed property with the given value. 
+     */
     public <T> IClientConfig setPropertyWithType(IClientConfigKey<T> key, T value);
 }

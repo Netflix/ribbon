@@ -54,6 +54,7 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     private Counter releaseCounter;
     private Counter deleteCounter;
     private Timer requestTimer;
+    private Timer creationTimer;
     
     public NamedConnectionPool(String name, ClientConnectionOperator operator,
             ConnPerRoute connPerRoute, int maxTotalConnections, long connTTL,
@@ -97,7 +98,8 @@ public class NamedConnectionPool extends ConnPoolByRoute {
         requestCounter = Monitors.newCounter(name + "_Request");
         releaseCounter = Monitors.newCounter(name + "_Release");
         deleteCounter = Monitors.newCounter(name + "_Delete");
-        requestTimer = Monitors.newTimer(name + "RequestEntry", TimeUnit.MILLISECONDS);
+        requestTimer = Monitors.newTimer(name + "_RequestConnectionTimer", TimeUnit.MILLISECONDS);
+        creationTimer = Monitors.newTimer(name + "_CreateConnectionTimer", TimeUnit.MILLISECONDS);
         Monitors.registerObject(name, this);
     }
 
@@ -120,10 +122,13 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     protected BasicPoolEntry createEntry(RouteSpecificPool rospl,
             ClientConnectionOperator op) {
         createEntryCounter.increment();
-        return super.createEntry(rospl, op);
+        Stopwatch stopWatch = creationTimer.start();
+        try {
+            return super.createEntry(rospl, op);
+        } finally {
+            stopWatch.stop();
+        }
     }
-    
-    
     
     @Override
     protected BasicPoolEntry getEntryBlocking(HttpRoute route, Object state,

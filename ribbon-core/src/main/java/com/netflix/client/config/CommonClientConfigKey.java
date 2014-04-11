@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.reflect.TypeToken;
-import com.netflix.serialization.SerializationFactory;
 import com.netflix.serialization.Serializer;
 import com.netflix.serialization.Deserializer;
 
@@ -173,7 +172,6 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     // serialization
     public static final IClientConfigKey<String> DefaultSerializationFactoryClassName = new CommonClientConfigKey<String>("DefaultSerializationFactoryClassName"){};
-    public static final IClientConfigKey<SerializationFactory> DefaultSerializationFactory = new CommonClientConfigKey<SerializationFactory>("DefaultSerializationFactory"){};
     
     // serializer
     public static final IClientConfigKey<Serializer> Serializer = new CommonClientConfigKey<Serializer>("Serializer"){};

@@ -33,12 +33,13 @@ import com.sun.net.httpserver.HttpServer;
  */
 public abstract class ExampleAppWithLocalResource {
 
-    int port = (new Random()).nextInt(1000) + 4000; 
-    String SERVICE_URI = "http://localhost:" + port + "/";
+    public int port = (new Random()).nextInt(1000) + 4000; 
+    public String SERVICE_URI = "http://localhost:" + port + "/";
     HttpServer server = null;
     
     public abstract void run() throws Exception;
     
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings
     public final void runApp() throws Exception {
         PackagesResourceConfig resourceConfig = new PackagesResourceConfig("com.netflix.ribbon.examples.server");
         ExecutorService service = Executors.newFixedThreadPool(50);
@@ -54,5 +55,6 @@ public abstract class ExampleAppWithLocalResource {
             }
             service.shutdownNow();
         }
+        System.exit(0);
     }
 }

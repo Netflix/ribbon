@@ -68,6 +68,10 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
     @Before
     public void setupMock(){
 
+        List<InstanceInfo> dummyII = getDummyInstanceInfo("dummy", "http://www.host.com", 8001);
+        List<InstanceInfo> secureDummyII = getDummyInstanceInfo("secureDummy", "http://www.host.com", 8002);
+
+
         PowerMock.mockStatic(DiscoveryManager.class);
         PowerMock.mockStatic(DiscoveryClient.class);
 
@@ -79,8 +83,8 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
 
 
-        expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy", false, "region")).andReturn(getDummyInstanceInfo("dummy", "http://www.host.com", 7000)).anyTimes();
-        expect(mockedDiscoveryClient.getInstancesByVipAddress("secureDummy", true, "region")).andReturn(getDummyInstanceInfo("secureDummy", "http://www.host.com", 7001)).anyTimes();
+        expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy", false, "region")).andReturn(dummyII).anyTimes();
+        expect(mockedDiscoveryClient.getInstancesByVipAddress("secureDummy", true, "region")).andReturn(secureDummyII).anyTimes();
 
         replay(DiscoveryManager.class);
         replay(DiscoveryClient.class);
@@ -116,7 +120,9 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(7000, serverList.get(0).getPort());
+        Assert.assertEquals(8001, serverList.get(0).getPort());                              // vip indicated
+        Assert.assertEquals(8001, serverList.get(0).getInstanceInfo().getPort());            // vip indicated
+        Assert.assertEquals(7002, serverList.get(0).getInstanceInfo().getSecurePort());      // 7002 is the secure default
     }
 
     @Test
@@ -124,7 +130,7 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.DeploymentContextBasedVipAddresses", "secureDummy");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.IsSecure", "true");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.SecurePort", "6999");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.SecurePort", "6002");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.TargetRegion", "region");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testDefaultHonorsVipSecurePortDefinition.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
 
@@ -139,7 +145,9 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(7001, serverList.get(0).getPort());
+        Assert.assertEquals(8002, serverList.get(0).getPort());                         // vip indicated
+        Assert.assertEquals(8002, serverList.get(0).getInstanceInfo().getPort());       // vip indicated
+        Assert.assertEquals(7002, serverList.get(0).getInstanceInfo().getSecurePort()); // 7002 is the secure default
     }
 
     @Test
@@ -147,13 +155,11 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.DeploymentContextBasedVipAddresses", "dummy");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.IsSecure", "false");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.Port", "6999");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.Port", "6001");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.TargetRegion", "region");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testVipPortCanBeOverriden.ribbon.ForceClientPortConfiguration", "true");
-
-
 
         DiscoveryEnabledNIWSServerList deList = new DiscoveryEnabledNIWSServerList();
 
@@ -164,7 +170,9 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(6999, serverList.get(0).getPort());
+        Assert.assertEquals(6001, serverList.get(0).getPort());                           // client property indicated
+        Assert.assertEquals(6001, serverList.get(0).getInstanceInfo().getPort());         // client property indicated
+        Assert.assertEquals(7002, serverList.get(0).getInstanceInfo().getSecurePort());   // 7002 is the secure default
     }
 
 
@@ -173,13 +181,11 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.DeploymentContextBasedVipAddresses", "secureDummy");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.IsSecure", "true");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.SecurePort", "6998");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.SecurePort", "6002");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.TargetRegion", "region");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
 
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.ForceClientPortConfiguration", "true");
-
-
 
         DiscoveryEnabledNIWSServerList deList = new DiscoveryEnabledNIWSServerList();
 
@@ -190,23 +196,87 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(1, serverList.size());
-        Assert.assertEquals(6998, serverList.get(0).getPort());
+        Assert.assertEquals(8002, serverList.get(0).getPort());                           // vip indicated
+        Assert.assertEquals(8002, serverList.get(0).getInstanceInfo().getPort());         // vip indicated
+        Assert.assertEquals(6002, serverList.get(0).getInstanceInfo().getSecurePort());   // client property indicated
     }
 
 
-        protected static List<InstanceInfo> getDummyInstanceInfo(String appName, String host, int port){
+    /**
+     * Tests case where two different clients want to use the same instance, one with overriden ports and one without
+     *
+     * @throws Exception for anything unexpected
+     */
+    @Test
+    public void testTwoInstancesDontStepOnEachOther() throws Exception{
 
-            List<InstanceInfo> list = new ArrayList<InstanceInfo>();
+        // setup override client
 
-            InstanceInfo info = InstanceInfo.Builder.newBuilder().setAppName(appName)
-                    .setHostName(host)
-                    .setPort(port)
-                    .build();
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther1.ribbon.DeploymentContextBasedVipAddresses", "dummy");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther1.ribbon.IsSecure", "false");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther1.ribbon.Port", "6001");  // override from 8001
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther1.ribbon.TargetRegion", "region");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther1.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
 
-            list.add(info);
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther1.ribbon.ForceClientPortConfiguration", "true");
 
-            return list;
+        // setup non override client
 
-        }
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther2.ribbon.DeploymentContextBasedVipAddresses", "dummy");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther2.ribbon.IsSecure", "false");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther2.ribbon.Port", "6001");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther2.ribbon.TargetRegion", "region");
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther2.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
+
+        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther2.ribbon.ForceClientPortConfiguration", "false");
+
+        // check override client
+
+        DiscoveryEnabledNIWSServerList deList1 = new DiscoveryEnabledNIWSServerList();
+
+        DefaultClientConfigImpl clientConfig1 = DefaultClientConfigImpl.class.newInstance();
+        clientConfig1.loadProperties("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther1");
+        deList1.initWithNiwsConfig(clientConfig1);
+
+        List<DiscoveryEnabledServer> serverList1 = deList1.getInitialListOfServers();
+
+        Assert.assertEquals(1, serverList1.size());
+        Assert.assertEquals(6001, serverList1.get(0).getPort());                           // client property overridden
+        Assert.assertEquals(6001, serverList1.get(0).getInstanceInfo().getPort());         // client property overridden
+        Assert.assertEquals(7002, serverList1.get(0).getInstanceInfo().getSecurePort());   // 7002 is the secure default
+
+        // check non-override client
+
+        DiscoveryEnabledNIWSServerList deList2 = new DiscoveryEnabledNIWSServerList();
+
+        DefaultClientConfigImpl clientConfig2 = DefaultClientConfigImpl.class.newInstance();
+        clientConfig2.loadProperties("DiscoveryEnabled.testTwoInstancesDontStepOnEachOther2");
+        deList2.initWithNiwsConfig(clientConfig2);
+
+        List<DiscoveryEnabledServer> serverList2 = deList2.getInitialListOfServers();
+
+        Assert.assertEquals(1, serverList2.size());
+
+        Assert.assertEquals(8001, serverList2.get(0).getPort());                           // client property indicated in ii
+        Assert.assertEquals(8001, serverList2.get(0).getInstanceInfo().getPort());         // client property indicated in ii
+        Assert.assertEquals(7002, serverList2.get(0).getInstanceInfo().getSecurePort());   // 7002 is the secure default
+    }
+
+
+
+    protected static List<InstanceInfo> getDummyInstanceInfo(String appName, String host, int port){
+
+        List<InstanceInfo> list = new ArrayList<InstanceInfo>();
+
+        InstanceInfo info = InstanceInfo.Builder.newBuilder().setAppName(appName)
+                .setHostName(host)
+                .setPort(port)
+                .build();
+
+        list.add(info);
+
+        return list;
+
+    }
 
 }

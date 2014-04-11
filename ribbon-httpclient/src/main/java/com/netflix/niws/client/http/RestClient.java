@@ -26,12 +26,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.security.KeyStore;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
-
-import com.netflix.client.ClientFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.UserTokenHandler;
@@ -53,7 +49,8 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.client.AbstractLoadBalancerAwareClient;
 import com.netflix.client.ClientException;
-import com.netflix.client.ClientRequest;
+import com.netflix.client.ClientFactory;
+import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -68,10 +65,10 @@ import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
 import com.netflix.http4.ssl.KeyStoreAwareSocketFactory;
+import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.niws.cert.AbstractSslContextFactory;
 import com.netflix.niws.client.ClientSslSocketFactoryException;
 import com.netflix.niws.client.URLSslContextFactory;
-import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.netflix.serialization.SerializationUtils;
 import com.netflix.serialization.Serializer;
 import com.netflix.serialization.TypeDef;
@@ -117,16 +114,28 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     boolean bFollowRedirects = DefaultClientConfigImpl.DEFAULT_FOLLOW_REDIRECTS;
 
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
-
+    
     public RestClient() {
+        super(null);
+    }
+    
+    public RestClient(ILoadBalancer lb) {
+        super(lb);
         restClientName = "default";
     }
 
-    public RestClient(IClientConfig ncc) {
+    public RestClient(ILoadBalancer lb, IClientConfig ncc) {
+        super(lb, ncc);
         initWithNiwsConfig(ncc);
     }
 
-    public RestClient(Client jerseyClient) {
+    public RestClient(IClientConfig ncc) {
+        super(null, ncc);
+        initWithNiwsConfig(ncc);
+    }
+    
+    public RestClient(ILoadBalancer lb, Client jerseyClient) {
+        super(lb);
         this.restClient = jerseyClient;
         this.setErrorHandler(new HttpClientLoadBalancerErrorHandler());
     }
@@ -151,7 +160,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                 Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ReadTimeout))));
 
         this.restClient = apacheHttpClientSpecificInitialization();
-        this.setErrorHandler(new HttpClientLoadBalancerErrorHandler());
+        this.setErrorHandler(new HttpClientLoadBalancerErrorHandler(ncc));
     }
 
     protected Client apacheHttpClientSpecificInitialization() {
@@ -507,21 +516,23 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         return result;
     }
 
+    public HttpResponse execute(HttpRequest task) throws Exception  {
+        return execute(task, null);
+    }
+    
     @Override
-    public HttpResponse execute(HttpRequest task) throws Exception {
+    public HttpResponse execute(HttpRequest task, IClientConfig requestConfig) throws Exception {
+        IClientConfig config = (requestConfig == null) ? task.getOverrideConfig() : requestConfig;
         return execute(task.getVerb(), task.getUri(),
-                task.getHeaders(), task.getQueryParams(), task.getOverrideConfig(), task.getEntity(), task.getEntityType());
+                task.getHeaders(), task.getQueryParams(), config, task.getEntity(), task.getEntityType());
     }
 
 
     private boolean getBooleanFromConfig(IClientConfig overriddenClientConfig, IClientConfigKey key, boolean defaultValue){
-
     	if(overriddenClientConfig != null && overriddenClientConfig.containsProperty(key)){
     		defaultValue = Boolean.parseBoolean(overriddenClientConfig.getProperty(key).toString());
     	}
-
     	return defaultValue;
-
     }
 
     @Override
@@ -535,14 +546,13 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     }
 
     @Override
-    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(HttpRequest task) {
-        URI theUrl = task.getUri();
-        boolean isSecure = getBooleanFromConfig(task.getOverrideConfig(), CommonClientConfigKey.IsSecure, this.isSecure);
-        String scheme = theUrl.getScheme();
+    protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(URI uri) {
+        boolean isSecure = getBooleanFromConfig(ncc, CommonClientConfigKey.IsSecure, this.isSecure);
+        String scheme = uri.getScheme();
         if (scheme != null) {
             isSecure = 	scheme.equalsIgnoreCase("https");
         }
-        int port = theUrl.getPort();
+        int port = uri.getPort();
         if (port < 0 && !isSecure){
             port = 80;
         } else if (port < 0 && isSecure){
@@ -699,4 +709,18 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 		}
 		return super.deriveHostAndPortFromVipAddress(vipAddress);
 	}
+
+    @Override
+    public RequestSpecificRetryHandler getRequestSpecificRetryHandler(
+            HttpRequest request, IClientConfig requestConfig) {
+        if (!request.isRetriable()) {
+            return new RequestSpecificRetryHandler(false, false, this.getErrorHandler(), requestConfig);
+        }
+        if (request.getVerb() != HttpRequest.Verb.GET) {
+            return new RequestSpecificRetryHandler(true, false, this.getErrorHandler(), requestConfig);
+        } else {
+            return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
+        } 
+    }
 }
+

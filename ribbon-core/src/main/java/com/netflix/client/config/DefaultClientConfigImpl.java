@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
-import com.netflix.client.ClientFactory;
 import com.netflix.client.VipAddressResolver;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
@@ -736,15 +735,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return propertyNameSpace;
 	}
 
+	public static DefaultClientConfigImpl getEmptyConfig() {
+	    return new DefaultClientConfigImpl();
+	}
+	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
 		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
 	}
 	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
-	    DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-	    config.loadDefaultValues();
-	    return config;
-	}
+        return getClientConfigWithDefaultValues("default", DEFAULT_PROPERTY_NAME_SPACE);
+    }
 
 
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {
@@ -794,6 +795,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @Override
     public <T> T getPropertyWithType(IClientConfigKey<T> key) {
         Object obj = properties.get(key.key());
+        if (obj == null) {
+            return null;
+        }
         Class<T> type = key.type();
         try {
             return type.cast(obj);
@@ -810,7 +814,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
                     return (T) Long.valueOf(stringValue);
                 } else if (Double.class.equals(type)) {
                     return (T) Double.valueOf(stringValue);
-                    
+                } else if (TimeUnit.class.equals(type)) {
+                    return (T) TimeUnit.valueOf(stringValue);
                 }
                 throw new IllegalArgumentException("Unable to convert string value to desired type " + type);
             } else {
