@@ -29,7 +29,9 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
+import com.netflix.loadbalancer.ClientCallableProvider;
 import com.netflix.loadbalancer.ILoadBalancer;
+import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
@@ -37,7 +39,8 @@ import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.utils.RxUtils;
-import static com.netflix.client.LoadBalancerExecutor.CallableToObservable.toObsevableProvider;
+
+import static com.netflix.loadbalancer.LoadBalancerExecutor.CallableToObservable.toObsevableProvider;
 
 /**
  * Abstract class that provides the integration of client with load balancers.

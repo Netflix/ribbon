@@ -15,11 +15,10 @@
  * limitations under the License.
  *
  */
-package com.netflix.client;
+package com.netflix.loadbalancer;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -28,6 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
+import com.netflix.client.ClientException;
+import com.netflix.client.ClientRequest;
+import com.netflix.client.DefaultLoadBalancerRetryHandler;
+import com.netflix.client.IClientConfigAware;
+import com.netflix.client.RetryHandler;
+import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -61,7 +66,7 @@ public class LoadBalancerContext implements IClientConfigAware {
     protected RetryHandler errorHandler = new DefaultLoadBalancerRetryHandler();
 
 
-    boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
+    protected boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
 
     private ILoadBalancer lb;
 

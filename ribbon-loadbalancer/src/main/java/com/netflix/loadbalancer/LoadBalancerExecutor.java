@@ -1,4 +1,4 @@
-package com.netflix.client;
+package com.netflix.loadbalancer;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
@@ -13,13 +13,13 @@ import rx.Observable;
 import rx.Observable.OnSubscribeFunc;
 import rx.Observer;
 import rx.Subscription;
+import rx.functions.Func1;
 import rx.subscriptions.Subscriptions;
-import rx.util.functions.Func1;
 
+import com.netflix.client.ClientException;
+import com.netflix.client.DefaultLoadBalancerRetryHandler;
+import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ServerStats;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.utils.RxUtils;
 
@@ -188,7 +188,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      *                   of this {@link LoadBalancerExecutor} will be used.
      * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
      */
-    <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final URI loadBalancerURI, 
+    protected <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final URI loadBalancerURI, 
             @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
@@ -209,7 +209,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     
-    <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
+    protected <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
         final ServerStats serverStats = getServerStats(server); 
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override

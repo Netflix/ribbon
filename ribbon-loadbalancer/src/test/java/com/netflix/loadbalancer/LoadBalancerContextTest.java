@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.client;
+package com.netflix.loadbalancer;
 
 import static org.junit.Assert.*;
 
@@ -76,7 +76,7 @@ public class LoadBalancerContextTest {
     @Test
     public void testEncodedQuery() throws Exception {
         String uri = "http://localhost:8080/resources/abc?";
-        String queryString = "name=" + URLEncoder.encode("éƎ&=*%!@#$%^&*()", "UTF-8");   
+        String queryString = "name=" + URLEncoder.encode("????&=*%!@#$%^&*()", "UTF-8");   
         URI request = new URI(uri + queryString);
         Server server = context.getServerFromLoadBalancer(request, null);
         URI newURI = context.reconstructURIWithServer(server, request);

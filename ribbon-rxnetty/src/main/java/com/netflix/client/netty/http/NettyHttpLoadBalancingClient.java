@@ -23,11 +23,11 @@ import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 import rx.Observable;
 
-import com.netflix.client.ClientObservableProvider;
-import com.netflix.client.LoadBalancerExecutor;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.loadbalancer.ClientObservableProvider;
 import com.netflix.loadbalancer.ILoadBalancer;
+import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.Server;
 
 public class NettyHttpLoadBalancingClient extends AbstractLoadBalancingClient {

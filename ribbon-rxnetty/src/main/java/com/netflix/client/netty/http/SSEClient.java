@@ -14,9 +14,9 @@ import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
 import com.google.common.base.Preconditions;
-import com.netflix.client.ClientObservableProvider;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
+import com.netflix.loadbalancer.ClientObservableProvider;
 import com.netflix.loadbalancer.Server;
 
 public class SSEClient extends AbstractNettyHttpClient<ServerSentEvent> {

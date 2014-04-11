@@ -40,12 +40,12 @@ import rx.Observer;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.netflix.client.ClientObservableProvider;
-import com.netflix.client.LoadBalancerExecutor;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
+import com.netflix.loadbalancer.ClientObservableProvider;
+import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.Server;
 import com.netflix.serialization.TypeDef;
 

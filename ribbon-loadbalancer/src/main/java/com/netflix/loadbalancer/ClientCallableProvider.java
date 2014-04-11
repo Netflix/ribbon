@@ -1,7 +1,6 @@
-package com.netflix.client;
+package com.netflix.loadbalancer;
 
 
-import com.netflix.loadbalancer.Server;
 
 public interface ClientCallableProvider<T> {
 
