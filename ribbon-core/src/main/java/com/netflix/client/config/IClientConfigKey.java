@@ -27,8 +27,6 @@ public interface IClientConfigKey {
 
 	/**
 	 * The string representation of the key.
-	 * 
-	 * @return
 	 */
 	public String key();
 

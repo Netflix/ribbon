@@ -30,10 +30,11 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.util.EntityUtils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class NFHttpClientTest {
-	
+    
     @Test
     public void testDefaultClient() throws Exception {
     	NFHttpClient client = NFHttpClientFactory.getDefaultClient();
@@ -63,8 +64,7 @@ public class NFHttpClientTest {
         assertTrue(contentLen > 0);
     }
 
-
-    @Test
+    @Ignore
     public void testMultiThreadedClient() throws Exception {
 
         NFHttpClient client = (NFHttpClient) NFHttpClientFactory
@@ -93,6 +93,7 @@ public class NFHttpClientTest {
         }
 
     }
+
     
     /**
      * A thread that performs a GET.
@@ -134,7 +135,6 @@ public class NFHttpClientTest {
                 System.out.println(id + " - connection released");
             }
         }
-       
     }
 
 }

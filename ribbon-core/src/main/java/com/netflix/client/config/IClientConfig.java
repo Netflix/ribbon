@@ -50,7 +50,6 @@ public interface IClientConfig {
 	
 	/**
 	 * Returns the applicable virtual addresses ("vip") used by this client configuration.
-	 * @return
 	 */
 	public String resolveDeploymentContextbasedVipAddresses();
 	

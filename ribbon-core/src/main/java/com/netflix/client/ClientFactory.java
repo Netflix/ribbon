@@ -50,7 +50,6 @@ public class ClientFactory {
      * 
      * @param restClientName
      * @param clientConfig
-     * @return
      * @throws ClientException if any errors occurs in the process, or if the client with the same name already exists
      */
     public static synchronized IClient<?, ?> registerClientFromProperties(String restClientName, IClientConfig clientConfig) throws ClientException { 
@@ -93,14 +92,22 @@ public class ClientFactory {
      * @throws RuntimeException if an error occurs in creating the client.
      */
     public static synchronized IClient getNamedClient(String name) {
+        return getNamedClient(name, DefaultClientConfigImpl.class);
+    }
+
+    /**
+     * Return the named client from map if already created. Otherwise creates the client using the configuration returned by {@link #createNamedClient(String, Class)}.
+     * 
+     * @throws RuntimeException if an error occurs in creating the client.
+     */
+    public static synchronized IClient getNamedClient(String name, Class<? extends IClientConfig> configClass) {
     	if (simpleClientMap.get(name) != null) {
-    		return simpleClientMap.get(name);
+    	    return simpleClientMap.get(name);
     	}
-        IClientConfig niwsClientConfig = getNamedConfig(name);
         try {
-            return registerClientFromProperties(name, niwsClientConfig);
+            return createNamedClient(name, configClass);
         } catch (ClientException e) {
-        	throw new RuntimeException("Unable to create client", e);
+            throw new RuntimeException("Unable to create client", e);
         }
     }
     
@@ -188,7 +195,6 @@ public class ClientFactory {
      *  
      * @param className Class name of the object
      * @param clientConfig IClientConfig object used for initialization.
-     * @return
      */
     @SuppressWarnings("unchecked")
 	public static Object instantiateInstanceWithClientConfig(String className, IClientConfig clientConfig) 

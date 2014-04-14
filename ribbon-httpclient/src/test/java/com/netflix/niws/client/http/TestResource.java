@@ -62,4 +62,38 @@ public class TestResource {
             return Response.serverError().build();
         }
     }    
+    
+    @GET
+    @Path("/get503")
+    public Response get503() {
+        return Response.status(503).build();
+    }
+    
+    @GET
+    @Path("/get500")
+    public Response get500() {
+        return Response.status(500).build();
+    }
+
+    @GET
+    @Path("/getReadtimeout") 
+    public Response getReadtimeout() {
+        try {
+            Thread.sleep(10000);
+        } catch (Exception e) { // NOPMD
+        }
+        return Response.ok().build();
+    }
+    
+    @POST
+    @Path("/postReadtimeout") 
+    public Response postReadtimeout() {
+        try {
+            Thread.sleep(10000);
+        } catch (Exception e) { // NOPMD
+        }
+        return Response.ok().build();
+    }
+
+
 }

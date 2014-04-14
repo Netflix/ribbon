@@ -1,3 +1,20 @@
+/*
+ *
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.serialization;
 
 import java.io.IOException;
@@ -33,38 +50,17 @@ public class JacksonSerializationFactory implements SerializationFactory<Content
 }
 
 class JsonCodec implements Serializer, Deserializer {
-    private ObjectMapper mapper = new ObjectMapper();
-    
-    @Override
-    public <T> T deserialize(byte[] content, Class<T> type) throws IOException {
-        return mapper.readValue(content, type);
-    }
-
-    @Override
-    public byte[] serialize(Object object) throws IOException {
-        return mapper.writeValueAsBytes(object);
-    }
-
-    @Override
-    public <T> T deserialize(InputStream in, Class<T> type) throws IOException {
-        return mapper.readValue(in, type);
-    }
-
-    @Override
-    public void serialize(OutputStream out, Object object) throws IOException {
-        mapper.writeValue(out, object);
-    }
-
-    @Override
-    public <T> T deserialize(byte[] content, TypeToken<T> type)
-            throws IOException {
-        return mapper.readValue(content, new TypeTokenBasedReference<T>(type));
-    }
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public <T> T deserialize(InputStream in, TypeToken<T> type)
             throws IOException {
         return mapper.readValue(in, new TypeTokenBasedReference<T>(type));
+    }
+    
+    @Override
+    public void serialize(OutputStream out, Object object) throws IOException {
+        mapper.writeValue(out, object);
     }
 }
 

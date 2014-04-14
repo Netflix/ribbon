@@ -31,7 +31,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
-import com.netflix.niws.client.http.HttpClientRequest.Verb;
+import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
+import com.netflix.client.http.HttpRequest.Verb;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
@@ -68,8 +70,8 @@ public class GetPostTest {
     	URI getUri = new URI(SERVICE_URI + "test/getObject");
     	MultivaluedMapImpl params = new MultivaluedMapImpl();
     	params.add("name", "test");
-    	HttpClientRequest request = HttpClientRequest.newBuilder().setUri(getUri).setQueryParams(params).build();
-    	HttpClientResponse response = client.execute(request);
+    	HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParams("name", "test").build();
+    	HttpResponse response = client.execute(request);
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(TestObject.class).name.equals("test"));
     }
@@ -79,8 +81,8 @@ public class GetPostTest {
     	URI getUri = new URI(SERVICE_URI + "test/setObject");
     	TestObject obj = new TestObject();
     	obj.name = "fromClient";
-    	HttpClientRequest request = HttpClientRequest.newBuilder().setVerb(Verb.POST).setUri(getUri).setEntity(obj).build();
-    	HttpClientResponse response = client.execute(request);
+    	HttpRequest request = HttpRequest.newBuilder().verb(Verb.POST).uri(getUri).entity(obj).build();
+    	HttpResponse response = client.execute(request);
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(TestObject.class).name.equals("fromClient"));
     }
@@ -90,8 +92,8 @@ public class GetPostTest {
         String obj = "chunked encoded content";
     	URI postUri = new URI(SERVICE_URI + "test/postStream");
     	InputStream input = new ByteArrayInputStream(obj.getBytes("UTF-8"));
-    	HttpClientRequest request = HttpClientRequest.newBuilder().setVerb(Verb.POST).setUri(postUri).setEntity(input).build();
-    	HttpClientResponse response = client.execute(request);
+    	HttpRequest request = HttpRequest.newBuilder().verb(Verb.POST).uri(postUri).entity(input).build();
+    	HttpResponse response = client.execute(request);
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(String.class).equals(obj));
     }

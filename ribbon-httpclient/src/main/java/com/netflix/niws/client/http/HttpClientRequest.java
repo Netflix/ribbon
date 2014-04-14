@@ -23,7 +23,14 @@ import javax.ws.rs.core.MultivaluedMap;
 
 import com.netflix.client.ClientRequest;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.client.http.HttpRequest;
 
+/**
+ * @see HttpRequest
+ * @author awang
+ *
+ */
+@Deprecated
 public class HttpClientRequest extends ClientRequest {
         
     public enum Verb {

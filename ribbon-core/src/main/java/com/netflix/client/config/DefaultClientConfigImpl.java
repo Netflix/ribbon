@@ -605,6 +605,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public void setProperty(IClientConfigKey key, Object value){
         setPropertyInternal(key.key(), value);
     }
+    
+    public DefaultClientConfigImpl withProperty(IClientConfigKey key, Object value) {
+        setProperty(key, value);
+        return this;
+    }
 
     public IClientConfig applyOverride(IClientConfig override) {
         if (override == null) {

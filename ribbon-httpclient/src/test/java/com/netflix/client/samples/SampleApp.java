@@ -23,10 +23,10 @@ import java.net.URI;
 import org.junit.Ignore;
 
 import com.netflix.client.ClientFactory;
+import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
-import com.netflix.niws.client.http.HttpClientRequest;
-import com.netflix.niws.client.http.HttpClientResponse;
 import com.netflix.niws.client.http.RestClient;
 
 @Ignore
@@ -36,9 +36,9 @@ public class SampleApp {
         ConfigurationManager.loadPropertiesFromResources("sample-client.properties");  // 1
         System.out.println(ConfigurationManager.getConfigInstance().getProperty("sample-client.ribbon.listOfServers"));
         RestClient client = (RestClient) ClientFactory.getNamedClient("sample-client");  // 2
-        HttpClientRequest request = HttpClientRequest.newBuilder().setUri(new URI("/")).build(); // 3
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build(); // 3
         for (int i = 0; i < 20; i++)  {
-        	HttpClientResponse response = client.executeWithLoadBalancer(request); // 4
+        	HttpResponse response = client.executeWithLoadBalancer(request); // 4
         	System.out.println("Status code for " + response.getRequestedURI() + "  :" + response.getStatus());
         }
         ZoneAwareLoadBalancer lb = (ZoneAwareLoadBalancer) client.getLoadBalancer();
@@ -48,7 +48,7 @@ public class SampleApp {
         System.out.println("changing servers ...");
         Thread.sleep(3000); // 6
         for (int i = 0; i < 20; i++)  {
-        	HttpClientResponse response = client.executeWithLoadBalancer(request);
+        	HttpResponse response = client.executeWithLoadBalancer(request);
         	System.out.println("Status code for " + response.getRequestedURI() + "  : " + response.getStatus());
         }
         System.out.println(lb.getLoadBalancerStats()); // 7

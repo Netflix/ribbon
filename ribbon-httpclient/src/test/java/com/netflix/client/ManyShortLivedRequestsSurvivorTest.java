@@ -21,9 +21,8 @@ package com.netflix.client;
 
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
-import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
-import com.netflix.niws.client.http.HttpClientRequest;
-import com.netflix.niws.client.http.HttpClientResponse;
+import com.netflix.client.http.HttpRequest;
+import com.netflix.client.http.HttpResponse;
 import com.netflix.niws.client.http.RestClient;
 import org.junit.Test;
 
@@ -31,7 +30,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
 
 import static com.netflix.config.ConfigurationManager.getConfigInstance;
 
@@ -57,14 +55,12 @@ public class ManyShortLivedRequestsSurvivorTest {
         getConfigInstance().setProperty(serverListKey, hostAndPort(server1.getUrl("")) + "," + hostAndPort(server2.getUrl("")));
 
         RestClient client = (RestClient) ClientFactory.getNamedClient(clientName);
-        HttpClientRequest request;
+        HttpRequest request;
         for (int i = 0; i < nbHitsPerServer * 2; i++) {
-            request = HttpClientRequest.newBuilder().setUri(new URI("/")).build();
-            HttpClientResponse response = client.executeWithLoadBalancer(request);
-            response.releaseResources();
-
+            request = HttpRequest.newBuilder().uri(new URI("/")).build();
+            HttpResponse response = client.executeWithLoadBalancer(request);
+            response.close();
         }
-
     }
 
     static String hostAndPort(URL url) {

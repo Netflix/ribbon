@@ -1,20 +1,20 @@
 /*
-*
-* Copyright 2013 Netflix, Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
+ *
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.http4;
 
 import java.util.Map;
@@ -23,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.http.client.HttpClient;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Monitors;
 
 /**
@@ -51,21 +53,26 @@ public class NFHttpClientFactory {
 	}
 
     public static NFHttpClient getNamedNFHttpClient(String name) {
-        return getNamedNFHttpClient(name, true);
+        return getNamedNFHttpClient(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(name), true);
     }
 
-	public static NFHttpClient getNamedNFHttpClient(String name, boolean registerMonitor){		
+    public static NFHttpClient getNamedNFHttpClient(String name, IClientConfig config) {
+        return getNamedNFHttpClient(name, config, true);
+    }
+
+    public static NFHttpClient getNamedNFHttpClient(String name, boolean registerMonitor) {       
+        return getNamedNFHttpClient(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(name), registerMonitor);
+    }
+    
+	public static NFHttpClient getNamedNFHttpClient(String name, IClientConfig config, boolean registerMonitor) {		
 		NFHttpClient client = namedClientMap.get(name);		
 		//avoid creating multiple HttpClient instances 
 		if (client == null){
 		    synchronized (lock) {
 		        client = namedClientMap.get(name);       
 		        if (client == null){
-        			client = new NFHttpClient(name);
+        			client = new NFHttpClient(name, config, registerMonitor);
         			namedClientMap.put(name,client);
-        			if (registerMonitor) {
-        			    Monitors.registerObject("HttpClient_" + name, client);
-        			}
 		        }
 		    }
 		}
@@ -86,7 +93,7 @@ public class NFHttpClientFactory {
 	    if(c != null) {
 	        c.getConnectionManager().shutdown();
 	        namedClientMap.remove(name);
-	        Monitors.unregisterObject("HttpClient_" + name, c);
+	        Monitors.unregisterObject(name, c);
 	    }
 	}
 }
