@@ -55,6 +55,7 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     private Counter deleteCounter;
     private Timer requestTimer;
     private Timer creationTimer;
+    private String name;
     
     public NamedConnectionPool(String name, ClientConnectionOperator operator,
             ConnPerRoute connPerRoute, int maxTotalConnections, long connTTL,
@@ -100,6 +101,7 @@ public class NamedConnectionPool extends ConnPoolByRoute {
         deleteCounter = Monitors.newCounter(name + "_Delete");
         requestTimer = Monitors.newTimer(name + "_RequestConnectionTimer", TimeUnit.MILLISECONDS);
         creationTimer = Monitors.newTimer(name + "_CreateConnectionTimer", TimeUnit.MILLISECONDS);
+        this.name = name;
         Monitors.registerObject(name, this);
     }
 
@@ -180,4 +182,9 @@ public class NamedConnectionPool extends ConnPoolByRoute {
         return this.getConnectionsInPool();
     }
     
+    @Override
+    public void shutdown() {
+        super.shutdown();
+        Monitors.unregisterObject(name, this);
+    }
 }

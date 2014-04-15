@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,6 +46,7 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -54,6 +57,7 @@ import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.servo.monitor.Timer;
+import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
 
 /**
  * Netflix extension of Apache 4.0 HttpClient
@@ -67,7 +71,11 @@ public class NFHttpClient extends DefaultHttpClient {
 	private static final Logger LOGGER = LoggerFactory.getLogger(NFHttpClient.class);
 
 	protected static final String EXECUTE_TRACER = "HttpClient-ExecuteTimer";
-
+	
+	private static final DynamicIntProperty CORE_SIZE = new DynamicIntProperty("NFHttpClient.connectionPoolCleanerNumberCoreThreads", 2);
+	
+	private static ScheduledExecutorService connectionPoolCleanUpScheduler; 
+	
 	private HttpHost httpHost = null;
 	private HttpRoute httpRoute = null;
 
@@ -86,6 +94,13 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	private DynamicIntProperty maxTotalConnectionProperty;
 	private DynamicIntProperty maxConnectionPerHostProperty;
+	
+	static {
+	    ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true)
+	            .setNameFormat("Connection pool clean up thread")
+	            .build();
+	    connectionPoolCleanUpScheduler = new ScheduledThreadPoolExectuorWithDynamicSize(CORE_SIZE, factory); 
+	}
 	
 	protected NFHttpClient(String host, int port){
 		super(new ThreadSafeClientConnManager());
@@ -128,7 +143,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		defaultHeaders.add(new BasicHeader("X-netflix-httpclientname", name));
 		params.setParameter(ClientPNames.DEFAULT_HEADERS, defaultHeaders);
 
-		connPoolCleaner = new ConnectionPoolCleaner(name, this.getConnectionManager());
+		connPoolCleaner = new ConnectionPoolCleaner(name, this.getConnectionManager(), connectionPoolCleanUpScheduler);
 
 		this.retriesProperty = DynamicPropertyFactory.getInstance().getIntProperty(this.name + ".nfhttpclient" + ".retries", 3);
 		this.sleepTimeFactorMsProperty = DynamicPropertyFactory.getInstance().getIntProperty(this.name + ".nfhttpclient"+ ".sleepTimeFactorMs", 10);
@@ -291,5 +306,12 @@ public class NFHttpClient extends DefaultHttpClient {
 		}finally{
 			sw.stop();
 		}
+	}
+	
+	public void shutdown() {
+	    if (connPoolCleaner != null) {
+	        connPoolCleaner.shutdown();
+	    }
+	    getConnectionManager().shutdown();
 	}
 }

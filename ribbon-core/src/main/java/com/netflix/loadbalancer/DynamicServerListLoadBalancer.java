@@ -278,6 +278,9 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
         public void run() {
             if (!serverRefreshEnabled) {
+                if (scheduledFuture != null) {
+                    scheduledFuture.cancel(true);
+                }
                 return;
             }
             try {
@@ -353,10 +356,17 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         }
     }
     
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("DynamicServerListLoadBalancer:");
         sb.append(super.toString());
         sb.append("ServerList:" + String.valueOf(serverListImpl));
         return sb.toString();
+    }
+    
+    @Override 
+    public void shutdown() {
+        super.shutdown();
+        stopServerListRefreshing();
     }
 }
