@@ -60,6 +60,9 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         clientName = clientConfig.getClientName();
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
+        if (vipAddresses == null) {
+            throw new NullPointerException("VIP address for client " + clientName + " is null");
+        }
         isSecure = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.IsSecure, "false"));
         prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));        
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
@@ -100,8 +103,6 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
         return obtainServersViaDiscovery();
     }
 
-   
-    
     @Override
     public List<DiscoveryEnabledServer> getUpdatedListOfServers(){
         return obtainServersViaDiscovery();

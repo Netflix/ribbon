@@ -26,12 +26,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.security.KeyStore;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
-
-import com.netflix.client.ClientFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.UserTokenHandler;
@@ -53,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import com.netflix.client.AbstractLoadBalancerAwareClient;
 import com.netflix.client.ClientException;
-import com.netflix.client.ClientRequest;
+import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -68,10 +64,11 @@ import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
 import com.netflix.http4.ssl.KeyStoreAwareSocketFactory;
+import com.netflix.loadbalancer.BaseLoadBalancer;
+import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.niws.cert.AbstractSslContextFactory;
 import com.netflix.niws.client.ClientSslSocketFactoryException;
 import com.netflix.niws.client.URLSslContextFactory;
-import com.netflix.niws.client.http.HttpClientRequest.Verb;
 import com.netflix.util.Pair;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -684,5 +681,13 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 			vipAddress = "http://" + vipAddress;
 		}
 		return super.deriveHostAndPortFromVipAddress(vipAddress);
+	}
+	
+	public void shutdown() {
+	    ILoadBalancer lb = this.getLoadBalancer();
+	    if (lb instanceof BaseLoadBalancer) {
+	        ((BaseLoadBalancer) lb).shutdown();
+	    }
+	    NFHttpClientFactory.shutdownNFHttpClient(restClientName);
 	}
 }
