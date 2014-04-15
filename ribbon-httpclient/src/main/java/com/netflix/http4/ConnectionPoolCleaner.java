@@ -53,7 +53,8 @@ public class ConnectionPoolCleaner {
     
     public ConnectionPoolCleaner(String name, ClientConnectionManager connMgr, ScheduledExecutorService scheduler){
         this.name = name;
-        this.connMgr = connMgr;        
+        this.connMgr = connMgr;     
+        this.scheduler = scheduler;
     }
     
     public DynamicIntProperty getConnIdleEvictTimeMilliSeconds() {
