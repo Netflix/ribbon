@@ -17,6 +17,7 @@
  */
 package com.netflix.http4;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -28,8 +29,11 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.junit.Test;
 
+import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.http.HttpRequest;
 import com.netflix.config.ConfigurationManager;
+import com.netflix.niws.client.http.RestClient;
 
 public class NamedConnectionPoolTest {
     @Test
@@ -69,7 +73,27 @@ public class NamedConnectionPoolTest {
         ConfigurationManager.getConfigInstance().setProperty("google-NamedConnectionPoolTest.ribbon." + CommonClientConfigKey.MaxHttpConnectionsPerHost.key(), "10");
         assertEquals(50, connectionPoolManager.getMaxTotal());
         assertEquals(10, connectionPoolManager.getDefaultMaxPerRoute());
-
     }
 
+    @Test
+    public void testConnectionPoolCleaner() throws Exception {
+        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        ConfigurationManager.getConfigInstance().setProperty("ConnectionPoolCleanerTest.ribbon." + CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, "100");
+        ConfigurationManager.getConfigInstance().setProperty("ConnectionPoolCleanerTest.ribbon." + CommonClientConfigKey.ConnectionCleanerRepeatInterval, "500");
+        RestClient client = (RestClient) ClientFactory.getNamedClient("ConnectionPoolCleanerTest");
+        NFHttpClient httpclient = NFHttpClientFactory.getNamedNFHttpClient("ConnectionPoolCleanerTest");
+        assertNotNull(httpclient);
+        com.netflix.client.http.HttpResponse response = null;
+        try {
+            response = client.execute(HttpRequest.newBuilder().uri("http://www.google.com/").build());
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+        MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) httpclient.getConnectionManager();
+        Thread.sleep(2000);
+        assertEquals(0, connectionPoolManager.getConnectionsInPool());
+        client.shutdown();
+    }
 }

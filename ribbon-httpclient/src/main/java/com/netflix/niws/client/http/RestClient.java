@@ -65,6 +65,7 @@ import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
 import com.netflix.http4.ssl.KeyStoreAwareSocketFactory;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.niws.cert.AbstractSslContextFactory;
 import com.netflix.niws.client.ClientSslSocketFactoryException;
@@ -722,5 +723,13 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
             return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
         } 
     }
+	
+	public void shutdown() {
+	    ILoadBalancer lb = this.getLoadBalancer();
+	    if (lb instanceof BaseLoadBalancer) {
+	        ((BaseLoadBalancer) lb).shutdown();
+	    }
+	    NFHttpClientFactory.shutdownNFHttpClient(restClientName);
+	}
 }
 

@@ -853,4 +853,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             boolean enablePrimingConnections) {
         this.enablePrimingConnections = enablePrimingConnections;
     }
+    
+    public void shutdown() {
+        cancelPingTask();
+        if (primeConnections != null) {
+            primeConnections.shutdown();
+        }
+        Monitors.unregisterObject("LoadBalancer_" + name, this);
+        Monitors.unregisterObject("Rule_" + name, this.getRule());
+    }
 }

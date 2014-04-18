@@ -310,8 +310,9 @@ public class PrimeConnections {
         return executorService.submit(ftConn);
     }
 
-    void shutdown() {
+    public void shutdown() {
         executorService.shutdown();
+        Monitors.unregisterObject(name + "_PrimeConnection", this);
     }
 
     private Boolean connectToServer(final Server s, final PrimeConnectionListener listener) {
