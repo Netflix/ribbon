@@ -84,9 +84,11 @@ import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
  */
 public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
 
-    private CompositePoolLimitDeterminationStrategy poolStrategy;
-    private MaxConnectionsBasedStrategy globalStrategy;
-    private int idleConnectionEvictionMills;
+    private final CompositePoolLimitDeterminationStrategy poolStrategy;
+    private final MaxConnectionsBasedStrategy globalStrategy;
+    private final int idleConnectionEvictionMills;
+    private final GlobalPoolStats stats;
+    
     private static final ScheduledExecutorService poolCleanerScheduler;
     private static final DynamicIntProperty POOL_CLEANER_CORE_SIZE = new DynamicIntProperty("rxNetty.poolCleaner.coreSize", 2);
     
@@ -110,6 +112,7 @@ public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
         globalStrategy = new MaxConnectionsBasedStrategy(maxTotalConnections);
         poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
         idleConnectionEvictionMills = config.getPropertyWithType(CommonKeys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
+        stats = new GlobalPoolStats(config.getClientName(), this);
     }
     
     @Override
@@ -128,6 +131,7 @@ public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
                 .withIdleConnectionsTimeoutMillis(idleConnectionEvictionMills)
                 .withPoolIdleCleanupScheduler(poolCleanerScheduler)
                 .build();
+        client.poolStateChangeObservable().subscribe(stats);
         return client;
     }
 
@@ -143,22 +147,24 @@ public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
         return super.submit(host, port, request, requestConfig);
     }
     
-    
-    @SuppressWarnings("rawtypes")
-    public int getIdleConnectionsInPool() {
-        int total = 0;
-        for (Map.Entry<Server, HttpClient> entry: getCurrentHttpClients().entrySet()) {
-            PoolStats poolStats = entry.getValue().getStats();
-            total += poolStats.getIdleCount();
-        }
-        return total;
-    }
-
     protected void setMaxTotalConnections(int newMax) {
         globalStrategy.incrementMaxConnections(newMax - getMaxTotalConnections());
     }
     
     public int getMaxTotalConnections() {
         return globalStrategy.getMaxConnections();
+    }
+    
+    public int getIdleConnectionsInPool() {
+        int total = 0;
+        for (HttpClient client: getCurrentHttpClients().values()) {
+            PoolStats poolStats = client.getStats();
+            total += poolStats.getIdleCount();
+        }
+        return total;
+    }
+    
+    public GlobalPoolStats getGlobalPoolStats() {
+        return stats;
     }
 }

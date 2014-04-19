@@ -128,9 +128,36 @@ public class NettyClientTest {
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
         Person person = getPersonObservable(response).toBlockingObservable().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
-        assertEquals(1, observableClient.getIdleConnectionsInPool());
+        // need to sleep to wait until connection is released
+        Thread.sleep(1000);
+        assertEquals(1, observableClient.getGlobalPoolStats().getIdleCount());
+        assertEquals(1, observableClient.getGlobalPoolStats().getAcquireSucceededCount());
+        assertEquals(1, observableClient.getGlobalPoolStats().getReleaseSucceededCount());
+        assertEquals(1, observableClient.getGlobalPoolStats().getTotalConnectionCount());
+    }
+    
+    @Test
+    public void testPoolReuse() throws Exception {
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
+        NettyHttpClient observableClient = NettyHttpClientBuilder.newBuilder().buildHttpClient();
+        // final List<Person> result = Lists.newArrayList();
+        Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
+        Person person = getPersonObservable(response).toBlockingObservable().single();
+        assertEquals(EmbeddedResources.defaultPerson, person);
+        Thread.sleep(1000);
+        assertEquals(1, observableClient.getGlobalPoolStats().getIdleCount());
+        response = observableClient.submit(host, port, request);
+        person = getPersonObservable(response).toBlockingObservable().single();
+        assertEquals(EmbeddedResources.defaultPerson, person);
+        Thread.sleep(1000);
+        assertEquals(2, observableClient.getGlobalPoolStats().getAcquireSucceededCount());
+        assertEquals(2, observableClient.getGlobalPoolStats().getReleaseSucceededCount());
+        assertEquals(1, observableClient.getGlobalPoolStats().getTotalConnectionCount());
+        assertEquals(1, observableClient.getGlobalPoolStats().getReuseCount());
+
     }
 
+    
     @Test
     public void testPostWithObservable() throws Exception {
         Person myPerson = new Person("netty", 5);
