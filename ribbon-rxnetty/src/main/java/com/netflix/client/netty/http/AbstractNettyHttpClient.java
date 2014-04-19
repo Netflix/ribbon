@@ -1,9 +1,14 @@
 package com.netflix.client.netty.http;
 
+import java.util.concurrent.TimeUnit;
+
 import io.netty.handler.codec.http.HttpHeaders;
+import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
+import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
 
 import javax.annotation.Nullable;
 
@@ -45,17 +50,27 @@ public abstract class AbstractNettyHttpClient<O> {
         request.getHeaders().set(HttpHeaders.Names.HOST, host);
     }
 
-    protected abstract <I> HttpClient<I, O> getRxClient(String host, int port, HttpClientRequest<I> request, IClientConfig overrideConfig);
+    protected abstract <I> HttpClient<I, O> getRxClient(String host, int port);
     
     protected <I> Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request) {
         return submit(host, port, request, null);
     }
-        
+       
+    protected static <I> RepeatableContentHttpRequest<I> getRepeatableRequest(HttpClientRequest<I> original) {
+        if (original instanceof RepeatableContentHttpRequest) {
+            return (RepeatableContentHttpRequest<I>) original;
+        }
+        return new RepeatableContentHttpRequest<I>(original);
+    }
+
     <I> Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, @Nullable final IClientConfig requestConfig) {
         Preconditions.checkNotNull(request);
-        HttpClient<I,O> rxClient = getRxClient(host, port, request, requestConfig);
+        HttpClient<I,O> rxClient = getRxClient(host, port);
         setHost(request, host);
-        return rxClient.submit(request).flatMap(new Func1<HttpClientResponse<O>, Observable<HttpClientResponse<O>>>() {
+        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig);
+        HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
+        final RxClient.ClientConfig rxClientConfig = builder.build();
+        return rxClient.submit(request, rxClientConfig).flatMap(new Func1<HttpClientResponse<O>, Observable<HttpClientResponse<O>>>() {
             @Override
             public Observable<HttpClientResponse<O>> call(
                     HttpClientResponse<O> t1) {

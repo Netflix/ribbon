@@ -20,7 +20,7 @@ public class SimpleGet {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/");
                 
         final CountDownLatch latch = new CountDownLatch(1);
-        client.submit("www.google.com", 80, request)
+        client.submitToLoadBalancer("www.google.com", 80, request)
             .toBlockingObservable()
             .forEach(new Action1<HttpClientResponse<ByteBuf>>() {
                 @Override

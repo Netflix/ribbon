@@ -170,6 +170,8 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<String> RulePredicateClasses = new CommonClientConfigKey<String>("RulePredicateClasses"){};
     
+    public static final IClientConfigKey<Integer> ClientExpirationFromCacheMills = new CommonClientConfigKey<Integer>("ClientExpirationFromCacheMills"){}; 
+    
     // serialization
     public static final IClientConfigKey<String> DefaultSerializationFactoryClassName = new CommonClientConfigKey<String>("DefaultSerializationFactoryClassName"){};
     
