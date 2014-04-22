@@ -85,6 +85,11 @@ public class LoadBalancerContext implements IClientConfigAware {
         initWithNiwsConfig(clientConfig);        
     }
 
+    public LoadBalancerContext(ILoadBalancer lb, IClientConfig clientConfig, RetryHandler handler) {
+        this(lb, clientConfig);
+        this.errorHandler = handler;
+    }
+
     /**
      * Set necessary parameters from client configuration and register with Servo monitors.
      */

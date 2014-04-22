@@ -35,6 +35,10 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         super(lb, clientConfig);
     }
     
+    public LoadBalancerExecutor(ILoadBalancer lb, IClientConfig clientConfig, RetryHandler defaultRetryHandler) {
+        super(lb, clientConfig, defaultRetryHandler);
+    }
+    
     public static class CallableToObservable<T> implements ClientObservableProvider<T> {
 
         private final ClientCallableProvider<T> callableProvider;

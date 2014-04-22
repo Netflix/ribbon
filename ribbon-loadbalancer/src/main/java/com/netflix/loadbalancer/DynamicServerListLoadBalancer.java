@@ -37,7 +37,6 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicProperty;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.google.common.annotations.VisibleForTesting;
@@ -113,10 +112,21 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         super();
     }
 
-    public DynamicServerListLoadBalancer(IClientConfig niwsClientConfig) {
-        initWithNiwsConfig(niwsClientConfig);
+    public DynamicServerListLoadBalancer(IClientConfig clientConfig, IRule rule, IPing ping, 
+            ServerList<T> serverList, ServerListFilter<T> filter) {
+        super(clientConfig, rule, ping);
+        this.serverListImpl = serverList;
+        this.filter = filter;
+        if (filter instanceof AbstractServerListFilter) {
+            ((AbstractServerListFilter) filter).setLoadBalancerStats(getLoadBalancerStats());
+        }
+        restOfInit(clientConfig);
     }
 
+    public DynamicServerListLoadBalancer(IClientConfig clientConfig) {
+        initWithNiwsConfig(clientConfig);
+    }
+    
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         try {
@@ -138,22 +148,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
                 this.filter = niwsFilter;
             }
 
-            refeshIntervalMills = Integer.valueOf(clientConfig.getProperty(
-                    CommonClientConfigKey.ServerListRefreshInterval,
-                    LISTOFSERVERS_CACHE_REPEAT_INTERVAL).toString());
-
-            boolean primeConnection = this.isEnablePrimingConnections();
-            // turn this off to avoid duplicated asynchronous priming done in BaseLoadBalancer.setServerList()
-            this.setEnablePrimingConnections(false);
-            enableAndInitLearnNewServersFeature();
-
-            updateListOfServers();
-            if (primeConnection && this.getPrimeConnections() != null) {
-                this.getPrimeConnections()
-                        .primeConnections(getServerList(true));
-            }
-            this.setEnablePrimingConnections(primeConnection);
-
+            restOfInit(clientConfig);
         } catch (Exception e) {
             throw new RuntimeException(
                     "Exception while initializing NIWSDiscoveryLoadBalancer:"
@@ -162,6 +157,26 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         }
     }
 
+    void restOfInit(IClientConfig clientConfig) {
+        refeshIntervalMills = Integer.valueOf(clientConfig.getProperty(
+                CommonClientConfigKey.ServerListRefreshInterval,
+                LISTOFSERVERS_CACHE_REPEAT_INTERVAL).toString());
+
+        boolean primeConnection = this.isEnablePrimingConnections();
+        // turn this off to avoid duplicated asynchronous priming done in BaseLoadBalancer.setServerList()
+        this.setEnablePrimingConnections(false);
+        enableAndInitLearnNewServersFeature();
+
+        updateListOfServers();
+        if (primeConnection && this.getPrimeConnections() != null) {
+            this.getPrimeConnections()
+                    .primeConnections(getServerList(true));
+        }
+        this.setEnablePrimingConnections(primeConnection);
+
+    }
+    
+    
     @Override
     public void setServersList(List lsrv) {
         super.setServersList(lsrv);

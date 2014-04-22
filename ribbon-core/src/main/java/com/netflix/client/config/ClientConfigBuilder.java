@@ -19,22 +19,22 @@ public class ClientConfigBuilder {
         return builder;
     }
     
-    public static ClientConfigBuilder newBuilderWithPropertiesForClient(String clientName) {
+    public static ClientConfigBuilder newBuilderWithArchaiusProperties(String clientName) {
         ClientConfigBuilder builder = new ClientConfigBuilder();
         builder.config = new DefaultClientConfigImpl();
         builder.config.loadProperties(clientName);
         return builder;
     }
     
-    public static ClientConfigBuilder newBuilderWithPropertiesForClient(String clientName, String nameSpace) {
+    public static ClientConfigBuilder newBuilderWithArchaiusProperties(String clientName, String propertyNameSpace) {
         ClientConfigBuilder builder = new ClientConfigBuilder();
-        builder.config = new DefaultClientConfigImpl(nameSpace);
+        builder.config = new DefaultClientConfigImpl(propertyNameSpace);
         builder.config.loadProperties(clientName);
         return builder;
     }
 
     
-    public static ClientConfigBuilder newBuilderWithPropertiesForClient(Class<? extends IClientConfig> implClass, String clientName) {
+    public static ClientConfigBuilder newBuilderWithArchaiusProperties(Class<? extends DefaultClientConfigImpl> implClass, String clientName) {
         ClientConfigBuilder builder = new ClientConfigBuilder();
         try {
             builder.config = implClass.newInstance();
@@ -65,26 +65,6 @@ public class ClientConfigBuilder {
         return config;
     }
     
-    public ClientConfigBuilder withAppName(String appName) {
-        config.setPropertyWithType(CommonClientConfigKey.AppName, appName);
-        return this;
-    }
-    
-    public ClientConfigBuilder withVersion(String version) {
-        config.setPropertyWithType(CommonClientConfigKey.Version, version);
-        return this;
-    }
-        
-    public ClientConfigBuilder withPort(int port) {
-        config.setPropertyWithType(CommonClientConfigKey.Port, port);
-        return this;
-    }
-    
-    public ClientConfigBuilder withSecurePort(int port) {
-        config.setPropertyWithType(CommonClientConfigKey.SecurePort, port);
-        return this;
-    }
-    
     public ClientConfigBuilder withDeploymentContextBasedVipAddresses(String vipAddress) {
         config.setPropertyWithType(CommonClientConfigKey.DeploymentContextBasedVipAddresses, vipAddress);
         return this;
@@ -105,7 +85,7 @@ public class ClientConfigBuilder {
         return this;
     }
 
-    public ClientConfigBuilder withOkToRetryOnAllOperations(boolean value) {
+    public ClientConfigBuilder withRetryOnAllOperations(boolean value) {
         config.setPropertyWithType(CommonClientConfigKey.OkToRetryOnAllOperations, value);
         return this;
     }
@@ -115,125 +95,144 @@ public class ClientConfigBuilder {
         return this;
     }
         
-    public ClientConfigBuilder withReceiveBuffferSize(int value) {
-        config.setPropertyWithType(CommonClientConfigKey.ReceiveBuffferSize, value);
+    public ClientConfigBuilder withEnablePrimeConnections(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.EnablePrimeConnections, value);
         return this;
     }
 
-    public static final IClientConfigKey<Integer> ReceiveBuffferSize = new CommonClientConfigKey<Integer>("ReceiveBuffferSize"){};
-    
-    public static final IClientConfigKey<Boolean> EnablePrimeConnections = new CommonClientConfigKey<Boolean>("EnablePrimeConnections"){};
-    
-    public static final IClientConfigKey<Boolean> PrimeConnectionsClassName = new CommonClientConfigKey<Boolean>("PrimeConnectionsClassName"){};
-    
-    public static final IClientConfigKey<Integer> MaxRetriesPerServerPrimeConnection = new CommonClientConfigKey<Integer>("MaxRetriesPerServerPrimeConnection"){};
-    
-    public static final IClientConfigKey<Integer> MaxTotalTimeToPrimeConnections = new CommonClientConfigKey<Integer>("MaxTotalTimeToPrimeConnections"){};
-    
-    public static final IClientConfigKey<Float> MinPrimeConnectionsRatio = new CommonClientConfigKey<Float>("MinPrimeConnectionsRatio"){};
-    
-    public static final IClientConfigKey<String> PrimeConnectionsURI = new CommonClientConfigKey<String>("PrimeConnectionsURI"){};
-    
-    public static final IClientConfigKey<Integer> PoolMaxThreads = new CommonClientConfigKey<Integer>("PoolMaxThreads"){};
-    
-    public static final IClientConfigKey<Integer> PoolMinThreads = new CommonClientConfigKey<Integer>("PoolMinThreads"){};
-    
-    public static final IClientConfigKey<Integer> PoolKeepAliveTime = new CommonClientConfigKey<Integer>("PoolKeepAliveTime"){};
-    
-    public static final IClientConfigKey<String> PoolKeepAliveTimeUnits = new CommonClientConfigKey<String>("PoolKeepAliveTimeUnits"){};
+    public ClientConfigBuilder withMaxHttpConnectionsPerHost(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.MaxHttpConnectionsPerHost, value);
+        return this;
+    }
 
-    //HTTP Client Related
-    public static final IClientConfigKey<Integer> MaxHttpConnectionsPerHost = new CommonClientConfigKey<Integer>("MaxHttpConnectionsPerHost"){};
+    public ClientConfigBuilder withMaxTotalHttpConnections(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.MaxTotalHttpConnections, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Integer> MaxTotalHttpConnections = new CommonClientConfigKey<Integer>("MaxTotalHttpConnections"){};
+    public ClientConfigBuilder withSecure(boolean secure) {
+        config.setPropertyWithType(CommonClientConfigKey.IsSecure, secure);
+        return this;
+    }
+
+    public ClientConfigBuilder withConnectTimeout(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ConnectTimeout, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withReadTimeout(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ReadTimeout, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withConnectionManagerTimeout(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ConnectionManagerTimeout, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Boolean> IsSecure = new CommonClientConfigKey<Boolean>("IsSecure"){};
+    public ClientConfigBuilder withFollowRedirects(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.FollowRedirects, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Boolean> GZipPayload = new CommonClientConfigKey<Boolean>("GZipPayload"){};
+    public ClientConfigBuilder withConnectionPoolCleanerTaskEnabled(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, value);
+        return this;
+    }
+        
+    public ClientConfigBuilder withConnIdleEvictTimeMilliSeconds(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Integer> ConnectTimeout = new CommonClientConfigKey<Integer>("ConnectTimeout"){};
+    public ClientConfigBuilder withConnectionCleanerRepeatIntervalMills(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ConnectionCleanerRepeatInterval, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Integer> ReadTimeout = new CommonClientConfigKey<Integer>("ReadTimeout"){};
+    public ClientConfigBuilder withGZIPContentEncodingFilterEnabled(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.EnableGZIPContentEncodingFilter, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withProxyHost(String proxyHost) {
+        config.setPropertyWithType(CommonClientConfigKey.ProxyHost, proxyHost);
+        return this;
+    }
+
+    public ClientConfigBuilder withProxyPort(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ProxyPort, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withKeyStore(String value) {
+        config.setPropertyWithType(CommonClientConfigKey.KeyStore, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withKeyStorePassword(String value) {
+        config.setPropertyWithType(CommonClientConfigKey.KeyStorePassword, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Integer> SendBufferSize = new CommonClientConfigKey<Integer>("SendBufferSize"){};
+    public ClientConfigBuilder withTrustStore(String value) {
+        config.setPropertyWithType(CommonClientConfigKey.TrustStore, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withTrustStorePassword(String value) {
+        config.setPropertyWithType(CommonClientConfigKey.TrustStorePassword, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Boolean> StaleCheckingEnabled = new CommonClientConfigKey<Boolean>("StaleCheckingEnabled"){};
+    public ClientConfigBuilder withClientAuthRequired(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.IsClientAuthRequired, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Integer> Linger = new CommonClientConfigKey<Integer>("Linger"){};
+    public ClientConfigBuilder withCustomSSLSocketFactoryClassName(String value) {
+        config.setPropertyWithType(CommonClientConfigKey.CustomSSLSocketFactoryClassName, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<Integer> ConnectionManagerTimeout = new CommonClientConfigKey<Integer>("ConnectionManagerTimeout"){};
-    
-    public static final IClientConfigKey<Boolean> FollowRedirects = new CommonClientConfigKey<Boolean>("FollowRedirects"){};
-    
-    public static final IClientConfigKey<Boolean> ConnectionPoolCleanerTaskEnabled = new CommonClientConfigKey<Boolean>("ConnectionPoolCleanerTaskEnabled"){};
-    
-    public static final IClientConfigKey<Integer> ConnIdleEvictTimeMilliSeconds = new CommonClientConfigKey<Integer>("ConnIdleEvictTimeMilliSeconds"){};
-    
-    public static final IClientConfigKey<Integer> ConnectionCleanerRepeatInterval = new CommonClientConfigKey<Integer>("ConnectionCleanerRepeatInterval"){};
-    
-    public static final IClientConfigKey<Boolean> EnableGZIPContentEncodingFilter = new CommonClientConfigKey<Boolean>("EnableGZIPContentEncodingFilter"){};
-    
-    public static final IClientConfigKey<String> ProxyHost = new CommonClientConfigKey<String>("ProxyHost"){};
-    
-    public static final IClientConfigKey<Integer> ProxyPort = new CommonClientConfigKey<Integer>("ProxyPort"){};
-    
-    public static final IClientConfigKey<String> KeyStore = new CommonClientConfigKey<String>("KeyStore"){};
-    
-    public static final IClientConfigKey<String> KeyStorePassword = new CommonClientConfigKey<String>("KeyStorePassword"){};
-    
-    public static final IClientConfigKey<String> TrustStore = new CommonClientConfigKey<String>("TrustStore"){};
-    
-    public static final IClientConfigKey<String> TrustStorePassword = new CommonClientConfigKey<String>("TrustStorePassword"){};
-    
-    // if this is a secure rest client, must we use client auth too?    
-    public static final IClientConfigKey<Boolean> IsClientAuthRequired = new CommonClientConfigKey<Boolean>("IsClientAuthRequired"){};
-    
-    public static final IClientConfigKey<String> CustomSSLSocketFactoryClassName = new CommonClientConfigKey<String>("CustomSSLSocketFactoryClassName"){};
-     // must host name match name in certificate?
-    public static final IClientConfigKey<Boolean> IsHostnameValidationRequired = new CommonClientConfigKey<Boolean>("IsHostnameValidationRequired"){}; 
+    public ClientConfigBuilder withHostnameValidationRequired(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.IsHostnameValidationRequired, value);
+        return this;
+    }
 
     // see also http://hc.apache.org/httpcomponents-client-ga/tutorial/html/advanced.html
-    public static final IClientConfigKey<Boolean> IgnoreUserTokenInConnectionPoolForSecureClient = new CommonClientConfigKey<Boolean>("IgnoreUserTokenInConnectionPoolForSecureClient"){}; 
-    
-    // Client implementation
-    public static final IClientConfigKey<String> ClientClassName = new CommonClientConfigKey<String>("ClientClassName"){};
+    public ClientConfigBuilder ignoreUserTokenInConnectionPoolForSecureClient(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.IgnoreUserTokenInConnectionPoolForSecureClient, value);
+        return this;
+    }
 
-    //LoadBalancer Related
-    public static final IClientConfigKey<Boolean> InitializeNFLoadBalancer = new CommonClientConfigKey<Boolean>("InitializeNFLoadBalancer"){};
+    public ClientConfigBuilder withInitializeNFLoadBalancer(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.InitializeNFLoadBalancer, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<String> NFLoadBalancerClassName = new CommonClientConfigKey<String>("NFLoadBalancerClassName"){};
+    public ClientConfigBuilder withServerListRefreshIntervalMills(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ServerListRefreshInterval, value);
+        return this;
+    }
+      
+    public ClientConfigBuilder enableZoneAffinity(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.EnableZoneAffinity, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<String> NFLoadBalancerRuleClassName = new CommonClientConfigKey<String>("NFLoadBalancerRuleClassName"){};
+    public ClientConfigBuilder enableZoneExclusivity(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.EnableZoneExclusivity, value);
+        return this;
+    }
+
+    public ClientConfigBuilder prioritizeVipAddressBasedServers(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.PrioritizeVipAddressBasedServers, value);
+        return this;
+    }
     
-    public static final IClientConfigKey<String> NFLoadBalancerPingClassName = new CommonClientConfigKey<String>("NFLoadBalancerPingClassName"){};
-    
-    public static final IClientConfigKey<Integer> NFLoadBalancerPingInterval = new CommonClientConfigKey<Integer>("NFLoadBalancerPingInterval"){};
-    
-    public static final IClientConfigKey<Integer> NFLoadBalancerMaxTotalPingTime = new CommonClientConfigKey<Integer>("NFLoadBalancerMaxTotalPingTime"){};
-    
-    public static final IClientConfigKey<String> NIWSServerListClassName = new CommonClientConfigKey<String>("NIWSServerListClassName"){};
-    
-    public static final IClientConfigKey<String> NIWSServerListFilterClassName = new CommonClientConfigKey<String>("NIWSServerListFilterClassName"){};
-    
-    public static final IClientConfigKey<Integer> ServerListRefreshInterval = new CommonClientConfigKey<Integer>("ServerListRefreshInterval"){};
-    
-    public static final IClientConfigKey<Boolean> EnableMarkingServerDownOnReachingFailureLimit = new CommonClientConfigKey<Boolean>("EnableMarkingServerDownOnReachingFailureLimit"){};
-    
-    public static final IClientConfigKey<Integer> ServerDownFailureLimit = new CommonClientConfigKey<Integer>("ServerDownFailureLimit"){};
-    
-    public static final IClientConfigKey<Integer> ServerDownStatWindowInMillis = new CommonClientConfigKey<Integer>("ServerDownStatWindowInMillis"){};
-    
-    public static final IClientConfigKey<Boolean> EnableZoneAffinity = new CommonClientConfigKey<Boolean>("EnableZoneAffinity"){};
-    
-    public static final IClientConfigKey<Boolean> EnableZoneExclusivity = new CommonClientConfigKey<Boolean>("EnableZoneExclusivity"){};
-    
-    public static final IClientConfigKey<Boolean> PrioritizeVipAddressBasedServers = new CommonClientConfigKey<Boolean>("PrioritizeVipAddressBasedServers"){};
-    
-    public static final IClientConfigKey<String> VipAddressResolverClassName = new CommonClientConfigKey<String>("VipAddressResolverClassName"){};
-    
-    public static final IClientConfigKey<String> TargetRegion = new CommonClientConfigKey<String>("TargetRegion"){};
-    
-    public static final IClientConfigKey<String> RulePredicateClasses = new CommonClientConfigKey<String>("RulePredicateClasses"){};
-    
-    
+    public ClientConfigBuilder withTargetRegion(String value) {
+        config.setPropertyWithType(CommonClientConfigKey.TargetRegion, value);
+        return this;
+    }
 }
