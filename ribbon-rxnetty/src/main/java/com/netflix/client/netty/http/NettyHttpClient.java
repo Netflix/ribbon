@@ -32,7 +32,6 @@ import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
-import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +47,6 @@ import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.IClientConfigKey.CommonKeys;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.loadbalancer.Server;
-import com.netflix.serialization.TypeDef;
 import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
 
 /**

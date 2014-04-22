@@ -193,8 +193,7 @@ public class RetryTest {
         } catch (ClientException e) { // NOPMD
         }
         ServerStats stats = lb.getLoadBalancerStats().getSingleServerStat(localServer); 
-        // No retry because Read timeout is not retriable by default for POST
-        assertEquals(1, stats.getSuccessiveConnectionFailureCount());
+        assertEquals(3, stats.getSuccessiveConnectionFailureCount());
     }
     
     @Test
@@ -208,7 +207,6 @@ public class RetryTest {
         } catch (ClientException e) { // NOPMD
         }
         ServerStats stats = lb.getLoadBalancerStats().getSingleServerStat(new Server("www.google.com:81")); 
-        // No retry because Read timeout is not retriable by default for POST
         assertEquals(3, stats.getSuccessiveConnectionFailureCount());
     }
 

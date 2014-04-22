@@ -8,7 +8,7 @@ import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import rx.util.functions.Action1;
+import rx.functions.Action1;
 
 import com.netflix.client.netty.http.NettyHttpClient;
 import com.netflix.client.netty.http.NettyHttpClientBuilder;
@@ -20,7 +20,7 @@ public class SimpleGet {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/");
                 
         final CountDownLatch latch = new CountDownLatch(1);
-        client.submitToLoadBalancer("www.google.com", 80, request)
+        client.submit("www.google.com", 80, request)
             .toBlockingObservable()
             .forEach(new Action1<HttpClientResponse<ByteBuf>>() {
                 @Override

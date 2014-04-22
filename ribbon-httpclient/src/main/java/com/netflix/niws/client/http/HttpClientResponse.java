@@ -31,17 +31,10 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.netflix.client.ClientException;
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpHeaders;
-import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
-import com.netflix.serialization.Deserializer;
-import com.netflix.serialization.Serializer;
-import com.netflix.serialization.TypeDef;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.GenericType;
-import com.sun.jersey.api.client.UniformInterfaceException;
 
 /**
  * A NIWS   Client Response
@@ -109,7 +102,7 @@ class HttpClientResponse implements HttpResponse {
        
     
     public <T> T getEntity(Class<T> c) throws Exception {
-        return getEntity(TypeDef.fromClass(c));
+        return bcr.getEntity(c);
     }
 
     @Override
@@ -161,24 +154,6 @@ class HttpClientResponse implements HttpResponse {
         bcr.close();
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T getEntity(TypeDef<T> type) throws Exception {
-        if (overrideConfig != null) {
-            Deserializer deserializer = overrideConfig.getPropertyWithType(CommonClientConfigKey.Deserializer, null);
-            if (deserializer != null) {
-                return (T) getEntity(type, deserializer);
-            }
-        }
-        T t = null;
-        try {
-            t = this.bcr.getEntity(new GenericType<T>(type.getType()){});
-        } catch (UniformInterfaceException e) {
-            throw new ClientException(ClientException.ErrorType.GENERAL, e.getMessage(), e.getCause());
-        } 
-        return t;    
-    }
-
     @Override
     public InputStream getInputStream() {
         return getRawEntity();
@@ -194,11 +169,4 @@ class HttpClientResponse implements HttpResponse {
         return httpHeaders;
     }
 
-    @Override
-    public <T> T getEntity(TypeDef<T> type, Deserializer<T> deserializer)
-            throws Exception {
-        return deserializer.deserialize(getInputStream(), type);
-    }
-    
-    
 }

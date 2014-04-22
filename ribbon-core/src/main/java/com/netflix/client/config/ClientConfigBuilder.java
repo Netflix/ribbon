@@ -1,57 +1,125 @@
-/*
-*
-* Copyright 2013 Netflix, Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
 package com.netflix.client.config;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.HashSet;
-import java.util.Set;
-
-import com.google.common.reflect.TypeToken;
-
-public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
-
-    public static final IClientConfigKey<String> AppName = new CommonClientConfigKey<String>("AppName"){};
+public class ClientConfigBuilder {
     
-    public static final IClientConfigKey<String> Version = new CommonClientConfigKey<String>("Version"){};
+    private IClientConfig config;
+    
+    private ClientConfigBuilder() {
+    }
+    
+    public static ClientConfigBuilder newBuilder() {
+        ClientConfigBuilder builder = new ClientConfigBuilder();
+        builder.config = new DefaultClientConfigImpl();
+        return builder;
+    }
+    
+    public static ClientConfigBuilder newBuilderWithDefaultConfigValues() {
+        ClientConfigBuilder builder = new ClientConfigBuilder();
+        builder.config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+        return builder;
+    }
+    
+    public static ClientConfigBuilder newBuilderWithPropertiesForClient(String clientName) {
+        ClientConfigBuilder builder = new ClientConfigBuilder();
+        builder.config = new DefaultClientConfigImpl();
+        builder.config.loadProperties(clientName);
+        return builder;
+    }
+    
+    public static ClientConfigBuilder newBuilderWithPropertiesForClient(String clientName, String nameSpace) {
+        ClientConfigBuilder builder = new ClientConfigBuilder();
+        builder.config = new DefaultClientConfigImpl(nameSpace);
+        builder.config.loadProperties(clientName);
+        return builder;
+    }
+
+    
+    public static ClientConfigBuilder newBuilderWithPropertiesForClient(Class<? extends IClientConfig> implClass, String clientName) {
+        ClientConfigBuilder builder = new ClientConfigBuilder();
+        try {
+            builder.config = implClass.newInstance();
+            builder.config.loadProperties(clientName);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+        return builder;
+    }
+
+    public static ClientConfigBuilder newBuilder(Class<? extends IClientConfig> implClass) {
+        ClientConfigBuilder builder = new ClientConfigBuilder();
+        try {
+            builder.config = implClass.newInstance();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+        return builder;        
+    }
+    
+    public static ClientConfigBuilder newBuilderWithDefaultConfigValues(Class<? extends DefaultClientConfigImpl> implClass) {
+        ClientConfigBuilder builder = newBuilder(implClass);
+        ((DefaultClientConfigImpl) builder.config).loadDefaultValues();
+        return builder;
+    }
+
+    public IClientConfig build() {
+        return config;
+    }
+    
+    public ClientConfigBuilder withAppName(String appName) {
+        config.setPropertyWithType(CommonClientConfigKey.AppName, appName);
+        return this;
+    }
+    
+    public ClientConfigBuilder withVersion(String version) {
+        config.setPropertyWithType(CommonClientConfigKey.Version, version);
+        return this;
+    }
         
-    public static final IClientConfigKey<Integer> Port = new CommonClientConfigKey<Integer>("Port"){};
+    public ClientConfigBuilder withPort(int port) {
+        config.setPropertyWithType(CommonClientConfigKey.Port, port);
+        return this;
+    }
     
-    public static final IClientConfigKey<Integer> SecurePort = new CommonClientConfigKey<Integer>("SecurePort"){};
+    public ClientConfigBuilder withSecurePort(int port) {
+        config.setPropertyWithType(CommonClientConfigKey.SecurePort, port);
+        return this;
+    }
     
-    public static final IClientConfigKey<String> VipAddress = new CommonClientConfigKey<String>("VipAddress"){};
-    
-    public static final IClientConfigKey<Boolean> ForceClientPortConfiguration = new CommonClientConfigKey<Boolean>("ForceClientPortConfiguration"){}; // use client defined port regardless of server advert
+    public ClientConfigBuilder withDeploymentContextBasedVipAddresses(String vipAddress) {
+        config.setPropertyWithType(CommonClientConfigKey.DeploymentContextBasedVipAddresses, vipAddress);
+        return this;
+    }
 
-    public static final IClientConfigKey<String> DeploymentContextBasedVipAddresses = new CommonClientConfigKey<String>("DeploymentContextBasedVipAddresses"){};
-    
-    public static final IClientConfigKey<Integer> MaxAutoRetries = new CommonClientConfigKey<Integer>("MaxAutoRetries"){};
-    
-    public static final IClientConfigKey<Integer> MaxAutoRetriesNextServer = new CommonClientConfigKey<Integer>("MaxAutoRetriesNextServer"){};
-    
-    public static final IClientConfigKey<Boolean> OkToRetryOnAllOperations = new CommonClientConfigKey<Boolean>("OkToRetryOnAllOperations"){};
-    
-    public static final IClientConfigKey<Boolean> RequestSpecificRetryOn = new CommonClientConfigKey<Boolean>("RequestSpecificRetryOn"){};
-    
+    public ClientConfigBuilder withForceClientPortConfiguration(boolean forceClientPortConfiguration) {
+        config.setPropertyWithType(CommonClientConfigKey.ForceClientPortConfiguration, forceClientPortConfiguration);
+        return this;
+    }
+
+    public ClientConfigBuilder withMaxAutoRetries(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.MaxAutoRetries, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withMaxAutoRetriesNextServer(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withOkToRetryOnAllOperations(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.OkToRetryOnAllOperations, value);
+        return this;
+    }
+
+    public ClientConfigBuilder withRequestSpecificRetryOn(boolean value) {
+        config.setPropertyWithType(CommonClientConfigKey.RequestSpecificRetryOn, value);
+        return this;
+    }
+        
+    public ClientConfigBuilder withReceiveBuffferSize(int value) {
+        config.setPropertyWithType(CommonClientConfigKey.ReceiveBuffferSize, value);
+        return this;
+    }
+
     public static final IClientConfigKey<Integer> ReceiveBuffferSize = new CommonClientConfigKey<Integer>("ReceiveBuffferSize"){};
     
     public static final IClientConfigKey<Boolean> EnablePrimeConnections = new CommonClientConfigKey<Boolean>("EnablePrimeConnections"){};
@@ -167,65 +235,5 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<String> RulePredicateClasses = new CommonClientConfigKey<String>("RulePredicateClasses"){};
     
-    private static final Set<IClientConfigKey> keys = new HashSet<IClientConfigKey>();
-        
-    static {
-        for (Field f: CommonClientConfigKey.class.getDeclaredFields()) {
-            if (Modifier.isStatic(f.getModifiers()) //&& Modifier.isPublic(f.getModifiers())
-                    && IClientConfigKey.class.isAssignableFrom(f.getType())) {
-                try {
-                    keys.add((IClientConfigKey) f.get(null));
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-    }
-
-    /**
-     * @deprecated see {@link #key()} 
-     */
-    @edu.umd.cs.findbugs.annotations.SuppressWarnings
-    @Deprecated
-    public static IClientConfigKey[] values() {
-       return keys().toArray(new IClientConfigKey[0]);
-    }
-
-    /**
-     * return all the public static keys defined in this class 
-     */
-    public static Set<IClientConfigKey> keys() {
-        return keys;
-    }
     
-    private final String configKey;
-    private final Class<T> type;
-    
-    @SuppressWarnings("unchecked")
-    protected CommonClientConfigKey(String configKey) {
-        this.configKey = configKey;
-        Type superclass = getClass().getGenericSuperclass();
-        checkArgument(superclass instanceof ParameterizedType,
-            "%s isn't parameterized", superclass);
-        Type runtimeType = ((ParameterizedType) superclass).getActualTypeArguments()[0];
-        type = (Class<T>) TypeToken.of(runtimeType).getRawType();
-    }
-    
-    @Override
-    public Class<T> type() {
-        return type;
-    }
-
-    /* (non-Javadoc)
-	 * @see com.netflix.niws.client.ClientConfig#key()
-	 */
-    @Override
-	public String key() {
-        return configKey;
-    }
-    
-    @Override
-    public String toString() {
-        return configKey;
-    }
 }

@@ -27,7 +27,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.netflix.client.ClientRequest;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.serialization.TypeDef;
 
 /**
  * Request for HTTP communication.
@@ -59,7 +58,6 @@ public class HttpRequest extends ClientRequest {
     protected CaseInsensitiveMultiMap httpHeaders = new CaseInsensitiveMultiMap();
     protected Multimap<String, String> queryParams = ArrayListMultimap.create();
     private Object entity;
-    private TypeDef<?> entityType;
     protected Verb verb;
     
     HttpRequest() {
@@ -135,13 +133,6 @@ public class HttpRequest extends ClientRequest {
             return this;
         }
 
-
-        public Builder entity(Object entity, TypeDef<?> entityType) {
-            request.entity = entity;
-            request.entityType = entityType;
-            return this;
-        }
-        
         public Builder entity(Object entity) {
             request.entity = entity;
             return this;
@@ -187,10 +178,6 @@ public class HttpRequest extends ClientRequest {
         return entity;
     }
         
-    public TypeDef<?> getEntityType() {
-        return entityType;
-    }
-    
     /**
      * Test if the request is retriable. If the request is
      * a {@link Verb#GET} and {@link Builder#setRetriable(boolean)}
@@ -220,7 +207,6 @@ public class HttpRequest extends ClientRequest {
     @Override
     public HttpRequest replaceUri(URI newURI) {
         return (new Builder()).uri(newURI)
-        .entity(this.getEntity(), this.entityType)
         .headers(this.httpHeaders)
         .overrideConfig(this.getOverrideConfig())
         .queryParams(this.queryParams)

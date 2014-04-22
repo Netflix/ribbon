@@ -22,9 +22,7 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 
-import com.netflix.client.ResponseWithTypedEntity;
-import com.netflix.serialization.SerializationUtils;
-import com.netflix.serialization.TypeDef;
+import com.netflix.client.IResponse;
 
 /**
  * Response for HTTP communication.
@@ -32,7 +30,7 @@ import com.netflix.serialization.TypeDef;
  * @author awang
  *
  */
-public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
+public interface HttpResponse extends IResponse, Closeable {
     /**
      * Get the HTTP status code.
      */
@@ -56,15 +54,5 @@ public interface HttpResponse extends ResponseWithTypedEntity, Closeable {
     
     public InputStream getInputStream();
     
-    /**
-     * @deprecated use {@link #getEntity(TypeDef, com.netflix.serialization.Deserializer)} 
-     */
-    @Deprecated
     public <T> T getEntity(Class<T> type) throws Exception;
-    
-    /**
-     * @deprecated use {@link #getEntity(TypeDef, com.netflix.serialization.Deserializer)} 
-     */
-    @Deprecated
-    public <T> T getEntity(TypeDef<T> type) throws Exception;
 }

@@ -154,7 +154,6 @@ public class NettyClientTest {
         assertEquals(2, observableClient.getGlobalPoolStats().getReleaseSucceededCount());
         assertEquals(1, observableClient.getGlobalPoolStats().getTotalConnectionCount());
         assertEquals(1, observableClient.getGlobalPoolStats().getReuseCount());
-
     }
 
     
