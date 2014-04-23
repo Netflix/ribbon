@@ -38,6 +38,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -97,7 +99,7 @@ public class NettyClientTest {
             e.printStackTrace();
             fail("Unable to start server");
         }
-        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
     }
     
     private static Observable<Person> getPersonObservable(Observable<HttpClientResponse<ByteBuf>> response) {
