@@ -22,7 +22,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
-import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
@@ -32,16 +31,18 @@ import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
-import rx.Observer;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
@@ -51,37 +52,12 @@ import com.netflix.loadbalancer.Server;
 import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
 
 /**
- * An HTTP client built on top of Netty and RxJava. The core APIs are
- * 
- *  <li>{@link #createEntityObservable(HttpClientRequest, TypeDef, IClientConfig)}
- *  <li>{@link #createFullHttpResponseObservable(HttpClientRequest, IClientConfig)}
- *  <li>{@link #createServerSentEventEntityObservable(HttpClientRequest, TypeDef, IClientConfig)}
- *  <li>{@link #createServerSentEventObservable(HttpClientRequest, IClientConfig)}
- *  <li>{@link #createObservableHttpResponse(HttpClientRequest, PipelineConfigurator, IClientConfig, io.reactivex.netty.client.RxClient.ClientConfig)}
- *  <br/><br/>
- *  <p/>
- *  These APIs return an {@link Observable}, but does not start execution of the request. Once an {@link Observer} is subscribed to the returned
- *  {@link Observable}, the execution will start asynchronously. Each subscription to the {@link Observable} will result in a new execution 
- *  of the request. Unsubscribing from the Observable will cancel the request. 
- *  Please consult <a href="http://netflix.github.io/RxJava/javadoc/rx/Observable.html">RxJava API</a> for details.  
- *  <br/><br/>
- *  The APIs starting with prefix "observe" are provided on top of the core APIs to allow the execution to start immediately and 
- *  asynchronously with a passed in {@link Observer}. This is basically the "callback" pattern.
- *  <br/><br/>
- *  The "execute" APIs are provided on top of the core APIs to offer synchronous call semantics. 
- *  <br/><br/>
- *  To support serialization and deserialization of entities in full Http response or Sever-Sent-Event stream, 
- *  a {@link SerializationFactory} which provides Jackson codec is installed
- *  by default. You can override the default serialization by passing in an {@link IClientConfig} with a {@link CommonClientConfigKey#Deserializer}
- *  and/or {@link CommonClientConfigKey#Serializer} property. You also need to pass in {@link TypeDef} object
- *  to hold the reference of the runtime entity type to overcome type erasure.
- *  <br/><br/>
- *  You may find {@link NettyHttpClientBuilder} is easier to create instances of {@link NettyHttpClient}.
- *  
+ * A Netty HttpClient that can connect to different servers. Internally it caches the RxNetty's HttpClient, with each created with 
+ * a connection pool governed by {@link CompositePoolLimitDeterminationStrategy} that has a global limit and per server limit. 
+ *   
  * @author awang
- *
  */
-public class NettyHttpClient<I, O> extends CachedNettyHttpClient<I, O> {
+public class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O> implements Closeable {
 
     protected static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_PIPELINE_CONFIGURATOR = 
             PipelineConfigurators.httpClientConfigurator();
@@ -90,7 +66,8 @@ public class NettyHttpClient<I, O> extends CachedNettyHttpClient<I, O> {
     protected final int idleConnectionEvictionMills;
     protected final GlobalPoolStats stats;
     protected final PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator;
-    
+    protected ConcurrentHashMap<Server, HttpClient<I, O>> rxClientCache;
+
     private static final ScheduledExecutorService poolCleanerScheduler;
     private static final DynamicIntProperty POOL_CLEANER_CORE_SIZE = new DynamicIntProperty("rxNetty.poolCleaner.coreSize", 2);
     
@@ -124,11 +101,11 @@ public class NettyHttpClient<I, O> extends CachedNettyHttpClient<I, O> {
         globalStrategy = new MaxConnectionsBasedStrategy(maxTotalConnections);
         poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
         idleConnectionEvictionMills = config.getPropertyWithType(CommonKeys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
+        rxClientCache = new ConcurrentHashMap<Server, HttpClient<I,O>>();
         stats = new GlobalPoolStats(config.getClientName(), this);
     }
     
-    @Override
-    protected HttpClient<I, O> createRxClient(Server server) {
+    protected HttpClient<I, O> cacheLoadRxClient(Server server) {
         HttpClientBuilder<I, O> clientBuilder =
                 new HttpClientBuilder<I, O>(server.getHost(), server.getPort()).pipelineConfigurator(pipeLineConfigurator);
         int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null);
@@ -166,17 +143,41 @@ public class NettyHttpClient<I, O> extends CachedNettyHttpClient<I, O> {
     public int getMaxTotalConnections() {
         return globalStrategy.getMaxConnections();
     }
-    
-    public int getIdleConnectionsInPool() {
-        int total = 0;
-        for (HttpClient<I, O> client: getCurrentHttpClients().values()) {
-            PoolStats poolStats = client.getStats();
-            total += poolStats.getIdleCount();
-        }
-        return total;
-    }
-    
+        
     public GlobalPoolStats getGlobalPoolStats() {
         return stats;
+    }
+
+    @Override
+    protected HttpClient<I, O> getRxClient(String host, int port) {
+        Server server = new Server(host, port);
+        HttpClient<I, O> client =  rxClientCache.get(server);
+        if (client != null) {
+            return client;
+        } else {
+            client = cacheLoadRxClient(server);
+            HttpClient<I, O> old = rxClientCache.putIfAbsent(server, client);
+            if (old != null) {
+                return old;
+            } else {
+                return client;
+            }
+        }
+    }
+    
+    protected ConcurrentMap<Server, HttpClient<I, O>> getCurrentHttpClients() {
+        return rxClientCache;
+    }
+    
+    protected HttpClient<I, O> removeClient(Server server) {
+        HttpClient<I, O> client = rxClientCache.remove(server);
+        client.shutdown();
+        return client;
+    }
+
+    public void close() throws IOException {
+        for (Server server: rxClientCache.keySet()) {
+            removeClient(server);
+        }
     }
 }
