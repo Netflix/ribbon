@@ -22,7 +22,7 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
-public abstract class AbstractNettyHttpClient<O> {
+public abstract class AbstractNettyHttpClient<I, O> {
     protected final IClientConfig config;
  
     public AbstractNettyHttpClient() {
@@ -50,9 +50,9 @@ public abstract class AbstractNettyHttpClient<O> {
         request.getHeaders().set(HttpHeaders.Names.HOST, host);
     }
 
-    protected abstract <I> HttpClient<I, O> getRxClient(String host, int port);
+    protected abstract HttpClient<I, O> getRxClient(String host, int port);
     
-    protected <I> Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request) {
+    protected Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request) {
         return submit(host, port, request, null);
     }
        
@@ -63,7 +63,7 @@ public abstract class AbstractNettyHttpClient<O> {
         return new RepeatableContentHttpRequest<I>(original);
     }
 
-    <I> Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, @Nullable final IClientConfig requestConfig) {
+    Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, @Nullable final IClientConfig requestConfig) {
         Preconditions.checkNotNull(request);
         HttpClient<I,O> rxClient = getRxClient(host, port);
         setHost(request, host);

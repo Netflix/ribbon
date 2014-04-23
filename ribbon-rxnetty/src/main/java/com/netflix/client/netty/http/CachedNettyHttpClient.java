@@ -13,9 +13,9 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.Server;
 
 @SuppressWarnings("rawtypes")
-public abstract class CachedNettyHttpClient<O> extends AbstractNettyHttpClient<O> implements Closeable {
+public abstract class CachedNettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O> implements Closeable {
 
-    private ConcurrentHashMap<Server, HttpClient> rxClientCache;
+    private ConcurrentHashMap<Server, HttpClient<I, O>> rxClientCache;
     
     public CachedNettyHttpClient() {
         this(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
@@ -23,12 +23,12 @@ public abstract class CachedNettyHttpClient<O> extends AbstractNettyHttpClient<O
 
     public CachedNettyHttpClient(IClientConfig config) {
         super(config);
-        rxClientCache = new ConcurrentHashMap<Server, HttpClient>();
+        rxClientCache = new ConcurrentHashMap<Server, HttpClient<I,O>>();
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    protected <I> HttpClient<I, O> getRxClient(String host, int port) {
+    protected HttpClient<I, O> getRxClient(String host, int port) {
         Server server = new Server(host, port);
         HttpClient client =  rxClientCache.get(server);
         if (client != null) {
@@ -44,9 +44,9 @@ public abstract class CachedNettyHttpClient<O> extends AbstractNettyHttpClient<O
         }
     }
 
-    protected abstract <I> HttpClient<I,O> createRxClient(Server server);
+    protected abstract HttpClient<I,O> createRxClient(Server server);
     
-    protected ConcurrentMap<Server, HttpClient> getCurrentHttpClients() {
+    protected ConcurrentMap<Server, HttpClient<I, O>> getCurrentHttpClients() {
         return rxClientCache;
     }
     

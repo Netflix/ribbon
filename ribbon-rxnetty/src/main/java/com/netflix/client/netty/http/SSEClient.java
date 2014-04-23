@@ -1,7 +1,9 @@
 package com.netflix.client.netty.http;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
@@ -12,23 +14,40 @@ import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 import rx.Observable;
 import rx.functions.Func1;
 
+import com.google.common.base.Preconditions;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
-public class SSEClient extends AbstractNettyHttpClient<ServerSentEvent> {
+public class SSEClient<I> extends AbstractNettyHttpClient<I, ServerSentEvent> {
     
-    public SSEClient() {
-        super();
-    }
+    protected static final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<ByteBuf>> DEFAULT_PIPELINE_CONFIGURATOR = 
+            PipelineConfigurators.sseClientConfigurator();
 
-    public SSEClient(IClientConfig config) {
+    protected final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipeLineConfigurator;
+
+    public static SSEClient<ByteBuf> getDefaultSSEClient() {
+        return getDefaultSSEClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+    }
+    
+    public static SSEClient<ByteBuf> getDefaultSSEClient(IClientConfig config) {
+        return new SSEClient<ByteBuf>(config, DEFAULT_PIPELINE_CONFIGURATOR);
+    }
+    
+    public SSEClient(PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipeLineConfigurator) {
+        this(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), pipeLineConfigurator);
+    }
+        
+    public SSEClient(IClientConfig config, PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipeLineConfigurator) {
         super(config);
+        Preconditions.checkNotNull(pipeLineConfigurator);
+        this.pipeLineConfigurator = pipeLineConfigurator;
     }
 
     @Override
-    protected <I> HttpClient<I, ServerSentEvent> getRxClient(String host, int port) {
+    protected HttpClient<I, ServerSentEvent> getRxClient(String host, int port) {
         HttpClientBuilder<I, ServerSentEvent> clientBuilder =
-                new HttpClientBuilder<I, ServerSentEvent>(host, port).pipelineConfigurator(PipelineConfigurators.<I>sseClientConfigurator());
+                new HttpClientBuilder<I, ServerSentEvent>(host, port).pipelineConfigurator(pipeLineConfigurator);
         int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null);
         RxClient.ClientConfig rxClientConfig = new HttpClientConfig.Builder().build();
         
@@ -37,7 +56,7 @@ public class SSEClient extends AbstractNettyHttpClient<ServerSentEvent> {
         return client;
     }
     
-    public <I> Observable<ServerSentEvent> observeServerSentEvent(String host, int port, final HttpClientRequest<I> request, IClientConfig requestConfig) {
+    public Observable<ServerSentEvent> observeServerSentEvent(String host, int port, final HttpClientRequest<I> request, IClientConfig requestConfig) {
         return submit(host, port, request, requestConfig)
                 .flatMap(new Func1<HttpClientResponse<ServerSentEvent>, Observable<ServerSentEvent>>() {
                     @Override

@@ -22,9 +22,9 @@ public class GlobalPoolStats implements Observer<PoolInsightProvider.PoolStateCh
     private final LongAdder releaseSucceededCount = new LongAdder();
     private final LongAdder releaseFailedCount = new LongAdder();
 
-    private final NettyHttpClient client;
+    private final NettyHttpClient<?, ?> client;
     
-    public GlobalPoolStats(String name, NettyHttpClient client) {
+    public GlobalPoolStats(String name, NettyHttpClient<?, ?> client) {
         Monitors.registerObject(name, this);
         this.client = client;
     }
@@ -42,17 +42,14 @@ public class GlobalPoolStats implements Observer<PoolInsightProvider.PoolStateCh
     }
 
     public void onConnectionEviction() {
-        System.err.println("onConnectionEviction");
         evictionCount.increment();
     }
 
     public void onAcquireAttempted() {
-        System.err.println("onAcquireAttempted");
         acquireAttemptedCount.increment();
     }
 
     public void onAcquireSucceeded() {
-        System.err.println("onAcquireSucceeded");
         acquireSucceededCount.increment();
     }
 
@@ -61,17 +58,14 @@ public class GlobalPoolStats implements Observer<PoolInsightProvider.PoolStateCh
     }
 
     public void onReleaseAttempted() {
-        System.err.println("onReleaseAttempted");
         releaseAttemptedCount.increment();
     }
 
     public void onReleaseSucceeded() {
-        System.err.println("onReleaseSucceeded");
         releaseSucceededCount.increment();
     }
 
     public void onReleaseFailed() {
-        System.err.println("onReleaseAttempted");
         releaseFailedCount.increment();
     }
 

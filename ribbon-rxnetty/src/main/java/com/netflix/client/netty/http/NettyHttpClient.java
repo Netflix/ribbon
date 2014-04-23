@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.Observer;
 
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
@@ -80,12 +81,15 @@ import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
  * @author awang
  *
  */
-public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
+public class NettyHttpClient<I, O> extends CachedNettyHttpClient<I, O> {
 
-    private final CompositePoolLimitDeterminationStrategy poolStrategy;
-    private final MaxConnectionsBasedStrategy globalStrategy;
-    private final int idleConnectionEvictionMills;
-    private final GlobalPoolStats stats;
+    protected static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_PIPELINE_CONFIGURATOR = 
+            PipelineConfigurators.httpClientConfigurator();
+    protected final CompositePoolLimitDeterminationStrategy poolStrategy;
+    protected final MaxConnectionsBasedStrategy globalStrategy;
+    protected final int idleConnectionEvictionMills;
+    protected final GlobalPoolStats stats;
+    protected final PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator;
     
     private static final ScheduledExecutorService poolCleanerScheduler;
     private static final DynamicIntProperty POOL_CLEANER_CORE_SIZE = new DynamicIntProperty("rxNetty.poolCleaner.coreSize", 2);
@@ -97,12 +101,22 @@ public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
         poolCleanerScheduler = new ScheduledThreadPoolExectuorWithDynamicSize(POOL_CLEANER_CORE_SIZE, factory);
     }
     
-    public NettyHttpClient() {
-        this(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+    public static NettyHttpClient<ByteBuf, ByteBuf> createDefaultHttpClient(IClientConfig config) {
+        return new NettyHttpClient<ByteBuf, ByteBuf>(config, DEFAULT_PIPELINE_CONFIGURATOR);
+    }
+
+    public static NettyHttpClient<ByteBuf, ByteBuf> createDefaultHttpClient() {
+        return new NettyHttpClient<ByteBuf, ByteBuf>(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), DEFAULT_PIPELINE_CONFIGURATOR);
+    }
+
+    public NettyHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator) {
+        this(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), pipeLineConfigurator);
     }
     
-    public NettyHttpClient(IClientConfig config) {
+    public NettyHttpClient(IClientConfig config, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator) {
         super(config);
+        Preconditions.checkNotNull(pipeLineConfigurator);
+        this.pipeLineConfigurator = pipeLineConfigurator;
         int maxTotalConnections = config.getPropertyWithType(IClientConfigKey.CommonKeys.MaxTotalHttpConnections,
                 DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS);
         int maxConnections = config.getPropertyWithType(CommonKeys.MaxHttpConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST);
@@ -114,15 +128,15 @@ public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
     }
     
     @Override
-    protected <I> HttpClient<I, ByteBuf> createRxClient(Server server) {
-        HttpClientBuilder<I, ByteBuf> clientBuilder =
-                new HttpClientBuilder<I, ByteBuf>(server.getHost(), server.getPort()).pipelineConfigurator(PipelineConfigurators.<I, ByteBuf>httpClientConfigurator());
+    protected HttpClient<I, O> createRxClient(Server server) {
+        HttpClientBuilder<I, O> clientBuilder =
+                new HttpClientBuilder<I, O>(server.getHost(), server.getPort()).pipelineConfigurator(pipeLineConfigurator);
         int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null);
         int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null);
         HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
         RxClient.ClientConfig rxClientConfig = builder.build();
         
-        HttpClient<I, ByteBuf> client = clientBuilder.channelOption(
+        HttpClient<I, O> client = clientBuilder.channelOption(
                 ChannelOption.CONNECT_TIMEOUT_MILLIS, requestConnectTimeout)
                 .config(rxClientConfig)
                 .withConnectionPoolLimitStrategy(poolStrategy)
@@ -134,13 +148,13 @@ public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
     }
 
     @Override
-    public <I> Observable<HttpClientResponse<ByteBuf>> submit(String host,
+    public Observable<HttpClientResponse<O>> submit(String host,
             int port, HttpClientRequest<I> request) {
         return super.submit(host, port, request);
     }
 
     @Override
-    public <I> Observable<HttpClientResponse<ByteBuf>> submit(String host, int port,
+    public Observable<HttpClientResponse<O>> submit(String host, int port,
             HttpClientRequest<I> request, IClientConfig requestConfig) {
         return super.submit(host, port, request, requestConfig);
     }
@@ -155,7 +169,7 @@ public class NettyHttpClient extends CachedNettyHttpClient<ByteBuf> {
     
     public int getIdleConnectionsInPool() {
         int total = 0;
-        for (HttpClient client: getCurrentHttpClients().values()) {
+        for (HttpClient<I, O> client: getCurrentHttpClients().values()) {
             PoolStats poolStats = client.getStats();
             total += poolStats.getIdleCount();
         }
