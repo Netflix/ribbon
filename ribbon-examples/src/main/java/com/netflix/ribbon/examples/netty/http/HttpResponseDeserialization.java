@@ -1,18 +1,6 @@
 package com.netflix.ribbon.examples.netty.http;
 
-import java.io.IOException;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
-import rx.Observable;
-import rx.functions.Func1;
-import rx.util.functions.Action1;
-
-import com.netflix.client.netty.http.NettyHttpClient;
-import com.netflix.client.netty.http.NettyHttpClientBuilder;
 import com.netflix.ribbon.examples.ExampleAppWithLocalResource;
-import com.netflix.ribbon.examples.server.ServerResources.Person;
-import com.netflix.serialization.TypeDef;
 
 public class HttpResponseDeserialization extends ExampleAppWithLocalResource {
 

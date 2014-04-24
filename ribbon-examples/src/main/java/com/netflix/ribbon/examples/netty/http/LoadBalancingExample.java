@@ -1,16 +1,5 @@
 package com.netflix.ribbon.examples.netty.http;
 
-import io.netty.buffer.ByteBuf;
-
-import java.util.concurrent.CountDownLatch;
-
-import rx.Observer;
-
-import com.google.common.collect.Lists;
-import com.netflix.client.netty.http.NettyHttpClientBuilder;
-import com.netflix.client.netty.http.NettyHttpLoadBalancingClient;
-import com.netflix.loadbalancer.AbstractLoadBalancer;
-import com.netflix.loadbalancer.Server;
 
 public class LoadBalancingExample {
     /*

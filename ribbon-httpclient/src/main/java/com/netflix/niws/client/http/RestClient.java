@@ -65,13 +65,11 @@ import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
 import com.netflix.http4.ssl.KeyStoreAwareSocketFactory;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.niws.cert.AbstractSslContextFactory;
 import com.netflix.niws.client.ClientSslSocketFactoryException;
 import com.netflix.niws.client.URLSslContextFactory;
-import com.netflix.serialization.SerializationUtils;
-import com.netflix.serialization.Serializer;
-import com.netflix.serialization.TypeDef;
 import com.netflix.util.Pair;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -524,7 +522,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     public HttpResponse execute(HttpRequest task, IClientConfig requestConfig) throws Exception {
         IClientConfig config = (requestConfig == null) ? task.getOverrideConfig() : requestConfig;
         return execute(task.getVerb(), task.getUri(),
-                task.getHeaders(), task.getQueryParams(), config, task.getEntity(), task.getEntityType());
+                task.getHeaders(), task.getQueryParams(), config, task.getEntity());
     }
 
 
@@ -570,7 +568,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 
     private HttpResponse execute(HttpRequest.Verb verb, URI uri,
             Map<String, Collection<String>> headers, Map<String, Collection<String>> params,
-            IClientConfig overriddenClientConfig, Object requestEntity, TypeDef<?> entityType) throws Exception {
+            IClientConfig overriddenClientConfig, Object requestEntity) throws Exception {
         HttpClientResponse thisResponse = null;
         boolean bbFollowRedirects = bFollowRedirects;
         // read overriden props
@@ -611,14 +609,6 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
             }
         }
         Object entity = requestEntity;
-        if (overriddenClientConfig != null) {
-            Serializer serializer = overriddenClientConfig.getPropertyWithType(CommonClientConfigKey.Serializer, null);
-            if (serializer != null) {
-                String content = SerializationUtils.serializeToString(serializer, entity, 
-                        entityType == null ? TypeDef.fromClass(entity.getClass()) : entityType);
-                entity = content;
-            }
-        }
         
         switch (verb) {
         case GET:
@@ -716,11 +706,22 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         if (!request.isRetriable()) {
             return new RequestSpecificRetryHandler(false, false, this.getErrorHandler(), requestConfig);
         }
+        if (this.ncc.getPropertyWithType(CommonClientConfigKey.OkToRetryOnAllOperations, false)) {
+            return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
+        }
         if (request.getVerb() != HttpRequest.Verb.GET) {
             return new RequestSpecificRetryHandler(true, false, this.getErrorHandler(), requestConfig);
         } else {
             return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
         } 
     }
+	
+	public void shutdown() {
+	    ILoadBalancer lb = this.getLoadBalancer();
+	    if (lb instanceof BaseLoadBalancer) {
+	        ((BaseLoadBalancer) lb).shutdown();
+	    }
+	    NFHttpClientFactory.shutdownNFHttpClient(restClientName);
+	}
 }
 

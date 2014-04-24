@@ -1,7 +1,7 @@
 package com.netflix.utils;
 
 import rx.Observable;
-import rx.util.functions.Func1;
+import rx.functions.Func1;
 
 public class RxUtils {
 

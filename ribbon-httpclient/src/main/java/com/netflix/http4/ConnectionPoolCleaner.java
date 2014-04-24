@@ -17,8 +17,8 @@
 */
 package com.netflix.http4;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.conn.ClientConnectionManager;
@@ -40,21 +40,21 @@ public class ConnectionPoolCleaner {
     
     String name = "default";    
     ClientConnectionManager connMgr;
-    Timer timer;
-    
-   
+    ScheduledExecutorService scheduler;
     
     private DynamicIntProperty connIdleEvictTimeMilliSeconds 
         = DynamicPropertyFactory.getInstance().getIntProperty("default.nfhttpclient.connIdleEvictTimeMilliSeconds", 
                 NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
     
-    boolean enableConnectionPoolCleanerTask = false;
+    volatile boolean enableConnectionPoolCleanerTask = false;
     long connectionCleanerTimerDelay = 10;
     long connectionCleanerRepeatInterval = NFHttpClientConstants.DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS;
+    private volatile ScheduledFuture<?> scheduledFuture;
     
-    public ConnectionPoolCleaner(String name, ClientConnectionManager connMgr){
+    public ConnectionPoolCleaner(String name, ClientConnectionManager connMgr, ScheduledExecutorService scheduler){
         this.name = name;
-        this.connMgr = connMgr;        
+        this.connMgr = connMgr;     
+        this.scheduler = scheduler;
     }
     
     public DynamicIntProperty getConnIdleEvictTimeMilliSeconds() {
@@ -94,34 +94,35 @@ public class ConnectionPoolCleaner {
     }
 
     public void initTask(){
-        if (enableConnectionPoolCleanerTask){
-            timer = new Timer(name + "-ConnectionPoolCleanerThread", true);             
-            timer.schedule(new TimerTask() {
-                   
-                    public void run() {
-                        try {
+        if (enableConnectionPoolCleanerTask) {
+            scheduledFuture = scheduler.scheduleWithFixedDelay(new Runnable() {
+                public void run() {
+                    try {
+                        if (enableConnectionPoolCleanerTask) {
+                            logger.debug("Connection pool clean up started for client {}", name);
                             cleanupConnections();
-                        } catch (Throwable e) {
-                            logger.error("Exception in ConnectionPoolCleanerThread",e);
-                            //e.printStackTrace();
+                        } else if (scheduledFuture != null) {
+                            scheduledFuture.cancel(true);
                         }
+                    } catch (Throwable e) {
+                        logger.error("Exception in ConnectionPoolCleanerThread",e);
                     }
-                }, connectionCleanerTimerDelay, connectionCleanerRepeatInterval);
-            logger.info("Initializing ConnectionPoolCleaner for NFHttpClient:" + name);
-            // Add it to the shutdown hook
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                public void run()
-                {
-                    logger.info("Stopping the ConnectionPoolCleaner Update Task");                    
-                    timer.cancel();
                 }
-            }));
+            }, connectionCleanerTimerDelay, connectionCleanerRepeatInterval, TimeUnit.MILLISECONDS);
+            logger.info("Initializing ConnectionPoolCleaner for NFHttpClient:" + name);
         }
     }
     
     void cleanupConnections(){
         connMgr.closeExpiredConnections();
         connMgr.closeIdleConnections(connIdleEvictTimeMilliSeconds.get(), TimeUnit.MILLISECONDS);       
+    }
+    
+    public void shutdown() {
+        enableConnectionPoolCleanerTask = false;
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(true);
+        }
     }
     
     public String toString(){
@@ -134,6 +135,7 @@ public class ConnectionPoolCleaner {
         
         return sb.toString();
     }
+    
     
     
 }

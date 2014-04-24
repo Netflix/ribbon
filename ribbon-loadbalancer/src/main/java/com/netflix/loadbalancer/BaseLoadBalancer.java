@@ -37,6 +37,7 @@ import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.PrimeConnections;
 import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
@@ -140,26 +141,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         initWithNiwsConfig(config);
     }
 
-    @Override
-    public void initWithNiwsConfig(IClientConfig clientConfig) {
-    	this.config = clientConfig;
+    public BaseLoadBalancer(IClientConfig config, IRule rule, IPing ping) {
+        initWithConfig(config, rule, ping);
+    }
+    
+    void initWithConfig(IClientConfig clientConfig, IRule rule, IPing ping) {
+        this.config = clientConfig;
         String clientName = clientConfig.getClientName();
-        String ruleClassName = (String) clientConfig
-                .getProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName);
-        String pingClassName = (String) clientConfig
-                .getProperty(CommonClientConfigKey.NFLoadBalancerPingClassName);
-
-        IRule rule;
-        IPing ping;
-        try {
-            rule = (IRule) ClientFactory.instantiateInstanceWithClientConfig(
-                    ruleClassName, clientConfig);
-            ping = (IPing) ClientFactory.instantiateInstanceWithClientConfig(
-                    pingClassName, clientConfig);
-        } catch (Exception e) {
-            throw new RuntimeException("Error initializing load balancer", e);
-        }
-
         this.name = clientName;
         int pingIntervalTime = Integer.parseInt(""
                 + clientConfig.getProperty(
@@ -185,16 +173,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         }
         logger.info("Client:" + name + " instantiated a LoadBalancer:"
                 + toString());
-        boolean enablePrimeConnections = false;
-
-        if (clientConfig
-                .getProperty(CommonClientConfigKey.EnablePrimeConnections) != null) {
-            Boolean bEnablePrimeConnections = Boolean.valueOf(""
-                    + clientConfig.getProperty(
-                            CommonClientConfigKey.EnablePrimeConnections,
-                            "false"));
-            enablePrimeConnections = bEnablePrimeConnections.booleanValue();
-        }
+        boolean enablePrimeConnections = clientConfig.getPropertyWithType(
+                CommonClientConfigKey.EnablePrimeConnections, DefaultClientConfigImpl.DEFAULT_ENABLE_PRIME_CONNECTIONS);
 
         if (enablePrimeConnections) {
             this.setEnablePrimingConnections(true);
@@ -203,6 +183,27 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             this.setPrimeConnections(primeConnections);
         }
         init();
+
+    }
+    
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+        String ruleClassName = (String) clientConfig
+                .getProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName);
+        String pingClassName = (String) clientConfig
+                .getProperty(CommonClientConfigKey.NFLoadBalancerPingClassName);
+
+        IRule rule;
+        IPing ping;
+        try {
+            rule = (IRule) ClientFactory.instantiateInstanceWithClientConfig(
+                    ruleClassName, clientConfig);
+            ping = (IPing) ClientFactory.instantiateInstanceWithClientConfig(
+                    pingClassName, clientConfig);
+        } catch (Exception e) {
+            throw new RuntimeException("Error initializing load balancer", e);
+        }
+        initWithConfig(clientConfig, rule, ping);
     }
 
     public void addServerListChangeListener(ServerListChangeListener listener) {
@@ -852,5 +853,14 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     public final void setEnablePrimingConnections(
             boolean enablePrimingConnections) {
         this.enablePrimingConnections = enablePrimingConnections;
+    }
+    
+    public void shutdown() {
+        cancelPingTask();
+        if (primeConnections != null) {
+            primeConnections.shutdown();
+        }
+        Monitors.unregisterObject("LoadBalancer_" + name, this);
+        Monitors.unregisterObject("Rule_" + name, this.getRule());
     }
 }

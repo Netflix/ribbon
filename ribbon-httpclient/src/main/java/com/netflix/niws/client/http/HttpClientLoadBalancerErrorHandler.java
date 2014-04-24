@@ -26,9 +26,8 @@ public class HttpClientLoadBalancerErrorHandler extends DefaultLoadBalancerRetry
     
     @SuppressWarnings("unchecked")
     protected List<Class<? extends Throwable>> circuitRelated = 
-            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class, ConnectionClosedException.class, HttpHostConnectException.class);
-    
-    
+            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class, ConnectTimeoutException.class, 
+                    ConnectionClosedException.class, HttpHostConnectException.class);
     
     public HttpClientLoadBalancerErrorHandler() {
         super();

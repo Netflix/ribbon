@@ -62,14 +62,18 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
 
     private static final DynamicBooleanProperty ENABLED = DynamicPropertyFactory.getInstance().getBooleanProperty("ZoneAwareNIWSDiscoveryLoadBalancer.enabled", true);
             
-    String monitorId;
-        
     void setUpServerList(List<Server> upServerList) {
         this.upServerList = upServerList;
     }
     
     public ZoneAwareLoadBalancer() {
         super();
+    }
+
+    
+    public ZoneAwareLoadBalancer(IClientConfig clientConfig, IRule rule,
+            IPing ping, ServerList<T> serverList, ServerListFilter<T> filter) {
+        super(clientConfig, rule, ping, serverList, filter);
     }
 
     public ZoneAwareLoadBalancer(IClientConfig niwsClientConfig) {
@@ -79,6 +83,9 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
     @Override
     protected void setServerListForZones(Map<String, List<Server>> zoneServersMap) {
         super.setServerListForZones(zoneServersMap);
+        if (balancers == null) {
+            balancers = new ConcurrentHashMap<String, BaseLoadBalancer>();
+        }
         for (Map.Entry<String, List<Server>> entry: zoneServersMap.entrySet()) {
         	String zone = entry.getKey().toLowerCase();
             getLoadBalancer(zone).setServersList(entry.getValue());

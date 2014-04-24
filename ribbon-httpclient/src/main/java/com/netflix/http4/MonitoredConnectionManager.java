@@ -83,6 +83,4 @@ public class MonitoredConnectionManager extends ThreadSafeClientConnManager {
         // TODO Auto-generated method stub
         return super.requestConnection(route, state);
     }
-    
-    
 }

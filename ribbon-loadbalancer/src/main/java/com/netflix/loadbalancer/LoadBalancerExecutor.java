@@ -10,8 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.Observable.OnSubscribe;
 import rx.Observable.OnSubscribeFunc;
 import rx.Observer;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Func1;
 import rx.subscriptions.Subscriptions;
@@ -33,6 +35,10 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
     
     public LoadBalancerExecutor(ILoadBalancer lb, IClientConfig clientConfig) {
         super(lb, clientConfig);
+    }
+    
+    public LoadBalancerExecutor(ILoadBalancer lb, IClientConfig clientConfig, RetryHandler defaultRetryHandler) {
+        super(lb, clientConfig, defaultRetryHandler);
     }
     
     public static class CallableToObservable<T> implements ClientObservableProvider<T> {
@@ -62,7 +68,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                     return Subscriptions.empty();
                 };
             };
-            return Observable.create(onsubscribe);
+            return createObservableFromOnSubscribeFunc(onsubscribe);
         }
     } 
     
@@ -96,7 +102,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
             
             if (shouldRetry) {
                 // try again
-                return Observable.create(onSubscribe).onErrorResumeNext(this);
+                return createObservableFromOnSubscribeFunc(onSubscribe).onErrorResumeNext(this);
             } else {
                 return Observable.error(finalThrowable);
             }
@@ -132,7 +138,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                 finalThrowable = t1;
             }
             if (shouldRetry) {
-                return Observable.create(onSubscribe).onErrorResumeNext(this);
+                return createObservableFromOnSubscribeFunc(onSubscribe).onErrorResumeNext(this);
             } else {
                 return Observable.error(finalThrowable);
                 
@@ -204,7 +210,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                 return retrySameServer(server, clientObservableProvider, retryHandler).subscribe(t1);
             }
         };
-        Observable<T> observable = Observable.create(onSubscribe);
+        Observable<T> observable = createObservableFromOnSubscribeFunc(onSubscribe);
         RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(onSubscribe, retryHandler);
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
@@ -246,8 +252,18 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
             }
         };
         
-        Observable<T> observable = Observable.create(onSubscribe);
+        Observable<T> observable = createObservableFromOnSubscribeFunc(onSubscribe);
         RetrySameServerFunc<T> retrySameServerFunc = new RetrySameServerFunc<T>(server, onSubscribe, errorHandler);
         return observable.onErrorResumeNext(retrySameServerFunc);
+    }
+    
+    private static <T> Observable<T> createObservableFromOnSubscribeFunc(final OnSubscribeFunc<T> onSubscribe) {
+        return Observable.create(new OnSubscribe<T>() {
+            @Override
+            public void call(Subscriber<? super T> observer) {
+                Subscription s = onSubscribe.onSubscribe(observer);
+                observer.add(s);
+            }
+        });
     }
 }

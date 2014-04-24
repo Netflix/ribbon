@@ -36,12 +36,14 @@ public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerRetryH
     @SuppressWarnings("unchecked")
     private List<Class<? extends Throwable>> retriable = 
             Lists.<Class<? extends Throwable>>newArrayList(ConnectException.class, SocketTimeoutException.class, 
-                    io.netty.handler.timeout.ReadTimeoutException.class, io.netty.channel.ConnectTimeoutException.class);
+                    io.netty.handler.timeout.ReadTimeoutException.class, io.netty.channel.ConnectTimeoutException.class, 
+                    io.reactivex.netty.client.PoolExhaustedException.class);
     
     @SuppressWarnings("unchecked")
     private List<Class<? extends Throwable>> circuitRelated = 
             Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class, 
-                    io.netty.handler.timeout.ReadTimeoutException.class, io.netty.channel.ConnectTimeoutException.class);
+                    io.netty.handler.timeout.ReadTimeoutException.class, io.netty.channel.ConnectTimeoutException.class,
+                    io.reactivex.netty.client.PoolExhaustedException.class);
     
     public NettyHttpLoadBalancerErrorHandler() {
         super();

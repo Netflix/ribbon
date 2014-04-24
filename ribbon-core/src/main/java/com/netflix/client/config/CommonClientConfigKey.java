@@ -27,9 +27,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.reflect.TypeToken;
-import com.netflix.serialization.Serializer;
-import com.netflix.serialization.Deserializer;
-
 
 public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
 
@@ -169,14 +166,6 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     public static final IClientConfigKey<String> TargetRegion = new CommonClientConfigKey<String>("TargetRegion"){};
     
     public static final IClientConfigKey<String> RulePredicateClasses = new CommonClientConfigKey<String>("RulePredicateClasses"){};
-    
-    // serialization
-    public static final IClientConfigKey<String> DefaultSerializationFactoryClassName = new CommonClientConfigKey<String>("DefaultSerializationFactoryClassName"){};
-    
-    // serializer
-    public static final IClientConfigKey<Serializer> Serializer = new CommonClientConfigKey<Serializer>("Serializer"){};
-
-    public static final IClientConfigKey<Deserializer> Deserializer = new CommonClientConfigKey<Deserializer>("Deserializer"){};
     
     private static final Set<IClientConfigKey> keys = new HashSet<IClientConfigKey>();
         

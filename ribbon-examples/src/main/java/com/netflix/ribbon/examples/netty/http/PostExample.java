@@ -1,20 +1,6 @@
 package com.netflix.ribbon.examples.netty.http;
 
-import io.netty.buffer.ByteBuf;
-
-import java.net.URI;
-
-import rx.util.functions.Action1;
-
-import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.http.NettyHttpClient;
-import com.netflix.client.netty.http.NettyHttpClientBuilder;
 import com.netflix.ribbon.examples.ExampleAppWithLocalResource;
-import com.netflix.ribbon.examples.server.ServerResources.Person;
-import com.netflix.serialization.JacksonCodec;
-import com.netflix.serialization.SerializationUtils;
-import com.netflix.serialization.TypeDef;
 
 public class PostExample extends ExampleAppWithLocalResource {
 
