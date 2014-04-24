@@ -118,7 +118,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         if (tracer == null) {
             synchronized(this) {
                 if (tracer == null) {
-                    tracer = Monitors.newTimer(clientName + "_OperationTimer", TimeUnit.MILLISECONDS);                    
+                    tracer = Monitors.newTimer(clientName + "_LoadBalancerExecutionTimer", TimeUnit.MILLISECONDS);                    
                 }
             }
         } 
