@@ -67,17 +67,6 @@ public class HttpClientLoadBalancerErrorHandler extends DefaultLoadBalancerRetry
         return super.isRetriableException(e, sameServer);
     }
 
-    /**
-     * @return true if the the response has status code 503 (throttle) 
-     */
-    @Override
-    public boolean isCircuitTrippinResponse(Object response) {
-        if (!(response instanceof HttpResponse)) {
-            return false;
-        }
-        return ((HttpResponse) response).getStatus() == 503;
-    }
-    
     @Override
     protected List<Class<? extends Throwable>> getRetriableExceptions() {
         return retriable;

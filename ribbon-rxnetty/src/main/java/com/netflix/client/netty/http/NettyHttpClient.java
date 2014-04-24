@@ -41,12 +41,15 @@ import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.IClientConfigKey.CommonKeys;
+import com.netflix.client.netty.DynamicPropertyBasedPoolStrategy;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.loadbalancer.Server;
 import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
@@ -97,8 +100,10 @@ public class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O> impleme
         int maxTotalConnections = config.getPropertyWithType(IClientConfigKey.CommonKeys.MaxTotalHttpConnections,
                 DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS);
         int maxConnections = config.getPropertyWithType(CommonKeys.MaxHttpConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST);
-        MaxConnectionsBasedStrategy perHostStrategy = new MaxConnectionsBasedStrategy(maxConnections);
-        globalStrategy = new MaxConnectionsBasedStrategy(maxTotalConnections);
+        MaxConnectionsBasedStrategy perHostStrategy = new DynamicPropertyBasedPoolStrategy(maxConnections,
+                config.getClientName() + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxHttpConnectionsPerHost);
+        globalStrategy = new DynamicPropertyBasedPoolStrategy(maxTotalConnections, 
+                config.getClientName() + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxTotalHttpConnections);
         poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
         idleConnectionEvictionMills = config.getPropertyWithType(CommonKeys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
         rxClientCache = new ConcurrentHashMap<Server, HttpClient<I,O>>();
@@ -108,13 +113,16 @@ public class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O> impleme
     protected HttpClient<I, O> cacheLoadRxClient(Server server) {
         HttpClientBuilder<I, O> clientBuilder =
                 new HttpClientBuilder<I, O>(server.getHost(), server.getPort()).pipelineConfigurator(pipeLineConfigurator);
-        int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null);
-        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null);
-        HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
+        Integer connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
+        Integer readTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
+        Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, null, null);
+        HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(readTimeout, TimeUnit.MILLISECONDS);
+        if (followRedirect != null) {
+            builder.setFollowRedirect(followRedirect);
+        }
         RxClient.ClientConfig rxClientConfig = builder.build();
-        
         HttpClient<I, O> client = clientBuilder.channelOption(
-                ChannelOption.CONNECT_TIMEOUT_MILLIS, requestConnectTimeout)
+                ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout)
                 .config(rxClientConfig)
                 .withConnectionPoolLimitStrategy(poolStrategy)
                 .withIdleConnectionsTimeoutMillis(idleConnectionEvictionMills)
@@ -136,15 +144,12 @@ public class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O> impleme
         return super.submit(host, port, request, requestConfig);
     }
     
-    protected void setMaxTotalConnections(int newMax) {
-        globalStrategy.incrementMaxConnections(newMax - getMaxTotalConnections());
-    }
-    
     public int getMaxTotalConnections() {
         return globalStrategy.getMaxConnections();
     }
-        
-    public GlobalPoolStats getGlobalPoolStats() {
+    
+    @VisibleForTesting
+    GlobalPoolStats getGlobalPoolStats() {
         return stats;
     }
 

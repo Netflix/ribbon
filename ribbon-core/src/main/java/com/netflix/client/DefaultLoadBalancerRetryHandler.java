@@ -85,14 +85,6 @@ public class DefaultLoadBalancerRetryHandler implements RetryHandler {
         return Utils.isPresentAsCause(e, getCircuitRelatedExceptions());        
     }
 
-    /**
-     * always return false
-     */
-    @Override
-    public boolean isCircuitTrippinResponse(Object response) {
-        return false;
-    }
-
     @Override
     public int getMaxRetriesOnSameServer() {
         return retrySameServer;
