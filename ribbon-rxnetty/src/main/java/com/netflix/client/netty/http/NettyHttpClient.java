@@ -19,54 +19,33 @@
 package com.netflix.client.netty.http;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
-import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
 import io.reactivex.netty.client.PoolStats;
-import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClient;
-import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
-import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
+import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.config.IClientConfigKey.CommonKeys;
-import com.netflix.client.netty.DynamicPropertyBasedPoolStrategy;
-import com.netflix.config.DynamicIntProperty;
 import com.netflix.loadbalancer.ClientObservableProvider;
-import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ServerListChangeListener;
 import com.netflix.loadbalancer.ServerStats;
-import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
 
 /**
  * A Netty HttpClient that can connect to different servers. Internally it caches the RxNetty's HttpClient, with each created with 
@@ -78,8 +57,10 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
 
     protected static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_PIPELINE_CONFIGURATOR = 
             PipelineConfigurators.httpClientConfigurator();
-    protected final PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator;
+    protected static final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<ByteBuf>> DEFAULT_SSE_PIPELINE_CONFIGURATOR = 
+            PipelineConfigurators.sseClientConfigurator();
 
+    protected final PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator;
     
     protected LoadBalancerExecutor lbExecutor;
     
@@ -108,6 +89,30 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
                 NettyHttpClient.DEFAULT_PIPELINE_CONFIGURATOR, handler);
     }
 
+    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb) {
+        return createDefaultSSEClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), null);
+    }
+
+    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb, IClientConfig config) {
+        return createDefaultSSEClient(lb, config, null);
+    }
+
+    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(IClientConfig config) {
+        ILoadBalancer lb = LoadBalancerBuilder.newBuilder()
+                .withClientConfig(config)
+                .buildLoadBalancerFromConfigWithReflection();
+        return createDefaultSSEClient(lb, config);
+    }
+    
+    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient() {
+        return createDefaultSSEClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+    }
+
+    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb, IClientConfig config, RetryHandler handler) {
+        return new SSEClient<ByteBuf>(lb, config, DEFAULT_SSE_PIPELINE_CONFIGURATOR, handler);
+    }
+
+    
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), pipeLineConfigurator);
     }

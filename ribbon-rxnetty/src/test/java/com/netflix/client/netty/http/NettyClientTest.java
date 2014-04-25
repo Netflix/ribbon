@@ -58,8 +58,6 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.http.NettyHttpClient;
 import com.netflix.client.netty.http.NettyHttpLoadBalancerErrorHandler;
-import com.netflix.client.netty.http.SSEClient;
-import com.netflix.client.netty.http.SSELoadBalancingClient;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
@@ -81,6 +79,15 @@ public class NettyClientTest {
     private static String SERVICE_URI;
     private static int port;
     private static final String host = "localhost";
+    
+    static Observable<ServerSentEvent> transformSSE(Observable<HttpClientResponse<ServerSentEvent>> response) {
+        return response.flatMap(new Func1<HttpClientResponse<ServerSentEvent>, Observable<ServerSentEvent>>() {
+            @Override
+            public Observable<ServerSentEvent> call(HttpClientResponse<ServerSentEvent> t1) {
+                return t1.getContent();
+            }
+        });
+    }
     
     @BeforeClass 
     public static void init() throws Exception {
@@ -360,7 +367,11 @@ public class NettyClientTest {
         assertEquals(2, stats.getSuccessiveConnectionFailureCount());
     }
     
-    private List<Person> getPersonList(Observable<ServerSentEvent> events) {
+    private static List<Person> getPersonListFromResponse(Observable<HttpClientResponse<ServerSentEvent>> response) {
+        return getPersonList(transformSSE(response));
+    }
+    
+    private static List<Person> getPersonList(Observable<ServerSentEvent> events) {
         List<Person> result = Lists.newArrayList();
         Iterator<Person> iterator = events.map(new Func1<ServerSentEvent, Person>() {
             @Override
@@ -384,8 +395,8 @@ public class NettyClientTest {
     @Test
     public void testStream() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/personStream");
-        SSEClient<ByteBuf> observableClient = SSEClient.getDefaultSSEClient();
-        List<Person> result = getPersonList(observableClient.observeServerSentEvent(host, port, request, null));
+        NettyHttpClient<ByteBuf, ServerSentEvent> observableClient = NettyHttpClient.createDefaultSSEClient();
+        List<Person> result = getPersonListFromResponse(observableClient.submit(host, port, request, null));
         assertEquals(EmbeddedResources.entityStream, result);
     }
     
@@ -395,14 +406,14 @@ public class NettyClientTest {
         NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
-        SSELoadBalancingClient<ByteBuf> lbObservables = SSELoadBalancingClient.createDefaultLoadBalancingSSEClient(lb, config, errorHandler);
+        NettyHttpClient<ByteBuf, ServerSentEvent> lbObservables = NettyHttpClient.createDefaultSSEClient(lb, config, errorHandler);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/personStream");
         List<Person> result = Lists.newArrayList();
         Server goodServer = new Server("localhost:" + port);
         Server badServer = new Server("localhost:12245");
         List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
         lb.setServersList(servers);
-        result = getPersonList(lbObservables.observeServerSentEvent(request, null));
+        result = getPersonListFromResponse(lbObservables.submitToLoadBalancer(request, null, null));
         assertEquals(EmbeddedResources.entityStream, result);
     }
     
