@@ -118,7 +118,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         if (tracer == null) {
             synchronized(this) {
                 if (tracer == null) {
-                    tracer = Monitors.newTimer(clientName + "_OperationTimer", TimeUnit.MILLISECONDS);                    
+                    tracer = Monitors.newTimer(clientName + "_LoadBalancerExecutionTimer", TimeUnit.MILLISECONDS);                    
                 }
             }
         } 
@@ -259,12 +259,7 @@ public class LoadBalancerContext implements IClientConfigAware {
             recordStats(stats, responseTime);
             RetryHandler callErrorHandler = errorHandler == null ? getErrorHandler() : errorHandler;
             if (callErrorHandler != null && response != null) {
-                if (callErrorHandler.isCircuitTrippinResponse(response)) {
-                    stats.incrementSuccessiveConnectionFailureCount();                    
-                    stats.addToFailureCount();
-                } else {
-                    stats.clearSuccessiveConnectionFailureCount();
-                }                
+                stats.clearSuccessiveConnectionFailureCount();
             } else if (callErrorHandler != null && e != null) {
                 if (callErrorHandler.isCircuitTrippingException(e)) {
                     stats.incrementSuccessiveConnectionFailureCount();                    
@@ -308,12 +303,7 @@ public class LoadBalancerContext implements IClientConfigAware {
             recordStats(stats, responseTime);
             RetryHandler errorHandler = getErrorHandler();
             if (errorHandler != null && response != null) {
-                if (errorHandler.isCircuitTrippinResponse(response)) {
-                    stats.incrementSuccessiveConnectionFailureCount();                    
-                    stats.addToFailureCount();
-                } else {
-                    stats.clearSuccessiveConnectionFailureCount();
-                }                
+                stats.clearSuccessiveConnectionFailureCount();
             } 
         } catch (Throwable ex) {
             logger.error("Unexpected exception", ex);

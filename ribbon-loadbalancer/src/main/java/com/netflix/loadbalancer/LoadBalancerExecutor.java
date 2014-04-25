@@ -25,6 +25,14 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.utils.RxUtils;
 
+/**
+ * Provides APIs to execute and retry tasks on a server chosen by the associated load balancer. 
+ * With appropriate {@link RetryHandler}, it will also retry on one or more different servers.
+ * 
+ * 
+ * @author awang
+ *
+ */
 public class LoadBalancerExecutor extends LoadBalancerContext {
     
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerExecutor.class);
@@ -91,10 +99,9 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
             int maxRetries = callErrorHandler.getMaxRetriesOnSameServer();
             boolean shouldRetry = maxRetries > 0 && callErrorHandler.isRetriableException(error, true);
             final Throwable finalThrowable;
-            // URI uri = request.getUri();
             if (shouldRetry && !handleSameServerRetry(server, counter.incrementAndGet(), maxRetries, error)) {
                 finalThrowable = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
-                        "NUMBEROFRETRIESEXEEDED:" + maxRetries + " retries, while making a call for: " + server, error);  
+                        "Number of retries exceeded max " + maxRetries + " retries, while making a call for: " + server, error);  
                 shouldRetry = false;
             } else {
                 finalThrowable = error;
@@ -122,7 +129,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         
         @Override
         public Observable<T> call(Throwable t1) {
-            logger.debug("Get error during retry on next server", t1);   
+            logger.debug("Get error {} during retry on next server", t1);   
             int maxRetriesNextServer = callErrorHandler.getMaxRetriesOnNextServer();
             boolean shouldRetry = maxRetriesNextServer > 0 && callErrorHandler.isRetriableException(t1, false);
             final Throwable finalThrowable;
@@ -147,9 +154,39 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         
     }
 
+    
     /**
-     * Retry execution with load balancer with the given {@link ClientCallableProvider} that provides the logic to
-     * execute network call synchronously with a given {@link Server}. 
+     * Execute a task on a server chosen by load balancer with possible retries. If there are any errors that are indicated as 
+     * retriable by the {@link RetryHandler}, they will be consumed internally. If number of retries has
+     * exceeds the maximal allowed, a final error will be thrown. Otherwise, the first successful 
+     * result during execution and retries will be returned. 
+     * 
+     * @param clientCallableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     * @throws Exception If any exception happens in the exception
+     */
+    public <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, RetryHandler retryHandler) throws Exception {
+        return executeWithLoadBalancer(clientCallableProvider, null, retryHandler, null);
+    }
+    
+    /**
+     * Execute a task on a server chosen by load balancer with possible retries. If there are any errors that are indicated as 
+     * retriable by the {@link RetryHandler}, they will be consumed internally. If number of retries has
+     * exceeds the maximal allowed, a final error will be thrown. Otherwise, the first successful 
+     * result during execution and retries will be returned. 
+     * 
+     * @param clientCallableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     * @throws Exception If any exception happens in the exception
+     */
+    public <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider) throws Exception {
+        return executeWithLoadBalancer(clientCallableProvider, null, null, null);
+    }
+
+    
+    /**
+     * Execute a task on a server chosen by load balancer with possible retries. If there are any errors that are indicated as 
+     * retriable by the {@link RetryHandler}, they will be consumed internally. If number of retries has
+     * exceeds the maximal allowed, a final error will be thrown. Otherwise, the first successful 
+     * result during execution and retries will be returned. 
      * 
      * @param clientCallableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
      * @param loadBalancerURI An optional URI that may contain a real host name and port to use as a fallback to the {@link LoadBalancerExecutor} 
@@ -161,29 +198,48 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
      * @throws Exception If any exception happens in the exception
      */
-    public <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, @Nullable final URI loadBalancerURI, 
+    protected <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, @Nullable final URI loadBalancerURI, 
             @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) throws Exception {
         return RxUtils.getSingleValueWithRealErrorCause(
                 executeWithLoadBalancer(CallableToObservable.toObsevableProvider(clientCallableProvider), loadBalancerURI, 
                 retryHandler, loadBalancerKey));
     }
     
-    public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
-        return executeWithLoadBalancer(clientObservableProvider, null, retryHandler, loadBalancerKey);
-    }
-
+    /**
+     * Create an {@link Observable} that once subscribed execute network call asynchronously with a server chosen by load balancer. 
+     * If there are any errors that are indicated as retriable by the {@link RetryHandler}, they will be consumed internally by the
+     * function and will not be observed by the {@link Observer} subscribed to the returned {@link Observable}. If number of retries has
+     * exceeds the maximal allowed, a final error will be emitted by the returned {@link Observable}. Otherwise, the first successful 
+     * result during execution and retries will be emitted. 
+     * 
+     * @param clientObservableProvider interface that provides the logic to execute network call asynchronously with a given {@link Server}
+     * @param retryHandler  an optional handler to determine the retry logic of the {@link LoadBalancerExecutor}. If null, the default {@link RetryHandler}
+     *                   of this {@link LoadBalancerExecutor} will be used.
+     */                   
     public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler) {
         return executeWithLoadBalancer(clientObservableProvider, null, retryHandler, null);
     }
     
+    /**
+     * Create an {@link Observable} that once subscribed execute network call asynchronously with a server chosen by load balancer. 
+     * If there are any errors that are indicated as retriable by the {@link RetryHandler}, they will be consumed internally by the
+     * function and will not be observed by the {@link Observer} subscribed to the returned {@link Observable}. If number of retries has
+     * exceeds the maximal allowed, a final error will be emitted by the returned {@link Observable}. Otherwise, the first successful 
+     * result during execution and retries will be emitted. 
+     * 
+     * @param clientObservableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     */
     public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider) {
         return executeWithLoadBalancer(clientObservableProvider, null, new DefaultLoadBalancerRetryHandler(), null);
     }
 
     
     /**
-     * Create an {@link Observable} that retries execution with load balancer with the given {@link ClientObservableProvider} that provides the logic to
-     * execute network call asynchronously with a given {@link Server}. 
+     * Create an {@link Observable} that once subscribed execute network call asynchronously with a server chosen by load balancer. 
+     * If there are any errors that are indicated as retriable by the {@link RetryHandler}, they will be consumed internally by the
+     * function and will not be observed by the {@link Observer} subscribed to the returned {@link Observable}. If number of retries has
+     * exceeds the maximal allowed, a final error will be emitted by the returned {@link Observable}. Otherwise, the first successful 
+     * result during execution and retries will be emitted. 
      * 
      * @param clientObservableProvider interface that provides the logic to execute network call asynchronously with a given {@link Server}
      * @param loadBalancerURI An optional URI that may contain a real host name and port to be used by {@link LoadBalancerExecutor} 
@@ -215,13 +271,24 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         return observable.onErrorResumeNext(retryNextServerFunc);
     }
     
+    /**
+     * Gets the {@link Observable} that represents the result of executing on a server, after possible retries as dictated by 
+     * {@link RetryHandler}. During retry, any errors that are retriable are consumed by the function and will not be observed
+     * by the external {@link Observer}. If number of retries exceeds the maximal retries allowed on one server, a final error will 
+     * be emitted by the returned {@link Observable}.
+     */
     protected <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
-        final ServerStats serverStats = getServerStats(server); 
         OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
             @Override
             public Subscription onSubscribe(final Observer<? super T> t1) {
+                final ServerStats serverStats = getServerStats(server); 
                 noteOpenConnection(serverStats);
                 final Stopwatch tracer = getExecuteTracer().start();
+                /*
+                 * A delegate Observer that observes the execution result
+                 * and records load balancer related statistics before 
+                 * sending the same result to the external Observer 
+                 */
                 Observer<T> delegate = new Observer<T>() {
                     private volatile T entity; 
                     @Override
@@ -232,14 +299,15 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
 
                     @Override
                     public void onError(Throwable e) {
+                        logger.debug("Got error {} when executed on server {}", e, server);
                         recordStats(entity, e);
                         t1.onError(e);
                     }
 
                     @Override
-                    public void onNext(T args) {
-                        entity = args;
-                        t1.onNext(args);
+                    public void onNext(T obj) {
+                        entity = obj;
+                        t1.onNext(obj);
                     }
                     
                     private void recordStats(Object entity, Throwable exception) {

@@ -48,7 +48,7 @@ public class SSEClient<I> extends AbstractNettyHttpClient<I, ServerSentEvent> {
     protected HttpClient<I, ServerSentEvent> getRxClient(String host, int port) {
         HttpClientBuilder<I, ServerSentEvent> clientBuilder =
                 new HttpClientBuilder<I, ServerSentEvent>(host, port).pipelineConfigurator(pipeLineConfigurator);
-        int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null);
+        int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         RxClient.ClientConfig rxClientConfig = new HttpClientConfig.Builder().build();
         
         HttpClient<I, ServerSentEvent> client = clientBuilder.channelOption(

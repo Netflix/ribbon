@@ -38,11 +38,11 @@ public abstract class AbstractNettyHttpClient<I, O> {
         return config;
     }
 
-    protected <S> S getProperty(IClientConfigKey<S> key, @Nullable IClientConfig requestConfig) {
+    protected <S> S getProperty(IClientConfigKey<S> key, @Nullable IClientConfig requestConfig, S defaultValue) {
         if (requestConfig != null && requestConfig.getPropertyWithType(key) != null) {
             return requestConfig.getPropertyWithType(key);
         } else {
-            return config.getPropertyWithType(key);
+            return config.getPropertyWithType(key, defaultValue);
         }
     }
 
@@ -67,8 +67,13 @@ public abstract class AbstractNettyHttpClient<I, O> {
         Preconditions.checkNotNull(request);
         HttpClient<I,O> rxClient = getRxClient(host, port);
         setHost(request, host);
-        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig);
+        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig, 
+                DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
+        Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, requestConfig, null);
         HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
+        if (followRedirect != null) {
+            builder.setFollowRedirect(followRedirect);
+        }
         final RxClient.ClientConfig rxClientConfig = builder.build();
         return rxClient.submit(request, rxClientConfig).flatMap(new Func1<HttpClientResponse<O>, Observable<HttpClientResponse<O>>>() {
             @Override

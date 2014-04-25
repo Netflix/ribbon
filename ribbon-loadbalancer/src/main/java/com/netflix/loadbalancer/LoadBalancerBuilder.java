@@ -2,7 +2,9 @@ package com.netflix.loadbalancer;
 
 import java.util.List;
 
+import com.netflix.client.ClientFactory;
 import com.netflix.client.RetryHandler;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 
@@ -82,6 +84,20 @@ public class LoadBalancerBuilder<T extends Server> {
             rule = createDefaultRule(config);
         }
         return new ZoneAwareLoadBalancer<T>(config, rule, ping, serverListImpl, serverListFilter);
+    }
+    
+    public ILoadBalancer buildLoadBalancerFromConfigWithReflection() {
+        String loadBalancerClassName = config.getPropertyWithType(CommonClientConfigKey.NFLoadBalancerClassName);
+        if (loadBalancerClassName == null) {
+            throw new IllegalArgumentException("NFLoadBalancerClassName is not specified in the IClientConfig");
+        }
+        ILoadBalancer lb;
+        try {
+            lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, config);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return lb;
     }
     
     public LoadBalancerExecutor buildDynamicServerListLoadBalancerExecutor() {

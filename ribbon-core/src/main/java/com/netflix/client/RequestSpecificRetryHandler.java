@@ -66,11 +66,6 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     }
 
     @Override
-    public boolean isCircuitTrippinResponse(Object response) {
-        return fallback.isCircuitTrippinResponse(response);
-    }
-
-    @Override
     public int getMaxRetriesOnSameServer() {
         if (retrySameServer >= 0) {
             return retrySameServer;

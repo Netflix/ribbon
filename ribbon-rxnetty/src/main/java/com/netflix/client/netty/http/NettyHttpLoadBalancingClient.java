@@ -29,6 +29,7 @@ import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 import rx.Observable;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
@@ -42,6 +43,11 @@ import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListChangeListener;
 import com.netflix.loadbalancer.ServerStats;
 
+/**
+ * An {@link NettyHttpClient} with added APIs to submit request to a {@link LoadBalancerExecutor} and have it execute and retry if desired.
+ * 
+ * @author awang
+ */
 public class NettyHttpLoadBalancingClient<I, O> extends NettyHttpClient<I, O> {
 
     private LoadBalancerExecutor lbExecutor;
@@ -99,12 +105,6 @@ public class NettyHttpLoadBalancingClient<I, O> extends NettyHttpClient<I, O> {
                         removeClient(server);
                     }
                 }
-                int oldSize = oldList.size();
-                int newSize = newList.size();
-                if (oldSize != newSize) {
-                    int maxTotalConnections = getMaxTotalConnections() * newSize / oldSize;
-                    setMaxTotalConnections(maxTotalConnections);
-                }
             }
         });
     }
@@ -125,11 +125,8 @@ public class NettyHttpLoadBalancingClient<I, O> extends NettyHttpClient<I, O> {
         }, retryHandler);
     }
     
-    public ServerStats getServerStats(Server server) {
+    @VisibleForTesting
+    ServerStats getServerStats(Server server) {
         return lbExecutor.getServerStats(server);
-    }
-    
-    protected final void setDefaultRetryHandler(RetryHandler errorHandler) {
-        lbExecutor.setErrorHandler(errorHandler);
     }
 }

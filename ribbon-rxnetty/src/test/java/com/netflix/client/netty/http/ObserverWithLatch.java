@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty;
+package com.netflix.client.netty.http;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;

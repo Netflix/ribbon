@@ -51,17 +51,8 @@ public interface RetryHandler {
      * load balancer will also close the circuit upon getting such exception.
      */
     public boolean isCircuitTrippingException(Throwable e);
-    
-    /**
-     * Test if a response should be treated as circuit failure. For example,
-     * HTTP throttling (503 status code) might be considered circuit failure where 
-     * load balancer should avoid sending next request to such server.   
-     */
-    public boolean isCircuitTrippinResponse(Object response);
-    
+        
     public int getMaxRetriesOnSameServer();
     
     public int getMaxRetriesOnNextServer();
-    
 }
-
