@@ -5,10 +5,10 @@ import java.util.concurrent.TimeUnit;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.protocol.http.client.HttpClient;
+import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
-import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
 
 import javax.annotation.Nullable;
 
