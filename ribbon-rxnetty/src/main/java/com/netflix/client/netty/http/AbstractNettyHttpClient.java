@@ -21,6 +21,11 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
+/**
+ * An {@link HttpClient} that has the capability of connecting to different servers.
+ *  
+ * @author awang
+ */
 public abstract class AbstractNettyHttpClient<I, O> implements HttpClient<I, O> {
     protected final IClientConfig config;
  
@@ -51,7 +56,7 @@ public abstract class AbstractNettyHttpClient<I, O> implements HttpClient<I, O> 
 
     protected abstract HttpClient<I, O> getRxClient(String host, int port);
     
-    protected Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request) {
+    public Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request) {
         return submit(host, port, request, getRxClientConfig(null));
     }
        
@@ -62,7 +67,13 @@ public abstract class AbstractNettyHttpClient<I, O> implements HttpClient<I, O> 
         return new RepeatableContentHttpRequest<I>(original);
     }
 
-    protected Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, ClientConfig rxClientConfig) {
+    /**
+     * Submit the request. If the server returns 503, it will emit {@link ClientException} as an error from the returned {@link Observable}.
+     *  
+     * @return
+     */
+    public Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, ClientConfig rxClientConfig) {
+        Preconditions.checkNotNull(host);
         Preconditions.checkNotNull(request);
         HttpClient<I,O> rxClient = getRxClient(host, port);
         setHost(request, host);
@@ -93,7 +104,7 @@ public abstract class AbstractNettyHttpClient<I, O> implements HttpClient<I, O> 
         return builder.build();        
     }
     
-    protected Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, @Nullable final IClientConfig requestConfig) {
+    public Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, @Nullable final IClientConfig requestConfig) {
         return submit(host, port, request, getRxClientConfig(requestConfig));
     }
 }

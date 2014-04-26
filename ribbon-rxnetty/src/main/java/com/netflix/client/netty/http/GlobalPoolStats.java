@@ -1,10 +1,10 @@
 package com.netflix.client.netty.http;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 import rx.Observer;
 import rx.subjects.PublishSubject;
+import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
 import io.reactivex.netty.client.PoolInsightProvider.PoolStateChangeEvent;
 import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.protocol.http.client.HttpClient;
@@ -28,13 +28,16 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
     private final LongAdder releaseSucceededCount = new LongAdder();
     private final LongAdder releaseFailedCount = new LongAdder();
 
+    private final MaxConnectionsBasedStrategy maxConnectionStrategy;
+    
     private final Map<Server, HttpClient> rxClients;
     private final PublishSubject<PoolStateChangeEvent> subject;
     
-    public GlobalPoolStats(String name, Map<Server, HttpClient> rxClients) {
+    public GlobalPoolStats(String name, MaxConnectionsBasedStrategy maxConnectionStrategy, Map<Server, HttpClient> rxClients) {
         Monitors.registerObject(name, this);
         this.rxClients = rxClients;
         this.subject = PublishSubject.create();
+        this.maxConnectionStrategy = maxConnectionStrategy;
     }
     
     public PublishSubject<PoolStateChangeEvent> getPublishSubject() {
@@ -176,12 +179,11 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
         return total;
     }
 
-    /*
     @Monitor(name="MaxTotalConnections", type=DataSourceType.GAUGE)
     public int getMaxTotalConnections() {
-        return client.getMaxTotalConnections();
+        return maxConnectionStrategy.getMaxConnections();
     }
-    */
+    
     @Override
     public void onCompleted() {
         subject.onCompleted();
@@ -191,7 +193,6 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
     public void onError(Throwable e) {
         subject.onError(e);
     }
-
 
     @Override
     public void onNext(PoolStateChangeEvent stateChangeEvent) {

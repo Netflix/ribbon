@@ -22,7 +22,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
-import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClient;
@@ -138,12 +137,15 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
         return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, lbExecutor.getErrorHandler(), requestConfig);
     }
         
-    
-    public Observable<HttpClientResponse<O>> submitToLoadBalancer(final HttpClientRequest<I> request) {
-        return submitToLoadBalancer(request, null, null);
-    }
-    
-    public Observable<HttpClientResponse<O>> submitToLoadBalancer(final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig) {
+    /**
+     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if 
+     * there is no server available from load balancer.
+     * 
+     * @param errorHandler A handler to determine the load balancer retry logic. If null, the default one will be used.
+     * @param requestConfig An {@link IClientConfig} to override the default configuration for the client. Can be null.
+     * @return
+     */
+    public Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig) {
         final RepeatableContentHttpRequest<I> repeatableRequest = getRepeatableRequest(request);
         final RetryHandler retryHandler = (errorHandler == null) ? getRequestRetryHandler(request, requestConfig) : errorHandler;
         return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<O>>() {
@@ -160,17 +162,22 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
         return lbExecutor.getServerStats(server);
     }
 
-    @Override
-    public Observable<HttpClientResponse<O>> submit(String host, int port,
-            HttpClientRequest<I> request, IClientConfig requestConfig) {
-        return super.submit(host, port, request, requestConfig);
-    }
-
+    /**
+     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if 
+     * there is no server available from load balancer.
+     */
     @Override
     public Observable<HttpClientResponse<O>> submit(HttpClientRequest<I> request) {
-        return submitToLoadBalancer(request);
+        return submit(request, null, null);
     }
 
+    /**
+     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if 
+     * there is no server available from load balancer.
+     * 
+     * @param config An {@link ClientConfig} to override the default configuration for the client. Can be null.
+     * @return
+     */
     @Override
     public Observable<HttpClientResponse<O>> submit(HttpClientRequest<I> request, final ClientConfig config) {
         final RepeatableContentHttpRequest<I> repeatableRequest = getRepeatableRequest(request);
@@ -183,6 +190,9 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
         });
     }
 
+    /**
+     * Create an {@link ObservableConnection} with a server chosen by the load balancer. 
+     */
     @Override
     public Observable<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>> connect() {
         return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>>() {

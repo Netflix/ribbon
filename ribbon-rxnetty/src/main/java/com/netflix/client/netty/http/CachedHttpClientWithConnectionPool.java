@@ -1,18 +1,5 @@
 package com.netflix.client.netty.http;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Subscriber;
-
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
@@ -23,7 +10,17 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
+
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
+import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -41,6 +38,12 @@ import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListChangeListener;
 import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
 
+/**
+ * A {@link HttpClient} that caches the HttpClient it creates for each {@link Server}, with each created with 
+ * a connection pool governed by {@link CompositePoolLimitDeterminationStrategy} that has a global limit and per server limit. 
+ *   
+ * @author awang
+ */
 class CachedHttpClientWithConnectionPool<I, O> extends NettyHttpClient<I, O>  {
 
     private static final ScheduledExecutorService poolCleanerScheduler;
@@ -75,7 +78,7 @@ class CachedHttpClientWithConnectionPool<I, O> extends NettyHttpClient<I, O>  {
         poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
         idleConnectionEvictionMills = config.getPropertyWithType(CommonKeys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
         rxClientCache = new ConcurrentHashMap<Server, HttpClient>();
-        stats = new GlobalPoolStats(config.getClientName(), (ConcurrentMap<Server, HttpClient>) rxClientCache);
+        stats = new GlobalPoolStats(config.getClientName(), globalStrategy, rxClientCache);
         addLoadBalancerListener();
     }
     
@@ -92,7 +95,9 @@ class CachedHttpClientWithConnectionPool<I, O> extends NettyHttpClient<I, O>  {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), pipeLineConfigurator);
     }
     
-    
+    /**
+     * This is where we remove HttpClient and shutdown its connection pool if it is no longer available from load balancer.
+     */
     private void addLoadBalancerListener() {
         ILoadBalancer lb = lbExecutor.getLoadBalancer();
         if (!(lb instanceof DynamicServerListLoadBalancer)) {

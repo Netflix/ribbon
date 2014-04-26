@@ -237,7 +237,7 @@ public class NettyClientTest {
         
         NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, 
                 new NettyHttpLoadBalancerErrorHandler(1, 3, true));
-        Person person = getPersonObservable(lbObservables.submitToLoadBalancer(request)).toBlockingObservable().single();
+        Person person = getPersonObservable(lbObservables.submit(request)).toBlockingObservable().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
         ServerStats stats = lbObservables.getServerStats(badServer);
         // two requests to bad server because retry same server is set to 1
@@ -271,7 +271,7 @@ public class NettyClientTest {
         Server badServer = new Server("localhost:" + port);
         List<Server> servers = Lists.newArrayList(goodServer, badServer, badServer, goodServer);
         lb.setServersList(servers);
-        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submitToLoadBalancer(request));
+        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request));
         ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
         observableWithRetries.subscribe(observer);
         observer.await();
@@ -317,7 +317,7 @@ public class NettyClientTest {
                 return true;
             }
         };
-        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submitToLoadBalancer(request, handler, null));
+        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request, handler, null));
         ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
         observableWithRetries.subscribe(observer);
         observer.await();
@@ -354,7 +354,7 @@ public class NettyClientTest {
 
         List<Server> servers = Lists.newArrayList(badServer, badServer1, badServer2);
         lb.setServersList(servers);
-        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submitToLoadBalancer(request));
+        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request));
         ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
         observableWithRetries.subscribe(observer);
         observer.await();
@@ -413,7 +413,7 @@ public class NettyClientTest {
         Server badServer = new Server("localhost:12245");
         List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
         lb.setServersList(servers);
-        result = getPersonListFromResponse(lbObservables.submitToLoadBalancer(request, null, null));
+        result = getPersonListFromResponse(lbObservables.submit(request, null, null));
         assertEquals(EmbeddedResources.entityStream, result);
     }
     
@@ -466,7 +466,7 @@ public class NettyClientTest {
 
         List<Server> servers = Lists.newArrayList(server, server, server);
         lb.setServersList(servers);
-        Observable<HttpClientResponse<ByteBuf>> response = lbObservables.submitToLoadBalancer(request);
+        Observable<HttpClientResponse<ByteBuf>> response = lbObservables.submit(request);
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
         response.subscribe(new Action1<HttpClientResponse<ByteBuf>>() {
