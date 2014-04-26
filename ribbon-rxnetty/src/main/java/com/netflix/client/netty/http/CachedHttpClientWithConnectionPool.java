@@ -9,6 +9,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
+
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
@@ -161,7 +165,8 @@ class CachedHttpClientWithConnectionPool<I, O> extends NettyHttpClient<I, O>  {
         return client;
     }
 
-    public void close() throws IOException {
+    @Override
+    public void close() {
         for (Server server: rxClientCache.keySet()) {
             removeClient(server);
         }
@@ -170,5 +175,21 @@ class CachedHttpClientWithConnectionPool<I, O> extends NettyHttpClient<I, O>  {
     @Override
     public PoolStats getStats() {
         return stats;
+    }
+
+    @Override
+    public void shutdown() {
+        close();
+    }
+
+    @Override
+    public Observable<PoolStateChangeEvent> poolStateChangeObservable() {
+        return Observable.create(new OnSubscribe<PoolStateChangeEvent>() {
+
+            @Override
+            public void call(Subscriber<? super PoolStateChangeEvent> t1) {
+                stats.getPublishSubject().subscribe(t1);
+            }
+        });
     }
 }

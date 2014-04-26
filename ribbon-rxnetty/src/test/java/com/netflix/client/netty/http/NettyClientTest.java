@@ -396,7 +396,7 @@ public class NettyClientTest {
     public void testStream() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/personStream");
         NettyHttpClient<ByteBuf, ServerSentEvent> observableClient = NettyHttpClient.createDefaultSSEClient();
-        List<Person> result = getPersonListFromResponse(observableClient.submit(host, port, request, null));
+        List<Person> result = getPersonListFromResponse(observableClient.submit(host, port, request));
         assertEquals(EmbeddedResources.entityStream, result);
     }
     

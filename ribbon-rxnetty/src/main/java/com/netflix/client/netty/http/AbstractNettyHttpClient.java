@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.protocol.http.client.HttpClient;
-import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
@@ -22,7 +21,7 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
-public abstract class AbstractNettyHttpClient<I, O> {
+public abstract class AbstractNettyHttpClient<I, O> implements HttpClient<I, O> {
     protected final IClientConfig config;
  
     public AbstractNettyHttpClient() {
@@ -53,7 +52,7 @@ public abstract class AbstractNettyHttpClient<I, O> {
     protected abstract HttpClient<I, O> getRxClient(String host, int port);
     
     protected Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request) {
-        return submit(host, port, request, null);
+        return submit(host, port, request, getRxClientConfig(null));
     }
        
     protected static <I> RepeatableContentHttpRequest<I> getRepeatableRequest(HttpClientRequest<I> original) {
@@ -63,18 +62,10 @@ public abstract class AbstractNettyHttpClient<I, O> {
         return new RepeatableContentHttpRequest<I>(original);
     }
 
-    Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, @Nullable final IClientConfig requestConfig) {
+    protected Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, ClientConfig rxClientConfig) {
         Preconditions.checkNotNull(request);
         HttpClient<I,O> rxClient = getRxClient(host, port);
         setHost(request, host);
-        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig, 
-                DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
-        Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, requestConfig, null);
-        HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
-        if (followRedirect != null) {
-            builder.setFollowRedirect(followRedirect);
-        }
-        final RxClient.ClientConfig rxClientConfig = builder.build();
         return rxClient.submit(request, rxClientConfig).flatMap(new Func1<HttpClientResponse<O>, Observable<HttpClientResponse<O>>>() {
             @Override
             public Observable<HttpClientResponse<O>> call(
@@ -85,6 +76,24 @@ public abstract class AbstractNettyHttpClient<I, O> {
                     return Observable.from(t1);
                 }
             }
-        });
-    }   
+        });        
+    }
+    
+    private RxClient.ClientConfig getRxClientConfig(IClientConfig requestConfig) {
+        if (requestConfig == null) {
+            return HttpClientConfig.Builder.newDefaultConfig();
+        }
+        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig, 
+                DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
+        Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, requestConfig, null);
+        HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
+        if (followRedirect != null) {
+            builder.setFollowRedirect(followRedirect);
+        }
+        return builder.build();        
+    }
+    
+    protected Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, @Nullable final IClientConfig requestConfig) {
+        return submit(host, port, request, getRxClientConfig(requestConfig));
+    }
 }

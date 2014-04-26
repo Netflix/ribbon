@@ -65,4 +65,13 @@ class SSEClient<I> extends NettyHttpClient<I, ServerSentEvent> {
     public PoolStats getStats() {
         return null;
     }
+
+    @Override
+    public void shutdown() {
+    }
+
+    @Override
+    public Observable<PoolStateChangeEvent> poolStateChangeObservable() {
+        return Observable.empty();
+    }
 }

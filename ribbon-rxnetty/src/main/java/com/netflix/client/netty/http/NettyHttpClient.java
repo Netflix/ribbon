@@ -20,6 +20,7 @@ package com.netflix.client.netty.http;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpMethod;
+import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
@@ -159,18 +160,38 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
         return lbExecutor.getServerStats(server);
     }
 
-
-    @Override
-    public Observable<HttpClientResponse<O>> submit(String host,
-            int port, HttpClientRequest<I> request) {
-        return super.submit(host, port, request);
-    }
-
     @Override
     public Observable<HttpClientResponse<O>> submit(String host, int port,
             HttpClientRequest<I> request, IClientConfig requestConfig) {
         return super.submit(host, port, request, requestConfig);
     }
-    
-    public abstract PoolStats getStats(); 
+
+    @Override
+    public Observable<HttpClientResponse<O>> submit(HttpClientRequest<I> request) {
+        return submitToLoadBalancer(request);
+    }
+
+    @Override
+    public Observable<HttpClientResponse<O>> submit(HttpClientRequest<I> request, final ClientConfig config) {
+        final RepeatableContentHttpRequest<I> repeatableRequest = getRepeatableRequest(request);
+        return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<O>>() {
+            @Override
+            public Observable<HttpClientResponse<O>> getObservableForEndpoint(
+                    Server server) {
+                return submit(server.getHost(), server.getPort(), repeatableRequest, config);
+            }
+        });
+    }
+
+    @Override
+    public Observable<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>> connect() {
+        return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>>() {
+            @Override
+            public Observable<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>> getObservableForEndpoint(
+                    Server server) {
+                HttpClient<I, O> rxClient = getRxClient(server.getHost(), server.getPort());
+                return rxClient.connect();
+            }
+        });
+    }
 }

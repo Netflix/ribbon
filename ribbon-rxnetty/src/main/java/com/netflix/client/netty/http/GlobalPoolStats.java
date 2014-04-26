@@ -1,9 +1,11 @@
 package com.netflix.client.netty.http;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import rx.Observer;
-import io.reactivex.netty.client.PoolInsightProvider;
+import rx.subjects.PublishSubject;
+import io.reactivex.netty.client.PoolInsightProvider.PoolStateChangeEvent;
 import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 
@@ -13,7 +15,7 @@ import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Monitors;
 
-public class GlobalPoolStats implements Observer<PoolInsightProvider.PoolStateChangeEvent>, PoolStats {
+public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStats {
 
     private final LongAdder creationCount = new LongAdder();
     private final LongAdder failedCount = new LongAdder();
@@ -26,11 +28,17 @@ public class GlobalPoolStats implements Observer<PoolInsightProvider.PoolStateCh
     private final LongAdder releaseSucceededCount = new LongAdder();
     private final LongAdder releaseFailedCount = new LongAdder();
 
-    private final ConcurrentMap<Server, HttpClient> rxClients;
+    private final Map<Server, HttpClient> rxClients;
+    private final PublishSubject<PoolStateChangeEvent> subject;
     
-    public GlobalPoolStats(String name, ConcurrentMap<Server, HttpClient> rxClients) {
+    public GlobalPoolStats(String name, Map<Server, HttpClient> rxClients) {
         Monitors.registerObject(name, this);
         this.rxClients = rxClients;
+        this.subject = PublishSubject.create();
+    }
+    
+    public PublishSubject<PoolStateChangeEvent> getPublishSubject() {
+        return this.subject;
     }
     
     public void onConnectionCreation() {
@@ -176,15 +184,18 @@ public class GlobalPoolStats implements Observer<PoolInsightProvider.PoolStateCh
     */
     @Override
     public void onCompleted() {
+        subject.onCompleted();
     }
 
     @Override
     public void onError(Throwable e) {
+        subject.onError(e);
     }
 
 
     @Override
-    public void onNext(PoolInsightProvider.PoolStateChangeEvent stateChangeEvent) {
+    public void onNext(PoolStateChangeEvent stateChangeEvent) {
+        subject.onNext(stateChangeEvent);
         switch (stateChangeEvent) {
             case NewConnectionCreated:
                 onConnectionCreation();
