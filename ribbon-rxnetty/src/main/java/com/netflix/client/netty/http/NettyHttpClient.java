@@ -88,6 +88,16 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
         return new CachedHttpClientWithConnectionPool<ByteBuf, ByteBuf>(lb, config, 
                 NettyHttpClient.DEFAULT_PIPELINE_CONFIGURATOR, handler);
     }
+    
+    public static <I, O> NettyHttpClient<I, O> createHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator) {
+        return createHttpClient(lb, pipelineConfigurator, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), null);    
+    }
+    
+    public static <I, O> NettyHttpClient<I, O> createHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator, 
+            IClientConfig config, RetryHandler handler) {
+        return new CachedHttpClientWithConnectionPool<I, O>(lb, config, 
+                pipelineConfigurator, handler);
+    }
 
     public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb) {
         return createDefaultSSEClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), null);
@@ -111,7 +121,6 @@ public abstract class NettyHttpClient<I, O> extends AbstractNettyHttpClient<I, O
     public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb, IClientConfig config, RetryHandler handler) {
         return new SSEClient<ByteBuf>(lb, config, DEFAULT_SSE_PIPELINE_CONFIGURATOR, handler);
     }
-
     
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), pipeLineConfigurator);
