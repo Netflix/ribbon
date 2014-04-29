@@ -26,6 +26,7 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
+import com.netflix.config.DynamicProperty;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
 import com.netflix.loadbalancer.AbstractServerList;
@@ -60,7 +61,8 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         clientName = clientConfig.getClientName();
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
-        if (vipAddresses == null) {
+        if (vipAddresses == null && 
+                ConfigurationManager.getConfigInstance().getBoolean("DiscoveryEnabledNIWSServerList.failFastOnNullVip", true)) {
             throw new NullPointerException("VIP address for client " + clientName + " is null");
         }
         isSecure = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.IsSecure, "false"));
