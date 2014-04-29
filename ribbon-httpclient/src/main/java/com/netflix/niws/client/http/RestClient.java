@@ -84,9 +84,12 @@ import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
  * A client that is essentially a wrapper around Jersey client. By default, it uses HttpClient for underlying HTTP communication.
  * Application can set its own Jersey client with this class, but doing so will void all client configurations set in {@link IClientConfig}.
  *
+ * @deprecated Please see ribbon-rxnetty module for the Netty based client. 
+ *
  * @author awang
  *
  */
+@Deprecated
 public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, HttpResponse> {
 
     private Client restClient;
