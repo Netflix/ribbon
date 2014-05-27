@@ -42,7 +42,8 @@ public class HttpRequest extends ClientRequest {
         POST("POST"),
         DELETE("DELETE"),
         OPTIONS("OPTIONS"),
-        HEAD("HEAD");
+        HEAD("HEAD"),
+        PATCH("PATCH");
 
         private final String verb; // http method
 
