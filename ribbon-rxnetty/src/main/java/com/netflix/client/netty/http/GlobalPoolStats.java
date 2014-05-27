@@ -10,7 +10,7 @@ import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 
 import com.netflix.loadbalancer.Server;
-import com.netflix.numerus.LongAdder;
+import io.netty.util.internal.chmv8.LongAdder;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Monitors;

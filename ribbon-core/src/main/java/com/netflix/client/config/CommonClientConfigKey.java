@@ -167,6 +167,8 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<String> RulePredicateClasses = new CommonClientConfigKey<String>("RulePredicateClasses"){};
     
+    public static final IClientConfigKey<String> RequestIdHeaderName = new CommonClientConfigKey<String>("RequestIdHeaderName") {};
+    
     private static final Set<IClientConfigKey> keys = new HashSet<IClientConfigKey>();
         
     static {

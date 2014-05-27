@@ -25,11 +25,17 @@ import static org.junit.Assert.fail;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
+import io.reactivex.netty.contexts.ContextKeySupplier;
+import io.reactivex.netty.contexts.ContextsContainer;
+import io.reactivex.netty.contexts.ContextsContainerImpl;
+import io.reactivex.netty.contexts.MapBackedKeySupplier;
+import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -492,10 +498,37 @@ public class NettyClientTest {
     }
     
     @Test
+    public void testContext() throws Exception {
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/context");
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient();
+        String requestId = "xyz";
+        ContextsContainerImpl contextsContainer = new ContextsContainerImpl(new MapBackedKeySupplier());
+        contextsContainer.addContext("Context1", "value1");
+        RxContexts.DEFAULT_CORRELATOR.onNewServerRequest(requestId, contextsContainer);
+        Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
+        final AtomicReference<ContextsContainer> responseContext = new AtomicReference<ContextsContainer>(); 
+        String requestIdSent = response.flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<ByteBuf>>() {
+            @Override
+            public Observable<ByteBuf> call(HttpClientResponse<ByteBuf> t1) {
+                return t1.getContent();
+            }
+            
+        }).map(new Func1<ByteBuf, String>() {
+            @Override
+            public String call(ByteBuf t1) {
+                String requestId = RxContexts.DEFAULT_CORRELATOR.getRequestIdForClientRequest();
+                responseContext.set(RxContexts.DEFAULT_CORRELATOR.getContextForClientRequest(requestId));
+                return t1.toString(Charset.defaultCharset());
+            }
+        }).toBlockingObservable().single();
+        assertEquals(requestId, requestIdSent);
+        assertEquals("value1", responseContext.get().getContext("Context1"));
+    }
+    
+    @Test
     public void testRedirect() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/redirect?port=" + port);
         NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient();
-        
         Person person = getPersonObservable(observableClient.submit(host, port, request)).toBlockingObservable().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
     } 

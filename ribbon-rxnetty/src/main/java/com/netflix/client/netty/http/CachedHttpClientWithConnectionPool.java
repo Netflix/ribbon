@@ -5,6 +5,7 @@ import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
 import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
@@ -117,8 +118,8 @@ class CachedHttpClientWithConnectionPool<I, O> extends NettyHttpClient<I, O>  {
     }
 
     protected HttpClient<I, O> cacheLoadRxClient(Server server) {
-        HttpClientBuilder<I, O> clientBuilder =
-                new HttpClientBuilder<I, O>(server.getHost(), server.getPort()).pipelineConfigurator(pipeLineConfigurator);
+        String requestIdHeaderName = getProperty(IClientConfigKey.CommonKeys.RequestIdHeaderName, null, DefaultClientConfigImpl.DEFAULT_REQUEST_ID_HEADER_NAME);
+        HttpClientBuilder<I, O> clientBuilder = RxContexts.newHttpClientBuilder(server.getHost(), server.getPort(), requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
         Integer connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         Integer readTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
         Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, null, null);
