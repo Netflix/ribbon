@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 import rx.Observable.OnSubscribe;
-import rx.Observable.OnSubscribeFunc;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -37,6 +36,10 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
     
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerExecutor.class);
     
+    static interface OnSubscribeFunc<T> {
+        public Subscription onSubscribe(final Observer<? super T> t1);
+    }
+
     public LoadBalancerExecutor(ILoadBalancer lb) {
         super(lb);
     }
@@ -83,11 +86,11 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
     private class RetrySameServerFunc<T> implements Func1<Throwable, Observable<T>> {
 
         private final Server server;
-        private final OnSubscribeFunc<T> onSubscribe;
+        private final OnSubscribe<T> onSubscribe;
         private final AtomicInteger counter = new AtomicInteger();
         private final RetryHandler callErrorHandler;
 
-        public RetrySameServerFunc(Server server, OnSubscribeFunc<T> onSubscribe, RetryHandler errorHandler) {
+        public RetrySameServerFunc(Server server, OnSubscribe<T> onSubscribe, RetryHandler errorHandler) {
             this.server = server;
             this.onSubscribe = onSubscribe;
             this.callErrorHandler = errorHandler == null ? getErrorHandler() : errorHandler;
@@ -109,7 +112,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
             
             if (shouldRetry) {
                 // try again
-                return createObservableFromOnSubscribeFunc(onSubscribe).onErrorResumeNext(this);
+                return Observable.create(onSubscribe).onErrorResumeNext(this);
             } else {
                 return Observable.error(finalThrowable);
             }
@@ -131,7 +134,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         public Observable<T> call(Throwable t1) {
             logger.debug("Get error {} during retry on next server", t1);   
             int maxRetriesNextServer = callErrorHandler.getMaxRetriesOnNextServer();
-            boolean shouldRetry = maxRetriesNextServer > 0 && callErrorHandler.isRetriableException(t1, false);
+            boolean shouldRetry = maxRetriesNextServer > 0;
             final Throwable finalThrowable;
             if (shouldRetry && counter.incrementAndGet() > maxRetriesNextServer) {
                 finalThrowable = new ClientException(
@@ -278,9 +281,9 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * be emitted by the returned {@link Observable}.
      */
     protected <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
-        OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
+        OnSubscribe<T> onSubscribe = new OnSubscribe<T>() {
             @Override
-            public Subscription onSubscribe(final Observer<? super T> t1) {
+            public void call(final Subscriber<? super T> t1) {
                 final ServerStats serverStats = getServerStats(server); 
                 noteOpenConnection(serverStats);
                 final Stopwatch tracer = getExecuteTracer().start();
@@ -316,11 +319,12 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                         noteRequestCompletion(serverStats, entity, exception, duration, errorHandler);
                     }
                 };
-                return clientObservableProvider.getObservableForEndpoint(server).subscribe(delegate);
+                Subscription s = clientObservableProvider.getObservableForEndpoint(server).subscribe(delegate);
+                t1.add(s);
             }
         };
         
-        Observable<T> observable = createObservableFromOnSubscribeFunc(onSubscribe);
+        Observable<T> observable = Observable.create(onSubscribe);
         RetrySameServerFunc<T> retrySameServerFunc = new RetrySameServerFunc<T>(server, onSubscribe, errorHandler);
         return observable.onErrorResumeNext(retrySameServerFunc);
     }
