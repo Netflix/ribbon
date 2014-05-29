@@ -134,7 +134,9 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         public Observable<T> call(Throwable t1) {
             logger.debug("Get error {} during retry on next server", t1);   
             int maxRetriesNextServer = callErrorHandler.getMaxRetriesOnNextServer();
-            boolean shouldRetry = maxRetriesNextServer > 0;
+            boolean sameServerRetryExceededLimit = (t1 instanceof ClientException) &&
+                    ((ClientException) t1).getErrorType().equals(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED);
+            boolean shouldRetry = maxRetriesNextServer > 0 && (sameServerRetryExceededLimit || errorHandler.isRetriableException(t1, false));
             final Throwable finalThrowable;
             if (shouldRetry && counter.incrementAndGet() > maxRetriesNextServer) {
                 finalThrowable = new ClientException(

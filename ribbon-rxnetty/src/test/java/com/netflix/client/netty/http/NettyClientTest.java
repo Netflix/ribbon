@@ -44,6 +44,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -109,6 +111,7 @@ public class NettyClientTest {
             e.printStackTrace();
             fail("Unable to start server");
         }
+        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
     }
     
     private static Observable<Person> getPersonObservable(Observable<HttpClientResponse<ByteBuf>> response) {
@@ -259,6 +262,39 @@ public class NettyClientTest {
     }
     
     @Test
+    public void testObservableWithRetrySameServer() throws Exception {
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
+        Server badServer = new Server("localhost:12345");
+        Server goodServer = new Server("localhost:" + port);
+        List<Server> servers = Lists.newArrayList(badServer, badServer, goodServer);
+        
+        BaseLoadBalancer lb = LoadBalancerBuilder.<Server>newBuilder()
+                .withRule(new AvailabilityFilteringRule())
+                .withPing(new DummyPing())
+                .buildFixedServerListLoadBalancer(servers);
+        
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, 
+                new NettyHttpLoadBalancerErrorHandler(1, 0, true));
+
+        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request));
+        ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
+        observableWithRetries.subscribe(observer);
+        observer.await();
+        assertNull(observer.obj);
+        assertTrue(observer.error instanceof ClientException);
+
+        ServerStats stats = lbObservables.getServerStats(badServer);
+        // two requests to bad server because retry same server is set to 1
+        assertEquals(2, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getActiveRequestsCount());
+        
+        stats = lbObservables.getServerStats(goodServer);
+        assertEquals(0, stats.getTotalRequestsCount());
+    }
+
+    
+    @Test
     public void testLoadBalancingObservablesWithReadTimeout() throws Exception {
         NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         MockWebServer server = new MockWebServer();
@@ -344,6 +380,55 @@ public class NettyClientTest {
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
     }
+    
+    @Test
+    public void testLoadBalancingPostWithNoRetrySameServer() throws Exception {
+        MockWebServer server = new MockWebServer();
+        String content = "{\"name\": \"ribbon\", \"age\": 2}";
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "application/json")
+                .setBody(content));       
+        server.play();
+
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues()
+                .setPropertyWithType(CommonClientConfigKey.ReadTimeout, 100);
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createPost("/testAsync/postTimeout")
+                .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), EmbeddedResources.defaultPerson, null))
+                .withHeader("Content-type", "application/json");
+        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(0, 3, true);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, errorHandler);
+        Server goodServer = new Server("localhost:" + server.getPort());
+        Server badServer = new Server("localhost:" + port);
+        List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
+        lb.setServersList(servers);
+        RetryHandler handler = new RequestSpecificRetryHandler(true, true, errorHandler, null) {
+            @Override
+            public boolean isRetriableException(Throwable e, boolean sameServer) {
+                return true;
+            }
+        };
+        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request, handler, null));
+        ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
+        observableWithRetries.subscribe(observer);
+        observer.await();
+        if (observer.error != null) {
+            observer.error.printStackTrace();
+        }
+        server.shutdown();
+        assertEquals("ribbon", observer.obj.name);
+        assertEquals(2, observer.obj.age);
+        ServerStats stats = lbObservables.getServerStats(badServer);
+        assertEquals(2, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getActiveRequestsCount());
+        assertEquals(2, stats.getSuccessiveConnectionFailureCount());
+        
+        stats = lbObservables.getServerStats(goodServer);
+        // two requests to bad server because retry same server is set to 1
+        assertEquals(1, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getActiveRequestsCount());
+        assertEquals(0, stats.getSuccessiveConnectionFailureCount());
+    }
+
 
 
     
