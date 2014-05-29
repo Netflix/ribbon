@@ -65,7 +65,6 @@ public class LoadBalancerExecutorTest {
             @Override
             public Observable<String> getObservableForEndpoint(Server server) {
                 if (count.incrementAndGet() < 3) {
-                    System.err.println("error on server " + server);
                     return Observable.error(new IllegalArgumentException());
                 } else {
                     return Observable.from(server.getHost());
@@ -91,7 +90,9 @@ public class LoadBalancerExecutorTest {
             }
         };
         String result = lbExecutor.executeWithLoadBalancer(observableProvider, handler).toBlockingObservable().single();
-        System.err.println(result);
+        assertEquals("3", result); // server2 is picked first
+        assertEquals(2, lbExecutor.getServerStats(server2).getTotalRequestsCount());
+        assertEquals(1, lbExecutor.getServerStats(server3).getTotalRequestsCount());
     }
 
 

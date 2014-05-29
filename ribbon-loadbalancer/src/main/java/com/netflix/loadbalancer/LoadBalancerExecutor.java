@@ -132,11 +132,11 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         
         @Override
         public Observable<T> call(Throwable t1) {
-            logger.debug("Get error {} during retry on next server", t1);   
+            logger.debug("Get error during retry on next server", t1);   
             int maxRetriesNextServer = callErrorHandler.getMaxRetriesOnNextServer();
             boolean sameServerRetryExceededLimit = (t1 instanceof ClientException) &&
                     ((ClientException) t1).getErrorType().equals(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED);
-            boolean shouldRetry = maxRetriesNextServer > 0 && (sameServerRetryExceededLimit || errorHandler.isRetriableException(t1, false));
+            boolean shouldRetry = maxRetriesNextServer > 0 && (sameServerRetryExceededLimit || callErrorHandler.isRetriableException(t1, false));
             final Throwable finalThrowable;
             if (shouldRetry && counter.incrementAndGet() > maxRetriesNextServer) {
                 finalThrowable = new ClientException(
@@ -304,7 +304,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
 
                     @Override
                     public void onError(Throwable e) {
-                        logger.debug("Got error {} when executed on server {}", e, server);
+                        logger.debug("Got error %s when executed on server %s", e, server);
                         recordStats(entity, e);
                         t1.onError(e);
                     }
@@ -321,8 +321,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                         noteRequestCompletion(serverStats, entity, exception, duration, errorHandler);
                     }
                 };
-                Subscription s = clientObservableProvider.getObservableForEndpoint(server).subscribe(delegate);
-                t1.add(s);
+                clientObservableProvider.getObservableForEndpoint(server).subscribe(delegate);
             }
         };
         
@@ -335,8 +334,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         return Observable.create(new OnSubscribe<T>() {
             @Override
             public void call(Subscriber<? super T> observer) {
-                Subscription s = onSubscribe.onSubscribe(observer);
-                observer.add(s);
+                onSubscribe.onSubscribe(observer);
             }
         });
     }
