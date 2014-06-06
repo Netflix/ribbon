@@ -87,12 +87,12 @@ public class HttpRequest extends ClientRequest {
             return this;
         }
         
-        Builder headers(Multimap<String, String> headers) {
+        public Builder headers(Multimap<String, String> headers) {
             request.headers = headers;
             return this;
         }
 
-        Builder queryParams(Multimap<String, String> queryParams) {
+        public Builder queryParams(Multimap<String, String> queryParams) {
             request.queryParams = queryParams;
             return this;
         }
