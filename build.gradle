@@ -110,7 +110,7 @@ project(':ribbon-test') {
 
 project(':ribbon-client-extensions') {
     dependencies {
-        compile 'com.netflix.hystrix:hystrix-core:1.3.13'
+        compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
         compile 'com.netflix.evcache:evcache-client:1.0.5'
         compile project(':ribbon-httpclient')
         compile project(':ribbon-rxnetty')
