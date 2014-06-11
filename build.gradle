@@ -67,7 +67,7 @@ project(':ribbon-httpclient') {
     }
 }
 
-project(':ribbon-rxnetty') {
+project(':ribbon-transport') {
     dependencies {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
@@ -91,7 +91,7 @@ project(':ribbon-eureka') {
 project(':ribbon-examples') {
     dependencies {
         compile project(':ribbon-httpclient')
-        compile project(':ribbon-rxnetty')
+        compile project(':ribbon-transport')
         compile 'com.google.code.gson:gson:2.2.4'
         compile 'com.thoughtworks.xstream:xstream:1.4.5'
         compile 'com.sun.jersey:jersey-server:1.11'
@@ -112,8 +112,7 @@ project(':ribbon-client-extensions') {
     dependencies {
         compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
         compile 'com.netflix.evcache:evcache-client:1.0.5'
-        compile project(':ribbon-httpclient')
-        compile project(':ribbon-rxnetty')
+        compile project(':ribbon-transport')
 
     }
 }

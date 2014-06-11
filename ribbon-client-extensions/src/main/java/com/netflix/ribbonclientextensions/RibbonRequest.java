@@ -1,20 +1,8 @@
 package com.netflix.ribbonclientextensions;
 
-import java.util.concurrent.Future;
+import com.netflix.ribbonclientextensions.hystrix.HystrixResponse;
 
-import rx.Observable;
+public interface RibbonRequest<T> extends AsyncRequest<T> {
 
-public interface RibbonRequest<T> {
-
-    // public RibbonRequest<Map<String, Object>> asDictionary();
-        
-    public T execute();
-    
-    public Future<T> queue();
-    
-    public Observable<T> observe();
-    
-    public Observable<T> toObservable();
-    
     public RibbonRequest<HystrixResponse<T>> withHystrixInfo();
 }

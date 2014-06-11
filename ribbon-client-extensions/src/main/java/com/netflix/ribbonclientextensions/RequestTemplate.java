@@ -1,9 +1,9 @@
 package com.netflix.ribbonclientextensions;
 
-import java.util.List;
-
+import com.netflix.hystrix.HystrixCollapserProperties;
+import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixThreadPoolProperties;
 import com.netflix.ribbonclientextensions.hystrix.FallbackProvider;
-import com.netflix.ribbonclientextensions.interfaces.CacheProvider;
 
 /**
  * @author awang
@@ -20,12 +20,17 @@ public interface RequestTemplate<I, O, R> {
     
     RequestTemplate<I, O, R> withFallbackDeterminator(FallbackDeterminator<R> fallbackDeterminator);
     
-    RequestTemplate<I, O, R> withCacheProvider(List<CacheProvider<O>> cacheProviders);
+    RequestTemplate<I, O, R> addCacheProvider(CacheProvider<O> cacheProvider, String cacheKeyTemplate);
     
+    RequestTemplate<I, O, R> withHystrixCommandPropertiesDefaults(HystrixCommandProperties.Setter setter);
+    
+    RequestTemplate<I, O, R> withHystrixThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter setter);
+
+    RequestTemplate<I, O, R> withHystrixCollapserPropertiesDefaults(HystrixCollapserProperties.Setter setter);
+
     public abstract class RequestBuilder<O> {
         public abstract RequestBuilder<O> withValue(String key, Object value);
         
         public abstract RibbonRequest<O> build();
-
     }
 }
