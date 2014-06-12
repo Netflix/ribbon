@@ -37,7 +37,7 @@ public class RibbonExamples {
                 return Observable.empty();
             }
         })
-        .withHystrixCollapserPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000))
+        .withHystrixCommandPropertiesDefaults((HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000))
         .withUri("/{id}")
         .requestBuilder().withValue("id", 1).build().execute();
         
