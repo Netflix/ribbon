@@ -4,7 +4,7 @@ import java.util.concurrent.Future;
 
 import rx.Observable;
 
-public interface AsyncRequest<T> {
+interface RxRequest<T> {
     public T execute();
     
     public Future<T> queue();
