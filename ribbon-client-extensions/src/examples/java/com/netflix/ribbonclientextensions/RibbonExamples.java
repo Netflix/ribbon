@@ -10,6 +10,8 @@ import com.netflix.client.config.ClientConfigBuilder;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.netty.RibbonTransport;
 import com.netflix.hystrix.HystrixCommand;
+import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixCommandProperties.Setter;
 import com.netflix.ribbonclientextensions.FallbackDeterminator;
 import com.netflix.ribbonclientextensions.Ribbon;
 import com.netflix.ribbonclientextensions.hystrix.FallbackProvider;
@@ -35,6 +37,7 @@ public class RibbonExamples {
                 return Observable.empty();
             }
         })
+        .withHystrixCollapserPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000))
         .withUri("/{id}")
         .requestBuilder().withValue("id", 1).build().execute();
         
