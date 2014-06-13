@@ -15,7 +15,7 @@ import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Monitors;
 
-public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStats {
+public class GlobalPoolStats<T extends RxClient<?, ?>> implements Observer<PoolStateChangeEvent>, PoolStats {
 
     private final LongAdder creationCount = new LongAdder();
     private final LongAdder failedCount = new LongAdder();
@@ -30,10 +30,10 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
 
     private final MaxConnectionsBasedStrategy maxConnectionStrategy;
     
-    private final Map<Server, RxClient> rxClients;
+    private final Map<Server, T> rxClients;
     private final PublishSubject<PoolStateChangeEvent> subject;
     
-    public GlobalPoolStats(String name, MaxConnectionsBasedStrategy maxConnectionStrategy, Map<Server, RxClient> rxClients) {
+    public GlobalPoolStats(String name, MaxConnectionsBasedStrategy maxConnectionStrategy, Map<Server, T> rxClients) {
         Monitors.registerObject(name, this);
         this.rxClients = rxClients;
         this.subject = PublishSubject.create();
@@ -137,7 +137,7 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
     @Monitor(name="InUse", type=DataSourceType.GAUGE)
     public long getInUseCount() {
         long total = 0;
-        for (RxClient rxclient: rxClients.values()) {
+        for (T rxclient: rxClients.values()) {
             total += rxclient.getStats().getInUseCount();
         }
         return total;
@@ -146,7 +146,7 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
     @Monitor(name="Idle", type=DataSourceType.GAUGE)
     public long getIdleCount() {
         long total = 0;
-        for (RxClient rxclient: rxClients.values()) {
+        for (T rxclient: rxClients.values()) {
             total += rxclient.getStats().getIdleCount();
         }
         return total;        
@@ -155,7 +155,7 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
     @Monitor(name="Total", type=DataSourceType.GAUGE)
     public long getTotalConnectionCount() {
         long total = 0;
-        for (RxClient rxclient: rxClients.values()) {
+        for (T rxclient: rxClients.values()) {
             total += rxclient.getStats().getTotalConnectionCount();
         }
         return total;        
@@ -164,7 +164,7 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
     @Monitor(name="PendingAccquire", type=DataSourceType.GAUGE)
     public long getPendingAcquireRequestCount() {
         long total = 0;
-        for (RxClient rxclient: rxClients.values()) {
+        for (T rxclient: rxClients.values()) {
             total += rxclient.getStats().getPendingAcquireRequestCount();
         }
         return total;
@@ -173,7 +173,7 @@ public class GlobalPoolStats implements Observer<PoolStateChangeEvent>, PoolStat
     @Monitor(name="PendingRelease", type=DataSourceType.GAUGE)
     public long getPendingReleaseRequestCount() {
         long total = 0;
-        for (RxClient rxclient: rxClients.values()) {
+        for (T rxclient: rxClients.values()) {
             total += rxclient.getStats().getPendingReleaseRequestCount();
         }
         return total;

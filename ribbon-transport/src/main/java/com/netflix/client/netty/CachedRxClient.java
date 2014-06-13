@@ -1,20 +1,24 @@
 package com.netflix.client.netty;
 
+import io.netty.handler.codec.http.HttpHeaders;
 import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
-import io.reactivex.netty.client.PoolInsightProvider.PoolStateChangeEvent;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
+import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 
 import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.annotation.Nullable;
+
 import rx.Observable;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
 import com.netflix.loadbalancer.ClientObservableProvider;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
@@ -28,7 +32,7 @@ public abstract class CachedRxClient<I, O, T extends RxClient<I, O>> implements 
     protected final LoadBalancerExecutor lbExecutor;
     protected final PipelineConfigurator<O, I> pipelineConfigurator;
     protected final IClientConfig clientConfig;
-        
+    
     public CachedRxClient(ILoadBalancer lb, IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         rxClientCache = new ConcurrentHashMap<Server, T>();
         lbExecutor = new LoadBalancerExecutor(lb, config, retryHandler);
@@ -36,7 +40,19 @@ public abstract class CachedRxClient<I, O, T extends RxClient<I, O>> implements 
         this.clientConfig = config;
         addLoadBalancerListener();
     }
-        
+      
+    public IClientConfig getClientConfig() {
+        return clientConfig;
+    }
+    
+    protected <S> S getProperty(IClientConfigKey<S> key, @Nullable IClientConfig requestConfig, S defaultValue) {
+        if (requestConfig != null && requestConfig.getPropertyWithType(key) != null) {
+            return requestConfig.getPropertyWithType(key);
+        } else {
+            return clientConfig.getPropertyWithType(key, defaultValue);
+        }
+    }
+
     /**
      * This is where we remove HttpClient and shutdown its connection pool if it is no longer available from load balancer.
      */
@@ -90,12 +106,6 @@ public abstract class CachedRxClient<I, O, T extends RxClient<I, O>> implements 
     }
     
     @Override
-    public Observable<PoolStateChangeEvent> poolStateChangeObservable() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public Observable<ObservableConnection<O, I>> connect() {
         return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<ObservableConnection<O, I>>() {
             @Override
@@ -112,9 +122,12 @@ public abstract class CachedRxClient<I, O, T extends RxClient<I, O>> implements 
     }
 
     @Override
-    public PoolStats getStats() {
-        // TODO Auto-generated method stub
-        return null;
+    public Observable<PoolStateChangeEvent> poolStateChangeObservable() {
+        return Observable.empty();
     }
 
+    @Override
+    public PoolStats getStats() {
+        return null;
+    }
 }

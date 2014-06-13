@@ -68,7 +68,7 @@ class CachedHttpClientWithConnectionPool<I, O> extends NettyHttpClient<I, O>  {
             IClientConfig config,
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             RetryHandler errorHandler) {
-        super(lb, config, pipelineConfigurator, errorHandler);
+        // super(lb, config, pipelineConfigurator, errorHandler);
         int maxTotalConnections = config.getPropertyWithType(IClientConfigKey.CommonKeys.MaxTotalHttpConnections,
                 DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS);
         int maxConnections = config.getPropertyWithType(CommonKeys.MaxHttpConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST);
