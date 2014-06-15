@@ -10,8 +10,6 @@ import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
-import java.util.concurrent.ScheduledExecutorService;
-
 import rx.Observable;
 
 import com.netflix.client.RetryHandler;
@@ -20,15 +18,27 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.loadbalancer.ILoadBalancer;
 
-class SSEClient<I> extends NettyHttpClient<I, ServerSentEvent> {
+public class SSEClient<I> extends NettyHttpClient<I, ServerSentEvent> {
     
     public SSEClient(
             ILoadBalancer lb,
             IClientConfig config,
             RetryHandler retryHandler,
-            PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator,
-            ScheduledExecutorService poolCleanerScheduler) {
-        super(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
+            PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator) {
+        super(lb, config, retryHandler, pipelineConfigurator, null);
+    }
+
+    public SSEClient(
+            IClientConfig config,
+            RetryHandler retryHandler,
+            PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator) {
+        super(config, retryHandler, pipelineConfigurator, null);
+    }
+
+    public SSEClient(
+            ILoadBalancer lb,
+            PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipeLineConfigurator) {
+        super(lb, pipeLineConfigurator, null);
     }
 
     @Override

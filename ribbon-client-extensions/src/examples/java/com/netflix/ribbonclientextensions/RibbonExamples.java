@@ -13,6 +13,7 @@ import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbonclientextensions.FallbackDeterminator;
 import com.netflix.ribbonclientextensions.Ribbon;
+import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 
 

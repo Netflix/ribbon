@@ -25,7 +25,10 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.contexts.ContextPipelineConfigurators;
+import io.reactivex.netty.contexts.RequestIdProvider;
 import io.reactivex.netty.contexts.RxContexts;
+import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClient;
@@ -52,7 +55,7 @@ import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.CachedPooledRxClient;
+import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
 import com.netflix.loadbalancer.ClientObservableProvider;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
@@ -65,76 +68,32 @@ import com.netflix.loadbalancer.ServerStats;
  *   
  * @author awang
  */
-public class NettyHttpClient<I, O> extends CachedPooledRxClient<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
+public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
         implements HttpClient<I, O> {
     protected static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_PIPELINE_CONFIGURATOR = 
             PipelineConfigurators.httpClientConfigurator();
     protected static final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<ByteBuf>> DEFAULT_SSE_PIPELINE_CONFIGURATOR = 
             PipelineConfigurators.sseClientConfigurator();
     
-    public static NettyHttpClient<ByteBuf, ByteBuf> createDefaultHttpClient() {
-        return createDefaultHttpClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
-    }
+    private String requestIdHeaderName;
     
-    public static NettyHttpClient<ByteBuf, ByteBuf> createDefaultHttpClient(ILoadBalancer lb) {
-        return createDefaultHttpClient(lb, 
-                DefaultClientConfigImpl.getClientConfigWithDefaultValues(), null);
-    }
-
-    public static NettyHttpClient<ByteBuf, ByteBuf> createDefaultHttpClient(ILoadBalancer lb, IClientConfig config) {
-        return createDefaultHttpClient(lb, config, null);
-    }
-
-    public static NettyHttpClient<ByteBuf, ByteBuf> createDefaultHttpClient(IClientConfig config) {
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder()
-                .withClientConfig(config)
-                .buildLoadBalancerFromConfigWithReflection();
-        return createDefaultHttpClient(lb, config, null);
-    }
-    
-    public static NettyHttpClient<ByteBuf, ByteBuf> createDefaultHttpClient(ILoadBalancer lb, IClientConfig config, RetryHandler handler) {
-        return new CachedHttpClientWithConnectionPool<ByteBuf, ByteBuf>(lb, config, 
-                NettyHttpClient.DEFAULT_PIPELINE_CONFIGURATOR, handler);
-    }
-    
-    public static <I, O> NettyHttpClient<I, O> createHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator) {
-        return createHttpClient(lb, pipelineConfigurator, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), null);    
-    }
-    
-    public static <I, O> NettyHttpClient<I, O> createHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator, 
-            IClientConfig config, RetryHandler handler) {
-        return new CachedHttpClientWithConnectionPool<I, O>(lb, config, 
-                pipelineConfigurator, handler);
-    }
-
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb) {
-        return createDefaultSSEClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), null);
-    }
-
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb, IClientConfig config) {
-        return createDefaultSSEClient(lb, config, null);
-    }
-
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(IClientConfig config) {
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder()
-                .withClientConfig(config)
-                .buildLoadBalancerFromConfigWithReflection();
-        return createDefaultSSEClient(lb, config);
-    }
-    
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient() {
-        return createDefaultSSEClient(DefaultClientConfigImpl.getClientConfigWithDefaultValues());
-    }
-
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> createDefaultSSEClient(ILoadBalancer lb, IClientConfig config, RetryHandler handler) {
-        return new SSEClient<ByteBuf>(lb, config, DEFAULT_SSE_PIPELINE_CONFIGURATOR, handler);
-    }
+    private HttpRequestIdProvider requestIdProvider;
     
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
-        this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), new NettyHttpLoadBalancerErrorHandler(), pipeLineConfigurator, poolCleanerScheduler);
+        this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
+                new NettyHttpLoadBalancerErrorHandler(), pipeLineConfigurator, poolCleanerScheduler);
     }
     
+    public NettyHttpClient(
+            IClientConfig config,
+            RetryHandler retryHandler,
+            PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
+            ScheduledExecutorService poolCleanerScheduler) {
+        this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildDynamicServerListLoadBalancer(),
+                config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
+    }
+
     public NettyHttpClient(
             ILoadBalancer lb,
             IClientConfig config,
@@ -142,7 +101,8 @@ public class NettyHttpClient<I, O> extends CachedPooledRxClient<HttpClientReques
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         super(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
-        // TODO Auto-generated constructor stub
+        requestIdHeaderName = getProperty(IClientConfigKey.CommonKeys.RequestIdHeaderName, null, DefaultClientConfigImpl.DEFAULT_REQUEST_ID_HEADER_NAME);
+        requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
     }
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
@@ -277,8 +237,11 @@ public class NettyHttpClient<I, O> extends CachedPooledRxClient<HttpClientReques
 
     @Override
     protected HttpClient<I, O> cacheLoadRxClient(Server server) {
-        String requestIdHeaderName = getProperty(IClientConfigKey.CommonKeys.RequestIdHeaderName, null, DefaultClientConfigImpl.DEFAULT_REQUEST_ID_HEADER_NAME);
-        HttpClientBuilder<I, O> clientBuilder = RxContexts.newHttpClientBuilder(server.getHost(), server.getPort(), requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
+        HttpClientBuilder<I, O> clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
+                requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR)
+                .pipelineConfigurator(ContextPipelineConfigurators.httpClientConfigurator(requestIdProvider,
+                        RxContexts.DEFAULT_CORRELATOR,
+                        pipelineConfigurator));
         Integer connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         Integer readTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
         Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, null, null);
@@ -287,14 +250,20 @@ public class NettyHttpClient<I, O> extends CachedPooledRxClient<HttpClientReques
             builder.setFollowRedirect(followRedirect);
         }
         RxClient.ClientConfig rxClientConfig = builder.build();
-        HttpClient<I, O> client = clientBuilder.channelOption(
+        clientBuilder.channelOption(
                 ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout)
-                .config(rxClientConfig)
-                .withConnectionPoolLimitStrategy(poolStrategy)
-                .withIdleConnectionsTimeoutMillis(idleConnectionEvictionMills)
-                .withPoolIdleCleanupScheduler(poolCleanerScheduler)
-                .build();
-        client.poolStateChangeObservable().subscribe(stats);
+                .config(rxClientConfig);
+        if (isPoolEnabled()) {
+            clientBuilder.withConnectionPoolLimitStrategy(poolStrategy)
+            .withIdleConnectionsTimeoutMillis(idleConnectionEvictionMills)
+            .withPoolIdleCleanupScheduler(poolCleanerScheduler);
+        } else {
+            clientBuilder.withNoConnectionPooling();
+        }
+        HttpClient<I, O> client = clientBuilder.build();
+        if (isPoolEnabled()) {
+            client.poolStateChangeObservable().subscribe(stats);
+        }
         return client;
     }
 }

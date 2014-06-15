@@ -1,7 +1,5 @@
 package com.netflix.ribbonclientextensions;
 
-import java.util.List;
-
 import com.netflix.hystrix.HystrixCollapserProperties;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixThreadPoolProperties;
@@ -20,6 +18,8 @@ public interface RequestTemplate<I, O, R> {
     
     RequestTemplate<I, O, R> copy();
     
+    RequestTemplate<I, O, R> withName(String name);
+    
     RequestTemplate<I, O, R> withFallbackProvider(FallbackHandler<O> fallbackProvider);
     
     RequestTemplate<I, O, R> withFallbackDeterminator(FallbackDeterminator<R> fallbackDeterminator);
@@ -29,12 +29,12 @@ public interface RequestTemplate<I, O, R> {
      * on the supplied cache key. Caller can explicitly disable Hystrix request cache by calling 
      * {@link #withHystrixCommandPropertiesDefaults(com.netflix.hystrix.HystrixCommandProperties.Setter)}
      *     
-     * @param cacheProviders External cache providers. Can be empty which means only enable Hystrix internal 
-     *              request cache.
      * @param cacheKeyTemplate
      * @return
      */
-    RequestTemplate<I, O, R> withCache(String cacheKeyTemplate, List<CacheProvider<O>> cacheProviders);
+    RequestTemplate<I, O, R> withCacheKey(String cacheKeyTemplate);
+
+    RequestTemplate<I, O, R> addCacheProvider(CacheProvider<O> cacheProvider);
     
     RequestTemplate<I, O, R> withHystrixCommandPropertiesDefaults(HystrixCommandProperties.Setter setter);
     

@@ -1,16 +1,27 @@
-package com.netflix.ribbonclientextensions;
+package com.netflix.ribbonclientextensions.http;
 
 import java.util.List;
 
 import io.reactivex.netty.protocol.http.client.ContentSource;
+import io.reactivex.netty.protocol.http.client.HttpClient;
+import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RawContentSource;
 
 import com.netflix.hystrix.HystrixCommandProperties.Setter;
+import com.netflix.ribbonclientextensions.CacheProvider;
+import com.netflix.ribbonclientextensions.FallbackDeterminator;
+import com.netflix.ribbonclientextensions.RequestTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 
 public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClientResponse<O>> {
 
+    private final HttpClient<I, O> client;
+    
+    public HttpRequestTemplate(HttpClient<I, O> client) {
+        this.client = client;
+    }
+    
     @Override
     public HttpRequestTemplate<I, O> withFallbackProvider(FallbackHandler<O> fallbackProvider) {
         return this;
@@ -18,7 +29,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
 
     @Override
     public RequestBuilder<O> requestBuilder() {
-        return null;
+        return new HttpRequestBuilder<I, O>(client, this);
     }
     
     public HttpRequestTemplate<I, O> withUri(String uri) {
@@ -63,12 +74,36 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
 
     @Override
     public HttpRequestTemplate<I, O> copy() {
-        return null;
+        return this;
     }
 
     @Override
-    public HttpRequestTemplate<I, O> withCache(
-            String cacheKeyTemplate, List<CacheProvider<O>> cacheProviders) {
+    public RequestTemplate<I, O, HttpClientResponse<O>> withName(String name) {
         return this;
     }
+
+    @Override
+    public RequestTemplate<I, O, HttpClientResponse<O>> withCacheKey(
+            String cacheKeyTemplate) {
+        return this;
+    }
+
+    @Override
+    public RequestTemplate<I, O, HttpClientResponse<O>> addCacheProvider(
+            CacheProvider<O> cacheProvider) {
+        return this;
+    }
+        
+    String cacheKey() {
+        return null;
+    }
+    
+    List<CacheProvider<O>> cacheProviders() {
+        return null;
+    }
+    
+    String name() {
+        return null;
+    }
 }
+

@@ -1,5 +1,7 @@
 package com.netflix.ribbonclientextensions;
 
+import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
+
 import io.reactivex.netty.protocol.http.client.HttpClient;
 
 public final class Ribbon {

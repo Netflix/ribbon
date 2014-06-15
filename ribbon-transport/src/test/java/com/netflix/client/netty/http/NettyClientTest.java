@@ -25,7 +25,6 @@ import static org.junit.Assert.fail;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
-import io.reactivex.netty.contexts.ContextKeySupplier;
 import io.reactivex.netty.contexts.ContextsContainer;
 import io.reactivex.netty.contexts.ContextsContainerImpl;
 import io.reactivex.netty.contexts.MapBackedKeySupplier;
@@ -44,8 +43,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -61,12 +58,13 @@ import com.google.mockwebserver.MockWebServer;
 import com.netflix.client.ClientException;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
+import com.netflix.client.config.ClientConfigBuilder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.http.NettyHttpClient;
-import com.netflix.client.netty.http.NettyHttpLoadBalancerErrorHandler;
+import com.netflix.client.netty.GlobalPoolStats;
+import com.netflix.client.netty.RibbonTransport;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;
@@ -138,7 +136,7 @@ public class NettyClientTest {
     @Test
     public void testObservable() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
         // final List<Person> result = Lists.newArrayList();
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
         Person person = getPersonObservable(response).toBlockingObservable().single();
@@ -155,7 +153,7 @@ public class NettyClientTest {
     @Test
     public void testPoolReuse() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
         // final List<Person> result = Lists.newArrayList();
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
         Person person = getPersonObservable(response).toBlockingObservable().single();
@@ -180,7 +178,7 @@ public class NettyClientTest {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createPost(SERVICE_URI + "testAsync/person")
                 .withHeader("Content-type", "application/json")
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), myPerson, null));
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient(
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
                 DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.ReadTimeout, 10000));
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
         Person person = getPersonObservable(response).toBlockingObservable().single();
@@ -198,7 +196,7 @@ public class NettyClientTest {
                 .withHeader("Content-type", "application/json")
                 .withHeader("Content-length", String.valueOf(raw.length))
                 .withContent(buffer);
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient(
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
                 DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.ReadTimeout, 10000));
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
         Person person = getPersonObservable(response).toBlockingObservable().single();
@@ -208,7 +206,7 @@ public class NettyClientTest {
     
     @Test
     public void testConnectTimeout() throws Exception {
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient(
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
                 DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1"));
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("http://www.google.com:81/");
         Observable<HttpClientResponse<ByteBuf>> observable = observableClient.submit("www.google.com", 81, request);
@@ -222,7 +220,7 @@ public class NettyClientTest {
     
     @Test
     public void testReadTimeout() throws Exception {
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient(
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
                 DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ReadTimeout, "100"));
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/readTimeout");
         Observable<HttpClientResponse<ByteBuf>> observable = observableClient.submit(host, port, request);
@@ -245,7 +243,7 @@ public class NettyClientTest {
                 .withPing(new DummyPing())
                 .buildFixedServerListLoadBalancer(servers);
         
-        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, 
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config, 
                 new NettyHttpLoadBalancerErrorHandler(1, 3, true));
         Person person = getPersonObservable(lbObservables.submit(request)).toBlockingObservable().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
@@ -275,7 +273,7 @@ public class NettyClientTest {
                 .withPing(new DummyPing())
                 .buildFixedServerListLoadBalancer(servers);
         
-        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, 
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config, 
                 new NettyHttpLoadBalancerErrorHandler(1, 0, true));
 
         Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request));
@@ -309,7 +307,7 @@ public class NettyClientTest {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/readTimeout");//.withHeader("Content-length", "-1");
         
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
-        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, errorHandler);
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config, errorHandler);
         Server goodServer = new Server("localhost:" + server.getPort());
         Server badServer = new Server("localhost:" + port);
         List<Server> servers = Lists.newArrayList(goodServer, badServer, badServer, goodServer);
@@ -349,7 +347,7 @@ public class NettyClientTest {
                 .withHeader("Content-type", "application/json");
         NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
-        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, errorHandler);
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config, errorHandler);
         Server goodServer = new Server("localhost:" + server.getPort());
         Server badServer = new Server("localhost:" + port);
         List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
@@ -397,7 +395,7 @@ public class NettyClientTest {
                 .withHeader("Content-type", "application/json");
         NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(0, 3, true);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
-        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, errorHandler);
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config, errorHandler);
         Server goodServer = new Server("localhost:" + server.getPort());
         Server badServer = new Server("localhost:" + port);
         List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);
@@ -430,16 +428,16 @@ public class NettyClientTest {
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
     }
 
-
-
-    
     @Test
-    public void testObservableWithMultipleServersFailed() throws Exception {
-        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "100");
+    public void testObservableWithMultipleServersFailed() throws Exception {        
+        IClientConfig config = ClientConfigBuilder.newBuilderWithDefaultConfigValues().withRetryOnAllOperations(true)
+                .withMaxAutoRetries(1)
+                .withMaxAutoRetriesNextServer(3)
+                .withConnectTimeout(100)
+                .build();
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());        
-        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config, errorHandler);
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config);
         Server badServer = new Server("localhost:12345");
         Server badServer1 = new Server("localhost:12346");
         Server badServer2 = new Server("localhost:12347");
@@ -487,7 +485,7 @@ public class NettyClientTest {
     @Test
     public void testStream() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/personStream");
-        NettyHttpClient<ByteBuf, ServerSentEvent> observableClient = NettyHttpClient.createDefaultSSEClient();
+        NettyHttpClient<ByteBuf, ServerSentEvent> observableClient = (NettyHttpClient<ByteBuf, ServerSentEvent>) RibbonTransport.newSSEClient();
         List<Person> result = getPersonListFromResponse(observableClient.submit(host, port, request));
         assertEquals(EmbeddedResources.entityStream, result);
     }
@@ -495,10 +493,14 @@ public class NettyClientTest {
     
     @Test
     public void testStreamWithLoadBalancer() throws Exception {
-        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
+        // NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
+        // IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
+        IClientConfig config = ClientConfigBuilder.newBuilder().withRetryOnAllOperations(true)
+                .withMaxAutoRetries(1)
+                .withMaxAutoRetriesNextServer(3)
+                .build();
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
-        NettyHttpClient<ByteBuf, ServerSentEvent> lbObservables = NettyHttpClient.createDefaultSSEClient(lb, config, errorHandler);
+        NettyHttpClient<ByteBuf, ServerSentEvent> lbObservables = (NettyHttpClient<ByteBuf, ServerSentEvent>) RibbonTransport.newSSEClient(lb, config);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/personStream");
         List<Person> result = Lists.newArrayList();
         Server goodServer = new Server("localhost:" + port);
@@ -513,16 +515,15 @@ public class NettyClientTest {
     public void testQuery() throws Exception {
         Person myPerson = new Person("hello_world", 4);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/personQuery?name=" + myPerson.name + "&age=" + myPerson.age);
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
         Person person = getPersonObservable(observableClient.submit(host, port, request)).toBlockingObservable().single();
         assertEquals(myPerson, person);
     }
     
-        
     @Test
     public void testUnexpectedResponse() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/throttle");
-        NettyHttpClient<ByteBuf, ByteBuf> client = NettyHttpClient.createDefaultHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> client = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
         Observable<HttpClientResponse<ByteBuf>> responseObservable = client.submit(host, port, request);
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
         final CountDownLatch latch = new CountDownLatch(1);
@@ -553,7 +554,7 @@ public class NettyClientTest {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/throttle");
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());        
-        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = NettyHttpClient.createDefaultHttpClient(lb, config);
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config);
         Server server = new Server(host, port);
 
         List<Server> servers = Lists.newArrayList(server, server, server);
@@ -586,7 +587,7 @@ public class NettyClientTest {
     @Test
     public void testContext() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/context");
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
         String requestId = "xyz";
         ContextsContainerImpl contextsContainer = new ContextsContainerImpl(new MapBackedKeySupplier());
         contextsContainer.addContext("Context1", "value1");
@@ -615,7 +616,7 @@ public class NettyClientTest {
     @Ignore
     public void testRedirect() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/redirect?port=" + port);
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = NettyHttpClient.createDefaultHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
         Person person = getPersonObservable(observableClient.submit(host, port, request)).toBlockingObservable().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
     } 
