@@ -1,5 +1,7 @@
 package com.netflix.ribbonclientextensions;
 
+import rx.functions.Func1;
+
 import com.netflix.hystrix.HystrixCollapserProperties;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixThreadPoolProperties;
@@ -22,7 +24,7 @@ public interface RequestTemplate<I, O, R> {
     
     RequestTemplate<I, O, R> withFallbackProvider(FallbackHandler<O> fallbackProvider);
     
-    RequestTemplate<I, O, R> withFallbackDeterminator(FallbackDeterminator<R> fallbackDeterminator);
+    RequestTemplate<I, O, R> withNetworkResponseTransformer(ResponseTransformer<R> transformer);
         
     /**
      * Calling this method will enable both Hystrix request cache and supplied external cache providers  

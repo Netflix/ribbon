@@ -5,13 +5,14 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import rx.Observable;
 import rx.functions.Action1;
+import rx.functions.Func1;
 
 import com.netflix.client.config.ClientConfigBuilder;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.netty.RibbonTransport;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.ribbonclientextensions.FallbackDeterminator;
+import com.netflix.ribbonclientextensions.ResponseTransformer;
 import com.netflix.ribbonclientextensions.Ribbon;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
@@ -22,11 +23,15 @@ public class RibbonExamples {
         IClientConfig config = ClientConfigBuilder.newBuilderWithArchaiusProperties("myclient").build();
         HttpClient<ByteBuf, ByteBuf> transportClient = RibbonTransport.newHttpClient(config);
         HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate(transportClient)
-        .withFallbackDeterminator(new FallbackDeterminator<HttpClientResponse<ByteBuf>>() {
+        .withNetworkResponseTransformer(new ResponseTransformer<HttpClientResponse<ByteBuf>>() {
+
             @Override
-            public boolean shouldTriggerFallback(
-                    HttpClientResponse<ByteBuf> response) {
-                return response.getStatus().code() >= 500;
+            public HttpClientResponse<ByteBuf> call(
+                    HttpClientResponse<ByteBuf> t1) {
+                if (t1.getStatus().code() >= 500) {
+                    throw new RuntimeException("Unexpected response");
+                }
+                return t1;
             }
         })   
         .withFallbackProvider(new FallbackHandler<ByteBuf>() {

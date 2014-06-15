@@ -35,6 +35,7 @@ public class RibbonHystrixObservableCommand<I, O> extends HystrixObservableComma
     @Override
     protected Observable<O> run() {
         HttpClientRequest<I> request = requestBuilder.createClientRequest();
+        // TODO: add filtering of response and trigger Hystrix fallback
         return httpClient.submit(request)
                 .flatMap(new Func1<HttpClientResponse<O>, Observable<O>>() {
                     @Override

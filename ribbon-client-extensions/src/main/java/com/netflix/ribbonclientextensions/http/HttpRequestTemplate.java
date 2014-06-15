@@ -2,6 +2,8 @@ package com.netflix.ribbonclientextensions.http;
 
 import java.util.List;
 
+import rx.functions.Func1;
+
 import io.reactivex.netty.protocol.http.client.ContentSource;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
@@ -10,7 +12,7 @@ import io.reactivex.netty.protocol.http.client.RawContentSource;
 
 import com.netflix.hystrix.HystrixCommandProperties.Setter;
 import com.netflix.ribbonclientextensions.CacheProvider;
-import com.netflix.ribbonclientextensions.FallbackDeterminator;
+import com.netflix.ribbonclientextensions.ResponseTransformer;
 import com.netflix.ribbonclientextensions.RequestTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 
@@ -49,12 +51,6 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     }
 
     @Override
-    public HttpRequestTemplate<I, O> withFallbackDeterminator(
-            FallbackDeterminator<HttpClientResponse<O>> fallbackDeterminator) {
-        return this;
-    }
-
-    @Override
     public HttpRequestTemplate<I, O> withHystrixCommandPropertiesDefaults(
             Setter setter) {
         return this;
@@ -78,18 +74,18 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     }
 
     @Override
-    public RequestTemplate<I, O, HttpClientResponse<O>> withName(String name) {
+    public HttpRequestTemplate<I, O> withName(String name) {
         return this;
     }
 
     @Override
-    public RequestTemplate<I, O, HttpClientResponse<O>> withCacheKey(
+    public HttpRequestTemplate<I, O> withCacheKey(
             String cacheKeyTemplate) {
         return this;
     }
 
     @Override
-    public RequestTemplate<I, O, HttpClientResponse<O>> addCacheProvider(
+    public HttpRequestTemplate<I, O> addCacheProvider(
             CacheProvider<O> cacheProvider) {
         return this;
     }
@@ -104,6 +100,12 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     
     String name() {
         return null;
+    }
+
+    @Override
+    public HttpRequestTemplate<I, O> withNetworkResponseTransformer(
+            ResponseTransformer<HttpClientResponse<O>> transformer) {
+        return this;
     }
 }
 
