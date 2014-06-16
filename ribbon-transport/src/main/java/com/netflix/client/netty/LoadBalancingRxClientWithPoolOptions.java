@@ -10,6 +10,7 @@ import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.IClientConfigKey.CommonKeys;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.Server;
 
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
@@ -90,7 +91,17 @@ public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxCli
 
     @Override
     public PoolStats getStats() {
-        return stats;
+        if (poolEnabled) {
+            return stats;
+        } 
+        return super.getStats();
+    }
+
+    @Override
+    public int getMaxConcurrentRequests() {
+        if (poolEnabled) {
+            return globalStrategy.getMaxConnections();
+        }
+        return super.getMaxConcurrentRequests();
     }
 }
-

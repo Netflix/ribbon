@@ -3,6 +3,8 @@ package com.netflix.ribbonclientextensions.http;
 import java.util.concurrent.Future;
 
 import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
 
 import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.RibbonResponse;
@@ -34,11 +36,40 @@ class HttpRequest<I, O> implements RibbonRequest<O> {
     public Observable<O> toObservable() {
         return hystrixCommand.toObservable();
     }
-
+    
     @Override
     public RibbonRequest<RibbonResponse<O>> withMetadata() {
-        // TODO Auto-generated method stub
-        return null;
+        return new RibbonRequest<RibbonResponse<O>>() {
+
+            @Override
+            public RibbonResponse<O> execute() {
+                // TODO Auto-generated method stub
+                return null;
+            }
+
+            @Override
+            public Future<RibbonResponse<O>> queue() {
+                // TODO Auto-generated method stub
+                return null;
+            }
+
+            @Override
+            public Observable<RibbonResponse<O>> observe() {
+                // TODO Auto-generated method stub
+                return null;
+            }
+
+            @Override
+            public Observable<RibbonResponse<O>> toObservable() {
+                return null;
+            }
+
+            @Override
+            public RibbonRequest<RibbonResponse<RibbonResponse<O>>> withMetadata() {
+                return null;
+            }
+        };
+       
     }
 
 }

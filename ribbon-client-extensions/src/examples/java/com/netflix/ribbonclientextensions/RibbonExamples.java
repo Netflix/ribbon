@@ -10,6 +10,7 @@ import rx.functions.Func1;
 import com.netflix.client.config.ClientConfigBuilder;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.netty.RibbonTransport;
+import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbonclientextensions.ResponseTransformer;
@@ -22,7 +23,7 @@ public class RibbonExamples {
     public static void main(String[] args) {
         IClientConfig config = ClientConfigBuilder.newBuilderWithArchaiusProperties("myclient").build();
         HttpClient<ByteBuf, ByteBuf> transportClient = RibbonTransport.newHttpClient(config);
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate(transportClient)
+        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("GetUser", transportClient)
         .withNetworkResponseTransformer(new ResponseTransformer<HttpClientResponse<ByteBuf>>() {
 
             @Override
@@ -40,7 +41,8 @@ public class RibbonExamples {
                 return Observable.empty();
             }
         })
-        .withHystrixCommandPropertiesDefaults((HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000)))
+        .withHystrixProperties((HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("mygroup"))
+                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000))))
         .withUri("/{id}");
         
         template.requestBuilder().withValue("id", 1).build().execute();

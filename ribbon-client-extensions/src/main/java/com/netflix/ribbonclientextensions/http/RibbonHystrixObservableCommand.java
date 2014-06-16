@@ -6,8 +6,6 @@ import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import rx.Observable;
 import rx.functions.Func1;
 
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.HystrixObservableCommand;
 
 public class RibbonHystrixObservableCommand<I, O> extends HystrixObservableCommand<O> {
@@ -19,9 +17,8 @@ public class RibbonHystrixObservableCommand<I, O> extends HystrixObservableComma
     public RibbonHystrixObservableCommand(
             HttpClient<I, O> httpClient,
             HttpRequestTemplate<I, O> requestTemplate,
-            HttpRequestBuilder<I, O> requestBuilder) {
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("ExampleGroup"))
-                .andCommandKey(HystrixCommandKey.Factory.asKey(requestTemplate.name())));
+            HttpRequestBuilder<I, O> requestBuilder, RibbonHystrixObservableCommand.Setter setter) {
+        super(setter);
         this.httpClient = httpClient;
         this.requestTemplate = requestTemplate;
         this.requestBuilder = requestBuilder;
@@ -29,6 +26,7 @@ public class RibbonHystrixObservableCommand<I, O> extends HystrixObservableComma
 
     @Override
     protected String getCacheKey() {
+        // TODO: should be from builder
         return requestTemplate.cacheKey();
     }
 
@@ -44,4 +42,6 @@ public class RibbonHystrixObservableCommand<I, O> extends HystrixObservableComma
                     }
                 });
     }
+    
+    
 }

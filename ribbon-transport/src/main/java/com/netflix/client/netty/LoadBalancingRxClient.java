@@ -15,6 +15,7 @@ import javax.annotation.Nullable;
 import rx.Observable;
 
 import com.netflix.client.RetryHandler;
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.loadbalancer.ClientObservableProvider;
@@ -31,6 +32,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     protected final LoadBalancerExecutor lbExecutor;
     protected final PipelineConfigurator<O, I> pipelineConfigurator;
     protected final IClientConfig clientConfig;
+    protected final RetryHandler retryHandler;
 
     public LoadBalancingRxClient(IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
@@ -43,6 +45,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     public LoadBalancingRxClient(ILoadBalancer lb, IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         rxClientCache = new ConcurrentHashMap<Server, T>();
         lbExecutor = new LoadBalancerExecutor(lb, config, retryHandler);
+        this.retryHandler = retryHandler;
         this.pipelineConfigurator = pipelineConfigurator;
         this.clientConfig = config;
         addLoadBalancerListener();
@@ -52,6 +55,29 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         return clientConfig;
     }
     
+    public String getName() {
+        return clientConfig.getClientName();
+    }
+    
+    public int getResponseTimeOut() {
+        int maxRetryNextServer = 0;
+        int maxRetrySameServer = 0;
+        if (retryHandler != null) {
+            maxRetryNextServer = retryHandler.getMaxRetriesOnNextServer();
+            maxRetrySameServer = retryHandler.getMaxRetriesOnSameServer();
+        } else {
+            maxRetryNextServer = clientConfig.getPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER);
+            maxRetrySameServer = clientConfig.getPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
+        }
+        int readTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
+        int connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
+        return (maxRetryNextServer + 1) * (maxRetrySameServer + 1) * (readTimeout + connectTimeout);
+    }
+    
+    public int getMaxConcurrentRequests() {
+        return -1;
+    }
+        
     protected <S> S getProperty(IClientConfigKey<S> key, @Nullable IClientConfig requestConfig, S defaultValue) {
         if (requestConfig != null && requestConfig.getPropertyWithType(key) != null) {
             return requestConfig.getPropertyWithType(key);
