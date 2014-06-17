@@ -17,10 +17,6 @@
 */
 package com.netflix.client.config;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -127,10 +123,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_CONNECT_TIMEOUT = 2000;
 
+    public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = Boolean.TRUE;
+    
+    @Deprecated
     public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = 50;
 
+    @Deprecated
     public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = 200;
 
+    public static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 50;
+
+    public static final int DEFAULT_MAX_TOTAL_CONNECTIONS = 200;
 
     public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = 1.0f;
 
@@ -141,6 +144,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
 
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
+    
+    public static final String DEFAULT_REQUEST_ID_HEADER_NAME = "RequestId";
 
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
     
@@ -266,14 +271,24 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return DEFAULT_CONNECT_TIMEOUT;
 	}
 
+	@Deprecated
 	public int getDefaultMaxHttpConnectionsPerHost() {
 		return DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST;
 	}
 
+	@Deprecated
 	public int getDefaultMaxTotalHttpConnections() {
 		return DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS;
 	}
 
+	public int getDefaultMaxConnectionsPerHost() {
+	    return DEFAULT_MAX_CONNECTIONS_PER_HOST;
+	}
+
+	public int getDefaultMaxTotalConnections() {
+	    return DEFAULT_MAX_TOTAL_CONNECTIONS;
+	}
+	
 	public float getDefaultMinPrimeConnectionsRatio() {
 		return DEFAULT_MIN_PRIME_CONNECTIONS_RATIO;
 	}
@@ -292,6 +307,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 	public int getDefaultConnectionidleTimeInMsecs() {
 		return DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS;
+	}
+	
+	public String getDefaultRequestIdHeaderName() {
+	    return DEFAULT_REQUEST_ID_HEADER_NAME;
 	}
 
 	public VipAddressResolver getResolver() {
@@ -363,6 +382,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
     protected void loadDefaultValues() {
         putDefaultIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
         putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
+        putDefaultBooleanProperty(CommonClientConfigKey.EnableConnectionPool, getDefaultEnableConnectionPool());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxConnectionsPerHost, getDefaultMaxConnectionsPerHost());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalConnections, getDefaultMaxTotalConnections());
         putDefaultIntegerProperty(CommonClientConfigKey.ConnectTimeout, getDefaultConnectTimeout());
         putDefaultIntegerProperty(CommonClientConfigKey.ConnectionManagerTimeout, getDefaultConnectionManagerTimeout());
         putDefaultIntegerProperty(CommonClientConfigKey.ReadTimeout, getDefaultReadTimeout());
@@ -407,6 +429,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultStringProperty(CommonClientConfigKey.NIWSServerListClassName, getDefaultSeverListClass());
         putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());
         putDefaultBooleanProperty(CommonClientConfigKey.IsClientAuthRequired, getDefaultIsClientAuthRequired());
+        putDefaultStringProperty(CommonClientConfigKey.RequestIdHeaderName, getDefaultRequestIdHeaderName());
+    }
+
+    public Boolean getDefaultEnableConnectionPool() {
+        return DEFAULT_ENABLE_CONNECTION_POOL;
     }
 
     protected void setPropertyInternal(IClientConfigKey propName, Object value) {
@@ -572,8 +599,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @Override
 	public String resolveDeploymentContextbasedVipAddresses(){
-
         String deploymentContextBasedVipAddressesMacro = (String) getProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses);
+        if (deploymentContextBasedVipAddressesMacro == null) {
+            return null;
+        }
         return getVipAddressResolver().resolve(deploymentContextBasedVipAddressesMacro, this);
     }
 
