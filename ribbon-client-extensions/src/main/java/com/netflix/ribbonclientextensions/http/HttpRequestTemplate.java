@@ -1,5 +1,6 @@
 package com.netflix.ribbonclientextensions.http;
 
+import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.protocol.http.client.ContentSource;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
@@ -24,8 +25,13 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     private final String clientName;
     private final int maxResponseTime;
     private HystrixObservableCommand.Setter setter;
+    private FallbackHandler<O> fallbackHandler;
+    private String uri;
+    private ResponseTransformer<HttpClientResponse<O>> transformer;
+    private HttpMethod method;
+    private String name;
     
-    public HttpRequestTemplate(HttpClient<I, O> client) {
+    public HttpRequestTemplate(String name, HttpClient<I, O> client) {
         this.client = client;
         if (client instanceof LoadBalancingRxClient) {
             LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
@@ -35,10 +41,14 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
             clientName = client.getClass().getName();
             maxResponseTime = -1;
         }
+        this.name = name;
+        // default method to GET
+        method = HttpMethod.GET;
     }
     
     @Override
-    public HttpRequestTemplate<I, O> withFallbackProvider(FallbackHandler<O> fallbackProvider) {
+    public HttpRequestTemplate<I, O> withFallbackProvider(FallbackHandler<O> fallbackHandler) {
+        this.fallbackHandler = fallbackHandler;
         return this;
     }
 
@@ -53,7 +63,13 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return new HttpRequestBuilder<I, O>(client, this, setter);
     }
     
+    public HttpRequestTemplate<I, O> withMethod(String method) {
+        this.method = HttpMethod.valueOf(method);
+        return this;
+    }
+    
     public HttpRequestTemplate<I, O> withUri(String uri) {
+        this.uri = uri;
         return this;
     }
     
@@ -89,14 +105,31 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return null;
     }
     
+    ResponseTransformer<HttpClientResponse<O>> responseTransformer() {
+        return transformer;
+    }
+    
+    FallbackHandler<O> fallbackHandler() {
+        return fallbackHandler;
+    }
+    
+    String uri() {
+        return uri;
+    }
+    
+    HttpMethod method() {
+        return method;
+    }
+    
     @Override
     public String name() {
-        return null;
+        return name;
     }
-
+    
     @Override
     public HttpRequestTemplate<I, O> withNetworkResponseTransformer(
             ResponseTransformer<HttpClientResponse<O>> transformer) {
+        this.transformer = transformer;
         return this;
     }
 
@@ -110,7 +143,9 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     public HttpRequestTemplate<I, O> withHystrixProperties(
             Setter propertiesSetter) {
         // TODO Auto-generated method stub
-        return null;
+        return this;
     }
+    
+    
 }
 

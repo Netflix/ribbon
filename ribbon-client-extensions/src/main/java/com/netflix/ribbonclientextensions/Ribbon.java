@@ -10,7 +10,7 @@ public final class Ribbon {
     }
  
     public static <I, O> HttpRequestTemplate<I, O> newHttpRequestTemplate(String templateName, HttpClient<I, O> transportClient) {
-        return null;
+        return new HttpRequestTemplate<I, O>(templateName, transportClient);
     }
  
     public static <I, O, T> T from(Class<T> contract, HttpClient<I, O> transportClient) {

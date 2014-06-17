@@ -109,36 +109,39 @@ project(':ribbon-test') {
 }
 
 project(':ribbon-client-extensions') {
-configurations {
-    // add new configuration
-    examples
+    configurations {
+        // add new configuration
+        examples
 
-    //adding a configuration that extends existing configuration:
-    //(testCompile was added by the java plugin)
-    examples.extendsFrom(compile)
-    examplesCompile.extendsFrom(compile)
-    examplesRuntime.extendsFrom runtime
-}
-
-sourceSets.test.java.srcDir 'src/main/java'
-
-tasks.withType(Javadoc).each {
-    it.classpath = sourceSets.main.compileClasspath
-}
-
-//include /src/examples folder
-sourceSets {
-    examples {
-        // no idea why this is needed
-        java.srcDirs = []
+        //adding a configuration that extends existing configuration:
+        //(testCompile was added by the java plugin)
+        examples.extendsFrom(compile)
+        examplesCompile.extendsFrom(compile)
+        examplesRuntime.extendsFrom runtime
     }
-}
 
-//include 'examples' in build task
-tasks.build { dependsOn(examplesClasses) }
+    sourceSets.test.java.srcDir 'src/test/java'
+
+    tasks.withType(Javadoc).each {
+        it.classpath = sourceSets.main.compileClasspath
+    }
+    
+    //include /src/examples folder
+    sourceSets {
+        examples {
+            // no idea why this is needed
+            java.srcDirs = []
+        }
+    }
+    
+    //include 'examples' in build task
+    tasks.build { dependsOn(examplesClasses) }
+    
     dependencies {
-        compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
-        compile 'com.netflix.evcache:evcache-client:1.0.5'
-        compile project(':ribbon-transport')
+            compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
+            compile 'com.netflix.evcache:evcache-client:1.0.5'
+            compile project(':ribbon-transport')
+            testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+            
     }
 }

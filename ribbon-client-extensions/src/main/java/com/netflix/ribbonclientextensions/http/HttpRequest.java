@@ -6,6 +6,7 @@ import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 
+import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.RibbonResponse;
 
@@ -61,7 +62,10 @@ class HttpRequest<I, O> implements RibbonRequest<O> {
 
             @Override
             public Observable<RibbonResponse<O>> toObservable() {
+                Observable<O> fromHystrix = HttpRequest.this.toObservable();
+                // TODO: return the 
                 return null;
+               
             }
 
             @Override

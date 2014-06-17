@@ -7,14 +7,15 @@ import rx.Observable;
 import rx.functions.Func1;
 
 import com.netflix.hystrix.HystrixObservableCommand;
+import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 
-public class RibbonHystrixObservableCommand<I, O> extends HystrixObservableCommand<O> {
+class RibbonHystrixObservableCommand<I, O> extends HystrixObservableCommand<O> {
 
     private HttpClient<I, O> httpClient;
     private HttpRequestTemplate<I, O> requestTemplate;
     private HttpRequestBuilder<I, O> requestBuilder;
 
-    public RibbonHystrixObservableCommand(
+    RibbonHystrixObservableCommand(
             HttpClient<I, O> httpClient,
             HttpRequestTemplate<I, O> requestTemplate,
             HttpRequestBuilder<I, O> requestBuilder, RibbonHystrixObservableCommand.Setter setter) {
@@ -29,19 +30,29 @@ public class RibbonHystrixObservableCommand<I, O> extends HystrixObservableComma
         // TODO: should be from builder
         return requestTemplate.cacheKey();
     }
+    
+    @Override
+    protected Observable<O> getFallback() {
+        FallbackHandler<O> handler = requestTemplate.fallbackHandler();
+        if (handler == null) {
+            return super.getFallback();
+        } else {
+            return handler.call(this);
+        }
+    }
 
     @Override
     protected Observable<O> run() {
         HttpClientRequest<I> request = requestBuilder.createClientRequest();
-        // TODO: add filtering of response and trigger Hystrix fallback
-        return httpClient.submit(request)
-                .flatMap(new Func1<HttpClientResponse<O>, Observable<O>>() {
+        Observable<HttpClientResponse<O>> httpResponseObservable = httpClient.submit(request);
+        if (requestTemplate.responseTransformer() != null) {
+            httpResponseObservable = httpResponseObservable.map(requestTemplate.responseTransformer());
+        }
+        return httpResponseObservable.flatMap(new Func1<HttpClientResponse<O>, Observable<O>>() {
                     @Override
                     public Observable<O> call(HttpClientResponse<O> t1) {
                         return t1.getContent();
                     }
                 });
     }
-    
-    
 }

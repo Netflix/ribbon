@@ -36,6 +36,6 @@ class HttpRequestBuilder<I, O> extends RequestBuilder<O> {
     }
     
     HttpClientRequest<I> createClientRequest() {
-        return null;
+        return HttpClientRequest.create(requestTemplate.method(), requestTemplate.uri());
     }
 }
