@@ -24,6 +24,8 @@ import com.google.mockwebserver.MockWebServer;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.RibbonTransport;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.hystrix.exception.HystrixBadRequestException;
 import com.netflix.loadbalancer.ILoadBalancer;
@@ -117,6 +119,75 @@ public class RibbonTest {
         String result = request.execute().toString(Charset.defaultCharset());
         // System.out.println(result);
         assertEquals(fallback, result);
+    }
+    
+    @Test
+    public void testCacheMiss() {
+        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
+        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, 
+                DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
+        final String content = "from cache";
+        final String cacheKey = "somekey";
+        RibbonRequest<ByteBuf> request = template.withCacheKey(cacheKey)
+                .addCacheProvider(new CacheProvider<ByteBuf>(){
+                    @Override
+                    public Observable<ByteBuf> get(String key) {
+                        return Observable.error(new Exception("Cache miss"));
+                    }
+                })
+                .addCacheProvider(new CacheProvider<ByteBuf>(){
+                    @Override
+                    public Observable<ByteBuf> get(String key) {
+                        if (key.equals(cacheKey)) {
+                            return Observable.just(Unpooled.buffer().writeBytes(content.getBytes()));
+                        } else {
+                            return Observable.error(new Exception("Cache miss"));
+                        }
+                    }
+                })
+                .withUri("/")
+                .withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
+                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
+                        )
+                .requestBuilder().build();
+        String result = request.execute().toString(Charset.defaultCharset());
+        assertEquals(content, result);
+    }
+    
+    @Test
+    public void testCacheHit() throws IOException {
+        MockWebServer server = new MockWebServer();
+        String content = "Hello world";
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+                .setBody(content));       
+        server.play();
+        
+        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
+        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, 
+                DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
+        final String cacheKey = "somekey";
+        RibbonRequest<ByteBuf> request = template.withCacheKey(cacheKey)
+                .addCacheProvider(new CacheProvider<ByteBuf>(){
+                    @Override
+                    public Observable<ByteBuf> get(String key) {
+                        return Observable.error(new Exception("Cache miss"));
+                    }
+                })
+                .addCacheProvider(new CacheProvider<ByteBuf>(){
+                    @Override
+                    public Observable<ByteBuf> get(String key) {
+                        return Observable.error(new Exception("Cache miss again"));
+                    }
+                })
+                .withUri("/")
+                .withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
+                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
+                        )
+                .requestBuilder().build();
+        String result = request.execute().toString(Charset.defaultCharset());
+        assertEquals(content, result);
     }
 
 }
