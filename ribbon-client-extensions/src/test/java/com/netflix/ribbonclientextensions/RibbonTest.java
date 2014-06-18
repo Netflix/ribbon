@@ -122,7 +122,7 @@ public class RibbonTest {
     }
     
     @Test
-    public void testCacheMiss() {
+    public void testCacheHit() {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
         HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, 
                 DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
@@ -156,7 +156,7 @@ public class RibbonTest {
     }
     
     @Test
-    public void testCacheHit() throws IOException {
+    public void testCacheMiss() throws IOException {
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
         server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
