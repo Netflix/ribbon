@@ -53,7 +53,7 @@ class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
 
     @Override
     public Observable<RibbonResponse<Observable<O>>> toObservable() {
-        final Observable<O> output = hystrixCommand.observe();
+        final Observable<O> output = hystrixCommand.toObservable();
         
         return output.nest().map(new Func1<Observable<O>, RibbonResponse<Observable<O>>>(){
             @Override
