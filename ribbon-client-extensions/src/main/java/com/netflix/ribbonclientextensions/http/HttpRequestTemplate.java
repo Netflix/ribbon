@@ -1,14 +1,18 @@
 package com.netflix.ribbonclientextensions.http;
 
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.protocol.http.client.ContentSource;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RawContentSource;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import com.netflix.client.netty.LoadBalancingRxClient;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
@@ -19,6 +23,7 @@ import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.RequestTemplate;
 import com.netflix.ribbonclientextensions.ResponseTransformer;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
+import com.netflix.ribbonclientextensions.template.ParsedTemplate;
 
 public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClientResponse<O>> {
 
@@ -27,12 +32,13 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     private final int maxResponseTime;
     private HystrixObservableCommand.Setter setter;
     private FallbackHandler<O> fallbackHandler;
-    private String uri;
+    private ParsedTemplate parsedUriTemplate;
     private ResponseTransformer<HttpClientResponse<O>> transformer;
     private HttpMethod method;
     private String name;
     private List<CacheProvider<O>> cacheProviders;
     private String cacheKeyTemplate;
+    private Map<String, ParsedTemplate> parsedTemplates;
     
     public HttpRequestTemplate(String name, HttpClient<I, O> client) {
         this.client = client;
@@ -48,6 +54,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         // default method to GET
         method = HttpMethod.GET;
         cacheProviders = new LinkedList<CacheProvider<O>>();
+        parsedTemplates = new HashMap<String, ParsedTemplate>();
     }
     
     @Override
@@ -57,7 +64,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     }
 
     @Override
-    public RequestBuilder<O> requestBuilder() {
+    public HttpRequestBuilder<I, O> requestBuilder() {
         // TODO: apply hystrix properties passed in to the template
         if (setter == null) {
             setter = HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(clientName))
@@ -72,8 +79,17 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return this;
     }
     
+    private ParsedTemplate createParsedTemplate(String template) {
+        ParsedTemplate parsedTemplate = parsedTemplates.get(template);
+        if (parsedTemplate == null) {
+            parsedTemplate = ParsedTemplate.create(template);
+            parsedTemplates.put(template, parsedTemplate);
+        } 
+        return parsedTemplate;
+    }
+    
     public HttpRequestTemplate<I, O> withUri(String uri) {
-        this.uri = uri;
+        this.parsedUriTemplate = createParsedTemplate(uri);
         return this;
     }
     
@@ -81,14 +97,6 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return this;
     }    
     
-    public HttpRequestTemplate<I, O> withContentSource(ContentSource<I> source) {
-        return this;
-    }
-    
-    public HttpRequestTemplate<I, O> withRawContentSource(RawContentSource<?> raw) {
-        return this;
-    }
-
     @Override
     public HttpRequestTemplate<I, O> withCacheKey(
             String cacheKeyTemplate) {
@@ -119,8 +127,8 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return fallbackHandler;
     }
     
-    String uriTemplate() {
-        return uri;
+    ParsedTemplate uriTemplate() {
+        return parsedUriTemplate;
     }
     
     HttpMethod method() {
