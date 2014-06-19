@@ -6,6 +6,7 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RawContentSource;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import com.netflix.client.netty.LoadBalancingRxClient;
@@ -30,6 +31,8 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     private ResponseTransformer<HttpClientResponse<O>> transformer;
     private HttpMethod method;
     private String name;
+    private List<CacheProvider<O>> cacheProviders;
+    private String cacheKeyTemplate;
     
     public HttpRequestTemplate(String name, HttpClient<I, O> client) {
         this.client = client;
@@ -44,6 +47,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         this.name = name;
         // default method to GET
         method = HttpMethod.GET;
+        cacheProviders = new LinkedList<CacheProvider<O>>();
     }
     
     @Override
@@ -88,21 +92,23 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     @Override
     public HttpRequestTemplate<I, O> withCacheKey(
             String cacheKeyTemplate) {
+        this.cacheKeyTemplate = cacheKeyTemplate;
         return this;
     }
 
     @Override
     public HttpRequestTemplate<I, O> addCacheProvider(
             CacheProvider<O> cacheProvider) {
+        cacheProviders.add(cacheProvider);
         return this;
     }
         
-    String cacheKey() {
-        return null;
+    String cacheKeyTemplate() {
+        return cacheKeyTemplate;
     }
     
     List<CacheProvider<O>> cacheProviders() {
-        return null;
+        return cacheProviders;
     }
     
     ResponseTransformer<HttpClientResponse<O>> responseTransformer() {
@@ -113,7 +119,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return fallbackHandler;
     }
     
-    String uri() {
+    String uriTemplate() {
         return uri;
     }
     
@@ -142,7 +148,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     @Override
     public HttpRequestTemplate<I, O> withHystrixProperties(
             Setter propertiesSetter) {
-        // TODO Auto-generated method stub
+        this.setter = propertiesSetter;
         return this;
     }
     

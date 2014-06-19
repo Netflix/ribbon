@@ -36,6 +36,10 @@ class HttpRequestBuilder<I, O> extends RequestBuilder<O> {
     }
     
     HttpClientRequest<I> createClientRequest() {
-        return HttpClientRequest.create(requestTemplate.method(), requestTemplate.uri());
+        return HttpClientRequest.create(requestTemplate.method(), requestTemplate.uriTemplate());
+    }
+    
+    String cacheKey() {
+        return requestTemplate.cacheKeyTemplate();
     }
 }
