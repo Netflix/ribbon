@@ -8,6 +8,7 @@ import rx.Subscriber;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.ribbonclientextensions.RibbonRequest;
+import com.netflix.ribbonclientextensions.RequestWithMetaData;
 import com.netflix.ribbonclientextensions.RibbonResponse;
 
 class HttpRequest<I, O> implements RibbonRequest<O> {
@@ -37,43 +38,11 @@ class HttpRequest<I, O> implements RibbonRequest<O> {
     public Observable<O> toObservable() {
         return hystrixCommand.toObservable();
     }
-    
+
     @Override
-    public RibbonRequest<RibbonResponse<O>> withMetadata() {
-        return new RibbonRequest<RibbonResponse<O>>() {
-
-            @Override
-            public RibbonResponse<O> execute() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Future<RibbonResponse<O>> queue() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Observable<RibbonResponse<O>> observe() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Observable<RibbonResponse<O>> toObservable() {
-                Observable<O> fromHystrix = HttpRequest.this.toObservable();
-                // TODO: return the 
-                return null;
-               
-            }
-
-            @Override
-            public RibbonRequest<RibbonResponse<RibbonResponse<O>>> withMetadata() {
-                return null;
-            }
-        };
-       
+    public RequestWithMetaData<O> withMetadata() {
+        return new HttpMetaRequest<I,O>(hystrixCommand);
     }
+    
 
 }

@@ -48,18 +48,22 @@ public class RibbonExamples {
         template.requestBuilder().withValue("id", 1).build().execute();
         
         // example showing the use case of getting the entity with Hystrix meta data
-        template.withUri("/{id}").requestBuilder().withValue("id", 3).build().withMetadata().toObservable()
-        .subscribe(new Action1<RibbonResponse<ByteBuf>>(){
-            @Override
-            public void call(RibbonResponse<ByteBuf> t1) {
-                System.out.println(t1.getHystrixInfo());
-                t1.toObservable().toBlocking().forEach(new Action1<ByteBuf>() {
-                    @Override
-                    public void call(ByteBuf t1) {
-                    }
-                });
-            }
-        });
+        template.withUri("/{id}").requestBuilder().withValue("id", 3).build().withMetadata().observe()
+            .flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>() {
+                @Override
+                public Observable<String> call(RibbonResponse<Observable<ByteBuf>> t1) {
+                    if (t1.getHystrixInfo().isResponseFromFallback()) {
+                        return Observable.empty();
+                    } 
+                    return t1.content().map(new Func1<ByteBuf, String>(){
+                        @Override
+                        public String call(ByteBuf t1) {
+                            return t1.toString();
+                        }
+                        
+                    });
+                }
+            });
     }
 
 }
