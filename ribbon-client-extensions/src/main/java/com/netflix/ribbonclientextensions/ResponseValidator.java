@@ -1,6 +1,6 @@
 package com.netflix.ribbonclientextensions;
 
-import rx.functions.Func1;
+import rx.functions.Action1;
 
 /**
  * 
@@ -8,5 +8,6 @@ import rx.functions.Func1;
  *
  * @param <T> Protocol specific response meta data, e.g., HttpClientResponse
  */
-public interface ResponseTransformer<T> extends Func1<T, T> {
+public interface ResponseValidator<T> extends Action1<T> {
+    // TODO: define own methods and checked exception
 }

@@ -62,8 +62,15 @@ class RibbonHystrixObservableCommand<I, O> extends HystrixObservableCommand<O> {
         }
         HttpClientRequest<I> request = requestBuilder.createClientRequest();
         Observable<HttpClientResponse<O>> httpResponseObservable = httpClient.submit(request);
-        if (requestTemplate.responseTransformer() != null) {
-            httpResponseObservable = httpResponseObservable.map(requestTemplate.responseTransformer());
+        if (requestTemplate.responseValidator() != null) {
+            httpResponseObservable = httpResponseObservable.map(new Func1<HttpClientResponse<O>, HttpClientResponse<O>>(){
+                @Override
+                public HttpClientResponse<O> call(HttpClientResponse<O> t1) {
+                    requestTemplate.responseValidator().call(t1);
+                    return t1;
+                }
+                
+            });
         }
         Observable<O> httpEntities = httpResponseObservable.flatMap(new Func1<HttpClientResponse<O>, Observable<O>>() {
                     @Override

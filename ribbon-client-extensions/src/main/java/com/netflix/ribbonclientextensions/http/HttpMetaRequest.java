@@ -4,76 +4,105 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import rx.Observable;
-import rx.Observable.Operator;
+import rx.Observer;
+import rx.Observable.OnSubscribe;
 import rx.Subscriber;
-import rx.functions.Func0;
-import rx.functions.Func1;
-import rx.observables.GroupedObservable;
+import rx.subjects.PublishSubject;
 import rx.subjects.ReplaySubject;
+import rx.subjects.Subject;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbonclientextensions.RequestWithMetaData;
 import com.netflix.ribbonclientextensions.RibbonResponse;
 
 class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
 
-    static class HttpMetaResponse<O> extends RibbonResponse<O> {
-
-        private O content;
-        private HystrixExecutableInfo<?> hystrixInfo;
-
-        public HttpMetaResponse(O content, HystrixExecutableInfo<?> hystrixInfo) {
-            this.content = content;
-            this.hystrixInfo = hystrixInfo;
+    private static class ResponseWithSubject<O> extends RibbonResponse<Observable<O>> {
+        Subject<O, O> subject;
+        HystrixExecutableInfo<?> info;
+        
+        public ResponseWithSubject(Subject<O, O> subject,
+                HystrixExecutableInfo<?> info) {
+            super();
+            this.subject = subject;
+            this.info = info;
         }
+
         @Override
-        public O content() {
-            return content;
+        public Observable<O> content() {
+            return subject;
         }
 
         @Override
         public HystrixExecutableInfo<?> getHystrixInfo() {
-            return hystrixInfo;
+            return info;
         }        
     }
-    
-    private RibbonHystrixObservableCommand<I, O> hystrixCommand;
 
-    HttpMetaRequest(RibbonHystrixObservableCommand<I, O> hystrixCommand) {
-        this.hystrixCommand = hystrixCommand;
+    private HttpRequestBuilder<I, O> requestBuilder;
+
+    HttpMetaRequest(HttpRequestBuilder<I, O> requestBuilder ) {
+        this.requestBuilder = requestBuilder;
     }
 
     @Override
     public Observable<RibbonResponse<Observable<O>>> observe() {
-        // TODO Auto-generated method stub
-        return null;
+        RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
+        final Observable<O> output = hystrixCommand.observe();
+        return convertToRibbonResponse(output, hystrixCommand);
     }
 
     @Override
     public Observable<RibbonResponse<Observable<O>>> toObservable() {
-        final Observable<O> output = hystrixCommand.toObservable();
-        
-        return output.nest().map(new Func1<Observable<O>, RibbonResponse<Observable<O>>>(){
-            @Override
-            public RibbonResponse<Observable<O>> call(final Observable<O> t1) {
-                return new RibbonResponse<Observable<O>>() {
-                    @Override
-                    public Observable<O> content() {
-                        return t1;
-                    }
-                    @Override
-                    public HystrixExecutableInfo<?> getHystrixInfo() {
-                        return hystrixCommand;
-                    }
-                };
-            }
-        }); 
+        RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
+        final Observable<O> output = hystrixCommand.observe();
+        return convertToRibbonResponse(output, hystrixCommand);        
     }
+    
+    private Observable<RibbonResponse<Observable<O>>> convertToRibbonResponse(final Observable<O> content, final HystrixObservableCommand<O> hystrixCommand) {
+        return Observable.<RibbonResponse<Observable<O>>>create(new OnSubscribe<RibbonResponse<Observable<O>>>() {
+            @Override
+            public void call(
+                    final Subscriber<? super RibbonResponse<Observable<O>>> t1) {
+                final Subject<O, O> subject = PublishSubject.<O>create();
+                content.subscribe(new Observer<O>() {
+                    AtomicBoolean first = new AtomicBoolean(true);                    
+                    
+                    void createRibbonResponseOnFirstInvocation() {
+                        if (first.compareAndSet(true, false)) {
+                            t1.onNext(new ResponseWithSubject<O>(subject, hystrixCommand));
+                            t1.onCompleted();
+                        }                        
+                    }
+                    
+                    @Override
+                    public void onCompleted() {
+                        createRibbonResponseOnFirstInvocation();
+                        subject.onCompleted();
+                    }
+                    @Override
+                    public void onError(Throwable e) {
+                        createRibbonResponseOnFirstInvocation();                        
+                        subject.onError(e);
+                    }
+                    @Override
+                    public void onNext(O t) {
+                        createRibbonResponseOnFirstInvocation();                        
+                        subject.onNext(t);
+                    }
+                });
+            }
+        });
+    }
+    
 
     @Override
     public Future<RibbonResponse<O>> queue() {
+        final RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
         final Future<O> f = hystrixCommand.queue();
         return new Future<RibbonResponse<O>>() {
             @Override
@@ -110,8 +139,8 @@ class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
 
     @Override
     public RibbonResponse<O> execute() {
+        RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
         O obj = hystrixCommand.execute();
         return new HttpMetaResponse<O>(obj, hystrixCommand);
-    }
-    
+    }    
 }

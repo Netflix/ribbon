@@ -13,35 +13,35 @@ import com.netflix.ribbonclientextensions.RibbonResponse;
 
 class HttpRequest<I, O> implements RibbonRequest<O> {
 
-    private RibbonHystrixObservableCommand<I, O> hystrixCommand;
-    
-    HttpRequest(RibbonHystrixObservableCommand<I, O> hystrixCommand) {
-        this.hystrixCommand = hystrixCommand;
+    private HttpRequestBuilder<I, O> requestBuilder;
+
+    HttpRequest(HttpRequestBuilder<I, O> requestBuilder) {
+        this.requestBuilder = requestBuilder;
     }
     
     @Override
     public O execute() {
-        return hystrixCommand.execute();
+        return requestBuilder.createHystrixCommand().execute();
     }
 
     @Override
     public Future<O> queue() {
-        return hystrixCommand.queue();
+        return requestBuilder.createHystrixCommand().queue();
     }
 
     @Override
     public Observable<O> observe() {
-        return hystrixCommand.observe();
+        return requestBuilder.createHystrixCommand().observe();
     }
 
     @Override
     public Observable<O> toObservable() {
-        return hystrixCommand.toObservable();
+        return requestBuilder.createHystrixCommand().toObservable();
     }
 
     @Override
     public RequestWithMetaData<O> withMetadata() {
-        return new HttpMetaRequest<I,O>(hystrixCommand);
+        return new HttpMetaRequest<I,O>(requestBuilder);
     }
     
 

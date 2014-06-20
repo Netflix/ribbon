@@ -23,7 +23,7 @@ public interface RequestTemplate<I, O, R> {
         
     RequestTemplate<I, O, R> withFallbackProvider(FallbackHandler<O> fallbackProvider);
     
-    RequestTemplate<I, O, R> withNetworkResponseTransformer(ResponseTransformer<R> transformer);
+    RequestTemplate<I, O, R> withResponseValidator(ResponseValidator<R> transformer);
         
     /**
      * Calling this method will enable both Hystrix request cache and supplied external cache providers  
@@ -33,9 +33,9 @@ public interface RequestTemplate<I, O, R> {
      * @param cacheKeyTemplate
      * @return
      */
-    RequestTemplate<I, O, R> withCacheKey(String cacheKeyTemplate);
+    RequestTemplate<I, O, R> withHystrixCacheKey(String cacheKeyTemplate);
 
-    RequestTemplate<I, O, R> addCacheProvider(CacheProvider<O> cacheProvider);
+    RequestTemplate<I, O, R> addCacheProvider(String cacheKeyTemplate, CacheProvider<O> cacheProvider);
     
     RequestTemplate<I, O, R> withHystrixProperties(HystrixObservableCommand.Setter setter);
     

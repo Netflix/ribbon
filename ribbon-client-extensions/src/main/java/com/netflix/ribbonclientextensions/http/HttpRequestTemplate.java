@@ -21,7 +21,7 @@ import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.hystrix.HystrixObservableCommand.Setter;
 import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.RequestTemplate;
-import com.netflix.ribbonclientextensions.ResponseTransformer;
+import com.netflix.ribbonclientextensions.ResponseValidator;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 import com.netflix.ribbonclientextensions.template.ParsedTemplate;
 
@@ -33,7 +33,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     private HystrixObservableCommand.Setter setter;
     private FallbackHandler<O> fallbackHandler;
     private ParsedTemplate parsedUriTemplate;
-    private ResponseTransformer<HttpClientResponse<O>> transformer;
+    private ResponseValidator<HttpClientResponse<O>> transformer;
     private HttpMethod method;
     private String name;
     private List<CacheProvider<O>> cacheProviders;
@@ -98,15 +98,16 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     }    
     
     @Override
-    public HttpRequestTemplate<I, O> withCacheKey(
+    public HttpRequestTemplate<I, O> withHystrixCacheKey(
             String cacheKeyTemplate) {
         this.cacheKeyTemplate = cacheKeyTemplate;
         return this;
     }
 
     @Override
-    public HttpRequestTemplate<I, O> addCacheProvider(
+    public HttpRequestTemplate<I, O> addCacheProvider(String keyTemplate, 
             CacheProvider<O> cacheProvider) {
+        this.cacheKeyTemplate = keyTemplate;
         cacheProviders.add(cacheProvider);
         return this;
     }
@@ -119,7 +120,7 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return cacheProviders;
     }
     
-    ResponseTransformer<HttpClientResponse<O>> responseTransformer() {
+    ResponseValidator<HttpClientResponse<O>> responseValidator() {
         return transformer;
     }
     
@@ -141,8 +142,8 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
     }
     
     @Override
-    public HttpRequestTemplate<I, O> withNetworkResponseTransformer(
-            ResponseTransformer<HttpClientResponse<O>> transformer) {
+    public HttpRequestTemplate<I, O> withResponseValidator(
+            ResponseValidator<HttpClientResponse<O>> transformer) {
         this.transformer = transformer;
         return this;
     }

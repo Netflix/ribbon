@@ -54,9 +54,9 @@ public class HttpRequestBuilder<I, O> extends RequestBuilder<O> {
 
     @Override
     public RibbonRequest<O> build() {
-        return new HttpRequest<I, O>(createHystrixCommand());
+        return new HttpRequest<I, O>(this);
     }
-    
+        
     HttpClientRequest<I> createClientRequest() {
         String uri;
         try {

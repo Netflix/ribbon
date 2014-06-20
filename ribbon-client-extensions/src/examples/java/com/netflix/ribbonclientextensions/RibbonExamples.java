@@ -12,8 +12,9 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.netty.RibbonTransport;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.ribbonclientextensions.ResponseTransformer;
+import com.netflix.ribbonclientextensions.ResponseValidator;
 import com.netflix.ribbonclientextensions.Ribbon;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
@@ -24,20 +25,19 @@ public class RibbonExamples {
         IClientConfig config = ClientConfigBuilder.newBuilderWithArchaiusProperties("myclient").build();
         HttpClient<ByteBuf, ByteBuf> transportClient = RibbonTransport.newHttpClient(config);
         HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("GetUser", transportClient)
-        .withNetworkResponseTransformer(new ResponseTransformer<HttpClientResponse<ByteBuf>>() {
+        .withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
 
             @Override
-            public HttpClientResponse<ByteBuf> call(
+            public void call(
                     HttpClientResponse<ByteBuf> t1) {
                 if (t1.getStatus().code() >= 500) {
                     throw new RuntimeException("Unexpected response");
                 }
-                return t1;
             }
         })   
         .withFallbackProvider(new FallbackHandler<ByteBuf>() {
             @Override
-            public Observable<ByteBuf> call(HystrixObservableCommand<ByteBuf> t1) {
+            public Observable<ByteBuf> call(HystrixExecutableInfo<?> t1) {
                 return Observable.empty();
             }
         })

@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.netty.buffer.ByteBuf;
@@ -12,6 +13,8 @@ import io.netty.buffer.Unpooled;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.junit.Test;
 
 import rx.Observable;
@@ -22,6 +25,7 @@ import rx.functions.Func1;
 import com.google.common.collect.Lists;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.RibbonTransport;
@@ -47,8 +51,11 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
         
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
-        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(
+                new Server("localhost", 12345),
+                new Server("localhost", 10092),
+                new Server("localhost", server.getPort())));
+        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
         HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
         RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
@@ -67,23 +74,33 @@ public class RibbonTest {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
         HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
         HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
-        RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
+        RibbonRequest<ByteBuf> request = template.withUri("/")
+                .addCacheProvider("somekey", new CacheProvider<ByteBuf>(){
+                    @Override
+                    public Observable<ByteBuf> get(String key) {
+                        return Observable.error(new Exception("Cache miss"));
+                    }
+                }).withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
+                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
+                        )
+                .requestBuilder().build();
+        final AtomicBoolean success = new AtomicBoolean(false);
         Observable<String> result = request.withMetadata().toObservable().flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>(){
             @Override
             public Observable<String> call(
                     final RibbonResponse<Observable<ByteBuf>> response) {
-                System.err.println(response.getHystrixInfo().isSuccessfulExecution());
+                success.set(response.getHystrixInfo().isSuccessfulExecution());
                 return response.content().map(new Func1<ByteBuf, String>(){
                     @Override
                     public String call(ByteBuf t1) {
-                        System.err.println(response.getHystrixInfo().isSuccessfulExecution());
                         return t1.toString(Charset.defaultCharset());
                     }
                 });
             }
         });
         String s = result.toBlocking().single();
-        System.err.println(s);
+        assertEquals(content, s);
+        assertTrue(success.get());
     }
 
     
@@ -99,9 +116,9 @@ public class RibbonTest {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
         HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
         HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient)
-                .withNetworkResponseTransformer(new ResponseTransformer<HttpClientResponse<ByteBuf>>() {
+                .withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
                     @Override
-                    public HttpClientResponse<ByteBuf> call(HttpClientResponse<ByteBuf> t1) {
+                    public void call(HttpClientResponse<ByteBuf> t1) {
                         throw new HystrixBadRequestException("error", new IllegalArgumentException());
                     }
                 });
@@ -121,11 +138,8 @@ public class RibbonTest {
             }
         }, 
         new Action0() {
-
             @Override
             public void call() {
-                // TODO Auto-generated method stub
-
             }
         });
         latch.await();
@@ -136,7 +150,6 @@ public class RibbonTest {
     
     @Test
     public void testFallback() throws IOException {
-        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
         HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, 
                 DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
@@ -145,29 +158,31 @@ public class RibbonTest {
         RibbonRequest<ByteBuf> request = template.withUri("/")
                 .withFallbackProvider(new FallbackHandler<ByteBuf>() {
                     @Override
-                    public Observable<ByteBuf> call(HystrixObservableCommand<ByteBuf> t1) {
+                    public Observable<ByteBuf> call(HystrixExecutableInfo<?> t1) {
                         return Observable.just(Unpooled.buffer().writeBytes(fallback.getBytes()));
                     }
                 })
                 .requestBuilder().build();
         final AtomicReference<HystrixExecutableInfo<?>> hystrixInfo = new AtomicReference<HystrixExecutableInfo<?>>();
+        final AtomicBoolean failed = new AtomicBoolean(false);
         Observable<String> result = request.withMetadata().toObservable().flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>(){
             @Override
             public Observable<String> call(
                     final RibbonResponse<Observable<ByteBuf>> response) {
-                System.err.println(response.getHystrixInfo().isResponseFromFallback());
+                hystrixInfo.set(response.getHystrixInfo());
+                failed.set(response.getHystrixInfo().isFailedExecution());
                 return response.content().map(new Func1<ByteBuf, String>(){
                     @Override
                     public String call(ByteBuf t1) {
-                        System.err.println(response.getHystrixInfo().isResponseFromFallback());
-                        hystrixInfo.set(response.getHystrixInfo());
                         return t1.toString(Charset.defaultCharset());
                     }
                 });
             }
         });
         String s = result.toBlocking().single();
+        // this returns true only after the blocking call is done
         assertTrue(hystrixInfo.get().isResponseFromFallback());
+        assertTrue(failed.get());
         assertEquals(fallback, s);
     }
     
@@ -179,14 +194,13 @@ public class RibbonTest {
         HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
         final String content = "from cache";
         final String cacheKey = "somekey";
-        RibbonRequest<ByteBuf> request = template.withCacheKey(cacheKey)
-                .addCacheProvider(new CacheProvider<ByteBuf>(){
+        RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key) {
                         return Observable.error(new Exception("Cache miss"));
                     }
                 })
-                .addCacheProvider(new CacheProvider<ByteBuf>(){
+                .addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key) {
                         if (key.equals(cacheKey)) {
@@ -218,14 +232,13 @@ public class RibbonTest {
                 DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
         HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
         final String cacheKey = "somekey";
-        RibbonRequest<ByteBuf> request = template.withCacheKey(cacheKey)
-                .addCacheProvider(new CacheProvider<ByteBuf>(){
+        RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key) {
                         return Observable.error(new Exception("Cache miss"));
                     }
                 })
-                .addCacheProvider(new CacheProvider<ByteBuf>(){
+                .addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key) {
                         return Observable.error(new Exception("Cache miss again"));
