@@ -2,6 +2,7 @@ package com.netflix.ribbonclientextensions;
 
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 
+import com.netflix.ribbonclientextensions.typedclient.RibbonDynamicProxy;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 
 public final class Ribbon {
@@ -14,6 +15,6 @@ public final class Ribbon {
     }
  
     public static <I, O, T> T from(Class<T> contract, HttpClient<I, O> transportClient) {
-        return null;
+        return RibbonDynamicProxy.newInstance(contract, transportClient);
     } 
 }
