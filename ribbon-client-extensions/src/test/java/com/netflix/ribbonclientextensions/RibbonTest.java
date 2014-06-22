@@ -60,7 +60,7 @@ public class RibbonTest {
         // HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
         group.withLoadBalancer(lb)
-            .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
+            .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
         HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("test", ByteBuf.class);
         RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
@@ -80,7 +80,7 @@ public class RibbonTest {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
         group.withLoadBalancer(lb)
-            .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
+            .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
         
         HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
                 .requestTemplateBuilder()
@@ -169,7 +169,7 @@ public class RibbonTest {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
         group.withLoadBalancer(lb)
-            .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+            .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
 
         HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("test", ByteBuf.class);
         final String fallback = "fallback";
@@ -210,7 +210,7 @@ public class RibbonTest {
     public void testCacheHit() {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient")
-                .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+                .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
         HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
                 .requestTemplateBuilder().newRequestTemplate("test");
         final String content = "from cache";
@@ -251,7 +251,7 @@ public class RibbonTest {
         
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient")
-                .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+                .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
         HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
                 .requestTemplateBuilder().newRequestTemplate("test");
         final String cacheKey = "somekey";

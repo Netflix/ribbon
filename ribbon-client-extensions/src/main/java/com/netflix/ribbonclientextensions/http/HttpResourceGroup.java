@@ -57,7 +57,8 @@ public class HttpResourceGroup implements ResourceGroup {
     }
     
     @SuppressWarnings({"rawtypes", "unchecked"}) 
-    public HttpResourceGroup withOverrideClientConfig(IClientConfig overrideConfig) {
+    @Override
+    public HttpResourceGroup withClientConfig(IClientConfig overrideConfig) {
         if (config instanceof DefaultClientConfigImpl) {
             ((DefaultClientConfigImpl) config).applyOverride(overrideConfig);
         } else {
