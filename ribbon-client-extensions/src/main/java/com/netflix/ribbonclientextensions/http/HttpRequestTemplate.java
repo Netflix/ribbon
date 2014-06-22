@@ -1,5 +1,6 @@
 package com.netflix.ribbonclientextensions.http;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.protocol.http.client.ContentSource;
@@ -25,23 +26,25 @@ import com.netflix.ribbonclientextensions.ResponseValidator;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 import com.netflix.ribbonclientextensions.template.ParsedTemplate;
 
-public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClientResponse<O>> {
+public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResponse<ByteBuf>> {
 
-    private final HttpClient<I, O> client;
+    private final HttpClient<ByteBuf, ByteBuf> client;
     private final String clientName;
     private final int maxResponseTime;
     private HystrixObservableCommand.Setter setter;
-    private FallbackHandler<O> fallbackHandler;
+    private FallbackHandler<T> fallbackHandler;
     private ParsedTemplate parsedUriTemplate;
-    private ResponseValidator<HttpClientResponse<O>> transformer;
+    private ResponseValidator<HttpClientResponse<ByteBuf>> transformer;
     private HttpMethod method;
     private String name;
-    private List<CacheProvider<O>> cacheProviders;
+    private List<CacheProvider<T>> cacheProviders;
     private String cacheKeyTemplate;
     private Map<String, ParsedTemplate> parsedTemplates;
+    private Class<? extends T> classType;
     
-    public HttpRequestTemplate(String name, HttpClient<I, O> client) {
+    public HttpRequestTemplate(String name, HttpResourceGroup group, HttpClient<ByteBuf, ByteBuf> client, Class<? extends T> classType) {
         this.client = client;
+        this.classType = classType;
         if (client instanceof LoadBalancingRxClient) {
             LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
             maxResponseTime = ribbonClient.getResponseTimeOut();
@@ -53,28 +56,28 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         this.name = name;
         // default method to GET
         method = HttpMethod.GET;
-        cacheProviders = new LinkedList<CacheProvider<O>>();
+        cacheProviders = new LinkedList<CacheProvider<T>>();
         parsedTemplates = new HashMap<String, ParsedTemplate>();
     }
     
     @Override
-    public HttpRequestTemplate<I, O> withFallbackProvider(FallbackHandler<O> fallbackHandler) {
+    public HttpRequestTemplate<T> withFallbackProvider(FallbackHandler<T> fallbackHandler) {
         this.fallbackHandler = fallbackHandler;
         return this;
     }
 
     @Override
-    public HttpRequestBuilder<I, O> requestBuilder() {
+    public HttpRequestBuilder<T> requestBuilder() {
         // TODO: apply hystrix properties passed in to the template
         if (setter == null) {
             setter = HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(clientName))
                     .andCommandKey(HystrixCommandKey.Factory.asKey(name()))
                     .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(maxResponseTime));
         }
-        return new HttpRequestBuilder<I, O>(client, this, setter);
+        return new HttpRequestBuilder<T>(client, this, setter);
     }
     
-    public HttpRequestTemplate<I, O> withMethod(String method) {
+    public HttpRequestTemplate<T> withMethod(String method) {
         this.method = HttpMethod.valueOf(method);
         return this;
     }
@@ -88,25 +91,25 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return parsedTemplate;
     }
     
-    public HttpRequestTemplate<I, O> withUri(String uri) {
+    public HttpRequestTemplate<T> withUri(String uri) {
         this.parsedUriTemplate = createParsedTemplate(uri);
         return this;
     }
     
-    public HttpRequestTemplate<I, O> withHeader(String name, String value) {
+    public HttpRequestTemplate<T> withHeader(String name, String value) {
         return this;
     }    
     
     @Override
-    public HttpRequestTemplate<I, O> withHystrixCacheKey(
+    public HttpRequestTemplate<T> withRequestCacheKey(
             String cacheKeyTemplate) {
         this.cacheKeyTemplate = cacheKeyTemplate;
         return this;
     }
 
     @Override
-    public HttpRequestTemplate<I, O> addCacheProvider(String keyTemplate, 
-            CacheProvider<O> cacheProvider) {
+    public HttpRequestTemplate<T> addCacheProvider(String keyTemplate, 
+            CacheProvider<T> cacheProvider) {
         this.cacheKeyTemplate = keyTemplate;
         cacheProviders.add(cacheProvider);
         return this;
@@ -116,15 +119,15 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return cacheKeyTemplate;
     }
     
-    List<CacheProvider<O>> cacheProviders() {
+    List<CacheProvider<T>> cacheProviders() {
         return cacheProviders;
     }
     
-    ResponseValidator<HttpClientResponse<O>> responseValidator() {
+    ResponseValidator<HttpClientResponse<ByteBuf>> responseValidator() {
         return transformer;
     }
     
-    FallbackHandler<O> fallbackHandler() {
+    FallbackHandler<T> fallbackHandler() {
         return fallbackHandler;
     }
     
@@ -136,26 +139,30 @@ public class HttpRequestTemplate<I, O> implements RequestTemplate<I, O, HttpClie
         return method;
     }
     
+    Class<? extends T> getClassType() {
+        return this.classType;
+    }
+    
     @Override
     public String name() {
         return name;
     }
     
     @Override
-    public HttpRequestTemplate<I, O> withResponseValidator(
-            ResponseValidator<HttpClientResponse<O>> transformer) {
-        this.transformer = transformer;
+    public HttpRequestTemplate<T> withResponseValidator(
+            ResponseValidator<HttpClientResponse<ByteBuf>> validator) {
+        this.transformer = validator;
         return this;
     }
 
     @Override
-    public HttpRequestTemplate<I, O> copy(String name) {
+    public HttpRequestTemplate<T> copy(String name) {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
-    public HttpRequestTemplate<I, O> withHystrixProperties(
+    public HttpRequestTemplate<T> withHystrixProperties(
             Setter propertiesSetter) {
         this.setter = propertiesSetter;
         return this;

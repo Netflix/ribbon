@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,6 +39,7 @@ import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.Server;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
+import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 
 public class RibbonTest {
@@ -55,12 +57,16 @@ public class RibbonTest {
                 new Server("localhost", 12345),
                 new Server("localhost", 10092),
                 new Server("localhost", server.getPort())));
-        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
+        // HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
+        group.withLoadBalancer(lb)
+            .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
+        HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("test", ByteBuf.class);
         RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
     }
+    
     
     @Test
     public void testCommandWithMetaData() throws IOException {
@@ -72,12 +78,17 @@ public class RibbonTest {
         server.play();
         
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
-        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
+        group.withLoadBalancer(lb)
+            .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
+        
+        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
+                .requestTemplateBuilder()
+                .newRequestTemplate("test", ByteBuf.class);
         RibbonRequest<ByteBuf> request = template.withUri("/")
                 .addCacheProvider("somekey", new CacheProvider<ByteBuf>(){
                     @Override
-                    public Observable<ByteBuf> get(String key) {
+                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss"));
                     }
                 }).withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
@@ -103,7 +114,7 @@ public class RibbonTest {
         assertTrue(success.get());
     }
 
-    
+   
     @Test
     public void testTransformer() throws IOException, InterruptedException {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
@@ -114,12 +125,18 @@ public class RibbonTest {
         server.play();
         
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
-        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient)
-                .withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
+        
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
+        group.withLoadBalancer(lb);
+        
+        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
+                .requestTemplateBuilder()
+                .newRequestTemplate("test", ByteBuf.class);
+
+                template.withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
                     @Override
-                    public void call(HttpClientResponse<ByteBuf> t1) {
-                        throw new HystrixBadRequestException("error", new IllegalArgumentException());
+                    public void validate(HttpClientResponse<ByteBuf> t1) throws UnsuccessfulResponseException {
+                        throw new UnsuccessfulResponseException("error", new IllegalArgumentException());
                     }
                 });
         RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
@@ -144,21 +161,24 @@ public class RibbonTest {
         });
         latch.await();
         assertTrue(error.get() instanceof HystrixBadRequestException);
-        assertTrue(error.get().getCause() instanceof IllegalArgumentException);
+        assertTrue(error.get().getCause() instanceof UnsuccessfulResponseException);
     }
 
-    
     @Test
     public void testFallback() throws IOException {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
-        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, 
-                DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
+        group.withLoadBalancer(lb)
+            .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+
+        HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("test", ByteBuf.class);
         final String fallback = "fallback";
         RibbonRequest<ByteBuf> request = template.withUri("/")
                 .withFallbackProvider(new FallbackHandler<ByteBuf>() {
                     @Override
-                    public Observable<ByteBuf> call(HystrixExecutableInfo<?> t1) {
+                    public Observable<ByteBuf> getFallback(
+                            HystrixExecutableInfo<?> hystrixInfo,
+                            Map<String, Object> requestProperties) {
                         return Observable.just(Unpooled.buffer().writeBytes(fallback.getBytes()));
                     }
                 })
@@ -189,20 +209,21 @@ public class RibbonTest {
     @Test
     public void testCacheHit() {
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
-        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, 
-                DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient")
+                .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
+                .requestTemplateBuilder().newRequestTemplate("test");
         final String content = "from cache";
         final String cacheKey = "somekey";
         RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
-                    public Observable<ByteBuf> get(String key) {
+                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss"));
                     }
                 })
                 .addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
-                    public Observable<ByteBuf> get(String key) {
+                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         if (key.equals(cacheKey)) {
                             return Observable.just(Unpooled.buffer().writeBytes(content.getBytes()));
                         } else {
@@ -219,6 +240,7 @@ public class RibbonTest {
         assertEquals(content, result);
     }
     
+    
     @Test
     public void testCacheMiss() throws IOException {
         MockWebServer server = new MockWebServer();
@@ -228,19 +250,20 @@ public class RibbonTest {
         server.play();
         
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
-        HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, 
-                DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("test", httpClient);
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient")
+                .withOverrideClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
+        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
+                .requestTemplateBuilder().newRequestTemplate("test");
         final String cacheKey = "somekey";
         RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
-                    public Observable<ByteBuf> get(String key) {
+                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss"));
                     }
                 })
                 .addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
-                    public Observable<ByteBuf> get(String key) {
+                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss again"));
                     }
                 })
@@ -252,5 +275,4 @@ public class RibbonTest {
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
     }
-
 }

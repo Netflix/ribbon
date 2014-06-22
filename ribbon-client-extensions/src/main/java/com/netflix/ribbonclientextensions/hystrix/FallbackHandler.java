@@ -1,10 +1,10 @@
 package com.netflix.ribbonclientextensions.hystrix;
 
+import java.util.Map;
+
 import com.netflix.hystrix.HystrixExecutableInfo;
-import com.netflix.hystrix.HystrixObservableCommand;
 
 import rx.Observable;
-import rx.functions.Func1;
 
 /**
  * 
@@ -13,5 +13,6 @@ import rx.functions.Func1;
  * @param <T> Output entity type
  * @param <R> Response 
  */
-public interface FallbackHandler<T> extends Func1<HystrixExecutableInfo<?>, Observable<T>> {
+public interface FallbackHandler<T> {
+    public Observable<T> getFallback(HystrixExecutableInfo<?> hystrixInfo, Map<String, Object> requestProperties);
 }

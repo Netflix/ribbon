@@ -11,37 +11,37 @@ import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.RequestWithMetaData;
 import com.netflix.ribbonclientextensions.RibbonResponse;
 
-class HttpRequest<I, O> implements RibbonRequest<O> {
+class HttpRequest<T> implements RibbonRequest<T> {
 
-    private HttpRequestBuilder<I, O> requestBuilder;
+    private HttpRequestBuilder<T> requestBuilder;
 
-    HttpRequest(HttpRequestBuilder<I, O> requestBuilder) {
+    HttpRequest(HttpRequestBuilder<T> requestBuilder) {
         this.requestBuilder = requestBuilder;
     }
     
     @Override
-    public O execute() {
+    public T execute() {
         return requestBuilder.createHystrixCommand().execute();
     }
 
     @Override
-    public Future<O> queue() {
+    public Future<T> queue() {
         return requestBuilder.createHystrixCommand().queue();
     }
 
     @Override
-    public Observable<O> observe() {
+    public Observable<T> observe() {
         return requestBuilder.createHystrixCommand().observe();
     }
 
     @Override
-    public Observable<O> toObservable() {
+    public Observable<T> toObservable() {
         return requestBuilder.createHystrixCommand().toObservable();
     }
 
     @Override
-    public RequestWithMetaData<O> withMetadata() {
-        return new HttpMetaRequest<I,O>(requestBuilder);
+    public RequestWithMetaData<T> withMetadata() {
+        return new HttpMetaRequest<T>(requestBuilder);
     }
     
 

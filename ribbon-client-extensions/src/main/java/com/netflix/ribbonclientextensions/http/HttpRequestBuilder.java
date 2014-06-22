@@ -3,6 +3,7 @@ package com.netflix.ribbonclientextensions.http;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.ContentSource;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
@@ -16,48 +17,48 @@ import com.netflix.ribbonclientextensions.template.ParsedTemplate;
 import com.netflix.ribbonclientextensions.template.TemplateParser;
 import com.netflix.ribbonclientextensions.template.TemplateParsingException;
 
-public class HttpRequestBuilder<I, O> extends RequestBuilder<O> {
+public class HttpRequestBuilder<T> extends RequestBuilder<T> {
 
-    private HttpRequestTemplate<I, O> requestTemplate;
-    private HttpClient<I, O> client;
+    private HttpRequestTemplate<T> requestTemplate;
+    private HttpClient<ByteBuf, ByteBuf> client;
     private HystrixObservableCommand.Setter setter;
-    private Map<String, String> vars;
+    private Map<String, Object> vars;
     private ParsedTemplate parsedUriTemplate;
     
-    HttpRequestBuilder(HttpClient<I, O> client, HttpRequestTemplate<I, O> requestTemplate, HystrixObservableCommand.Setter setter) {
+    HttpRequestBuilder(HttpClient<ByteBuf, ByteBuf> client, HttpRequestTemplate<T> requestTemplate, HystrixObservableCommand.Setter setter) {
         this.requestTemplate = requestTemplate;
         this.client = client;
         this.setter = setter;
         this.parsedUriTemplate = requestTemplate.uriTemplate();
-        vars = new ConcurrentHashMap<String, String>();
+        vars = new ConcurrentHashMap<String, Object>();
     }
     
-    RibbonHystrixObservableCommand<I, O> createHystrixCommand() {
-        return new RibbonHystrixObservableCommand<I, O>(client, requestTemplate, this, setter);
+    RibbonHystrixObservableCommand<T> createHystrixCommand() {
+        return new RibbonHystrixObservableCommand<T>(client, requestTemplate, this, setter);
     }
 
     @Override
-    public HttpRequestBuilder<I, O> withValue(
+    public HttpRequestBuilder<T> withRequestProperty(
             String key, Object value) {
         vars.put(key, value.toString());
         return this;
     }
     
-    public HttpRequestBuilder<I, O> withContentSource(ContentSource<I> source) {
+    public HttpRequestBuilder<T> withContentSource(ContentSource<ByteBuf> source) {
         return this;
     }
     
-    public HttpRequestBuilder<I, O> withRawContentSource(RawContentSource<?> raw) {
+    public HttpRequestBuilder<T> withRawContentSource(RawContentSource<?> raw) {
         return this;
     }
 
 
     @Override
-    public RibbonRequest<O> build() {
-        return new HttpRequest<I, O>(this);
+    public RibbonRequest<T> build() {
+        return new HttpRequest<T>(this);
     }
         
-    HttpClientRequest<I> createClientRequest() {
+    HttpClientRequest<ByteBuf> createClientRequest() {
         String uri;
         try {
             uri = TemplateParser.toData(vars, parsedUriTemplate.getTemplate(), parsedUriTemplate.getParsed());
@@ -69,5 +70,9 @@ public class HttpRequestBuilder<I, O> extends RequestBuilder<O> {
     
     String cacheKey() {
         return requestTemplate.cacheKeyTemplate();
+    }
+    
+    Map<String, Object> requestProperties() {
+        return vars;
     }
 }

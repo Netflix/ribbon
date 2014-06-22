@@ -46,7 +46,7 @@ public class TemplateParser {
         return templateParts;
     }
 
-    public static String toData(Map<String, String> variables, String template, List<Object> parsedList) throws TemplateParsingException {
+    public static String toData(Map<String, Object> variables, String template, List<Object> parsedList) throws TemplateParsingException {
         int params = variables.size();
         // skip expansion if there's no valid variables set. ex. {a} is the
         // first valid
@@ -57,7 +57,7 @@ public class TemplateParser {
         StringBuilder builder = new StringBuilder();
         for (Object part : parsedList) {
             if (part instanceof TemplateVar) {
-                String var = variables.get(part.toString());
+                Object var = variables.get(part.toString());
                 if (part instanceof MatrixVar) {
                     if (var != null) {
                         builder.append(';').append(part.toString()).append('=').append(var);
@@ -83,7 +83,7 @@ public class TemplateParser {
     
     public static void main(String[] args) throws TemplateParsingException {
         String template = "/abc/{id}?name={name}";
-        Map<String, String> vars = Maps.newHashMap();
+        Map<String, Object> vars = Maps.newHashMap();
         vars.put("id", "5");
         vars.put("name", "netflix");
         List<Object> list = parseTemplate(template);

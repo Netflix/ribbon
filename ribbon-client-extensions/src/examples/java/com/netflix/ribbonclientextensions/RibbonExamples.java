@@ -1,43 +1,39 @@
 package com.netflix.ribbonclientextensions;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+
+import java.util.Map;
+
 import rx.Observable;
-import rx.functions.Action1;
 import rx.functions.Func1;
 
-import com.netflix.client.config.ClientConfigBuilder;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.RibbonTransport;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.ribbonclientextensions.ResponseValidator;
-import com.netflix.ribbonclientextensions.Ribbon;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
+import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 
 
 public class RibbonExamples {
     public static void main(String[] args) {
-        IClientConfig config = ClientConfigBuilder.newBuilderWithArchaiusProperties("myclient").build();
-        HttpClient<ByteBuf, ByteBuf> transportClient = RibbonTransport.newHttpClient(config);
-        HttpRequestTemplate<ByteBuf, ByteBuf> template = Ribbon.newHttpRequestTemplate("GetUser", transportClient)
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
+        HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("GetUser")
         .withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
 
             @Override
-            public void call(
-                    HttpClientResponse<ByteBuf> t1) {
-                if (t1.getStatus().code() >= 500) {
-                    throw new RuntimeException("Unexpected response");
+            public void validate(HttpClientResponse<ByteBuf> response)
+                    throws UnsuccessfulResponseException, ServerError {
+                if (response.getStatus().code() >= 500) {
+                    throw new ServerError("Unexpected response");
                 }
             }
         })   
         .withFallbackProvider(new FallbackHandler<ByteBuf>() {
             @Override
-            public Observable<ByteBuf> call(HystrixExecutableInfo<?> t1) {
+            public Observable<ByteBuf> getFallback(HystrixExecutableInfo<?> t1, Map<String, Object> vars) {
                 return Observable.empty();
             }
         })
@@ -45,10 +41,10 @@ public class RibbonExamples {
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000))))
         .withUri("/{id}");
         
-        template.requestBuilder().withValue("id", 1).build().execute();
+        template.requestBuilder().withRequestProperty("id", 1).build().execute();
         
         // example showing the use case of getting the entity with Hystrix meta data
-        template.withUri("/{id}").requestBuilder().withValue("id", 3).build().withMetadata().observe()
+        template.withUri("/{id}").requestBuilder().withRequestProperty("id", 3).build().withMetadata().observe()
             .flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>() {
                 @Override
                 public Observable<String> call(RibbonResponse<Observable<ByteBuf>> t1) {

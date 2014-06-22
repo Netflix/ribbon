@@ -19,13 +19,13 @@ import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbonclientextensions.RequestWithMetaData;
 import com.netflix.ribbonclientextensions.RibbonResponse;
 
-class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
+class HttpMetaRequest<T> implements RequestWithMetaData<T> {
 
-    private static class ResponseWithSubject<O> extends RibbonResponse<Observable<O>> {
-        Subject<O, O> subject;
+    private static class ResponseWithSubject<T> extends RibbonResponse<Observable<T>> {
+        Subject<T, T> subject;
         HystrixExecutableInfo<?> info;
         
-        public ResponseWithSubject(Subject<O, O> subject,
+        public ResponseWithSubject(Subject<T, T> subject,
                 HystrixExecutableInfo<?> info) {
             super();
             this.subject = subject;
@@ -33,7 +33,7 @@ class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
         }
 
         @Override
-        public Observable<O> content() {
+        public Observable<T> content() {
             return subject;
         }
 
@@ -43,38 +43,38 @@ class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
         }        
     }
 
-    private HttpRequestBuilder<I, O> requestBuilder;
+    private HttpRequestBuilder<T> requestBuilder;
 
-    HttpMetaRequest(HttpRequestBuilder<I, O> requestBuilder ) {
+    HttpMetaRequest(HttpRequestBuilder<T> requestBuilder ) {
         this.requestBuilder = requestBuilder;
     }
 
     @Override
-    public Observable<RibbonResponse<Observable<O>>> observe() {
-        RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
-        final Observable<O> output = hystrixCommand.observe();
+    public Observable<RibbonResponse<Observable<T>>> observe() {
+        RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        final Observable<T> output = hystrixCommand.observe();
         return convertToRibbonResponse(output, hystrixCommand);
     }
 
     @Override
-    public Observable<RibbonResponse<Observable<O>>> toObservable() {
-        RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
-        final Observable<O> output = hystrixCommand.observe();
+    public Observable<RibbonResponse<Observable<T>>> toObservable() {
+        RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        final Observable<T> output = hystrixCommand.observe();
         return convertToRibbonResponse(output, hystrixCommand);        
     }
     
-    private Observable<RibbonResponse<Observable<O>>> convertToRibbonResponse(final Observable<O> content, final HystrixObservableCommand<O> hystrixCommand) {
-        return Observable.<RibbonResponse<Observable<O>>>create(new OnSubscribe<RibbonResponse<Observable<O>>>() {
+    private Observable<RibbonResponse<Observable<T>>> convertToRibbonResponse(final Observable<T> content, final HystrixObservableCommand<T> hystrixCommand) {
+        return Observable.<RibbonResponse<Observable<T>>>create(new OnSubscribe<RibbonResponse<Observable<T>>>() {
             @Override
             public void call(
-                    final Subscriber<? super RibbonResponse<Observable<O>>> t1) {
-                final Subject<O, O> subject = PublishSubject.<O>create();
-                content.subscribe(new Observer<O>() {
+                    final Subscriber<? super RibbonResponse<Observable<T>>> t1) {
+                final Subject<T, T> subject = PublishSubject.<T>create();
+                content.subscribe(new Observer<T>() {
                     AtomicBoolean first = new AtomicBoolean(true);                    
                     
                     void createRibbonResponseOnFirstInvocation() {
                         if (first.compareAndSet(true, false)) {
-                            t1.onNext(new ResponseWithSubject<O>(subject, hystrixCommand));
+                            t1.onNext(new ResponseWithSubject<T>(subject, hystrixCommand));
                             t1.onCompleted();
                         }                        
                     }
@@ -90,7 +90,7 @@ class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
                         subject.onError(e);
                     }
                     @Override
-                    public void onNext(O t) {
+                    public void onNext(T t) {
                         createRibbonResponseOnFirstInvocation();                        
                         subject.onNext(t);
                     }
@@ -101,28 +101,28 @@ class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
     
 
     @Override
-    public Future<RibbonResponse<O>> queue() {
-        final RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
-        final Future<O> f = hystrixCommand.queue();
-        return new Future<RibbonResponse<O>>() {
+    public Future<RibbonResponse<T>> queue() {
+        final RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        final Future<T> f = hystrixCommand.queue();
+        return new Future<RibbonResponse<T>>() {
             @Override
             public boolean cancel(boolean arg0) {
                 return f.cancel(arg0);
             }
 
             @Override
-            public RibbonResponse<O> get() throws InterruptedException,
+            public RibbonResponse<T> get() throws InterruptedException,
                     ExecutionException {
-                final O obj = f.get();
-                return new HttpMetaResponse<O>(obj, hystrixCommand);
+                final T obj = f.get();
+                return new HttpMetaResponse<T>(obj, hystrixCommand);
             }
 
             @Override
-            public RibbonResponse<O> get(long arg0, TimeUnit arg1)
+            public RibbonResponse<T> get(long arg0, TimeUnit arg1)
                     throws InterruptedException, ExecutionException,
                     TimeoutException {
-                final O obj = f.get(arg0, arg1);
-                return new HttpMetaResponse<O>(obj, hystrixCommand);
+                final T obj = f.get(arg0, arg1);
+                return new HttpMetaResponse<T>(obj, hystrixCommand);
             }
 
             @Override
@@ -138,9 +138,9 @@ class HttpMetaRequest<I, O> implements RequestWithMetaData<O> {
     }
 
     @Override
-    public RibbonResponse<O> execute() {
-        RibbonHystrixObservableCommand<I, O> hystrixCommand = requestBuilder.createHystrixCommand();
-        O obj = hystrixCommand.execute();
-        return new HttpMetaResponse<O>(obj, hystrixCommand);
+    public RibbonResponse<T> execute() {
+        RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        T obj = hystrixCommand.execute();
+        return new HttpMetaResponse<T>(obj, hystrixCommand);
     }    
 }
