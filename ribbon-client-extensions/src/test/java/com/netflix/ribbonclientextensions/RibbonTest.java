@@ -52,7 +52,7 @@ public class RibbonTest {
                 .withMaxAutoRetriesNextServer(3)
                 .useConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
-        RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
+        RibbonRequest<ByteBuf> request = template.withUriTemplate("/").requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
     }
@@ -72,7 +72,7 @@ public class RibbonTest {
                 .withMaxAutoRetriesNextServer(3));
         
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
-        RibbonRequest<ByteBuf> request = template.withUri("/")
+        RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
                 .addCacheProvider("somekey", new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
@@ -122,7 +122,7 @@ public class RibbonTest {
                         throw new UnsuccessfulResponseException("error", new IllegalArgumentException());
                     }
                 });
-        RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
+        RibbonRequest<ByteBuf> request = template.withUriTemplate("/").requestBuilder().build();
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
         request.toObservable().subscribe(new Action1<ByteBuf>() {
@@ -154,7 +154,7 @@ public class RibbonTest {
                 .withMaxAutoRetriesNextServer(1));
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         final String fallback = "fallback";
-        RibbonRequest<ByteBuf> request = template.withUri("/")
+        RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
                 .withFallbackProvider(new FallbackHandler<ByteBuf>() {
                     @Override
                     public Observable<ByteBuf> getFallback(
@@ -219,7 +219,7 @@ public class RibbonTest {
                         }
                     }
                 })
-                .withUri("/")
+                .withUriTemplate("/")
                 .withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
                         .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
                         )
@@ -255,7 +255,7 @@ public class RibbonTest {
                         return Observable.error(new Exception("Cache miss again"));
                     }
                 })
-                .withUri("/")
+                .withUriTemplate("/")
                 .withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
                         .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
                         )

@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.RetryHandler;
@@ -26,12 +28,19 @@ public class LoadBalancerExecutorTest {
         ClientObservableProvider<String> observableProvider = new ClientObservableProvider<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
-            public Observable<String> getObservableForEndpoint(Server server) {
-                if (count.incrementAndGet() < 3) {
-                    return Observable.error(new IllegalArgumentException());
-                } else {
-                    return Observable.from(server.getHost());
-                }
+            public Observable<String> getObservableForEndpoint(final Server server) {
+                return Observable.create(new OnSubscribe<String>(){
+                    @Override
+                    public void call(Subscriber<? super String> t1) {
+                        if (count.incrementAndGet() < 3) {
+                            t1.onError(new IllegalArgumentException());
+                        } else {
+                            t1.onNext(server.getHost());
+                            t1.onCompleted();
+                        }                        
+                    }
+                    
+                });
             }
         };
         RetryHandler handler = new RetryHandler() {
@@ -52,7 +61,7 @@ public class LoadBalancerExecutorTest {
                 return 0;
             }
         };
-        String result = lbExecutor.retrySameServer(server1, observableProvider, handler).toBlockingObservable().single();
+        String result = lbExecutor.execute(server1, observableProvider.getObservableForEndpoint(server1), handler).toBlockingObservable().single();
         assertEquals(3, lbExecutor.getServerStats(server1).getTotalRequestsCount());
         assertEquals("1", result);
     }
@@ -63,12 +72,19 @@ public class LoadBalancerExecutorTest {
         ClientObservableProvider<String> observableProvider = new ClientObservableProvider<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
-            public Observable<String> getObservableForEndpoint(Server server) {
-                if (count.incrementAndGet() < 3) {
-                    return Observable.error(new IllegalArgumentException());
-                } else {
-                    return Observable.from(server.getHost());
-                }
+            public Observable<String> getObservableForEndpoint(final Server server) {
+                return Observable.create(new OnSubscribe<String>(){
+                    @Override
+                    public void call(Subscriber<? super String> t1) {
+                        if (count.incrementAndGet() < 3) {
+                            t1.onError(new IllegalArgumentException());
+                        } else {
+                            t1.onNext(server.getHost());
+                            t1.onCompleted();
+                        }                        
+                    }
+                    
+                });
             }
         };
         RetryHandler handler = new RetryHandler() {

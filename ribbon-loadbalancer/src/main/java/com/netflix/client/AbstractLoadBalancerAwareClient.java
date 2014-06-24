@@ -21,6 +21,8 @@ import static com.netflix.loadbalancer.LoadBalancerExecutor.CallableToObservable
 
 import java.net.URI;
 
+import rx.Observable;
+
 import com.google.common.base.Preconditions;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
@@ -89,17 +91,18 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
         Preconditions.checkNotNull(host);
         int port = request.getUri().getPort();
         Preconditions.checkArgument(port > 0, "port is undefined");
+        final Server server = new Server(host, port);
+        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
         ClientCallableProvider<T> callableProvider = new ClientCallableProvider<T>() {
             @Override
             public T executeOnServer(Server server) throws Exception {
                 return execute(request, requestConfig);
             }
         };
-        
-        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
-        
+
         try {
-            return RxUtils.getSingleValueWithRealErrorCause(retrySameServer(new Server(host, port), toObsevableProvider(callableProvider), handler));
+            Observable<T> result = execute(server, toObsevableProvider(callableProvider).getObservableForEndpoint(server), handler);
+            return RxUtils.getSingleValueWithRealErrorCause(result);
         } catch (Exception e) {
             if (e instanceof ClientException) {
                 throw (ClientException) e;

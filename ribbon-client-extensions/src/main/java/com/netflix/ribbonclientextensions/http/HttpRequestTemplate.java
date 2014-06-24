@@ -91,7 +91,7 @@ public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResp
         return parsedTemplate;
     }
     
-    public HttpRequestTemplate<T> withUri(String uri) {
+    public HttpRequestTemplate<T> withUriTemplate(String uri) {
         this.parsedUriTemplate = createParsedTemplate(uri);
         return this;
     }
