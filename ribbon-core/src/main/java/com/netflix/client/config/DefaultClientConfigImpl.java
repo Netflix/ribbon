@@ -23,6 +23,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -430,6 +431,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());
         putDefaultBooleanProperty(CommonClientConfigKey.IsClientAuthRequired, getDefaultIsClientAuthRequired());
         putDefaultStringProperty(CommonClientConfigKey.RequestIdHeaderName, getDefaultRequestIdHeaderName());
+        putDefaultStringProperty(CommonClientConfigKey.ListOfServers, "");
     }
 
     public Boolean getDefaultEnableConnectionPool() {
@@ -574,9 +576,42 @@ public class DefaultClientConfigImpl implements IClientConfig {
             if (prop.startsWith(getNameSpace())){
                 prop = prop.substring(getNameSpace().length() + 1);
             }
-            setPropertyInternal(prop, props.getProperty(key));
+            setPropertyInternal(prop, getStringValue(props, key));
         }
+    }
+    
+    /**
+     * This is to workaround the issue that {@link AbstractConfiguration} by default
+     * automatically convert comma delimited string to array
+     */
+    protected static String getStringValue(Configuration config, String key) {
+        try {
+            String values[] = config.getStringArray(key);
+            if (values == null) {
+                return null;
+            }
+            if (values.length == 0) {
+                return config.getString(key);
+            } else if (values.length == 1) {
+                return values[0];
+            }
 
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < values.length; i++) {
+                sb.append(values[i]);
+                if (i != values.length - 1) {
+                    sb.append(",");
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            Object v = config.getProperty(key);
+            if (v != null) {
+                return String.valueOf(v);
+            } else {
+                return null;
+            }
+        }
     }
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "DC_DOUBLECHECK")

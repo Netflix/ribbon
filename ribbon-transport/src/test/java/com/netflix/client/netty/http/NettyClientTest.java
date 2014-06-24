@@ -612,8 +612,7 @@ public class NettyClientTest {
         assertEquals("value1", responseContext.get().getContext("Context1"));
     }
     
-    // temporarily exclude the test due to RxNetty bug
-    @Ignore
+    @Test
     public void testRedirect() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/redirect?port=" + port);
         NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
