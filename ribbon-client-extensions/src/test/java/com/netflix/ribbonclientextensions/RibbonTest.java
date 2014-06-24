@@ -1,21 +1,19 @@
 package com.netflix.ribbonclientextensions;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.reactivex.netty.protocol.http.client.HttpClient;
-import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.junit.Test;
 
 import rx.Observable;
@@ -26,10 +24,6 @@ import rx.functions.Func1;
 import com.google.common.collect.Lists;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.RibbonTransport;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixExecutableInfo;
@@ -53,15 +47,11 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
         
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(
-                new Server("localhost", 12345),
-                new Server("localhost", 10092),
-                new Server("localhost", server.getPort())));
-        // HttpClient<ByteBuf, ByteBuf> httpClient = RibbonTransport.newHttpClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
-        group.withLoadBalancer(lb)
-            .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
-        HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("test", ByteBuf.class);
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", 
+                ClientOptions.create()
+                .withMaxAutoRetriesNextServer(3)
+                .useConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         RibbonRequest<ByteBuf> request = template.withUri("/").requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
@@ -77,14 +67,11 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
         
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
-        group.withLoadBalancer(lb)
-            .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 3));
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+                .useConfigurationBasedServerList("localhost:" + server.getPort())
+                .withMaxAutoRetriesNextServer(3));
         
-        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
-                .requestTemplateBuilder()
-                .newRequestTemplate("test", ByteBuf.class);
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         RibbonRequest<ByteBuf> request = template.withUri("/")
                 .addCacheProvider("somekey", new CacheProvider<ByteBuf>(){
                     @Override
@@ -124,14 +111,10 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
         
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+                .useConfigurationBasedServerList("localhost:" + server.getPort()));
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
-        group.withLoadBalancer(lb);
-        
-        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
-                .requestTemplateBuilder()
-                .newRequestTemplate("test", ByteBuf.class);
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
 
                 template.withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
                     @Override
@@ -166,12 +149,10 @@ public class RibbonTest {
 
     @Test
     public void testFallback() throws IOException {
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
-        group.withLoadBalancer(lb)
-            .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
-
-        HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("test", ByteBuf.class);
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+                .useConfigurationBasedServerList("localhost:12345")
+                .withMaxAutoRetriesNextServer(1));
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         final String fallback = "fallback";
         RibbonRequest<ByteBuf> request = template.withUri("/")
                 .withFallbackProvider(new FallbackHandler<ByteBuf>() {
@@ -179,7 +160,11 @@ public class RibbonTest {
                     public Observable<ByteBuf> getFallback(
                             HystrixExecutableInfo<?> hystrixInfo,
                             Map<String, Object> requestProperties) {
-                        return Observable.just(Unpooled.buffer().writeBytes(fallback.getBytes()));
+                        try {
+                            return Observable.just(Unpooled.buffer().writeBytes(fallback.getBytes("UTF-8")));
+                        } catch (UnsupportedEncodingException e) {
+                            return Observable.error(e);
+                        }
                     }
                 })
                 .requestBuilder().build();
@@ -208,11 +193,10 @@ public class RibbonTest {
     
     @Test
     public void testCacheHit() {
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", 12345)));
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient")
-                .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
-        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
-                .requestTemplateBuilder().newRequestTemplate("test");
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+                .useConfigurationBasedServerList("localhost:12345")
+                .withMaxAutoRetriesNextServer(1));
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         final String content = "from cache";
         final String cacheKey = "somekey";
         RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
@@ -225,7 +209,11 @@ public class RibbonTest {
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         if (key.equals(cacheKey)) {
-                            return Observable.just(Unpooled.buffer().writeBytes(content.getBytes()));
+                            try {
+                                return Observable.just(Unpooled.buffer().writeBytes(content.getBytes("UTF-8")));
+                            } catch (UnsupportedEncodingException e) {
+                                return Observable.error(e);                            
+                            }
                         } else {
                             return Observable.error(new Exception("Cache miss"));
                         }
@@ -249,11 +237,11 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
         
-        ILoadBalancer lb = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(Lists.newArrayList(new Server("localhost", server.getPort())));
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient")
-                .withClientConfig(DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1));
-        HttpRequestTemplate<ByteBuf> template = group.withLoadBalancer(lb)
-                .requestTemplateBuilder().newRequestTemplate("test");
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+                .useConfigurationBasedServerList("localhost:" + server.getPort())
+                .withMaxAutoRetriesNextServer(1));
+
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         final String cacheKey = "somekey";
         RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
@@ -274,5 +262,5 @@ public class RibbonTest {
                 .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
-    }
+    } 
 }

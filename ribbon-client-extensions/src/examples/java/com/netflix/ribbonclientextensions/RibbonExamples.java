@@ -20,7 +20,7 @@ import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 public class RibbonExamples {
     public static void main(String[] args) {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
-        HttpRequestTemplate<ByteBuf> template = group.requestTemplateBuilder().newRequestTemplate("GetUser")
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("GetUser")
         .withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
 
             @Override

@@ -11,7 +11,6 @@ import rx.Observable;
  * @author awang
  *
  * @param <T> Output entity type
- * @param <R> Response 
  */
 public interface FallbackHandler<T> {
     public Observable<T> getFallback(HystrixExecutableInfo<?> hystrixInfo, Map<String, Object> requestProperties);

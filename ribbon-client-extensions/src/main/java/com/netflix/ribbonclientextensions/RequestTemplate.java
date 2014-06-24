@@ -6,8 +6,7 @@ import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 /**
  * @author awang
  *
- * @param <I> request input entity type
- * @param <O> response entity type
+ * @param <T> response entity type
  * @param <R> response meta data, e.g. HttpClientResponse
  */
 public interface RequestTemplate<T, R> {

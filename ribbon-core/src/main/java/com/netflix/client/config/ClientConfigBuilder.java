@@ -4,7 +4,7 @@ public class ClientConfigBuilder {
     
     private IClientConfig config;
     
-    private ClientConfigBuilder() {
+    ClientConfigBuilder() {
     }
     
     public static ClientConfigBuilder newBuilder() {
@@ -100,13 +100,15 @@ public class ClientConfigBuilder {
         return this;
     }
 
-    public ClientConfigBuilder withMaxHttpConnectionsPerHost(int value) {
+    public ClientConfigBuilder withMaxConnectionsPerHost(int value) {
         config.setPropertyWithType(CommonClientConfigKey.MaxHttpConnectionsPerHost, value);
+        config.setPropertyWithType(CommonClientConfigKey.MaxConnectionsPerHost, value);
         return this;
     }
 
-    public ClientConfigBuilder withMaxTotalHttpConnections(int value) {
+    public ClientConfigBuilder withMaxTotalConnections(int value) {
         config.setPropertyWithType(CommonClientConfigKey.MaxTotalHttpConnections, value);
+        config.setPropertyWithType(CommonClientConfigKey.MaxTotalConnections, value);
         return this;
     }
     
