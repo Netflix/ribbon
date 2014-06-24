@@ -47,7 +47,7 @@ public class MethodTemplateTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testMissingHttpMethod() throws Exception {
-        new MethodTemplate(methodByName(SampleBrokenTypedMovieService.class, "missingHttpMethod"));
+        new MethodTemplate(methodByName(SampleBrokenTypedMovieService.class, "missingHttpAnnotation"));
     }
 
     @Test(expected = IllegalArgumentException.class)

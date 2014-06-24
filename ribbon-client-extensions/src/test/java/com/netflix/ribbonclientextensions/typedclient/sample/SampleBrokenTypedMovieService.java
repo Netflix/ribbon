@@ -2,18 +2,19 @@ package com.netflix.ribbonclientextensions.typedclient.sample;
 
 import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Content;
-import com.netflix.ribbonclientextensions.typedclient.annotation.GET;
+import com.netflix.ribbonclientextensions.typedclient.annotation.Http;
+import com.netflix.ribbonclientextensions.typedclient.annotation.Http.HttpMethod;
 
 /**
  * @author Tomasz Bak
  */
 public interface SampleBrokenTypedMovieService {
 
-    @GET
+    @Http(method = HttpMethod.GET)
     public Movie returnTypeNotRibbonRequest();
 
-    public Movie missingHttpMethod();
+    public Movie missingHttpAnnotation();
 
-    @GET
+    @Http(method = HttpMethod.GET)
     public RibbonRequest<Void> multipleContentParameters(@Content Movie content1, @Content Movie content2);
 }
