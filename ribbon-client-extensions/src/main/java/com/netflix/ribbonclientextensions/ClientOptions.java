@@ -1,13 +1,9 @@
 package com.netflix.ribbonclientextensions;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.loadbalancer.Server;
-import com.netflix.niws.loadbalancer.DiscoveryEnabledNIWSServerList;
 
 public final class ClientOptions {
     
@@ -20,14 +16,13 @@ public final class ClientOptions {
     public static ClientOptions create() {
         return new ClientOptions();
     }
-    
-    public ClientOptions useEurekaDynamicServerList(String vipAddress) {
-        options.put(IClientConfigKey.CommonKeys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
-        options.put(IClientConfigKey.CommonKeys.DeploymentContextBasedVipAddresses, vipAddress);
+        
+    public ClientOptions withDiscoveryServiceIdentifier(String identifier) {
+        options.put(IClientConfigKey.CommonKeys.DeploymentContextBasedVipAddresses, identifier);
         return this;
     }
     
-    public ClientOptions useConfigurationBasedServerList(String serverList) {
+    public ClientOptions withConfigurationBasedServerList(String serverList) {
         options.put(IClientConfigKey.CommonKeys.ListOfServers, serverList);
         return this;
     }

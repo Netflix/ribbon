@@ -21,7 +21,6 @@ import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-import com.google.common.collect.Lists;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
 import com.netflix.hystrix.HystrixCommandGroupKey;
@@ -29,9 +28,6 @@ import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.hystrix.exception.HystrixBadRequestException;
-import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.Server;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
@@ -50,7 +46,7 @@ public class RibbonTest {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", 
                 ClientOptions.create()
                 .withMaxAutoRetriesNextServer(3)
-                .useConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
+                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         RibbonRequest<ByteBuf> request = template.withUriTemplate("/").requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
@@ -68,7 +64,7 @@ public class RibbonTest {
         server.play();
         
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
-                .useConfigurationBasedServerList("localhost:" + server.getPort())
+                .withConfigurationBasedServerList("localhost:" + server.getPort())
                 .withMaxAutoRetriesNextServer(3));
         
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
@@ -112,7 +108,7 @@ public class RibbonTest {
         server.play();
         
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
-                .useConfigurationBasedServerList("localhost:" + server.getPort()));
+                .withConfigurationBasedServerList("localhost:" + server.getPort()));
         
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
 
@@ -150,7 +146,7 @@ public class RibbonTest {
     @Test
     public void testFallback() throws IOException {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
-                .useConfigurationBasedServerList("localhost:12345")
+                .withConfigurationBasedServerList("localhost:12345")
                 .withMaxAutoRetriesNextServer(1));
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         final String fallback = "fallback";
@@ -194,7 +190,7 @@ public class RibbonTest {
     @Test
     public void testCacheHit() {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
-                .useConfigurationBasedServerList("localhost:12345")
+                .withConfigurationBasedServerList("localhost:12345")
                 .withMaxAutoRetriesNextServer(1));
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         final String content = "from cache";
@@ -238,7 +234,7 @@ public class RibbonTest {
         server.play();
         
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
-                .useConfigurationBasedServerList("localhost:" + server.getPort())
+                .withConfigurationBasedServerList("localhost:" + server.getPort())
                 .withMaxAutoRetriesNextServer(1));
 
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");

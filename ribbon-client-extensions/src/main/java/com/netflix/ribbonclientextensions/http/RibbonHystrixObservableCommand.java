@@ -1,22 +1,24 @@
 package com.netflix.ribbonclientextensions.http;
 
-import java.util.Iterator;
-import java.util.List;
-
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+
+import java.util.Iterator;
+
 import rx.Observable;
 import rx.functions.Func1;
 
 import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
-import com.netflix.hystrix.exception.*;
+import com.netflix.hystrix.exception.HystrixBadRequestException;
 import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.ServerError;
 import com.netflix.ribbonclientextensions.UnsuccessfulResponseException;
+import com.netflix.ribbonclientextensions.http.HttpRequestTemplate.CacheProviderWithKeyTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
+import com.netflix.ribbonclientextensions.template.TemplateParser;
+import com.netflix.ribbonclientextensions.template.TemplateParsingException;
 
 class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
 
@@ -36,7 +38,16 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
 
     @Override
     protected String getCacheKey() {
-        return requestBuilder.cacheKey();
+        try {
+            String key = requestBuilder.cacheKey();
+            if (key == null) {
+                return super.getCacheKey();
+            } else {
+                return key;
+            }
+        } catch (TemplateParsingException e) {
+            return super.getCacheKey();            
+        }
     }
     
     @Override
@@ -51,14 +62,19 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
 
     @Override
     protected Observable<T> run() {
-        final String cacheKey = requestBuilder.cacheKey();
-        final Iterator<CacheProvider<T>> cacheProviders = requestTemplate.cacheProviders().iterator();
+        final Iterator<CacheProviderWithKeyTemplate<T>> cacheProviders = requestTemplate.cacheProviders().iterator();
         Observable<T> cached = null;
         if (cacheProviders.hasNext()) {
-            CacheProvider<T> provider = cacheProviders.next();
-            cached = provider.get(cacheKey, requestBuilder.requestProperties());
+            CacheProviderWithKeyTemplate<T> provider = cacheProviders.next();
+            String cacheKey;
+            try {
+                cacheKey = TemplateParser.toData(requestBuilder.requestProperties(), provider.getKeyTemplate());
+            } catch (TemplateParsingException e) {
+                return Observable.error(e);
+            }
+            cached = provider.getProvider().get(cacheKey, requestBuilder.requestProperties());
             while (cacheProviders.hasNext()) {
-                final Observable<T> nextCache = cacheProviders.next().get(cacheKey, requestBuilder.requestProperties());
+                final Observable<T> nextCache = cacheProviders.next().getProvider().get(cacheKey, requestBuilder.requestProperties());
                 cached = cached.onErrorResumeNext(nextCache);
             }
         }
