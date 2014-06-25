@@ -1,29 +1,25 @@
 package com.netflix.ribbonclientextensions;
 
-import com.netflix.hystrix.HystrixCollapserProperties;
-import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.hystrix.HystrixThreadPoolProperties;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 
 /**
  * @author awang
  *
- * @param <I> request input entity type
- * @param <O> response entity type
+ * @param <T> response entity type
  * @param <R> response meta data, e.g. HttpClientResponse
  */
-public interface RequestTemplate<I, O, R> {
+public interface RequestTemplate<T, R> {
     
-    RequestBuilder<O> requestBuilder();
+    RequestBuilder<T> requestBuilder();
     
     String name();
     
-    RequestTemplate<I, O, R> copy(String name);
+    RequestTemplate<T, R> copy(String name);
         
-    RequestTemplate<I, O, R> withFallbackProvider(FallbackHandler<O> fallbackProvider);
+    RequestTemplate<T, R> withFallbackProvider(FallbackHandler<T> fallbackProvider);
     
-    RequestTemplate<I, O, R> withNetworkResponseTransformer(ResponseTransformer<R> transformer);
+    RequestTemplate<T, R> withResponseValidator(ResponseValidator<R> transformer);
         
     /**
      * Calling this method will enable both Hystrix request cache and supplied external cache providers  
@@ -33,15 +29,15 @@ public interface RequestTemplate<I, O, R> {
      * @param cacheKeyTemplate
      * @return
      */
-    RequestTemplate<I, O, R> withCacheKey(String cacheKeyTemplate);
+    RequestTemplate<T, R> withRequestCacheKey(String cacheKeyTemplate);
 
-    RequestTemplate<I, O, R> addCacheProvider(CacheProvider<O> cacheProvider);
+    RequestTemplate<T, R> addCacheProvider(String cacheKeyTemplate, CacheProvider<T> cacheProvider);
     
-    RequestTemplate<I, O, R> withHystrixProperties(HystrixObservableCommand.Setter setter);
+    RequestTemplate<T, R> withHystrixProperties(HystrixObservableCommand.Setter setter);
     
-    public abstract class RequestBuilder<O> {
-        public abstract RequestBuilder<O> withValue(String key, Object value);
+    public abstract class RequestBuilder<T> {
+        public abstract RequestBuilder<T> withRequestProperty(String key, Object value);
         
-        public abstract RibbonRequest<O> build();
+        public abstract RibbonRequest<T> build();
     }
 }

@@ -8,72 +8,41 @@ import rx.Subscriber;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.ribbonclientextensions.RibbonRequest;
+import com.netflix.ribbonclientextensions.RequestWithMetaData;
 import com.netflix.ribbonclientextensions.RibbonResponse;
 
-class HttpRequest<I, O> implements RibbonRequest<O> {
+class HttpRequest<T> implements RibbonRequest<T> {
 
-    private RibbonHystrixObservableCommand<I, O> hystrixCommand;
-    
-    HttpRequest(RibbonHystrixObservableCommand<I, O> hystrixCommand) {
-        this.hystrixCommand = hystrixCommand;
+    private HttpRequestBuilder<T> requestBuilder;
+
+    HttpRequest(HttpRequestBuilder<T> requestBuilder) {
+        this.requestBuilder = requestBuilder;
     }
     
     @Override
-    public O execute() {
-        return hystrixCommand.execute();
+    public T execute() {
+        return requestBuilder.createHystrixCommand().execute();
     }
 
     @Override
-    public Future<O> queue() {
-        return hystrixCommand.queue();
+    public Future<T> queue() {
+        return requestBuilder.createHystrixCommand().queue();
     }
 
     @Override
-    public Observable<O> observe() {
-        return hystrixCommand.observe();
+    public Observable<T> observe() {
+        return requestBuilder.createHystrixCommand().observe();
     }
 
     @Override
-    public Observable<O> toObservable() {
-        return hystrixCommand.toObservable();
+    public Observable<T> toObservable() {
+        return requestBuilder.createHystrixCommand().toObservable();
+    }
+
+    @Override
+    public RequestWithMetaData<T> withMetadata() {
+        return new HttpMetaRequest<T>(requestBuilder);
     }
     
-    @Override
-    public RibbonRequest<RibbonResponse<O>> withMetadata() {
-        return new RibbonRequest<RibbonResponse<O>>() {
-
-            @Override
-            public RibbonResponse<O> execute() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Future<RibbonResponse<O>> queue() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Observable<RibbonResponse<O>> observe() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Observable<RibbonResponse<O>> toObservable() {
-                Observable<O> fromHystrix = HttpRequest.this.toObservable();
-                // TODO: return the 
-                return null;
-               
-            }
-
-            @Override
-            public RibbonRequest<RibbonResponse<RibbonResponse<O>>> withMetadata() {
-                return null;
-            }
-        };
-       
-    }
 
 }

@@ -29,7 +29,7 @@ public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxCli
     protected GlobalPoolStats<T> stats;
     private Observable<PoolStateChangeEvent> poolStateChangeEventObservable; 
     protected ScheduledExecutorService poolCleanerScheduler;
-    protected boolean poolEnabled;
+    protected boolean poolEnabled = true;
 
     public LoadBalancingRxClientWithPoolOptions(IClientConfig config,
             RetryHandler retryHandler,

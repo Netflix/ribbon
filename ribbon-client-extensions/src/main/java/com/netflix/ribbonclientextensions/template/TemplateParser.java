@@ -1,10 +1,10 @@
 package com.netflix.ribbonclientextensions.template;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.Maps;
 
 /**
  * Created by mcohen on 5/1/14.
@@ -46,7 +46,7 @@ public class TemplateParser {
         return templateParts;
     }
 
-    public static String toData(Map<String, String> variables, String template, List parsedList) throws URISyntaxException {
+    public static String toData(Map<String, Object> variables, String template, List<Object> parsedList) throws TemplateParsingException {
         int params = variables.size();
         // skip expansion if there's no valid variables set. ex. {a} is the
         // first valid
@@ -57,7 +57,7 @@ public class TemplateParser {
         StringBuilder builder = new StringBuilder();
         for (Object part : parsedList) {
             if (part instanceof TemplateVar) {
-                String var = variables.get(part.toString());
+                Object var = variables.get(part.toString());
                 if (part instanceof MatrixVar) {
                     if (var != null) {
                         builder.append(';').append(part.toString()).append('=').append(var);
@@ -65,13 +65,13 @@ public class TemplateParser {
                     }
                 } else if (part instanceof PathVar) {
                     if (var == null) {
-                        throw new URISyntaxException(template, String.format("template variable %s was not supplied", part.toString()));
+                        throw new TemplateParsingException(String.format("template variable %s was not supplied for template %s", part.toString(), template));
                     } else {
                         builder.append(var);
                         params--;
                     }
                 } else {
-                    throw new URISyntaxException(template, String.format("template variable type %s is not supplied", part.getClass().getCanonicalName()));
+                    throw new TemplateParsingException(String.format("template variable type %s is not supplied for template template %s", part.getClass().getCanonicalName(), template));
                 }
             } else {
                 builder.append(part.toString());
@@ -79,5 +79,15 @@ public class TemplateParser {
         }
 
         return builder.toString();
+    }
+    
+    public static void main(String[] args) throws TemplateParsingException {
+        String template = "/abc/{id}?name={name}";
+        Map<String, Object> vars = Maps.newHashMap();
+        vars.put("id", "5");
+        vars.put("name", "netflix");
+        List<Object> list = parseTemplate(template);
+        System.out.println(toData(vars, template, list));
+        
     }
 }

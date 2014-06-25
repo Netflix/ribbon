@@ -5,9 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Hystrix {
-    public Class<? extends Object> fallbackHandler();
-    public Class<? extends Object> validator();
+public @interface ResourceGroupSpec {
+    public String name() default "";
+
+    public Class resourceGroupClass() default void.class;
 }

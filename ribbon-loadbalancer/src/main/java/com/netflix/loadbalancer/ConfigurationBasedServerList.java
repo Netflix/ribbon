@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicPropertyFactory;
@@ -40,44 +42,31 @@ import com.netflix.config.DynamicStringProperty;
  */
 public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 
-	public static final String PROP_NAME = "listOfServers";
-	private String propertyName = DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + "." + PROP_NAME;
-	private DynamicStringProperty dynamicProp;
-	private volatile List<Server> list = Collections.emptyList();
+	private IClientConfig clientConfig;
 		
 	@Override
 	public List<Server> getInitialListOfServers() {
-		return list;
+	    return getUpdatedListOfServers();
 	}
 
 	@Override
 	public List<Server> getUpdatedListOfServers() {
-		return list;
+        String listOfServers = clientConfig.getPropertyWithType(CommonClientConfigKey.ListOfServers);
+        return derive(listOfServers);
 	}
 
 	@Override
 	public void initWithNiwsConfig(IClientConfig clientConfig) {
-		propertyName = clientConfig.getClientName() + "." + clientConfig.getNameSpace() + "." +  PROP_NAME;
-		dynamicProp = DynamicPropertyFactory.getInstance().getStringProperty(propertyName, null);
-		derive();
-		dynamicProp.addCallback(new Runnable() {
-			@Override
-			public void run() {
-				derive();
-			}			
-		});
+	    this.clientConfig = clientConfig;
 	}
 	
-	private void derive() {
-		String value = dynamicProp.get();
-		if (Strings.isNullOrEmpty(value)) {
-			list = Collections.emptyList();
-		} else {
-			List<Server> newList = new ArrayList<Server>();
+	private List<Server> derive(String value) {
+	    List<Server> list = Lists.newArrayList();
+		if (!Strings.isNullOrEmpty(value)) {
 			for (String s: value.split(",")) {
-				newList.add(new Server(s.trim()));
+				list.add(new Server(s.trim()));
 			}
-			list = newList;
 		}
+        return list;
 	}
 }
