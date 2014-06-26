@@ -14,7 +14,7 @@ public class TemplateBuilderTest {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
         
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("resource1", ByteBuf.class);
-        template.withUri("/foo/{id}?name={name}");
+        template.withUriTemplate("/foo/{id}?name={name}");
         HttpClientRequest<ByteBuf> request = template
                 .requestBuilder()
                 .withRequestProperty("id", "3")

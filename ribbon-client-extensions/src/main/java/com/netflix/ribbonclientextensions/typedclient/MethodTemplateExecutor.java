@@ -27,7 +27,7 @@ public class MethodTemplateExecutor<O> {
         HttpRequestTemplate<ByteBuf> httpRequestTemplate = httpResourceGroup.newRequestTemplate(methodTemplate.getTemplateName());
         httpRequestTemplate.withMethod(methodTemplate.getHttpMethod().name());
         if (methodTemplate.getPath() != null) {
-            httpRequestTemplate.withUri(methodTemplate.getPath());
+            httpRequestTemplate.withUriTemplate(methodTemplate.getPath());
         }
         if (methodTemplate.getContentArgPosition() >= 0) {
             throw new RuntimeException("NOT IMPLEMENTED");

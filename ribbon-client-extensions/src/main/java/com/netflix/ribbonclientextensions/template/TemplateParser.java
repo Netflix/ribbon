@@ -46,6 +46,10 @@ public class TemplateParser {
         return templateParts;
     }
 
+    public static String toData(Map<String, Object> variables, ParsedTemplate parsedTemplate) throws TemplateParsingException {
+        return toData(variables, parsedTemplate.getTemplate(), parsedTemplate.getParsed());
+    }
+    
     public static String toData(Map<String, Object> variables, String template, List<Object> parsedList) throws TemplateParsingException {
         int params = variables.size();
         // skip expansion if there's no valid variables set. ex. {a} is the

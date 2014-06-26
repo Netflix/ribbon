@@ -35,7 +35,7 @@ public class MethodTemplateExecutorTest {
 
         HttpRequestTemplate httpRequestTemplateMock = createMock(HttpRequestTemplate.class);
         expect(httpRequestTemplateMock.withMethod("GET")).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withUri("/movies/{id}")).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withUriTemplate("/movies/{id}")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.requestBuilder()).andReturn(requestBuilderMock);
 
         HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);

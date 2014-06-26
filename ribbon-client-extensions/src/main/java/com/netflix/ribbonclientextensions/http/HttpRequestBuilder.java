@@ -24,6 +24,7 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
     private HystrixObservableCommand.Setter setter;
     private Map<String, Object> vars;
     private ParsedTemplate parsedUriTemplate;
+    private RawContentSource<?> rawContentSource;
     
     HttpRequestBuilder(HttpClient<ByteBuf, ByteBuf> client, HttpRequestTemplate<T> requestTemplate, HystrixObservableCommand.Setter setter) {
         this.requestTemplate = requestTemplate;
@@ -43,15 +44,11 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
         vars.put(key, value.toString());
         return this;
     }
-    
-    public HttpRequestBuilder<T> withContentSource(ContentSource<ByteBuf> source) {
-        return this;
-    }
-    
+        
     public HttpRequestBuilder<T> withRawContentSource(RawContentSource<?> raw) {
+        this.rawContentSource = raw;
         return this;
     }
-
 
     @Override
     public RibbonRequest<T> build() {
@@ -65,11 +62,18 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
         } catch (TemplateParsingException e) {
             throw new HystrixBadRequestException("Problem parsing the URI template", e);
         }
-        return HttpClientRequest.create(requestTemplate.method(), uri);
+        HttpClientRequest<ByteBuf> request =  HttpClientRequest.create(requestTemplate.method(), uri);
+        if (rawContentSource != null) {
+            request.withRawContentSource(rawContentSource);
+        }
+        return request;
     }
     
-    String cacheKey() {
-        return requestTemplate.cacheKeyTemplate();
+    String cacheKey() throws TemplateParsingException {
+        if (requestTemplate.hystrixCacheKeyTemplate() == null) {
+            return null;
+        }
+        return TemplateParser.toData(vars, requestTemplate.hystrixCacheKeyTemplate());
     }
     
     Map<String, Object> requestProperties() {

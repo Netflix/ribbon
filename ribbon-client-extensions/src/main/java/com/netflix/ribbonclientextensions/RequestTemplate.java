@@ -24,7 +24,7 @@ public interface RequestTemplate<T, R> {
     /**
      * Calling this method will enable both Hystrix request cache and supplied external cache providers  
      * on the supplied cache key. Caller can explicitly disable Hystrix request cache by calling 
-     * {@link #withHystrixCommandPropertiesDefaults(com.netflix.hystrix.HystrixCommandProperties.Setter)}
+     * {@link #withHystrixProperties(com.netflix.hystrix.HystrixObservableCommand.Setter)}
      *     
      * @param cacheKeyTemplate
      * @return

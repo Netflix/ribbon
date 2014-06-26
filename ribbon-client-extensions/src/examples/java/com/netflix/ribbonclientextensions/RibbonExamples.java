@@ -39,12 +39,12 @@ public class RibbonExamples {
         })
         .withHystrixProperties((HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("mygroup"))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000))))
-        .withUri("/{id}");
+        .withUriTemplate("/{id}");
         
         template.requestBuilder().withRequestProperty("id", 1).build().execute();
         
         // example showing the use case of getting the entity with Hystrix meta data
-        template.withUri("/{id}").requestBuilder().withRequestProperty("id", 3).build().withMetadata().observe()
+        template.withUriTemplate("/{id}").requestBuilder().withRequestProperty("id", 3).build().withMetadata().observe()
             .flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>() {
                 @Override
                 public Observable<String> call(RibbonResponse<Observable<ByteBuf>> t1) {
