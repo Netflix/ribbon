@@ -1,6 +1,20 @@
+/*
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.ribbonclientextensions.typedclient;
 
-import com.netflix.ribbonclientextensions.ResourceGroup;
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
 
 import static java.lang.String.*;
@@ -8,16 +22,16 @@ import static java.lang.String.*;
 /**
  * @author Tomasz Bak
  */
-public class HttpResourceGroupFactory {
-    private final ClassTemplate classTemplate;
+public class HttpResourceGroupFactory<T> {
+    private final ClassTemplate<T> classTemplate;
 
-    public HttpResourceGroupFactory(ClassTemplate classTemplate) {
+    public HttpResourceGroupFactory(ClassTemplate<T> classTemplate) {
         this.classTemplate = classTemplate;
     }
 
     public HttpResourceGroup createResourceGroup() {
         String name = classTemplate.getResourceGroupName();
-        Class<? extends ResourceGroup<?>> resourceClass = classTemplate.getResourceGroupClass();
+        Class<? extends HttpResourceGroup> resourceClass = classTemplate.getResourceGroupClass();
         if (name != null) {
             return new HttpResourceGroup(name);
         }
@@ -26,10 +40,6 @@ public class HttpResourceGroupFactory {
                     "ResourceGroup not defined for interface %s - must be provided by annotation or passed explicitly during dynamic proxy creation",
                     classTemplate.getClientInterface()));
         }
-        try {
-            return (HttpResourceGroup) resourceClass.newInstance();
-        } catch (Exception e) {
-            throw new RibbonTypedClientException("Failure of ResourceGroup instantiation from class " + resourceClass, e);
-        }
+        return Utils.newInstance(resourceClass);
     }
 }

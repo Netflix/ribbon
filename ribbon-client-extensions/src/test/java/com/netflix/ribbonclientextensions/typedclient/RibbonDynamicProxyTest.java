@@ -15,7 +15,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.netflix.ribbonclientextensions.typedclient.ReflectUtil.*;
+import static com.netflix.ribbonclientextensions.typedclient.Utils.*;
 import static org.easymock.EasyMock.*;
 import static org.powermock.api.easymock.PowerMock.createMock;
 import static org.powermock.api.easymock.PowerMock.*;
@@ -67,7 +67,7 @@ public class RibbonDynamicProxyTest {
         MethodTemplateExecutor tgMock = createMock(MethodTemplateExecutor.class);
         expect(tgMock.executeFromTemplate((com.netflix.ribbonclientextensions.http.HttpResourceGroup) EasyMock.anyObject(), (Object[]) EasyMock.anyObject())).andReturn(ribbonRequestMock);
 
-        Map<Method, MethodTemplateExecutor<Object>> tgMap = new HashMap<Method, MethodTemplateExecutor<Object>>();
+        Map<Method, MethodTemplateExecutor> tgMap = new HashMap<Method, MethodTemplateExecutor>();
         tgMap.put(methodByName(SampleMovieService.class, "findMovieById"), tgMock);
 
         mockStatic(MethodTemplateExecutor.class);

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.ribbonclientextensions.typedclient;
 
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
@@ -11,20 +26,18 @@ import java.util.Map;
  * @author Tomasz Bak
  */
 public class RibbonDynamicProxy<T> implements InvocationHandler {
-    private final Class<T> clientInterface;
-    private final Map<Method, MethodTemplateExecutor<T>> templateGeneratorMap;
+    private final Map<Method, MethodTemplateExecutor> templateGeneratorMap;
     private final HttpResourceGroup httpResourceGroup;
-    private final ClassTemplate classTemplate;
+    private final ClassTemplate<T> classTemplate;
 
     public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
-        this.clientInterface = clientInterface;
-        this.classTemplate = ClassTemplate.from(clientInterface);
+        classTemplate = ClassTemplate.from(clientInterface);
         if (httpResourceGroup == null) {
-            this.httpResourceGroup = new HttpResourceGroupFactory(this.classTemplate).createResourceGroup();
+            this.httpResourceGroup = new HttpResourceGroupFactory<T>(classTemplate).createResourceGroup();
         } else {
             this.httpResourceGroup = httpResourceGroup;
         }
-        this.templateGeneratorMap = MethodTemplateExecutor.from(clientInterface);
+        templateGeneratorMap = MethodTemplateExecutor.from(clientInterface);
     }
 
     @Override
@@ -34,7 +47,7 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
             return template.executeFromTemplate(httpResourceGroup, args);
         }
         // This must be one of the Object methods. Lets run it on the handler itself.
-        return ReflectUtil.executeOnInstance(this, method, args);
+        return Utils.executeOnInstance(this, method, args);
     }
 
     @Override

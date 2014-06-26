@@ -51,9 +51,4 @@ public class ClassTemplateTest {
     public void testBothNameAndResourceGroupClassInAnnotation() throws Exception {
         new ClassTemplate(BrokenMovieServiceWithResourceGroupNameAndClassAnnotation.class);
     }
-
-    @Test(expected = RibbonTypedClientException.class)
-    public void testDetectsInvalidResourceGroupClassInAnnotation() throws Exception {
-        new ClassTemplate(BrokenMovieServiceWithInvalidResourceGroupClassAnnotation.class);
-    }
 }

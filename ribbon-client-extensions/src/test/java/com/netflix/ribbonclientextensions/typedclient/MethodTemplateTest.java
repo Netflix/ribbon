@@ -1,10 +1,11 @@
 package com.netflix.ribbonclientextensions.typedclient;
 
+import com.netflix.ribbonclientextensions.typedclient.sample.Movie;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.BrokenMovieService;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.SampleMovieService;
 import org.junit.Test;
 
-import static com.netflix.ribbonclientextensions.typedclient.ReflectUtil.*;
+import static com.netflix.ribbonclientextensions.typedclient.Utils.*;
 import static org.junit.Assert.*;
 
 /**
@@ -18,8 +19,12 @@ public class MethodTemplateTest {
 
         assertEquals("findMovieById", template.getTemplateName());
         assertEquals("/movies/{id}", template.getPath());
-        assertEquals("id", template.getParamNames(0));
+        assertEquals("id", template.getParamName(0));
         assertEquals(0, template.getParamPosition(0));
+        assertNotNull(template.getHystrixFallbackHandler());
+        assertNotNull(template.getHystrixResponseValidator());
+        assertEquals(template.getResultType(), Movie.class);
+        assertEquals("movie.{id}", template.getCacheKey());
     }
 
     @Test
@@ -28,16 +33,16 @@ public class MethodTemplateTest {
 
         assertEquals("findMovie", template.getTemplateName());
         assertEquals("/movies?name={name}&author={author}", template.getPath());
-        assertEquals("name", template.getParamNames(0));
+        assertEquals("name", template.getParamName(0));
         assertEquals(0, template.getParamPosition(0));
-        assertEquals("author", template.getParamNames(1));
+        assertEquals("author", template.getParamName(1));
         assertEquals(1, template.getParamPosition(1));
     }
 
     @Test
     public void testFromFactory() throws Exception {
         MethodTemplate[] methodTemplates = MethodTemplate.from(SampleMovieService.class);
-        assertEquals(3, methodTemplates.length);
+        assertEquals(SampleMovieService.class.getMethods().length, methodTemplates.length);
     }
 
     @Test(expected = IllegalArgumentException.class)

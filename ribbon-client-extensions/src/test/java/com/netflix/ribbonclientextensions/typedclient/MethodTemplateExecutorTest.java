@@ -4,20 +4,26 @@ import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.http.HttpRequestBuilder;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
+import com.netflix.ribbonclientextensions.typedclient.sample.HystrixHandlers.MovieFallbackHandler;
+import com.netflix.ribbonclientextensions.typedclient.sample.HystrixHandlers.SampleHttpResponseValidator;
+import com.netflix.ribbonclientextensions.typedclient.sample.Movie;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.SampleMovieService;
-import org.junit.Ignore;
+import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.protocol.http.client.RawContentSource;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.powermock.api.easymock.annotation.Mock;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import static com.netflix.ribbonclientextensions.typedclient.ReflectUtil.*;
+import static com.netflix.ribbonclientextensions.typedclient.Utils.*;
 import static junit.framework.Assert.*;
 import static org.easymock.EasyMock.*;
 import static org.powermock.api.easymock.PowerMock.createMock;
-import static org.powermock.api.easymock.PowerMock.replay;
+import static org.powermock.api.easymock.PowerMock.*;
 
 /**
  * @author Tomasz Bak
@@ -25,65 +31,107 @@ import static org.powermock.api.easymock.PowerMock.replay;
 @RunWith(PowerMockRunner.class)
 public class MethodTemplateExecutorTest {
 
-    @Test
-    public void testGetWithParameterRequest() throws Exception {
-        RibbonRequest ribbonRequestMock = createMock(RibbonRequest.class);
+    @Mock
+    private RibbonRequest ribbonRequestMock = createMock(RibbonRequest.class);
 
-        HttpRequestBuilder requestBuilderMock = createMock(HttpRequestBuilder.class);
-        expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
+    @Mock
+    private HttpRequestBuilder requestBuilderMock = createMock(HttpRequestBuilder.class);
+
+    @Mock
+    private HttpRequestTemplate httpRequestTemplateMock = createMock(HttpRequestTemplate.class);
+
+    @Mock
+    private HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
+
+    @Before
+    public void setUp() throws Exception {
         expect(requestBuilderMock.build()).andReturn(ribbonRequestMock);
-
-        HttpRequestTemplate httpRequestTemplateMock = createMock(HttpRequestTemplate.class);
-        expect(httpRequestTemplateMock.withMethod("GET")).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withUriTemplate("/movies/{id}")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.requestBuilder()).andReturn(requestBuilderMock);
+    }
 
-        HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
-        expect(httpResourceGroupMock.newRequestTemplate("findMovieById")).andReturn(httpRequestTemplateMock);
+    @Test
+    public void testGetQueryWithDomainObjectResult() throws Exception {
+        expectUrlBase("GET", "/movies/{id}");
 
-        replay(ribbonRequestMock, requestBuilderMock, httpRequestTemplateMock, httpResourceGroupMock);
+        expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
+        expect(httpResourceGroupMock.newRequestTemplate("findMovieById", Movie.class)).andReturn(httpRequestTemplateMock);
 
-        MethodTemplate methodTemplate = new MethodTemplate(methodByName(SampleMovieService.class, "findMovieById"));
+        expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withRequestCacheKey("movie.{id}")).andReturn(httpRequestTemplateMock);
 
-        MethodTemplateExecutor generator = new MethodTemplateExecutor(methodTemplate);
+        replayAll();
 
-        RibbonRequest ribbonRequest = generator.executeFromTemplate(httpResourceGroupMock, new Object[]{"id123"});
+        MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, "findMovieById");
+        RibbonRequest ribbonRequest = executor.executeFromTemplate(httpResourceGroupMock, new Object[]{"id123"});
 
         assertEquals(ribbonRequestMock, ribbonRequest);
     }
 
     @Test
-    @Ignore
-    public void testPostWithContentParameter() throws Exception {
-//        RibbonRequest ribbonRequestMock = createMock(RibbonRequest.class);
-//        HttpClient httpClientMock = createMock(HttpClient.class);
-//
-//        RequestBuilder requestBuilderMock = createMock(RequestBuilder.class);
-//        expect(requestBuilderMock.build()).andReturn(ribbonRequestMock);
-//
-//        HttpRequestTemplate httpRequestTemplateMock = createMock(HttpRequestTemplate.class);
-//        expect(httpRequestTemplateMock.withMethod("POST")).andReturn(httpRequestTemplateMock);
-//        expect(httpRequestTemplateMock.withUri("/movies")).andReturn(httpRequestTemplateMock);
-//        expect(httpRequestTemplateMock.withContentSource((ContentSource) EasyMock.anyObject())).andReturn(httpRequestTemplateMock);
-//        expect(httpRequestTemplateMock.requestBuilder()).andReturn(requestBuilderMock);
-//
-//        mockStatic(Ribbon.class);
-//        expect(Ribbon.newHttpRequestTemplate("registerMovie", httpClientMock)).andReturn(httpRequestTemplateMock);
-//
-//        replay(Ribbon.class, ribbonRequestMock, requestBuilderMock, httpClientMock, httpRequestTemplateMock);
-//
-//        MethodTemplate methodTemplate = new MethodTemplate(methodByName(SampleTypedMovieService.class, "registerMovie"));
-//        MethodTemplateExecutor generator = new MethodTemplateExecutor(methodTemplate);
-//
-//        RibbonRequest ribbonRequest = generator.executeFromTemplate(httpClientMock, new Object[]{new Movie()});
-//
-//        assertEquals(ribbonRequestMock, ribbonRequest);
+    public void testGetQueryWithByteBufResult() throws Exception {
+        expectUrlBase("GET", "/rawMovies/{id}");
+
+        expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
+        expect(httpResourceGroupMock.newRequestTemplate("findRawMovieById")).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withRequestCacheKey("movie.{id}")).andReturn(httpRequestTemplateMock);
+
+        replayAll();
+
+        MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, "findRawMovieById");
+        RibbonRequest ribbonRequest = executor.executeFromTemplate(httpResourceGroupMock, new Object[]{"id123"});
+
+        assertEquals(ribbonRequestMock, ribbonRequest);
+    }
+
+    @Test
+    public void testPostWithDomainObjectAndTransformer() throws Exception {
+        doTestPostWith("/movies", "registerMovie", new Movie());
+    }
+
+    @Test
+    public void testPostWithRawContent() throws Exception {
+        doTestPostWith("/movies", "registerMovieRaw", createMock(RawContentSource.class));
+    }
+
+    @Test
+    public void testPostWithString() throws Exception {
+        doTestPostWith("/titles", "registerTitle", "some title");
+    }
+
+    @Test
+    public void testPostWithByteBuf() throws Exception {
+        doTestPostWith("/binaries", "registerBinary", createMock(ByteBuf.class));
+    }
+
+    private void doTestPostWith(String uriTemplate, String methodName, Object contentObject) {
+        expectUrlBase("POST", uriTemplate);
+
+        expect(requestBuilderMock.withRawContentSource(anyObject(RawContentSource.class))).andReturn(requestBuilderMock);
+        expect(httpResourceGroupMock.newRequestTemplate(methodName, Void.class)).andReturn(httpRequestTemplateMock);
+
+        replayAll();
+
+        MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, methodName);
+        RibbonRequest ribbonRequest = executor.executeFromTemplate(httpResourceGroupMock, new Object[]{contentObject});
+
+        assertEquals(ribbonRequestMock, ribbonRequest);
     }
 
     @Test
     public void testFromFactory() throws Exception {
-        Map<Method, MethodTemplateExecutor<Object>> executorMap = MethodTemplateExecutor.from(SampleMovieService.class);
+        Map<Method, MethodTemplateExecutor> executorMap = MethodTemplateExecutor.from(SampleMovieService.class);
 
-        assertEquals(3, executorMap.size());
+        assertEquals(SampleMovieService.class.getMethods().length, executorMap.size());
+    }
+
+    private void expectUrlBase(String method, String path) {
+        expect(httpRequestTemplateMock.withMethod(method)).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withUriTemplate(path)).andReturn(httpRequestTemplateMock);
+    }
+
+    private MethodTemplateExecutor createExecutor(Class<?> clientInterface, String methodName) {
+        MethodTemplate methodTemplate = new MethodTemplate(methodByName(clientInterface, methodName));
+        return new MethodTemplateExecutor(methodTemplate);
     }
 }

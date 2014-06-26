@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.ribbonclientextensions.typedclient.annotation;
 
-import com.netflix.ribbonclientextensions.http.HttpResponseValidator;
-import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
+package com.netflix.ribbonclientextensions.typedclient.sample;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.reactivex.netty.serialization.ContentTransformer;
 
-@Target({ElementType.TYPE, ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Hystrix {
-    Class<? extends FallbackHandler<?>> fallbackHandler();
-    Class<? extends HttpResponseValidator> validator();
+/**
+ * @author Tomasz Bak
+ */
+public class MovieTransformer implements ContentTransformer<MovieTransformer> {
+    @Override
+    public ByteBuf transform(MovieTransformer toTransform, ByteBufAllocator byteBufAllocator) {
+        return null;
+    }
 }

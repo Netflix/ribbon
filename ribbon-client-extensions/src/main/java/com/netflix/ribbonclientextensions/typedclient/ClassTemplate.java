@@ -1,9 +1,24 @@
+/*
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.ribbonclientextensions.typedclient;
 
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
 import com.netflix.ribbonclientextensions.typedclient.annotation.ResourceGroupSpec;
 
-import static java.lang.String.*;
+import static com.netflix.ribbonclientextensions.typedclient.annotation.ResourceGroupSpec.*;
 
 /**
  * @author Tomasz Bak
@@ -19,9 +34,12 @@ public class ClassTemplate<T> {
         ResourceGroupSpec annotation = clientInterface.getAnnotation(ResourceGroupSpec.class);
         if (annotation != null) {
             String name = annotation.name().trim();
-            resourceGroupName = name.equals("") ? null : annotation.name();
-            Class resourceClass = annotation.resourceGroupClass();
-            resourceGroupClass = void.class.isAssignableFrom(resourceClass) ? null : resourceClass;
+            resourceGroupName = name.isEmpty() ? null : annotation.name();
+            if (UndefHttpResourceGroup.class.equals(annotation.resourceGroupClass())) {
+                resourceGroupClass = null;
+            } else {
+                resourceGroupClass = annotation.resourceGroupClass();
+            }
             verify();
         } else {
             resourceGroupName = null;
@@ -41,16 +59,13 @@ public class ClassTemplate<T> {
         return resourceGroupClass;
     }
 
-    public static ClassTemplate from(Class clientInterface) {
-        return new ClassTemplate(clientInterface);
+    public static <T> ClassTemplate<T> from(Class<T> clientInterface) {
+        return new ClassTemplate<T>(clientInterface);
     }
 
     private void verify() {
         if (resourceGroupName != null && resourceGroupClass != null) {
             throw new RibbonTypedClientException("Both resource group name and class defined with @ResourceGroupSpec");
-        }
-        if (resourceGroupClass != null && !HttpResourceGroup.class.isAssignableFrom(resourceGroupClass)) {
-            throw new RibbonTypedClientException(format("Class %s does not extend %s", resourceGroupClass, HttpResourceGroup.class));
         }
     }
 }
