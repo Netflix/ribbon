@@ -461,7 +461,7 @@ public class LoadBalancerContext implements IClientConfigAware {
                 Server svc = lb.chooseServer(loadBalancerKey);
                 if (svc == null){
                     throw new ClientException(ClientException.ErrorType.GENERAL,
-                            "LoadBalancer returned null Server for :"
+                            "LoadBalancer does not have availble server for client: "
                                     + clientName);
                 }
                 host = svc.getHost();

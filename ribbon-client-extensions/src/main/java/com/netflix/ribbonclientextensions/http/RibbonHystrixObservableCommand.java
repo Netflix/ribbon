@@ -6,15 +6,20 @@ import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import rx.Observable;
 import rx.functions.Func1;
 
+import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.hystrix.exception.HystrixBadRequestException;
 import com.netflix.ribbonclientextensions.CacheProvider;
+import com.netflix.ribbonclientextensions.ResponseValidator;
 import com.netflix.ribbonclientextensions.ServerError;
 import com.netflix.ribbonclientextensions.UnsuccessfulResponseException;
+import com.netflix.ribbonclientextensions.http.HttpRequest.CacheProviderWithKey;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate.CacheProviderWithKeyTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 import com.netflix.ribbonclientextensions.template.TemplateParser;
@@ -22,70 +27,70 @@ import com.netflix.ribbonclientextensions.template.TemplateParsingException;
 
 class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
 
-    private HttpClient<ByteBuf, ByteBuf> httpClient;
-    private HttpRequestTemplate<T> requestTemplate;
-    private HttpRequestBuilder<T> requestBuilder;
+    private final HttpClient<ByteBuf, ByteBuf> httpClient;
+    private final HttpClientRequest<ByteBuf> httpRequest;
+    private final String hystrixCacheKey;
+    private final List<CacheProviderWithKey<T>> cacheProviders;
+    private final Map<String, Object> requestProperties;
+    private final FallbackHandler<T> fallbackHandler;
+    private final Class<? extends T> classType;
+    private final ResponseValidator<HttpClientResponse<ByteBuf>> validator;
 
-    RibbonHystrixObservableCommand(
-            HttpClient<ByteBuf, ByteBuf> httpClient,
-            HttpRequestTemplate<T> requestTemplate,
-            HttpRequestBuilder<T> requestBuilder, RibbonHystrixObservableCommand.Setter setter) {
+    RibbonHystrixObservableCommand(HttpClient<ByteBuf, ByteBuf> httpClient,
+            HttpClientRequest<ByteBuf> httpRequest, String hystrixCacheKey,
+            List<CacheProviderWithKey<T>> cacheProviders,
+            Map<String, Object> requestProperties,
+            FallbackHandler<T> fallbackHandler,
+            ResponseValidator<HttpClientResponse<ByteBuf>> validator,
+            Class<? extends T> classType,
+            HystrixObservableCommand.Setter setter) {
         super(setter);
         this.httpClient = httpClient;
-        this.requestTemplate = requestTemplate;
-        this.requestBuilder = requestBuilder;
+        this.fallbackHandler = fallbackHandler;
+        this.validator = validator;
+        this.httpRequest = httpRequest;
+        this.hystrixCacheKey = hystrixCacheKey;
+        this.cacheProviders = cacheProviders;
+        this.classType = classType;
+        this.requestProperties = requestProperties;
     }
 
     @Override
     protected String getCacheKey() {
-        try {
-            String key = requestBuilder.cacheKey();
-            if (key == null) {
-                return super.getCacheKey();
-            } else {
-                return key;
-            }
-        } catch (TemplateParsingException e) {
-            return super.getCacheKey();            
+        if (hystrixCacheKey == null) {
+            return super.getCacheKey();
+        } else {
+            return hystrixCacheKey;
         }
     }
     
     @Override
     protected Observable<T> getFallback() {
-        FallbackHandler<T> handler = requestTemplate.fallbackHandler();
-        if (handler == null) {
+        if (fallbackHandler == null) {
             return super.getFallback();
         } else {
-            return handler.getFallback(this, requestBuilder.requestProperties());
+            return fallbackHandler.getFallback(this, this.requestProperties);
         }
     }
 
     @Override
     protected Observable<T> run() {
-        final Iterator<CacheProviderWithKeyTemplate<T>> cacheProviders = requestTemplate.cacheProviders().iterator();
         Observable<T> cached = null;
-        if (cacheProviders.hasNext()) {
-            CacheProviderWithKeyTemplate<T> provider = cacheProviders.next();
-            String cacheKey;
-            try {
-                cacheKey = TemplateParser.toData(requestBuilder.requestProperties(), provider.getKeyTemplate());
-            } catch (TemplateParsingException e) {
-                return Observable.error(e);
-            }
-            cached = provider.getProvider().get(cacheKey, requestBuilder.requestProperties());
-            while (cacheProviders.hasNext()) {
-                final Observable<T> nextCache = cacheProviders.next().getProvider().get(cacheKey, requestBuilder.requestProperties());
-                cached = cached.onErrorResumeNext(nextCache);
+        for (CacheProviderWithKey<T> provider: cacheProviders) { 
+            Observable<T> fromTheProvider = provider.getCacheProvider().get(provider.getKey(), this.requestProperties);
+            if (cached == null) {
+                cached = fromTheProvider;
+            } else {
+                cached = cached.onErrorResumeNext(fromTheProvider);
             }
         }
-        HttpClientRequest<ByteBuf> request = requestBuilder.createClientRequest();
-        Observable<HttpClientResponse<ByteBuf>> httpResponseObservable = httpClient.submit(request);
-        if (requestTemplate.responseValidator() != null) {
+        Observable<HttpClientResponse<ByteBuf>> httpResponseObservable = httpClient.submit(httpRequest);
+        if (this.validator != null) {
             httpResponseObservable = httpResponseObservable.map(new Func1<HttpClientResponse<ByteBuf>, HttpClientResponse<ByteBuf>>(){
                 @Override
                 public HttpClientResponse<ByteBuf> call(HttpClientResponse<ByteBuf> t1) {
                     try {
-                        requestTemplate.responseValidator().validate(t1);
+                        validator.validate(t1);
                     } catch (UnsuccessfulResponseException e) {
                         throw new HystrixBadRequestException("Unsuccessful response", e);
                     } catch (ServerError e) {
@@ -101,7 +106,7 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
                         return t1.getContent().map(new Func1<ByteBuf, T>(){
                             @Override
                             public T call(ByteBuf t1) {
-                                return requestTemplate.getClassType().cast(t1);
+                                return classType.cast(t1);
                             }
                             
                         });
