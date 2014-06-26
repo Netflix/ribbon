@@ -59,7 +59,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         public static <T> ClientObservableProvider<T> toObsevableProvider(ClientCallableProvider<T> callableProvider) {
             return new CallableToObservable<T>(callableProvider);
         }
-        
+
         public CallableToObservable(ClientCallableProvider<T> callableProvider) {
             this.callableProvider = callableProvider;
         }
@@ -268,7 +268,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                     t1.onError(e);
                     return Subscriptions.empty();
                 }
-                return retrySameServer(server, clientObservableProvider, retryHandler).subscribe(t1);
+                return execute(server, clientObservableProvider.getObservableForEndpoint(server), retryHandler).subscribe(t1);
             }
         };
         Observable<T> observable = createObservableFromOnSubscribeFunc(onSubscribe);
@@ -282,7 +282,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * by the external {@link Observer}. If number of retries exceeds the maximal retries allowed on one server, a final error will 
      * be emitted by the returned {@link Observable}.
      */
-    protected <T> Observable<T> retrySameServer(final Server server, final ClientObservableProvider<T> clientObservableProvider, final RetryHandler errorHandler) {
+    public <T> Observable<T> execute(final Server server, final Observable<T> singleHostObservable, final RetryHandler errorHandler) {
         OnSubscribe<T> onSubscribe = new OnSubscribe<T>() {
             @Override
             public void call(final Subscriber<? super T> t1) {
@@ -321,7 +321,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                         noteRequestCompletion(serverStats, entity, exception, duration, errorHandler);
                     }
                 };
-                clientObservableProvider.getObservableForEndpoint(server).subscribe(delegate);
+                singleHostObservable.subscribe(delegate);
             }
         };
         

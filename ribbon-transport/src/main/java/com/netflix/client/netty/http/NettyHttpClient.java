@@ -38,6 +38,8 @@ import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -178,11 +180,16 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     public Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig) {
         final RepeatableContentHttpRequest<I> repeatableRequest = getRepeatableRequest(request);
         final RetryHandler retryHandler = (errorHandler == null) ? getRequestRetryHandler(request, requestConfig) : errorHandler;
+        final ClientConfig rxClientConfig = getRxClientConfig(requestConfig);
+        Observable<HttpClientResponse<O>> result = submitToServerInURI(repeatableRequest, rxClientConfig, errorHandler);
+        if (result != null) {
+            return result;
+        }
         return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<O>>() {
             @Override
             public Observable<HttpClientResponse<O>> getObservableForEndpoint(
                     Server server) {
-                return submit(server.getHost(), server.getPort(), repeatableRequest, requestConfig);
+                return submit(server.getHost(), server.getPort(), repeatableRequest, rxClientConfig);
             }
         }, retryHandler);
     }
@@ -211,15 +218,43 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     @Override
     public Observable<HttpClientResponse<O>> submit(HttpClientRequest<I> request, final ClientConfig config) {
         final RepeatableContentHttpRequest<I> repeatableRequest = getRepeatableRequest(request);
+        final RetryHandler retryHandler = getRequestRetryHandler(request, null);
+        Observable<HttpClientResponse<O>> result = submitToServerInURI(request, config, retryHandler);
+        if (result != null) {
+            return result;
+        }
         return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<O>>() {
             @Override
             public Observable<HttpClientResponse<O>> getObservableForEndpoint(
                     Server server) {
                 return submit(server.getHost(), server.getPort(), repeatableRequest, config);
             }
-        });
+        }, retryHandler);
     }
 
+    private Observable<HttpClientResponse<O>> submitToServerInURI(HttpClientRequest<I> request, ClientConfig config, RetryHandler errorHandler)  {
+        URI uri;
+        try {
+            uri = new URI(request.getUri());
+        } catch (URISyntaxException e) {
+            return Observable.error(e);
+        }
+        String host = uri.getHost();
+        if (host == null) {
+            return null;
+        }
+        int port = uri.getPort();
+        if (port < 0) {
+            if (clientConfig.getPropertyAsBoolean(IClientConfigKey.CommonKeys.IsSecure, false)) {
+                port = 443;
+            } else {
+                port = 80;
+            }
+        }
+        Server server = new Server(host, port);
+        return lbExecutor.execute(server, submit(server.getHost(), server.getPort(), request, config), errorHandler);
+    }
+    
     /**
      * Create an {@link ObservableConnection} with a server chosen by the load balancer. 
      */
