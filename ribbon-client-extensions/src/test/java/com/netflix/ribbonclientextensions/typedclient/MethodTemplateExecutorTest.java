@@ -1,5 +1,6 @@
 package com.netflix.ribbonclientextensions.typedclient;
 
+import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.http.HttpRequestBuilder;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
@@ -8,6 +9,7 @@ import com.netflix.ribbonclientextensions.typedclient.sample.HystrixHandlers.Mov
 import com.netflix.ribbonclientextensions.typedclient.sample.HystrixHandlers.SampleHttpResponseValidator;
 import com.netflix.ribbonclientextensions.typedclient.sample.Movie;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.SampleMovieService;
+import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.ShortMovieService;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.RawContentSource;
 import org.junit.Before;
@@ -56,14 +58,19 @@ public class MethodTemplateExecutorTest {
         expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
         expect(httpResourceGroupMock.newRequestTemplate("findMovieById", Movie.class)).andReturn(httpRequestTemplateMock);
 
+        expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1")).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withHeader("X-MyHeader2", "value2")).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withRequestCacheKey("findMovieById/{id}")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withRequestCacheKey("movie.{id}")).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.addCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateMock);
 
         replayAll();
 
         MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, "findMovieById");
-        RibbonRequest ribbonRequest = executor.executeFromTemplate(httpResourceGroupMock, new Object[]{"id123"});
+        RibbonRequest ribbonRequest = executor.executeFromTemplate(new Object[]{"id123"});
+
+        verifyAll();
 
         assertEquals(ribbonRequestMock, ribbonRequest);
     }
@@ -74,12 +81,13 @@ public class MethodTemplateExecutorTest {
 
         expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
         expect(httpResourceGroupMock.newRequestTemplate("findRawMovieById")).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withRequestCacheKey("movie.{id}")).andReturn(httpRequestTemplateMock);
 
         replayAll();
 
         MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, "findRawMovieById");
-        RibbonRequest ribbonRequest = executor.executeFromTemplate(httpResourceGroupMock, new Object[]{"id123"});
+        RibbonRequest ribbonRequest = executor.executeFromTemplate(new Object[]{"id123"});
+
+        verifyAll();
 
         assertEquals(ribbonRequestMock, ribbonRequest);
     }
@@ -113,16 +121,23 @@ public class MethodTemplateExecutorTest {
         replayAll();
 
         MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, methodName);
-        RibbonRequest ribbonRequest = executor.executeFromTemplate(httpResourceGroupMock, new Object[]{contentObject});
+        RibbonRequest ribbonRequest = executor.executeFromTemplate(new Object[]{contentObject});
+
+        verifyAll();
 
         assertEquals(ribbonRequestMock, ribbonRequest);
     }
 
     @Test
     public void testFromFactory() throws Exception {
-        Map<Method, MethodTemplateExecutor> executorMap = MethodTemplateExecutor.from(SampleMovieService.class);
+        expect(httpResourceGroupMock.newRequestTemplate(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
+        expect(httpRequestTemplateMock.withMethod(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
+        expect(httpRequestTemplateMock.withUriTemplate(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
+        replayAll();
 
-        assertEquals(SampleMovieService.class.getMethods().length, executorMap.size());
+        Map<Method, MethodTemplateExecutor> executorMap = MethodTemplateExecutor.from(httpResourceGroupMock, ShortMovieService.class);
+
+        assertEquals(ShortMovieService.class.getMethods().length, executorMap.size());
     }
 
     private void expectUrlBase(String method, String path) {
@@ -132,6 +147,6 @@ public class MethodTemplateExecutorTest {
 
     private MethodTemplateExecutor createExecutor(Class<?> clientInterface, String methodName) {
         MethodTemplate methodTemplate = new MethodTemplate(methodByName(clientInterface, methodName));
-        return new MethodTemplateExecutor(methodTemplate);
+        return new MethodTemplateExecutor(httpResourceGroupMock, methodTemplate);
     }
 }

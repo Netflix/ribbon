@@ -5,7 +5,7 @@ import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
 import com.netflix.ribbonclientextensions.typedclient.sample.Movie;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupNameAnnotation;
-import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -19,7 +19,6 @@ import static com.netflix.ribbonclientextensions.typedclient.Utils.*;
 import static org.easymock.EasyMock.*;
 import static org.powermock.api.easymock.PowerMock.createMock;
 import static org.powermock.api.easymock.PowerMock.*;
-import static org.powermock.api.easymock.PowerMock.replay;
 import static org.testng.Assert.*;
 
 /**
@@ -29,6 +28,17 @@ import static org.testng.Assert.*;
 @PrepareForTest({RibbonDynamicProxy.class, MethodTemplateExecutor.class})
 public class RibbonDynamicProxyTest {
 
+    private HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
+
+    private HttpResourceGroupFactory httpResourceGroupFactoryMock = createMock(HttpResourceGroupFactory.class);
+
+    private RibbonRequest ribbonRequestMock = createMock(RibbonRequest.class);
+
+    @Before
+    public void setUp() throws Exception {
+        expect(httpResourceGroupFactoryMock.createResourceGroup()).andReturn(httpResourceGroupMock);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testAcceptsInterfaceOnly() throws Exception {
         RibbonDynamicProxy.newInstance(Object.class, null);
@@ -36,46 +46,27 @@ public class RibbonDynamicProxyTest {
 
     @Test
     public void testSetupWithExplicitResourceGroupObject() throws Exception {
-        HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
-
-        replay(httpResourceGroupMock);
+        replayAll();
 
         RibbonDynamicProxy.newInstance(SampleMovieServiceWithResourceGroupNameAnnotation.class, httpResourceGroupMock);
     }
 
     @Test
     public void testSetupWithResourceGroupNameInAnnotation() throws Exception {
-        HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
-
-        HttpResourceGroupFactory httpResourceGroupFactoryMock = createMock(HttpResourceGroupFactory.class);
-        expect(httpResourceGroupFactoryMock.createResourceGroup()).andReturn(httpResourceGroupMock);
-
         mockStatic(HttpResourceGroupFactory.class);
-        expectNew(HttpResourceGroupFactory.class, new Class[]{ClassTemplate.class}, EasyMock.anyObject()).andReturn(httpResourceGroupFactoryMock);
+        expectNew(HttpResourceGroupFactory.class, new Class[]{ClassTemplate.class}, anyObject()).andReturn(httpResourceGroupFactoryMock);
 
-        replay(HttpResourceGroupFactory.class, httpResourceGroupMock, httpResourceGroupFactoryMock);
+        replayAll();
 
         RibbonDynamicProxy.newInstance(SampleMovieServiceWithResourceGroupNameAnnotation.class, null);
     }
 
     @Test
     public void testTypedClientGetWithPathParameter() throws Exception {
-        HttpResourceGroup httpResourceGroup = createMock(HttpResourceGroup.class);
+        initializeSampleMovieServiceMocks();
+        replayAll();
 
-        RibbonRequest ribbonRequestMock = createMock(RibbonRequest.class);
-
-        MethodTemplateExecutor tgMock = createMock(MethodTemplateExecutor.class);
-        expect(tgMock.executeFromTemplate((com.netflix.ribbonclientextensions.http.HttpResourceGroup) EasyMock.anyObject(), (Object[]) EasyMock.anyObject())).andReturn(ribbonRequestMock);
-
-        Map<Method, MethodTemplateExecutor> tgMap = new HashMap<Method, MethodTemplateExecutor>();
-        tgMap.put(methodByName(SampleMovieService.class, "findMovieById"), tgMock);
-
-        mockStatic(MethodTemplateExecutor.class);
-        expect(MethodTemplateExecutor.from(SampleMovieService.class)).andReturn(tgMap);
-
-        replay(MethodTemplateExecutor.class, tgMock, httpResourceGroup, ribbonRequestMock);
-
-        SampleMovieService service = RibbonDynamicProxy.newInstance(SampleMovieService.class, httpResourceGroup);
+        SampleMovieService service = RibbonDynamicProxy.newInstance(SampleMovieService.class, httpResourceGroupMock);
         RibbonRequest<Movie> ribbonMovie = service.findMovieById("123");
 
         assertNotNull(ribbonMovie);
@@ -83,12 +74,23 @@ public class RibbonDynamicProxyTest {
 
     @Test
     public void testPlainObjectInvocations() throws Exception {
-        HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
-        replay(httpResourceGroupMock);
+        initializeSampleMovieServiceMocks();
+        replayAll();
 
         SampleMovieService service = RibbonDynamicProxy.newInstance(SampleMovieService.class, httpResourceGroupMock);
 
         assertFalse(service.equals(this));
         assertEquals(service.toString(), "RibbonDynamicProxy{...}");
+    }
+
+    private void initializeSampleMovieServiceMocks() {
+        MethodTemplateExecutor tgMock = createMock(MethodTemplateExecutor.class);
+        expect(tgMock.executeFromTemplate(anyObject(Object[].class))).andReturn(ribbonRequestMock);
+
+        Map<Method, MethodTemplateExecutor> tgMap = new HashMap<Method, MethodTemplateExecutor>();
+        tgMap.put(methodByName(SampleMovieService.class, "findMovieById"), tgMock);
+
+        mockStatic(MethodTemplateExecutor.class);
+        expect(MethodTemplateExecutor.from(httpResourceGroupMock, SampleMovieService.class)).andReturn(tgMap);
     }
 }

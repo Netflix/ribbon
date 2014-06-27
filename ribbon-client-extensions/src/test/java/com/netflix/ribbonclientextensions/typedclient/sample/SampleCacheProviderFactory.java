@@ -13,37 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.ribbonclientextensions.typedclient.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package com.netflix.ribbonclientextensions.typedclient.sample;
+
+import com.netflix.ribbonclientextensions.CacheProvider;
+import com.netflix.ribbonclientextensions.CacheProviderFactory;
+import rx.Observable;
+
+import java.util.Map;
 
 /**
  * @author Tomasz Bak
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Http {
+public class SampleCacheProviderFactory implements CacheProviderFactory<Object> {
 
-    enum HttpMethod {
-        DELETE,
-        GET,
-        POST,
-        PATCH,
-        PUT
+    @Override
+    public CacheProvider<Object> createCacheProvider() {
+        return new SampleCacheProvider();
     }
 
-    HttpMethod method();
+    public static class SampleCacheProvider implements CacheProvider<Object> {
 
-    String path() default "";
-
-    Header[] headers() default {};
-
-    @interface Header {
-        String name();
-
-        String value();
+        @Override
+        public Observable<Object> get(String key, Map requestProperties) {
+            return null;
+        }
     }
 }

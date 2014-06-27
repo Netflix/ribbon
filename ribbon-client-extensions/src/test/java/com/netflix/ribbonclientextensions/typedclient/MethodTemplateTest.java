@@ -1,8 +1,11 @@
 package com.netflix.ribbonclientextensions.typedclient;
 
+import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.typedclient.sample.Movie;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.BrokenMovieService;
+import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.HystrixOptionalAnnotationValues;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.SampleMovieService;
+import com.netflix.ribbonclientextensions.typedclient.sample.SampleCacheProviderFactory.SampleCacheProvider;
 import org.junit.Test;
 
 import static com.netflix.ribbonclientextensions.typedclient.Utils.*;
@@ -17,14 +20,23 @@ public class MethodTemplateTest {
     public void testGetWithOneParameter() throws Exception {
         MethodTemplate template = new MethodTemplate(methodByName(SampleMovieService.class, "findMovieById"));
 
+        assertEquals("id", template.getParamName(0));
         assertEquals("findMovieById", template.getTemplateName());
         assertEquals("/movies/{id}", template.getPath());
-        assertEquals("id", template.getParamName(0));
+
+        assertTrue("value1".equals(template.getHeaders().get("X-MyHeader1")));
+        assertTrue("value2".equals(template.getHeaders().get("X-MyHeader2")));
+
         assertEquals(0, template.getParamPosition(0));
+        assertEquals(template.getResultType(), Movie.class);
+
+        assertEquals("findMovieById/{id}", template.getHystrixCacheKey());
         assertNotNull(template.getHystrixFallbackHandler());
         assertNotNull(template.getHystrixResponseValidator());
-        assertEquals(template.getResultType(), Movie.class);
-        assertEquals("movie.{id}", template.getCacheKey());
+
+        CacheProvider cacheProvider = template.getCacheProviders().get("findMovieById_{id}");
+        assertNotNull(cacheProvider);
+        assertTrue(cacheProvider instanceof SampleCacheProvider);
     }
 
     @Test
@@ -37,6 +49,24 @@ public class MethodTemplateTest {
         assertEquals(0, template.getParamPosition(0));
         assertEquals("author", template.getParamName(1));
         assertEquals(1, template.getParamPosition(1));
+    }
+
+    @Test
+    public void testHystrixOptionalParameters() throws Exception {
+        MethodTemplate template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithCacheKeyOnly"));
+        assertNotNull(template.getHystrixCacheKey());
+        assertNull(template.getHystrixResponseValidator());
+        assertNull(template.getHystrixFallbackHandler());
+
+        template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithValidatorOnly"));
+        assertNull(template.getHystrixCacheKey());
+        assertNotNull(template.getHystrixResponseValidator());
+        assertNull(template.getHystrixFallbackHandler());
+
+        template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithFallbackHandlerOnly"));
+        assertNull(template.getHystrixCacheKey());
+        assertNull(template.getHystrixResponseValidator());
+        assertNotNull(template.getHystrixFallbackHandler());
     }
 
     @Test

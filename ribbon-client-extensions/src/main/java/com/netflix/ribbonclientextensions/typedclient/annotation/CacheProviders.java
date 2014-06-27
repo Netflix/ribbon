@@ -15,35 +15,22 @@
  */
 package com.netflix.ribbonclientextensions.typedclient.annotation;
 
+import com.netflix.ribbonclientextensions.CacheProviderFactory;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * @author Tomasz Bak
- */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Http {
+public @interface CacheProviders {
 
-    enum HttpMethod {
-        DELETE,
-        GET,
-        POST,
-        PATCH,
-        PUT
-    }
+    Provider[] value() default {};
 
-    HttpMethod method();
+    @interface Provider {
+        String key();
 
-    String path() default "";
-
-    Header[] headers() default {};
-
-    @interface Header {
-        String name();
-
-        String value();
+        Class<? extends CacheProviderFactory<?>> provider();
     }
 }

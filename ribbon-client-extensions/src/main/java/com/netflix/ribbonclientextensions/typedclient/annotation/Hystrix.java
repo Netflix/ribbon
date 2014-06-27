@@ -15,17 +15,42 @@
  */
 package com.netflix.ribbonclientextensions.typedclient.annotation;
 
+import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.ribbonclientextensions.http.HttpResponseValidator;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
+import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+import rx.Observable;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Map;
 
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Hystrix {
-    Class<? extends FallbackHandler<?>> fallbackHandler();
-    Class<? extends HttpResponseValidator> validator();
+    String cacheKey() default "";
+
+    Class<? extends FallbackHandler<?>> fallbackHandler() default UndefFallbackHandler.class;
+
+    Class<? extends HttpResponseValidator> validator() default UndefHttpResponseValidator.class;
+
+    /**
+     * Since null is not allowed as a default value in annotation, we need this marker class.
+     */
+    final class UndefFallbackHandler implements FallbackHandler<Object> {
+        @Override
+        public Observable<Object> getFallback(HystrixExecutableInfo<?> hystrixInfo, Map<String, Object> requestProperties) {
+            return null;
+        }
+    }
+
+    final class UndefHttpResponseValidator implements HttpResponseValidator {
+        @Override
+        public void validate(HttpClientResponse<ByteBuf> response) {
+
+        }
+    }
 }

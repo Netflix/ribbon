@@ -27,24 +27,20 @@ import java.util.Map;
  */
 public class RibbonDynamicProxy<T> implements InvocationHandler {
     private final Map<Method, MethodTemplateExecutor> templateGeneratorMap;
-    private final HttpResourceGroup httpResourceGroup;
-    private final ClassTemplate<T> classTemplate;
 
     public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
-        classTemplate = ClassTemplate.from(clientInterface);
+        ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
         if (httpResourceGroup == null) {
-            this.httpResourceGroup = new HttpResourceGroupFactory<T>(classTemplate).createResourceGroup();
-        } else {
-            this.httpResourceGroup = httpResourceGroup;
+            httpResourceGroup = new HttpResourceGroupFactory<T>(classTemplate).createResourceGroup();
         }
-        templateGeneratorMap = MethodTemplateExecutor.from(clientInterface);
+        templateGeneratorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         MethodTemplateExecutor template = templateGeneratorMap.get(method);
         if (template != null) {
-            return template.executeFromTemplate(httpResourceGroup, args);
+            return template.executeFromTemplate(args);
         }
         // This must be one of the Object methods. Lets run it on the handler itself.
         return Utils.executeOnInstance(this, method, args);

@@ -15,13 +15,17 @@
  */
 package com.netflix.ribbonclientextensions.typedclient;
 
+import com.netflix.ribbonclientextensions.CacheProvider;
+import com.netflix.ribbonclientextensions.CacheProviderFactory;
 import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.http.HttpResponseValidator;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
-import com.netflix.ribbonclientextensions.typedclient.annotation.Cache;
+import com.netflix.ribbonclientextensions.typedclient.annotation.CacheProviders;
+import com.netflix.ribbonclientextensions.typedclient.annotation.CacheProviders.Provider;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Content;
 import com.netflix.ribbonclientextensions.typedclient.annotation.ContentTransformerClass;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http;
+import com.netflix.ribbonclientextensions.typedclient.annotation.Http.Header;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http.HttpMethod;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Hystrix;
 import com.netflix.ribbonclientextensions.typedclient.annotation.TemplateName;
@@ -32,7 +36,10 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.lang.String.*;
 
@@ -50,14 +57,16 @@ public class MethodTemplate {
     private final String templateName;
     private final Http.HttpMethod httpMethod;
     private final String path;
+    private final Map<String, String> headers;
     private final String[] paramNames;
     private final int[] valueIdxs;
     private final int contentArgPosition;
     private final Class<? extends ContentTransformer<?>> contentTansformerClass;
     private final Class<?> resultType;
+    private final String hystrixCacheKey;
     private final FallbackHandler<?> hystrixFallbackHandler;
     private final HttpResponseValidator hystrixResponseValidator;
-    private final String cacheKey;
+    private final Map<String, CacheProvider<?>> cacheProviders;
 
     public MethodTemplate(Method method) {
         this.method = method;
@@ -65,14 +74,16 @@ public class MethodTemplate {
         templateName = values.templateName;
         httpMethod = values.httpMethod;
         path = values.path;
+        headers = Collections.unmodifiableMap(values.headers);
         paramNames = values.paramNames;
         valueIdxs = values.valueIdxs;
         contentArgPosition = values.contentArgPosition;
         contentTansformerClass = values.contentTansformerClass;
         resultType = values.resultType;
+        hystrixCacheKey = values.hystrixCacheKey;
         hystrixFallbackHandler = values.hystrixFallbackHandler;
         hystrixResponseValidator = values.hystrixResponseValidator;
-        cacheKey = values.cacheKey;
+        cacheProviders = Collections.unmodifiableMap(values.cacheProviders);
     }
 
     public HttpMethod getHttpMethod() {
@@ -89,6 +100,10 @@ public class MethodTemplate {
 
     public String getPath() {
         return path;
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
     }
 
     public String getParamName(int idx) {
@@ -115,6 +130,10 @@ public class MethodTemplate {
         return resultType;
     }
 
+    public String getHystrixCacheKey() {
+        return hystrixCacheKey;
+    }
+
     public FallbackHandler<?> getHystrixFallbackHandler() {
         return hystrixFallbackHandler;
     }
@@ -123,8 +142,8 @@ public class MethodTemplate {
         return hystrixResponseValidator;
     }
 
-    public String getCacheKey() {
-        return cacheKey;
+    public Map<String, CacheProvider<?>> getCacheProviders() {
+        return cacheProviders;
     }
 
     public static <T> MethodTemplate[] from(Class<T> clientInterface) {
@@ -146,9 +165,11 @@ public class MethodTemplate {
         private int contentArgPosition;
         private Class<? extends ContentTransformer<?>> contentTansformerClass;
         private Class<?> resultType;
+        public String hystrixCacheKey;
         private FallbackHandler<?> hystrixFallbackHandler;
         private HttpResponseValidator hystrixResponseValidator;
-        public String cacheKey;
+        public final Map<String, String> headers = new HashMap<String, String>();
+        private final Map<String, CacheProvider<?>> cacheProviders = new HashMap<String, CacheProvider<?>>();
 
         private MethodAnnotationValues(Method method) {
             this.method = method;
@@ -159,13 +180,17 @@ public class MethodTemplate {
             extractContentTransformerClass();
             extractResultType();
             extractHystrixHandlers();
-            extractCacheKey();
+            extractCacheProviders();
         }
 
-        private void extractCacheKey() {
-            Cache annotation = method.getAnnotation(Cache.class);
+        private void extractCacheProviders() {
+            CacheProviders annotation = method.getAnnotation(CacheProviders.class);
             if (annotation != null) {
-                cacheKey = annotation.key();
+                for (Provider provider : annotation.value()) {
+                    Class<? extends CacheProviderFactory<?>> providerClass = provider.provider();
+                    CacheProviderFactory<?> factory = Utils.newInstance(providerClass);
+                    cacheProviders.put(provider.key(), factory.createCacheProvider());
+                }
             }
         }
 
@@ -174,8 +199,16 @@ public class MethodTemplate {
             if (annotation == null) {
                 return;
             }
-            hystrixFallbackHandler = Utils.newInstance(annotation.fallbackHandler());
-            hystrixResponseValidator = Utils.newInstance(annotation.validator());
+            String cacheKey = annotation.cacheKey().trim();
+            if (!cacheKey.isEmpty()) {
+                hystrixCacheKey = cacheKey;
+            }
+            if (!Hystrix.UndefFallbackHandler.class.equals(annotation.fallbackHandler())) {
+                hystrixFallbackHandler = Utils.newInstance(annotation.fallbackHandler());
+            }
+            if (!Hystrix.UndefHttpResponseValidator.class.equals(annotation.validator())) {
+                hystrixResponseValidator = Utils.newInstance(annotation.validator());
+            }
         }
 
         private void extractHttpAnnotation() {
@@ -187,6 +220,9 @@ public class MethodTemplate {
             }
             httpMethod = annotation.method();
             path = annotation.path();
+            for (Header h : annotation.headers()) {
+                headers.put(h.name(), h.value());
+            }
         }
 
         private void extractParamNamesWithIndexes() {
