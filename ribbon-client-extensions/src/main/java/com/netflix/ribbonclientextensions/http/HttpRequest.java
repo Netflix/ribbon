@@ -74,7 +74,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
     
     RibbonHystrixObservableCommand<T> createHystrixCommand() {
         return new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, cacheProviders, requestProperties, template.fallbackHandler(), 
-                template.responseValidator(), template.getClassType(), template.hystrixProperties());
+                template.responseValidator(), template.classType(), template.hystrixProperties());
     }
     
     @Override
