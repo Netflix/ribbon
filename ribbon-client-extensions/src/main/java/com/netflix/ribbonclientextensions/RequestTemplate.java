@@ -14,6 +14,7 @@ public abstract class RequestTemplate<T, R> {
     private final String name;
     private final ResourceGroup<?> group;
     private final Class<? extends T> classType;
+    private FallbackHandler<T> fallbackHandler;
 
     public RequestTemplate(String name,
             ResourceGroup<?> group,
@@ -41,8 +42,15 @@ public abstract class RequestTemplate<T, R> {
     
     public abstract RequestTemplate<T, R> copy(String name);
         
-    public abstract RequestTemplate<T, R> withFallbackProvider(FallbackHandler<T> fallbackHandler);
+    public RequestTemplate<T, R> withFallbackProvider(FallbackHandler<T> fallbackHandler) {
+        this.fallbackHandler = fallbackHandler;
+        return this;
+    }
     
+    public FallbackHandler<T> fallbackHandler() {
+        return fallbackHandler;
+    }
+
     public abstract RequestTemplate<T, R> withResponseValidator(ResponseValidator<R> validator);
         
     /**

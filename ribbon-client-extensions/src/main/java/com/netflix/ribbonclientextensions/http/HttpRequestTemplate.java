@@ -79,8 +79,7 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     
     @Override
     public HttpRequestTemplate<T> withFallbackProvider(FallbackHandler<T> fallbackHandler) {
-        this.fallbackHandler = fallbackHandler;
-        return this;
+        return (HttpRequestTemplate<T>) super.withFallbackProvider(fallbackHandler);
     }
 
     @Override
@@ -150,11 +149,7 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     ResponseValidator<HttpClientResponse<ByteBuf>> responseValidator() {
         return validator;
     }
-    
-    FallbackHandler<T> fallbackHandler() {
-        return fallbackHandler;
-    }
-    
+        
     ParsedTemplate uriTemplate() {
         return parsedUriTemplate;
     }
