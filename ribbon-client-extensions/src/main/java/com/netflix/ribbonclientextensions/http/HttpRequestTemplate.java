@@ -60,8 +60,8 @@ public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResp
         }
     }
     
-    public HttpRequestTemplate(String name, HttpResourceGroup group, HttpClient<ByteBuf, ByteBuf> client, Class<? extends T> classType) {
-        this.client = client;
+    public HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType) {
+        this.client = group.getClient();
         this.classType = classType;
         if (client instanceof LoadBalancingRxClient) {
             LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
@@ -190,7 +190,7 @@ public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResp
 
     @Override
     public HttpRequestTemplate<T> copy(String name) {
-        HttpRequestTemplate<T> newTemplate = new HttpRequestTemplate<T>(name, this.group, this.client, this.classType);
+        HttpRequestTemplate<T> newTemplate = new HttpRequestTemplate<T>(name, this.group, this.classType);
         newTemplate.cacheProviders.addAll(this.cacheProviders);
         newTemplate.method = this.method;
         newTemplate.headers.add(this.headers);

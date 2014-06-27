@@ -37,7 +37,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
     @Override
     public <T> HttpRequestTemplate<T> newRequestTemplate(String name,
             Class<? extends T> classType) {
-        return new HttpRequestTemplate<T>(name, HttpResourceGroup.this, client, classType);
+        return new HttpRequestTemplate<T>(name, this, classType);
     }
     
     public HttpRequestTemplate<ByteBuf> newRequestTemplate(String name) {
@@ -48,4 +48,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
         return headers;
     }
     
+    HttpClient<ByteBuf, ByteBuf> getClient() {
+        return client;
+    }
 }
