@@ -39,8 +39,11 @@ public class RibbonTest {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
-                .setBody(content));       
+        MockResponse response = new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+        .setBody(content);
+        server.enqueue(response);
+        
+        server.enqueue(response);       
         server.play();
         
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", 
@@ -50,6 +53,9 @@ public class RibbonTest {
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         RibbonRequest<ByteBuf> request = template.withUriTemplate("/").requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
+        assertEquals(content, result);
+        // repeat the same request
+        request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
     }
     
@@ -226,13 +232,13 @@ public class RibbonTest {
     
     
     @Test
-    public void testCacheMiss() throws IOException {
+    public void testCacheMiss() throws IOException, InterruptedException {
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
         server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
                 .setBody(content));       
         server.play();
-        
+                
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:" + server.getPort())
                 .withMaxAutoRetriesNextServer(1));

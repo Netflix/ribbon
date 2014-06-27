@@ -11,7 +11,6 @@ import rx.Observer;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.subjects.PublishSubject;
-import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
@@ -43,22 +42,22 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
         }        
     }
 
-    private HttpRequestBuilder<T> requestBuilder;
+    private final HttpRequest<T> request;
 
-    HttpMetaRequest(HttpRequestBuilder<T> requestBuilder ) {
-        this.requestBuilder = requestBuilder;
+    HttpMetaRequest(HttpRequest<T> request) {
+        this.request = request;
     }
 
     @Override
     public Observable<RibbonResponse<Observable<T>>> observe() {
-        RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
         final Observable<T> output = hystrixCommand.observe();
         return convertToRibbonResponse(output, hystrixCommand);
     }
 
     @Override
     public Observable<RibbonResponse<Observable<T>>> toObservable() {
-        RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
         final Observable<T> output = hystrixCommand.observe();
         return convertToRibbonResponse(output, hystrixCommand);        
     }
@@ -102,7 +101,7 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
 
     @Override
     public Future<RibbonResponse<T>> queue() {
-        final RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        final RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
         final Future<T> f = hystrixCommand.queue();
         return new Future<RibbonResponse<T>>() {
             @Override
@@ -139,7 +138,7 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
 
     @Override
     public RibbonResponse<T> execute() {
-        RibbonHystrixObservableCommand<T> hystrixCommand = requestBuilder.createHystrixCommand();
+        RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
         T obj = hystrixCommand.execute();
         return new HttpMetaResponse<T>(obj, hystrixCommand);
     }    
