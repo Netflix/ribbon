@@ -1,7 +1,7 @@
 package com.netflix.ribbonclientextensions;
 
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
-import com.netflix.ribbonclientextensions.typedclient.RibbonDynamicProxy;
+import com.netflix.ribbonclientextensions.proxy.RibbonDynamicProxy;
 
 public final class Ribbon {
 
