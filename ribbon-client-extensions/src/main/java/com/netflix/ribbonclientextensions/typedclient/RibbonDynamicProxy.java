@@ -26,19 +26,19 @@ import java.util.Map;
  * @author Tomasz Bak
  */
 public class RibbonDynamicProxy<T> implements InvocationHandler {
-    private final Map<Method, MethodTemplateExecutor> templateGeneratorMap;
+    private final Map<Method, MethodTemplateExecutor> templateExecutorMap;
 
     public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
         ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
         if (httpResourceGroup == null) {
             httpResourceGroup = new HttpResourceGroupFactory<T>(classTemplate).createResourceGroup();
         }
-        templateGeneratorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
+        templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        MethodTemplateExecutor template = templateGeneratorMap.get(method);
+        MethodTemplateExecutor template = templateExecutorMap.get(method);
         if (template != null) {
             return template.executeFromTemplate(args);
         }

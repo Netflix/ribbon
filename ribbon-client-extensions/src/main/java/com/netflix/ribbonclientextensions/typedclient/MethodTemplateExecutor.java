@@ -17,6 +17,8 @@ package com.netflix.ribbonclientextensions.typedclient;
 
 import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.RibbonRequest;
+import com.netflix.ribbonclientextensions.evache.EvCacheOptions;
+import com.netflix.ribbonclientextensions.evache.EvCacheProvider;
 import com.netflix.ribbonclientextensions.http.HttpRequestBuilder;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
@@ -48,10 +50,12 @@ public class MethodTemplateExecutor {
     private final HttpResourceGroup httpResourceGroup;
     private final MethodTemplate methodTemplate;
     private final HttpRequestTemplate<?> httpRequestTemplate;
+    private final EvCacheProviderPool evCacheProviderPool;
 
-    public MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate) {
+    public MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, EvCacheProviderPool evCacheProviderPool) {
         this.httpResourceGroup = httpResourceGroup;
         this.methodTemplate = methodTemplate;
+        this.evCacheProviderPool = evCacheProviderPool;
         httpRequestTemplate = createHttpRequestTemplate();
     }
 
@@ -108,12 +112,16 @@ public class MethodTemplateExecutor {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({"rawtypes", "unchecked", "OverlyStrongTypeCast"})
     private void withCacheProviders(HttpRequestTemplate<?> httpRequestTemplate) {
         if (methodTemplate.getCacheProviders() != null) {
             for (Map.Entry<String, CacheProvider<?>> entry : methodTemplate.getCacheProviders().entrySet()) {
                 httpRequestTemplate.addCacheProvider(entry.getKey(), (CacheProvider) entry.getValue());
             }
+        }
+        EvCacheOptions evCacheOptions = methodTemplate.getEvCacheOptions();
+        if (evCacheOptions != null) {
+            httpRequestTemplate.addCacheProvider(evCacheOptions.getCacheKeyTemplate(), (EvCacheProvider) evCacheProviderPool.getMatching(evCacheOptions));
         }
     }
 
@@ -145,9 +153,11 @@ public class MethodTemplateExecutor {
     }
 
     public static Map<Method, MethodTemplateExecutor> from(HttpResourceGroup httpResourceGroup, Class<?> clientInterface) {
+        MethodTemplate[] methodTemplates = MethodTemplate.from(clientInterface);
+        EvCacheProviderPool evCacheProviderPool = new EvCacheProviderPool(methodTemplates);
         Map<Method, MethodTemplateExecutor> tgm = new HashMap<Method, MethodTemplateExecutor>();
-        for (MethodTemplate mt : MethodTemplate.from(clientInterface)) {
-            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt));
+        for (MethodTemplate mt : methodTemplates) {
+            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt, evCacheProviderPool));
         }
         return tgm;
     }

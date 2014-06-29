@@ -2,6 +2,8 @@ package com.netflix.ribbonclientextensions.typedclient;
 
 import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.RibbonRequest;
+import com.netflix.ribbonclientextensions.evache.EvCacheOptions;
+import com.netflix.ribbonclientextensions.evache.EvCacheProvider;
 import com.netflix.ribbonclientextensions.http.HttpRequestBuilder;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
@@ -16,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.annotation.Mock;
+import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.lang.reflect.Method;
@@ -31,6 +34,7 @@ import static org.powermock.api.easymock.PowerMock.*;
  * @author Tomasz Bak
  */
 @RunWith(PowerMockRunner.class)
+@PrepareForTest({MethodTemplateExecutor.class})
 public class MethodTemplateExecutorTest {
 
     @Mock
@@ -44,6 +48,12 @@ public class MethodTemplateExecutorTest {
 
     @Mock
     private HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
+
+    @Mock
+    private EvCacheProviderPool evCacheProviderPoolMock = createMock(EvCacheProviderPool.class);
+
+    @Mock
+    private EvCacheProvider evCacheProviderMock = createMock(EvCacheProvider.class);
 
     @Before
     public void setUp() throws Exception {
@@ -64,6 +74,8 @@ public class MethodTemplateExecutorTest {
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.addCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.addCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateMock);
+        expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock);
 
         replayAll();
 
@@ -130,6 +142,10 @@ public class MethodTemplateExecutorTest {
 
     @Test
     public void testFromFactory() throws Exception {
+        mockStatic(EvCacheProviderPool.class);
+        expectNew(EvCacheProviderPool.class, new Class[]{MethodTemplate[].class}, anyObject(MethodTemplate[].class)).andReturn(evCacheProviderPoolMock);
+        expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock).anyTimes();
+
         expect(httpResourceGroupMock.newRequestTemplate(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
         expect(httpRequestTemplateMock.withMethod(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
         expect(httpRequestTemplateMock.withUriTemplate(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
@@ -147,6 +163,6 @@ public class MethodTemplateExecutorTest {
 
     private MethodTemplateExecutor createExecutor(Class<?> clientInterface, String methodName) {
         MethodTemplate methodTemplate = new MethodTemplate(methodByName(clientInterface, methodName));
-        return new MethodTemplateExecutor(httpResourceGroupMock, methodTemplate);
+        return new MethodTemplateExecutor(httpResourceGroupMock, methodTemplate, evCacheProviderPoolMock);
     }
 }

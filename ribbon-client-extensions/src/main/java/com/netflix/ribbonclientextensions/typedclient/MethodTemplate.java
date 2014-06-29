@@ -15,15 +15,18 @@
  */
 package com.netflix.ribbonclientextensions.typedclient;
 
+import com.netflix.evcache.EVCacheTranscoder;
 import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.CacheProviderFactory;
 import com.netflix.ribbonclientextensions.RibbonRequest;
+import com.netflix.ribbonclientextensions.evache.EvCacheOptions;
 import com.netflix.ribbonclientextensions.http.HttpResponseValidator;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 import com.netflix.ribbonclientextensions.typedclient.annotation.CacheProviders;
 import com.netflix.ribbonclientextensions.typedclient.annotation.CacheProviders.Provider;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Content;
 import com.netflix.ribbonclientextensions.typedclient.annotation.ContentTransformerClass;
+import com.netflix.ribbonclientextensions.typedclient.annotation.EvCache;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http.Header;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http.HttpMethod;
@@ -67,6 +70,7 @@ public class MethodTemplate {
     private final FallbackHandler<?> hystrixFallbackHandler;
     private final HttpResponseValidator hystrixResponseValidator;
     private final Map<String, CacheProvider<?>> cacheProviders;
+    private final EvCacheOptions evCacheOptions;
 
     public MethodTemplate(Method method) {
         this.method = method;
@@ -84,6 +88,7 @@ public class MethodTemplate {
         hystrixFallbackHandler = values.hystrixFallbackHandler;
         hystrixResponseValidator = values.hystrixResponseValidator;
         cacheProviders = Collections.unmodifiableMap(values.cacheProviders);
+        evCacheOptions = values.evCacheOptions;
     }
 
     public HttpMethod getHttpMethod() {
@@ -146,6 +151,10 @@ public class MethodTemplate {
         return cacheProviders;
     }
 
+    public EvCacheOptions getEvCacheOptions() {
+        return evCacheOptions;
+    }
+
     public static <T> MethodTemplate[] from(Class<T> clientInterface) {
         List<MethodTemplate> list = new ArrayList<MethodTemplate>(clientInterface.getMethods().length);
         for (Method m : clientInterface.getMethods()) {
@@ -170,6 +179,7 @@ public class MethodTemplate {
         private HttpResponseValidator hystrixResponseValidator;
         public final Map<String, String> headers = new HashMap<String, String>();
         private final Map<String, CacheProvider<?>> cacheProviders = new HashMap<String, CacheProvider<?>>();
+        private EvCacheOptions evCacheOptions;
 
         private MethodAnnotationValues(Method method) {
             this.method = method;
@@ -181,6 +191,7 @@ public class MethodTemplate {
             extractResultType();
             extractHystrixHandlers();
             extractCacheProviders();
+            extractEvCacheOptions();
         }
 
         private void extractCacheProviders() {
@@ -290,6 +301,31 @@ public class MethodTemplate {
             }
             ParameterizedType returnType = (ParameterizedType) method.getGenericReturnType();
             resultType = (Class<?>) returnType.getActualTypeArguments()[0];
+        }
+
+        private void extractEvCacheOptions() {
+            EvCache annotation = method.getAnnotation(EvCache.class);
+            if (annotation == null) {
+                return;
+            }
+
+            Class<? extends EVCacheTranscoder<?>>[] transcoderClasses = annotation.transcoder();
+            EVCacheTranscoder<?> transcoder;
+            if (transcoderClasses.length == 0) {
+                transcoder = null;
+            } else if (transcoderClasses.length > 1) {
+                throw new RibbonTypedClientException("Multiple transcoders defined on method " + method.getName());
+            } else {
+                transcoder = Utils.newInstance(transcoderClasses[0]);
+            }
+
+            evCacheOptions = new EvCacheOptions(
+                    annotation.appName(),
+                    annotation.name(),
+                    annotation.enableZoneFallback(),
+                    annotation.ttl(),
+                    transcoder,
+                    annotation.cacheKeyTemplate());
         }
     }
 }

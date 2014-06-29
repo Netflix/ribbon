@@ -5,6 +5,7 @@ import com.netflix.ribbonclientextensions.typedclient.annotation.CacheProviders;
 import com.netflix.ribbonclientextensions.typedclient.annotation.CacheProviders.Provider;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Content;
 import com.netflix.ribbonclientextensions.typedclient.annotation.ContentTransformerClass;
+import com.netflix.ribbonclientextensions.typedclient.annotation.EvCache;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http.Header;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Http.HttpMethod;
@@ -12,6 +13,7 @@ import com.netflix.ribbonclientextensions.typedclient.annotation.Hystrix;
 import com.netflix.ribbonclientextensions.typedclient.annotation.ResourceGroupSpec;
 import com.netflix.ribbonclientextensions.typedclient.annotation.TemplateName;
 import com.netflix.ribbonclientextensions.typedclient.annotation.Var;
+import com.netflix.ribbonclientextensions.typedclient.sample.EvCacheClasses.SampleEVCacheTranscoder;
 import com.netflix.ribbonclientextensions.typedclient.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbonclientextensions.typedclient.sample.HystrixHandlers.SampleHttpResponseValidator;
 import io.netty.buffer.ByteBuf;
@@ -38,7 +40,9 @@ public class MovieServiceInterfaces {
                 cacheKey = "findMovieById/{id}",
                 validator = SampleHttpResponseValidator.class,
                 fallbackHandler = MovieFallbackHandler.class)
-        @CacheProviders({@Provider(key = "findMovieById_{id}", provider = SampleCacheProviderFactory.class)})
+        @CacheProviders(@Provider(key = "findMovieById_{id}", provider = SampleCacheProviderFactory.class))
+        @EvCache(name = "movie-cache", appName = "movieService", cacheKeyTemplate = "movie-{id}", ttl = 50,
+                enableZoneFallback = true, transcoder = SampleEVCacheTranscoder.class)
         RibbonRequest<Movie> findMovieById(@Var("id") String id);
 
         @TemplateName("findRawMovieById")

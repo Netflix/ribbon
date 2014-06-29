@@ -1,6 +1,8 @@
 package com.netflix.ribbonclientextensions.typedclient;
 
 import com.netflix.ribbonclientextensions.CacheProvider;
+import com.netflix.ribbonclientextensions.evache.EvCacheOptions;
+import com.netflix.ribbonclientextensions.typedclient.sample.EvCacheClasses.SampleEVCacheTranscoder;
 import com.netflix.ribbonclientextensions.typedclient.sample.Movie;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.BrokenMovieService;
 import com.netflix.ribbonclientextensions.typedclient.sample.MovieServiceInterfaces.HystrixOptionalAnnotationValues;
@@ -37,6 +39,14 @@ public class MethodTemplateTest {
         CacheProvider cacheProvider = template.getCacheProviders().get("findMovieById_{id}");
         assertNotNull(cacheProvider);
         assertTrue(cacheProvider instanceof SampleCacheProvider);
+
+        EvCacheOptions evOpts = template.getEvCacheOptions();
+        assertNotNull(evOpts);
+        assertEquals("movie-cache", evOpts.getCacheName());
+        assertEquals("movieService", evOpts.getAppName());
+        assertEquals("movie-{id}", evOpts.getCacheKeyTemplate());
+        assertEquals(50, evOpts.getTimeToLive());
+        assertTrue(evOpts.getTranscoder() instanceof SampleEVCacheTranscoder);
     }
 
     @Test
