@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy.test;
+package com.netflix.ribbon.examples.proxy;
 
-import com.netflix.ribbonclientextensions.proxy.Movie;
-import com.netflix.ribbonclientextensions.proxy.RxMovieServer;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.internal.ConcurrentSet;
@@ -34,9 +32,10 @@ import rx.Observable;
 import rx.functions.Func1;
 
 import java.nio.charset.Charset;
+import java.util.Random;
 import java.util.Set;
 
-import static com.netflix.ribbonclientextensions.proxy.Movie.*;
+import static com.netflix.ribbon.examples.proxy.Movie.*;
 import static junit.framework.Assert.*;
 
 /**
@@ -46,7 +45,9 @@ public class RxMovieServerTest {
 
     private static final String TEST_USER_ID = "user1";
 
-    private int port = (int) (Math.random() * 1000) + 8000;
+    private static final Random RANDOM = new Random();
+
+    private int port = RANDOM.nextInt(1000) + 8000;
 
     private String baseURL = "http://localhost:" + port;
 

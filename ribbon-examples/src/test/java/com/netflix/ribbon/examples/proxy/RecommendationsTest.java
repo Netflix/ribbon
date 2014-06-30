@@ -14,23 +14,27 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy;
+package com.netflix.ribbon.examples.proxy;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.reactivex.netty.serialization.ContentTransformer;
+import org.junit.Test;
 
-import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+
+import static junit.framework.Assert.*;
 
 /**
  * @author Tomasz Bak
  */
-public class RxMovieTransformer implements ContentTransformer<Movie> {
-    @Override
-    public ByteBuf transform(Movie movie, ByteBufAllocator byteBufAllocator) {
-        byte[] bytes = movie.toString().getBytes(Charset.defaultCharset());
-        ByteBuf byteBuf = byteBufAllocator.buffer(bytes.length);
-        byteBuf.writeBytes(bytes);
-        return byteBuf;
+public class RecommendationsTest {
+
+    @Test
+    public void testStringParsing() throws Exception {
+        List<Movie> movies = new ArrayList<Movie>();
+        movies.add(Movie.ORANGE_IS_THE_NEW_BLACK);
+        movies.add(Movie.BRAKING_BAD);
+        Recommendations recommendations = new Recommendations(movies);
+        Recommendations fromString = Recommendations.from(recommendations.toString());
+        assertEquals(recommendations, fromString);
     }
 }

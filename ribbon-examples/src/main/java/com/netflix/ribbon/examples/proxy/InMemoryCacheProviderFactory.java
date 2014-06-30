@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy;
+package com.netflix.ribbon.examples.proxy;
 
 import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.CacheProviderFactory;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy;
+package com.netflix.ribbon.examples.proxy;
 
 import com.netflix.ribbonclientextensions.ServerError;
 import com.netflix.ribbonclientextensions.UnsuccessfulResponseException;

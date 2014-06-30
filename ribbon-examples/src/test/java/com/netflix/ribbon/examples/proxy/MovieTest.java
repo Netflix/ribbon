@@ -14,26 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy.test;
+package com.netflix.ribbon.examples.proxy;
 
-import com.netflix.ribbonclientextensions.proxy.Movie;
-import com.netflix.ribbonclientextensions.proxy.Recommendations;
 import org.junit.Test;
 
-import static junit.framework.Assert.*;
+import static com.netflix.ribbon.examples.proxy.Movie.*;
+import static org.junit.Assert.*;
 
 /**
  * @author Tomasz Bak
  */
-public class RecommendationsTest {
+public class MovieTest {
 
     @Test
-    public void testStringParsing() throws Exception {
-        Recommendations recommendations = new Recommendations(new Movie[]{
-                Movie.ORANGE_IS_THE_NEW_BLACK,
-                Movie.BRAKING_BAD
-        });
-        Recommendations fromString = Recommendations.from(recommendations.toString());
-        assertEquals(recommendations, fromString);
+    public void testStringParsing() {
+        Movie fromString = Movie.from(ORANGE_IS_THE_NEW_BLACK.toString());
+        assertEquals(ORANGE_IS_THE_NEW_BLACK, fromString);
     }
 }

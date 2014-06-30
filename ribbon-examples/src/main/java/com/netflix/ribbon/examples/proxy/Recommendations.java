@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy;
+package com.netflix.ribbon.examples.proxy;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,19 +28,14 @@ import java.util.regex.Pattern;
 public class Recommendations {
     private static final Pattern FORMAT_RE = Pattern.compile("\\{movies=\\[(\\{[^\\}]*\\})?(, \\{[^\\}]*\\})*\\]\\}");
 
-    private final Movie[] movies;
+    private final List<Movie> movies;
 
-    public Recommendations(Movie[] movies) {
-        this.movies = movies;
+    public Recommendations(List<Movie> movies) {
+        this.movies = Collections.unmodifiableList(movies);
     }
 
-    public Movie[] getMovies() {
+    public List<Movie> getMovies() {
         return movies;
-    }
-
-    @Override
-    public String toString() {
-        return "{movies=" + Arrays.toString(movies) + '}';
     }
 
     @Override
@@ -50,14 +45,19 @@ public class Recommendations {
 
         Recommendations that = (Recommendations) o;
 
-        if (!Arrays.equals(movies, that.movies)) return false;
+        if (movies != null ? !movies.equals(that.movies) : that.movies != null) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return movies != null ? Arrays.hashCode(movies) : 0;
+        return movies != null ? movies.hashCode() : 0;
+    }
+
+    @Override
+    public String toString() {
+        return "{movies=" + movies.toString() + '}';
     }
 
     public static Recommendations from(String formatted) {
@@ -73,6 +73,6 @@ public class Recommendations {
             }
             movies.add(Movie.from(movie));
         }
-        return new Recommendations(movies.toArray(new Movie[movies.size()]));
+        return new Recommendations(movies);
     }
 }

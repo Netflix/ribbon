@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy;
+package com.netflix.ribbon.examples.proxy;
 
 import io.netty.buffer.ByteBuf;
 
@@ -29,9 +29,9 @@ public class Movie {
 
     private static final Pattern FORMAT_RE = Pattern.compile("\\{id='([^']*)', name='([^']*)', category='([^']*)', ageGroup='([^']*)', contentURI='([^']*)'\\}");
 
-    public static Movie ORANGE_IS_THE_NEW_BLACK = new Movie("1", "Orange is the New Black", "Drama", "Adults", "http://streaming.netflix.com/movies?id=1");
-    public static Movie BRAKING_BAD = new Movie("2", "Breaking Bad", "Crime", "Adults", "http://streaming.netflix.com/movies?id=2");
-    public static Movie HOUSE_OF_CARDS = new Movie("3", "House of Cards", "Political", "Adults", "http://streaming.netflix.com/movies?id=3");
+    public static final Movie ORANGE_IS_THE_NEW_BLACK = new Movie("1", "Orange is the New Black", "Drama", "Adults", "http://streaming.netflix.com/movies?id=1");
+    public static final Movie BRAKING_BAD = new Movie("2", "Breaking Bad", "Crime", "Adults", "http://streaming.netflix.com/movies?id=2");
+    public static final Movie HOUSE_OF_CARDS = new Movie("3", "House of Cards", "Political", "Adults", "http://streaming.netflix.com/movies?id=3");
 
     private final String id;
     private final String name;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbonclientextensions.proxy;
+package com.netflix.ribbon.examples.proxy;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -50,9 +50,8 @@ public class RxMovieServer {
 
     private final int port;
 
-    // FIXME Make it package private once this and the test class are in the same package.
-    public final Map<String, Movie> movies = new ConcurrentHashMap<String, Movie>();
-    public final Map<String, Set<String>> userRecommendations = new ConcurrentHashMap<String, Set<String>>();
+    final Map<String, Movie> movies = new ConcurrentHashMap<String, Movie>();
+    final Map<String, Set<String>> userRecommendations = new ConcurrentHashMap<String, Set<String>>();
 
     public RxMovieServer(int port) {
         this.port = port;
@@ -140,7 +139,7 @@ public class RxMovieServer {
             public Observable<Void> call(ByteBuf byteBuf) {
                 String movieId = byteBuf.toString(Charset.defaultCharset());
                 System.out.println(format("Updating recommendation for user %s and movie %s ", userId, movieId));
-                synchronized (userRecommendations) {
+                synchronized (this) {
                     Set<String> recommendations;
                     if (userRecommendations.containsKey(userId)) {
                         recommendations = userRecommendations.get(userId);
