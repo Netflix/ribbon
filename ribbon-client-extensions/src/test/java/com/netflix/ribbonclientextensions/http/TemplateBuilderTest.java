@@ -12,7 +12,11 @@ import org.junit.Test;
 
 import rx.Observable;
 
+import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixObservableCommand;
+import com.netflix.hystrix.HystrixObservableCommand.Setter;
 import com.netflix.ribbonclientextensions.CacheProvider;
+import com.netflix.ribbonclientextensions.ClientOptions;
 import com.netflix.ribbonclientextensions.Ribbon;
 import com.netflix.ribbonclientextensions.RibbonRequest;
 
@@ -41,7 +45,7 @@ public class TemplateBuilderTest {
     public void testVarReplacement() {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
         
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("resource1", ByteBuf.class);
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("testVarReplacement", ByteBuf.class);
         template.withUriTemplate("/foo/{id}?name={name}");
         HttpClientRequest<ByteBuf> request = template
                 .requestBuilder()
@@ -55,7 +59,7 @@ public class TemplateBuilderTest {
     public void testCacheKeyTemplates() {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
         
-        HttpRequestTemplate<String> template = group.newRequestTemplate("resource1", String.class);
+        HttpRequestTemplate<String> template = group.newRequestTemplate("testCacheKeyTemplates", String.class);
         template.withUriTemplate("/foo/{id}")
             .addCacheProvider("cache.{id}", new FakeCacheProvider("cache.3"))
             .addCacheProvider("/cache/{id}", new FakeCacheProvider("/cache/5"));
@@ -73,7 +77,7 @@ public class TemplateBuilderTest {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
         group.withCommonHeader("header1", "group");
         
-        HttpRequestTemplate<String> template = group.newRequestTemplate("resource1", String.class);
+        HttpRequestTemplate<String> template = group.newRequestTemplate("testHttpHeaders", String.class);
         template.withUriTemplate("/foo/bar")
             .withHeader("header2", "template")
             .withHeader("header1", "template");
@@ -87,6 +91,25 @@ public class TemplateBuilderTest {
         List<String> header2 = headers.getAll("header2");
         assertEquals(1, header2.size());
         assertEquals("template", header2.get(0));
+    }
+    
+    @Test
+    public void testHystrixProperties() {
+        ClientOptions clientOptions = ClientOptions.create()
+                .withMaxAutoRetriesNextServer(1)
+                .withMaxAutoRetries(1)
+                .withConnectTimeout(1000)
+                .withMaxTotalConnections(400)
+                .withReadTimeout(2000);
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("test", clientOptions);
+        HttpRequestTemplate<String> template = group.newRequestTemplate("testHystrixProperties", String.class);
+        HttpRequest<String> request = (HttpRequest<String>) template.withMethod("GET")
+            .withUriTemplate("/foo/bar")
+            .requestBuilder().build();
+        HystrixObservableCommand<String> command = request.createHystrixCommand();
+        HystrixCommandProperties props = command.getProperties();
+        assertEquals(400, props.executionIsolationSemaphoreMaxConcurrentRequests().get().intValue());
+        assertEquals(12000, props.executionIsolationThreadTimeoutInMilliseconds().get().intValue());
     }
 }
 

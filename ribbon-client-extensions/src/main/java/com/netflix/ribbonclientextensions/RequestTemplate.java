@@ -9,17 +9,17 @@ import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
  * @param <T> response entity type
  * @param <R> response meta data, e.g. HttpClientResponse
  */
-public interface RequestTemplate<T, R> {
+public abstract class RequestTemplate<T, R> {
     
-    RequestBuilder<T> requestBuilder();
+    public abstract RequestBuilder<T> requestBuilder();
     
-    String name();
+    public abstract String name();
     
-    RequestTemplate<T, R> copy(String name);
+    public abstract RequestTemplate<T, R> copy(String name);
         
-    RequestTemplate<T, R> withFallbackProvider(FallbackHandler<T> fallbackProvider);
+    public abstract RequestTemplate<T, R> withFallbackProvider(FallbackHandler<T> fallbackProvider);
     
-    RequestTemplate<T, R> withResponseValidator(ResponseValidator<R> transformer);
+    public abstract RequestTemplate<T, R> withResponseValidator(ResponseValidator<R> transformer);
         
     /**
      * Calling this method will enable both Hystrix request cache and supplied external cache providers  
@@ -29,13 +29,13 @@ public interface RequestTemplate<T, R> {
      * @param cacheKeyTemplate
      * @return
      */
-    RequestTemplate<T, R> withRequestCacheKey(String cacheKeyTemplate);
+    public abstract RequestTemplate<T, R> withRequestCacheKey(String cacheKeyTemplate);
 
-    RequestTemplate<T, R> addCacheProvider(String cacheKeyTemplate, CacheProvider<T> cacheProvider);
+    public abstract RequestTemplate<T, R> addCacheProvider(String cacheKeyTemplate, CacheProvider<T> cacheProvider);
     
-    RequestTemplate<T, R> withHystrixProperties(HystrixObservableCommand.Setter setter);
+    public abstract RequestTemplate<T, R> withHystrixProperties(HystrixObservableCommand.Setter setter);
     
-    public abstract class RequestBuilder<T> {
+    public static abstract class RequestBuilder<T> {
         public abstract RequestBuilder<T> withRequestProperty(String key, Object value);
         
         public abstract RibbonRequest<T> build();

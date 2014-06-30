@@ -11,6 +11,8 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -61,12 +63,15 @@ public class RibbonTest {
     
     
     @Test
-    public void testCommandWithMetaData() throws IOException {
+    public void testCommandWithMetaData() throws IOException, InterruptedException, ExecutionException {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
         server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+                .setBody(content));
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
                 .setBody(content));       
+
         server.play();
         
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
@@ -80,12 +85,11 @@ public class RibbonTest {
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss"));
                     }
-                }).withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
-                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
-                        )
+                })
                 .requestBuilder().build();
         final AtomicBoolean success = new AtomicBoolean(false);
-        Observable<String> result = request.withMetadata().toObservable().flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>(){
+        RequestWithMetaData<ByteBuf> metaRequest = request.withMetadata();
+        Observable<String> result = metaRequest.toObservable().flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>(){
             @Override
             public Observable<String> call(
                     final RibbonResponse<Observable<ByteBuf>> response) {
@@ -101,6 +105,12 @@ public class RibbonTest {
         String s = result.toBlocking().single();
         assertEquals(content, s);
         assertTrue(success.get());
+        
+        Future<RibbonResponse<ByteBuf>> future = metaRequest.queue();
+        RibbonResponse<ByteBuf> response = future.get();
+        assertEquals(content, response.content().toString(Charset.defaultCharset()));
+        assertTrue(future.isDone());
+        assertTrue(response.getHystrixInfo().isSuccessfulExecution());
     }
 
    
@@ -222,9 +232,6 @@ public class RibbonTest {
                     }
                 })
                 .withUriTemplate("/")
-                .withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
-                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
-                        )
                 .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
