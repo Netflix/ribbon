@@ -1,16 +1,14 @@
 package com.netflix.ribbonclientextensions.http;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.RawContentSource;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 
-import com.netflix.hystrix.HystrixObservableCommand;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.netflix.hystrix.exception.HystrixBadRequestException;
 import com.netflix.ribbonclientextensions.RequestTemplate.RequestBuilder;
 import com.netflix.ribbonclientextensions.RibbonRequest;

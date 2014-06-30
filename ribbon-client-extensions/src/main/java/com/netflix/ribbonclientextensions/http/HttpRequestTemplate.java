@@ -24,7 +24,7 @@ import com.netflix.ribbonclientextensions.ResponseValidator;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 import com.netflix.ribbonclientextensions.template.ParsedTemplate;
 
-public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResponse<ByteBuf>> {
+public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientResponse<ByteBuf>> {
 
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final String clientName;
@@ -60,8 +60,8 @@ public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResp
         }
     }
     
-    public HttpRequestTemplate(String name, HttpResourceGroup group, HttpClient<ByteBuf, ByteBuf> client, Class<? extends T> classType) {
-        this.client = client;
+    public HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType) {
+        this.client = group.getClient();
         this.classType = classType;
         if (client instanceof LoadBalancingRxClient) {
             LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
@@ -93,14 +93,14 @@ public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResp
         if (setter == null) {
             setter = HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(clientName))
                     .andCommandKey(HystrixCommandKey.Factory.asKey(name()));
+            HystrixCommandProperties.Setter commandProps = HystrixCommandProperties.Setter();
             if (maxResponseTime > 0) {
-                    setter.andCommandPropertiesDefaults(
-                            HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(maxResponseTime));
+               commandProps.withExecutionIsolationThreadTimeoutInMilliseconds(maxResponseTime);
             }
             if (concurrentRequestLimit > 0) {
-                setter.andCommandPropertiesDefaults(
-                        HystrixCommandProperties.Setter().withExecutionIsolationSemaphoreMaxConcurrentRequests(concurrentRequestLimit));                
+                commandProps.withExecutionIsolationSemaphoreMaxConcurrentRequests(concurrentRequestLimit);                
             }
+            setter.andCommandPropertiesDefaults(commandProps);
         }
         return new HttpRequestBuilder<T>(this);
     }
@@ -190,7 +190,7 @@ public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResp
 
     @Override
     public HttpRequestTemplate<T> copy(String name) {
-        HttpRequestTemplate<T> newTemplate = new HttpRequestTemplate<T>(name, this.group, this.client, this.classType);
+        HttpRequestTemplate<T> newTemplate = new HttpRequestTemplate<T>(name, this.group, this.classType);
         newTemplate.cacheProviders.addAll(this.cacheProviders);
         newTemplate.method = this.method;
         newTemplate.headers.add(this.headers);
@@ -217,5 +217,5 @@ public class HttpRequestTemplate<T> implements RequestTemplate<T, HttpClientResp
     HttpClient<ByteBuf, ByteBuf> getClient() {
         return this.client;
     }
+    
 }
-
