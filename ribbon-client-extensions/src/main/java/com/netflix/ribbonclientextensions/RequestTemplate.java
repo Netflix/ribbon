@@ -11,47 +11,15 @@ import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
  */
 public abstract class RequestTemplate<T, R> {
     
-    private final String name;
-    private final ResourceGroup<?> group;
-    private final Class<? extends T> classType;
-    private FallbackHandler<T> fallbackHandler;
-
-    public RequestTemplate(String name,
-            ResourceGroup<?> group,
-            Class<? extends T> classType) {
-        super();
-        this.name = name;
-        this.group = group;
-        this.classType = classType;
-    }
-    
-    public final String name() {
-        return name;
-    }
-
-    public final ResourceGroup<?> group() {
-        return group;
-    }
-
-    public final Class<? extends T> classType() {
-        return classType;
-    }
-
-
     public abstract RequestBuilder<T> requestBuilder();
+    
+    public abstract String name();
     
     public abstract RequestTemplate<T, R> copy(String name);
         
-    public RequestTemplate<T, R> withFallbackProvider(FallbackHandler<T> fallbackHandler) {
-        this.fallbackHandler = fallbackHandler;
-        return this;
-    }
+    public abstract RequestTemplate<T, R> withFallbackProvider(FallbackHandler<T> fallbackProvider);
     
-    public FallbackHandler<T> fallbackHandler() {
-        return fallbackHandler;
-    }
-
-    public abstract RequestTemplate<T, R> withResponseValidator(ResponseValidator<R> validator);
+    public abstract RequestTemplate<T, R> withResponseValidator(ResponseValidator<R> transformer);
         
     /**
      * Calling this method will enable both Hystrix request cache and supplied external cache providers  

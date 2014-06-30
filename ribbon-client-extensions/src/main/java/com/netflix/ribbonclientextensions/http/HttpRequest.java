@@ -3,7 +3,6 @@ package com.netflix.ribbonclientextensions.http;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
-import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -12,18 +11,11 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Subscriber;
 
-import com.netflix.hystrix.HystrixExecutableInfo;
-import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbonclientextensions.CacheProvider;
-import com.netflix.ribbonclientextensions.ResponseValidator;
-import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.RequestWithMetaData;
-import com.netflix.ribbonclientextensions.RibbonResponse;
+import com.netflix.ribbonclientextensions.RibbonRequest;
 import com.netflix.ribbonclientextensions.http.HttpRequestTemplate.CacheProviderWithKeyTemplate;
-import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
 import com.netflix.ribbonclientextensions.template.TemplateParser;
 import com.netflix.ribbonclientextensions.template.TemplateParsingException;
 
@@ -74,7 +66,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
     
     RibbonHystrixObservableCommand<T> createHystrixCommand() {
         return new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, cacheProviders, requestProperties, template.fallbackHandler(), 
-                template.responseValidator(), template.classType(), template.hystrixProperties());
+                template.responseValidator(), template.getClassType(), template.hystrixProperties());
     }
     
     @Override

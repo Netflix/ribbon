@@ -858,7 +858,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getPropertyWithType(IClientConfigKey<T> key) {
-        Object obj = properties.get(key.key());
+        Object obj = getProperty(key.key());
         if (obj == null) {
             return null;
         }

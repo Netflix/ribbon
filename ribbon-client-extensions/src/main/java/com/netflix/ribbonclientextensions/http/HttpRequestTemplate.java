@@ -34,11 +34,14 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     private ParsedTemplate parsedUriTemplate;
     private ResponseValidator<HttpClientResponse<ByteBuf>> validator;
     private HttpMethod method;
+    private final String name;
     private final List<CacheProviderWithKeyTemplate<T>> cacheProviders;
     private ParsedTemplate hystrixCacheKeyTemplate;
     private Map<String, ParsedTemplate> parsedTemplates;
+    private final Class<? extends T> classType;
     private final int concurrentRequestLimit;
     private final HttpHeaders headers;
+    private final HttpResourceGroup group;
     
     static class CacheProviderWithKeyTemplate<T> {
         private ParsedTemplate keyTemplate;
@@ -58,8 +61,8 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     }
     
     public HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType) {
-        super(name, group, classType);
         this.client = group.getClient();
+        this.classType = classType;
         if (client instanceof LoadBalancingRxClient) {
             LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
             maxResponseTime = ribbonClient.getResponseTimeOut();
@@ -70,6 +73,8 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
             maxResponseTime = -1;
             concurrentRequestLimit = -1;
         }
+        this.name = name;
+        this.group = group;
         method = HttpMethod.GET;
         headers = new DefaultHttpHeaders();
         headers.add(group.getHeaders());
@@ -79,7 +84,8 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     
     @Override
     public HttpRequestTemplate<T> withFallbackProvider(FallbackHandler<T> fallbackHandler) {
-        return (HttpRequestTemplate<T>) super.withFallbackProvider(fallbackHandler);
+        this.fallbackHandler = fallbackHandler;
+        return this;
     }
 
     @Override
@@ -149,7 +155,11 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     ResponseValidator<HttpClientResponse<ByteBuf>> responseValidator() {
         return validator;
     }
-        
+    
+    FallbackHandler<T> fallbackHandler() {
+        return fallbackHandler;
+    }
+    
     ParsedTemplate uriTemplate() {
         return parsedUriTemplate;
     }
@@ -157,11 +167,20 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     HttpMethod method() {
         return method;
     }
-        
+    
+    Class<? extends T> getClassType() {
+        return this.classType;
+    }
+    
     HttpHeaders getHeaders() {
         return this.headers;
     }
-        
+    
+    @Override
+    public String name() {
+        return name;
+    }
+    
     @Override
     public HttpRequestTemplate<T> withResponseValidator(
             ResponseValidator<HttpClientResponse<ByteBuf>> validator) {
@@ -171,7 +190,7 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
 
     @Override
     public HttpRequestTemplate<T> copy(String name) {
-        HttpRequestTemplate<T> newTemplate = new HttpRequestTemplate<T>(name, (HttpResourceGroup) this.group(), this.classType());
+        HttpRequestTemplate<T> newTemplate = new HttpRequestTemplate<T>(name, this.group, this.classType);
         newTemplate.cacheProviders.addAll(this.cacheProviders);
         newTemplate.method = this.method;
         newTemplate.headers.add(this.headers);
@@ -198,5 +217,5 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     HttpClient<ByteBuf, ByteBuf> getClient() {
         return this.client;
     }
+    
 }
-
