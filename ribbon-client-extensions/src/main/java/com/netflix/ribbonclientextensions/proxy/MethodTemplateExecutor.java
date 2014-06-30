@@ -31,7 +31,9 @@ import io.reactivex.netty.serialization.StringTransformer;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * @author Tomasz Bak
@@ -96,8 +98,11 @@ class MethodTemplateExecutor {
     }
 
     private void withHttpHeaders(HttpRequestTemplate<?> httpRequestTemplate) {
-        for (Map.Entry<String, String> header : methodTemplate.getHeaders().entrySet()) {
-            httpRequestTemplate.withHeader(header.getKey(), header.getValue());
+        for (Entry<String, List<String>> header : methodTemplate.getHeaders().entrySet()) {
+            String key = header.getKey();
+            for (String value : header.getValue()) {
+                httpRequestTemplate.withHeader(key, value);
+            }
         }
     }
 
@@ -115,8 +120,8 @@ class MethodTemplateExecutor {
     @SuppressWarnings({"rawtypes", "unchecked", "OverlyStrongTypeCast"})
     private void withCacheProviders(HttpRequestTemplate<?> httpRequestTemplate) {
         if (methodTemplate.getCacheProviders() != null) {
-            for (Map.Entry<String, CacheProvider<?>> entry : methodTemplate.getCacheProviders().entrySet()) {
-                httpRequestTemplate.addCacheProvider(entry.getKey(), (CacheProvider) entry.getValue());
+            for (MethodTemplate.CacheProviderEntry entry : methodTemplate.getCacheProviders()) {
+                httpRequestTemplate.addCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
             }
         }
         EvCacheOptions evCacheOptions = methodTemplate.getEvCacheOptions();

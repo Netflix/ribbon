@@ -26,7 +26,7 @@ import com.netflix.ribbonclientextensions.proxy.annotation.Http;
 import com.netflix.ribbonclientextensions.proxy.annotation.Http.Header;
 import com.netflix.ribbonclientextensions.proxy.annotation.Http.HttpMethod;
 import com.netflix.ribbonclientextensions.proxy.annotation.Hystrix;
-import com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroupSpec;
+import com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroup;
 import com.netflix.ribbonclientextensions.proxy.annotation.TemplateName;
 import com.netflix.ribbonclientextensions.proxy.annotation.Var;
 import io.netty.buffer.ByteBuf;
@@ -34,7 +34,7 @@ import io.netty.buffer.ByteBuf;
 /**
  * @author Tomasz Bak
  */
-@ResourceGroupSpec(name = "movieServiceGroup")
+@ResourceGroup(name = "movieServiceGroup")
 public interface MovieService {
 
     @TemplateName("recommendationsByUserId")

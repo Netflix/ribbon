@@ -1,12 +1,14 @@
 package com.netflix.ribbonclientextensions.proxy;
 
-import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.evache.EvCacheOptions;
+import com.netflix.ribbonclientextensions.proxy.MethodTemplate.CacheProviderEntry;
 import com.netflix.ribbonclientextensions.proxy.sample.EvCacheClasses.SampleEVCacheTranscoder;
 import com.netflix.ribbonclientextensions.proxy.sample.Movie;
 import com.netflix.ribbonclientextensions.proxy.sample.MovieServiceInterfaces.BrokenMovieService;
 import com.netflix.ribbonclientextensions.proxy.sample.MovieServiceInterfaces.HystrixOptionalAnnotationValues;
+import com.netflix.ribbonclientextensions.proxy.sample.MovieServiceInterfaces.PostsWithDifferentContentTypes;
 import com.netflix.ribbonclientextensions.proxy.sample.MovieServiceInterfaces.SampleMovieService;
+import com.netflix.ribbonclientextensions.proxy.sample.MovieTransformer;
 import com.netflix.ribbonclientextensions.proxy.sample.SampleCacheProviderFactory.SampleCacheProvider;
 import org.junit.Test;
 
@@ -26,8 +28,9 @@ public class MethodTemplateTest {
         assertEquals("findMovieById", template.getTemplateName());
         assertEquals("/movies/{id}", template.getPath());
 
-        assertTrue("value1".equals(template.getHeaders().get("X-MyHeader1")));
-        assertTrue("value2".equals(template.getHeaders().get("X-MyHeader2")));
+        assertTrue("value1.1".equals(template.getHeaders().get("X-MyHeader1").get(0)));
+        assertTrue("value1.2".equals(template.getHeaders().get("X-MyHeader1").get(1)));
+        assertTrue("value2".equals(template.getHeaders().get("X-MyHeader2").get(0)));
 
         assertEquals(0, template.getParamPosition(0));
         assertEquals(template.getResultType(), Movie.class);
@@ -36,9 +39,9 @@ public class MethodTemplateTest {
         assertNotNull(template.getHystrixFallbackHandler());
         assertNotNull(template.getHystrixResponseValidator());
 
-        CacheProvider cacheProvider = template.getCacheProviders().get("findMovieById_{id}");
-        assertNotNull(cacheProvider);
-        assertTrue(cacheProvider instanceof SampleCacheProvider);
+        CacheProviderEntry cacheProviderEntry = template.getCacheProviders().get(0);
+        assertNotNull(cacheProviderEntry);
+        assertTrue(cacheProviderEntry.getCacheProvider() instanceof SampleCacheProvider);
 
         EvCacheOptions evOpts = template.getEvCacheOptions();
         assertNotNull(evOpts);
@@ -80,22 +83,60 @@ public class MethodTemplateTest {
     }
 
     @Test
+    public void testWithRawContentSourceContent() throws Exception {
+        MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithRawContentSource"));
+
+        assertEquals(0, methodTemplate.getContentArgPosition());
+        assertNull(methodTemplate.getContentTransformerClass());
+    }
+
+    @Test
+    public void testWithByteBufContent() throws Exception {
+        MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithByteBufContent"));
+
+        assertEquals(0, methodTemplate.getContentArgPosition());
+        assertNull(methodTemplate.getContentTransformerClass());
+    }
+
+    @Test
+    public void testWithStringContent() throws Exception {
+        MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithStringContent"));
+
+        assertEquals(0, methodTemplate.getContentArgPosition());
+        assertNull(methodTemplate.getContentTransformerClass());
+    }
+
+    @Test
+    public void testWithUserClassContent() throws Exception {
+        MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithMovieContent"));
+
+        assertEquals(0, methodTemplate.getContentArgPosition());
+        assertNotNull(methodTemplate.getContentTransformerClass());
+        assertTrue(MovieTransformer.class.equals(methodTemplate.getContentTransformerClass()));
+    }
+
+    @Test(expected = ProxyAnnotationException.class)
+    public void testWithUserClassContentAndNotDefinedContentTransformer() {
+        new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithMovieContentBroken"));
+    }
+
+    @Test
     public void testFromFactory() throws Exception {
         MethodTemplate[] methodTemplates = MethodTemplate.from(SampleMovieService.class);
         assertEquals(SampleMovieService.class.getMethods().length, methodTemplates.length);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ProxyAnnotationException.class)
     public void testDetectsInvalidResultType() throws Exception {
         new MethodTemplate(methodByName(BrokenMovieService.class, "returnTypeNotRibbonRequest"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ProxyAnnotationException.class)
     public void testMissingHttpMethod() throws Exception {
         new MethodTemplate(methodByName(BrokenMovieService.class, "missingHttpAnnotation"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ProxyAnnotationException.class)
     public void testMultipleContentParameters() throws Exception {
         new MethodTemplate(methodByName(BrokenMovieService.class, "multipleContentParameters"));
     }

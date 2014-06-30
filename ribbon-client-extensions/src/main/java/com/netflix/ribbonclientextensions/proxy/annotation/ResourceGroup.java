@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ResourceGroupSpec {
+public @interface ResourceGroup {
     String name() default "";
 
     Class<? extends HttpResourceGroup> resourceGroupClass() default UndefHttpResourceGroup.class;

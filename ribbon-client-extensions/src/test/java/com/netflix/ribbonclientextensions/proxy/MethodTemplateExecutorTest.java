@@ -68,7 +68,8 @@ public class MethodTemplateExecutorTest {
         expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
         expect(httpResourceGroupMock.newRequestTemplate("findMovieById", Movie.class)).andReturn(httpRequestTemplateMock);
 
-        expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1")).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1.1")).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1.2")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withHeader("X-MyHeader2", "value2")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withRequestCacheKey("findMovieById/{id}")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);

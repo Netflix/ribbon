@@ -16,9 +16,9 @@
 package com.netflix.ribbonclientextensions.proxy;
 
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
-import com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroupSpec;
+import com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroup;
 
-import static com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroupSpec.*;
+import static com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroup.*;
 
 /**
  * @author Tomasz Bak
@@ -31,7 +31,7 @@ class ClassTemplate<T> {
     ClassTemplate(Class<T> clientInterface) {
         this.clientInterface = clientInterface;
 
-        ResourceGroupSpec annotation = clientInterface.getAnnotation(ResourceGroupSpec.class);
+        ResourceGroup annotation = clientInterface.getAnnotation(ResourceGroup.class);
         if (annotation != null) {
             String name = annotation.name().trim();
             resourceGroupName = name.isEmpty() ? null : annotation.name();

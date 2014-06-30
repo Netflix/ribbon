@@ -10,7 +10,7 @@ import com.netflix.ribbonclientextensions.proxy.annotation.Http;
 import com.netflix.ribbonclientextensions.proxy.annotation.Http.Header;
 import com.netflix.ribbonclientextensions.proxy.annotation.Http.HttpMethod;
 import com.netflix.ribbonclientextensions.proxy.annotation.Hystrix;
-import com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroupSpec;
+import com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroup;
 import com.netflix.ribbonclientextensions.proxy.annotation.TemplateName;
 import com.netflix.ribbonclientextensions.proxy.annotation.Var;
 import com.netflix.ribbonclientextensions.proxy.sample.EvCacheClasses.SampleEVCacheTranscoder;
@@ -33,7 +33,8 @@ public class MovieServiceInterfaces {
                 method = HttpMethod.GET,
                 path = "/movies/{id}",
                 headers = {
-                        @Header(name = "X-MyHeader1", value = "value1"),
+                        @Header(name = "X-MyHeader1", value = "value1.1"),
+                        @Header(name = "X-MyHeader1", value = "value1.2"),
                         @Header(name = "X-MyHeader2", value = "value2")
                 })
         @Hystrix(
@@ -59,9 +60,11 @@ public class MovieServiceInterfaces {
         RibbonRequest<Void> registerMovie(@Content Movie movie);
 
         @Http(method = HttpMethod.PUT, path = "/movies/{id}")
+        @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> updateMovie(@Var("id") String id, @Content Movie movie);
 
         @Http(method = HttpMethod.PATCH, path = "/movies/{id}")
+        @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> updateMoviePartial(@Var("id") String id, @Content Movie movie);
 
         @TemplateName("registerMovieRaw")
@@ -91,20 +94,35 @@ public class MovieServiceInterfaces {
         RibbonRequest<ByteBuf> findAll();
     }
 
-    @ResourceGroupSpec(name = "testResourceGroup")
+    public static interface BrokenMovieService {
+
+        @Http(method = HttpMethod.GET)
+        Movie returnTypeNotRibbonRequest();
+
+        Movie missingHttpAnnotation();
+
+        @Http(method = HttpMethod.GET)
+        RibbonRequest<Void> multipleContentParameters(@Content Movie content1, @Content Movie content2);
+    }
+
+    @ResourceGroup(name = "testResourceGroup")
     public static interface SampleMovieServiceWithResourceGroupNameAnnotation {
+
     }
 
-    @ResourceGroupSpec(resourceGroupClass = SampleHttpResourceGroup.class)
+    @ResourceGroup(resourceGroupClass = SampleHttpResourceGroup.class)
     public static interface SampleMovieServiceWithResourceGroupClassAnnotation {
+
     }
 
-    @ResourceGroupSpec(name = "testResourceGroup", resourceGroupClass = SampleHttpResourceGroup.class)
+    @ResourceGroup(name = "testResourceGroup", resourceGroupClass = SampleHttpResourceGroup.class)
     public static interface BrokenMovieServiceWithResourceGroupNameAndClassAnnotation {
+
     }
 
-    @ResourceGroupSpec(name = "testResourceGroup")
+    @ResourceGroup(name = "testResourceGroup")
     public static interface HystrixOptionalAnnotationValues {
+
         @TemplateName("hystrix1")
         @Http(method = HttpMethod.GET, path = "/hystrix/1")
         @Hystrix(cacheKey = "findMovieById/{id}")
@@ -119,17 +137,32 @@ public class MovieServiceInterfaces {
         @Http(method = HttpMethod.GET, path = "/hystrix/3")
         @Hystrix(fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> hystrixWithFallbackHandlerOnly();
+
     }
 
-    public static interface BrokenMovieService {
+    @ResourceGroup(name = "testResourceGroup")
+    public static interface PostsWithDifferentContentTypes {
 
-        @Http(method = HttpMethod.GET)
-        Movie returnTypeNotRibbonRequest();
+        @TemplateName("rawContentSource")
+        @Http(method = HttpMethod.POST, path = "/content/rawContentSource")
+        RibbonRequest<Void> postwithRawContentSource(@Content RawContentSource<Movie> movie);
 
-        Movie missingHttpAnnotation();
+        @TemplateName("byteBufContent")
+        @Http(method = HttpMethod.POST, path = "/content/byteBufContent")
+        RibbonRequest<Void> postwithByteBufContent(@Content ByteBuf byteBuf);
 
-        @Http(method = HttpMethod.GET)
-        RibbonRequest<Void> multipleContentParameters(@Content Movie content1, @Content Movie content2);
+        @TemplateName("stringContent")
+        @Http(method = HttpMethod.POST, path = "/content/stringContent")
+        RibbonRequest<Void> postwithStringContent(@Content String content);
+
+        @TemplateName("movieContent")
+        @Http(method = HttpMethod.POST, path = "/content/movieContent")
+        @ContentTransformerClass(MovieTransformer.class)
+        RibbonRequest<Void> postwithMovieContent(@Content Movie movie);
+
+        @TemplateName("movieContentBroken")
+        @Http(method = HttpMethod.POST, path = "/content/movieContentBroken")
+        RibbonRequest<Void> postwithMovieContentBroken(@Content Movie movie);
 
     }
 }

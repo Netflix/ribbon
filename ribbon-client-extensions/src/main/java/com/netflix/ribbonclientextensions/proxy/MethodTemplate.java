@@ -33,6 +33,8 @@ import com.netflix.ribbonclientextensions.proxy.annotation.Http.HttpMethod;
 import com.netflix.ribbonclientextensions.proxy.annotation.Hystrix;
 import com.netflix.ribbonclientextensions.proxy.annotation.TemplateName;
 import com.netflix.ribbonclientextensions.proxy.annotation.Var;
+import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.protocol.http.client.RawContentSource;
 import io.reactivex.netty.serialization.ContentTransformer;
 
 import java.lang.annotation.Annotation;
@@ -56,11 +58,12 @@ import static java.lang.String.*;
  * @author Tomasz Bak
  */
 class MethodTemplate {
+
     private final Method method;
     private final String templateName;
     private final Http.HttpMethod httpMethod;
     private final String path;
-    private final Map<String, String> headers;
+    private final Map<String, List<String>> headers;
     private final String[] paramNames;
     private final int[] valueIdxs;
     private final int contentArgPosition;
@@ -69,7 +72,7 @@ class MethodTemplate {
     private final String hystrixCacheKey;
     private final FallbackHandler<?> hystrixFallbackHandler;
     private final HttpResponseValidator hystrixResponseValidator;
-    private final Map<String, CacheProvider<?>> cacheProviders;
+    private final List<CacheProviderEntry> cacheProviders;
     private final EvCacheOptions evCacheOptions;
 
     MethodTemplate(Method method) {
@@ -87,7 +90,7 @@ class MethodTemplate {
         hystrixCacheKey = values.hystrixCacheKey;
         hystrixFallbackHandler = values.hystrixFallbackHandler;
         hystrixResponseValidator = values.hystrixResponseValidator;
-        cacheProviders = Collections.unmodifiableMap(values.cacheProviders);
+        cacheProviders = Collections.unmodifiableList(values.cacheProviders);
         evCacheOptions = values.evCacheOptions;
     }
 
@@ -107,7 +110,7 @@ class MethodTemplate {
         return path;
     }
 
-    public Map<String, String> getHeaders() {
+    public Map<String, List<String>> getHeaders() {
         return headers;
     }
 
@@ -147,7 +150,7 @@ class MethodTemplate {
         return hystrixResponseValidator;
     }
 
-    public Map<String, CacheProvider<?>> getCacheProviders() {
+    public List<CacheProviderEntry> getCacheProviders() {
         return cacheProviders;
     }
 
@@ -161,6 +164,24 @@ class MethodTemplate {
             list.add(new MethodTemplate(m));
         }
         return list.toArray(new MethodTemplate[list.size()]);
+    }
+
+    static class CacheProviderEntry {
+        private final String key;
+        private final CacheProvider<?> cacheProvider;
+
+        CacheProviderEntry(String key, CacheProvider<?> cacheProvider) {
+            this.key = key;
+            this.cacheProvider = cacheProvider;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public CacheProvider<?> getCacheProvider() {
+            return cacheProvider;
+        }
     }
 
     private static class MethodAnnotationValues {
@@ -177,8 +198,8 @@ class MethodTemplate {
         public String hystrixCacheKey;
         private FallbackHandler<?> hystrixFallbackHandler;
         private HttpResponseValidator hystrixResponseValidator;
-        public final Map<String, String> headers = new HashMap<String, String>();
-        private final Map<String, CacheProvider<?>> cacheProviders = new HashMap<String, CacheProvider<?>>();
+        public final Map<String, List<String>> headers = new HashMap<String, List<String>>();
+        private final List<CacheProviderEntry> cacheProviders = new ArrayList<CacheProviderEntry>();
         private EvCacheOptions evCacheOptions;
 
         private MethodAnnotationValues(Method method) {
@@ -200,7 +221,7 @@ class MethodTemplate {
                 for (Provider provider : annotation.value()) {
                     Class<? extends CacheProviderFactory<?>> providerClass = provider.provider();
                     CacheProviderFactory<?> factory = Utils.newInstance(providerClass);
-                    cacheProviders.put(provider.key(), factory.createCacheProvider());
+                    cacheProviders.add(new CacheProviderEntry(provider.key(), factory.createCacheProvider()));
                 }
             }
         }
@@ -225,14 +246,18 @@ class MethodTemplate {
         private void extractHttpAnnotation() {
             Http annotation = method.getAnnotation(Http.class);
             if (null == annotation) {
-                throw new IllegalArgumentException(format(
-                        "Method %s.%s misses @Http annotation",
-                        method.getDeclaringClass().getSimpleName(), method.getName()));
+                throw new ProxyAnnotationException(format("Method %s misses @Http annotation", methodName()));
             }
             httpMethod = annotation.method();
             path = annotation.path();
             for (Header h : annotation.headers()) {
-                headers.put(h.name(), h.value());
+                if (!headers.containsKey(h.name())) {
+                    ArrayList<String> values = new ArrayList<String>();
+                    values.add(h.value());
+                    headers.put(h.name(), values);
+                } else {
+                    headers.get(h.name()).add(h.value());
+                }
             }
         }
 
@@ -271,11 +296,28 @@ class MethodTemplate {
                 }
             }
             if (count > 1) {
-                throw new IllegalArgumentException(format(
-                        "Method %s.%s annotates multiple parameters as @Content - at most one is allowed ",
-                        method.getDeclaringClass().getSimpleName(), method.getName()));
+                throw new ProxyAnnotationException(format("Method %s annotates multiple parameters as @Content - at most one is allowed ", methodName()));
             }
             contentArgPosition = pos;
+        }
+
+        private void extractContentTransformerClass() {
+            ContentTransformerClass annotation = method.getAnnotation(ContentTransformerClass.class);
+            if (contentArgPosition == -1) {
+                if (annotation != null) {
+                    throw new ProxyAnnotationException(format("ContentTransformClass defined on method %s with no @Content parameter", method.getName()));
+                }
+                return;
+            }
+            if (annotation == null) {
+                Class<?> contentType = method.getParameterTypes()[contentArgPosition];
+                if (RawContentSource.class.isAssignableFrom(contentType) || ByteBuf.class.isAssignableFrom(contentType) || String.class.isAssignableFrom(contentType)) {
+                    return;
+                }
+                throw new ProxyAnnotationException(format("ContentTransformerClass annotation missing for content type %s in method %s",
+                        contentType.getName(), methodName()));
+            }
+            contentTansformerClass = annotation.value();
         }
 
         private void extractTemplateName() {
@@ -285,19 +327,11 @@ class MethodTemplate {
             }
         }
 
-        private void extractContentTransformerClass() {
-            ContentTransformerClass annotation = method.getAnnotation(ContentTransformerClass.class);
-            if (null != annotation) {
-                contentTansformerClass = annotation.value();
-            }
-        }
-
         private void extractResultType() {
             Class<?> returnClass = method.getReturnType();
             if (!returnClass.isAssignableFrom(RibbonRequest.class)) {
-                throw new IllegalArgumentException(format(
-                        "Method %s.%s must return Void or RibbonRequest<T> type not %s",
-                        method.getDeclaringClass().getSimpleName(), method.getName(), returnClass.getSimpleName()));
+                throw new ProxyAnnotationException(format("Method %s must return Void or RibbonRequest<T> type not %s",
+                        methodName(), returnClass.getSimpleName()));
             }
             ParameterizedType returnType = (ParameterizedType) method.getGenericReturnType();
             resultType = (Class<?>) returnType.getActualTypeArguments()[0];
@@ -314,7 +348,7 @@ class MethodTemplate {
             if (transcoderClasses.length == 0) {
                 transcoder = null;
             } else if (transcoderClasses.length > 1) {
-                throw new RibbonProxyException("Multiple transcoders defined on method " + method.getName());
+                throw new ProxyAnnotationException("Multiple transcoders defined on method " + methodName());
             } else {
                 transcoder = Utils.newInstance(transcoderClasses[0]);
             }
@@ -326,6 +360,10 @@ class MethodTemplate {
                     annotation.ttl(),
                     transcoder,
                     annotation.cacheKeyTemplate());
+        }
+
+        private String methodName() {
+            return method.getDeclaringClass().getSimpleName() + '.' + method.getName();
         }
     }
 }
