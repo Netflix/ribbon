@@ -29,7 +29,9 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import rx.Notification;
 import rx.Observable;
+import rx.Subscription;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static junit.framework.Assert.*;
@@ -64,6 +66,8 @@ public class EvCacheProviderTest {
     @Test
     public void testAsynchronousAccessFromCache() throws Exception {
         expect(evCacheImplMock.<String>getAsynchronous("test1")).andReturn(cacheFutureMock);
+        expect(cacheFutureMock.isDone()).andReturn(true);
+        expect(cacheFutureMock.isCancelled()).andReturn(false);
         expect(cacheFutureMock.get()).andReturn("value1");
 
         replayAll();
@@ -78,6 +82,8 @@ public class EvCacheProviderTest {
     @Test
     public void testAsynchronousAccessWithTranscoderFromCache() throws Exception {
         expect(evCacheImplMock.getAsynchronous("test1", transcoderMock)).andReturn(cacheFutureMock);
+        expect(cacheFutureMock.isDone()).andReturn(true);
+        expect(cacheFutureMock.isCancelled()).andReturn(false);
         expect(cacheFutureMock.get()).andReturn("value1");
 
         replayAll();
@@ -101,5 +107,52 @@ public class EvCacheProviderTest {
 
         Notification<Object> notification = cacheValue.materialize().toBlocking().first();
         assertTrue(notification.getThrowable() instanceof CacheFaultException);
+    }
+
+    @Test
+    public void testCanceledFuture() throws Exception {
+        expect(evCacheImplMock.getAsynchronous("test1", transcoderMock)).andReturn(cacheFutureMock);
+        expect(cacheFutureMock.isDone()).andReturn(true);
+        expect(cacheFutureMock.isCancelled()).andReturn(true);
+
+        replayAll();
+
+        EvCacheOptions options = new EvCacheOptions("testApp", "test-cache", true, 100, transcoderMock, "test{id}");
+        EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
+        Observable<Object> cacheValue = cacheProvider.get("test1", null);
+
+        assertTrue(cacheValue.materialize().toBlocking().first().getThrowable() instanceof CacheFaultException);
+    }
+
+    @Test
+    public void testExceptionResultInFuture() throws Exception {
+        expect(evCacheImplMock.getAsynchronous("test1", transcoderMock)).andReturn(cacheFutureMock);
+        expect(cacheFutureMock.isDone()).andReturn(true);
+        expect(cacheFutureMock.isCancelled()).andReturn(false);
+        expect(cacheFutureMock.get()).andThrow(new ExecutionException(new RuntimeException("operation failed")));
+
+        replayAll();
+
+        EvCacheOptions options = new EvCacheOptions("testApp", "test-cache", true, 100, transcoderMock, "test{id}");
+        EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
+        Observable<Object> cacheValue = cacheProvider.get("test1", null);
+
+        assertTrue(cacheValue.materialize().toBlocking().first().getThrowable() instanceof RuntimeException);
+    }
+
+    @Test
+    public void testUnsubscribedBeforeFutureCompletes() throws Exception {
+        expect(evCacheImplMock.getAsynchronous("test1", transcoderMock)).andReturn(cacheFutureMock);
+
+        replayAll();
+
+        EvCacheOptions options = new EvCacheOptions("testApp", "test-cache", true, 100, transcoderMock, "test{id}");
+        EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
+        Observable<Object> cacheValue = cacheProvider.get("test1", null);
+
+        Subscription subscription = cacheValue.subscribe();
+        subscription.unsubscribe();
+
+        verifyAll();
     }
 }

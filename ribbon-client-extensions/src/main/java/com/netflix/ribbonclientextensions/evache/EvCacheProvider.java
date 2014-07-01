@@ -19,15 +19,32 @@ package com.netflix.ribbonclientextensions.evache;
 import com.netflix.evcache.EVCache;
 import com.netflix.evcache.EVCacheException;
 import com.netflix.ribbonclientextensions.CacheProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
  * @author Tomasz Bak
  */
 public class EvCacheProvider<T> implements CacheProvider<T> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EvCacheProvider.class);
+
+    private static final long WATCH_INTERVAL = 1;
+
+    private static final FutureObserver FUTURE_OBSERVER;
+
+    static {
+        FUTURE_OBSERVER = new FutureObserver();
+        FUTURE_OBSERVER.start();
+    }
 
     private final EvCacheOptions options;
     private final EVCache evCache;
@@ -46,17 +63,77 @@ public class EvCacheProvider<T> implements CacheProvider<T> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Observable<T> get(String key, Map<String, Object> requestProperties) {
-        Future<T> getFuture;
-        try {
-            if (options.getTranscoder() == null) {
-                getFuture = evCache.getAsynchronous(key);
-            } else {
-                getFuture = (Future<T>) evCache.getAsynchronous(key, options.getTranscoder());
+    public Observable<T> get(final String key, Map<String, Object> requestProperties) {
+        return Observable.create(new OnSubscribe<T>() {
+            @Override
+            public void call(Subscriber<? super T> subscriber) {
+                Future<T> getFuture;
+                try {
+                    if (options.getTranscoder() == null) {
+                        getFuture = evCache.getAsynchronous(key);
+                    } else {
+                        getFuture = (Future<T>) evCache.getAsynchronous(key, options.getTranscoder());
+                    }
+                    FUTURE_OBSERVER.watchFuture(getFuture, subscriber);
+                } catch (EVCacheException e) {
+                    subscriber.onError(new CacheFaultException("EVCache exception when getting value for key " + key, e));
+                }
             }
-        } catch (EVCacheException e) {
-            return Observable.error(new CacheFaultException("EVCache exception when getting value for key " + key, e));
+        });
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    static final class FutureObserver extends Thread {
+        private final Map<Future, Subscriber> futureMap = new ConcurrentHashMap<Future, Subscriber>();
+
+        FutureObserver() {
+            super("EvCache-Future-Observer");
+            setDaemon(true);
         }
-        return Observable.from(getFuture);
+
+        @Override
+        public void run() {
+            while (true) {
+                for (Map.Entry<Future, Subscriber> f : futureMap.entrySet()) {
+                    Future<?> future = f.getKey();
+                    Subscriber subscriber = f.getValue();
+                    if (subscriber.isUnsubscribed()) {
+                        futureMap.remove(future);
+                    } else if (future.isDone()) {
+                        try {
+                            handleCompletedFuture(future, subscriber);
+                        } catch (Error e) {
+                            throw e;
+                        } catch (Throwable e) {
+                            LOGGER.warn("unexpected error during checking future result", e);
+                        } finally {
+                            futureMap.remove(future);
+                        }
+                    }
+                }
+
+                try {
+                    Thread.sleep(WATCH_INTERVAL);
+                } catch (InterruptedException e) {
+                    // Never terminate
+                }
+            }
+        }
+
+        private static void handleCompletedFuture(Future future, Subscriber subscriber) throws InterruptedException {
+            if (future.isCancelled()) {
+                subscriber.onError(new CacheFaultException("cache get request canceled"));
+            } else {
+                try {
+                    subscriber.onNext(future.get());
+                } catch (ExecutionException e) {
+                    subscriber.onError(e.getCause());
+                }
+            }
+        }
+
+        void watchFuture(Future future, Subscriber<?> subscriber) {
+            futureMap.put(future, subscriber);
+        }
     }
 }

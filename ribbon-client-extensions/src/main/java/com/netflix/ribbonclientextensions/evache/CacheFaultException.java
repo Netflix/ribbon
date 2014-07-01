@@ -22,6 +22,10 @@ package com.netflix.ribbonclientextensions.evache;
 public class CacheFaultException extends RuntimeException {
     private static final long serialVersionUID = -1672764803141328757L;
 
+    public CacheFaultException(String message) {
+        super(message);
+    }
+
     public CacheFaultException(String message, Throwable cause) {
         super(message, cause);
     }
