@@ -21,12 +21,10 @@ import com.netflix.ribbonclientextensions.proxy.annotation.CacheProviders;
 import com.netflix.ribbonclientextensions.proxy.annotation.CacheProviders.Provider;
 import com.netflix.ribbonclientextensions.proxy.annotation.Content;
 import com.netflix.ribbonclientextensions.proxy.annotation.ContentTransformerClass;
-import com.netflix.ribbonclientextensions.proxy.annotation.EvCache;
 import com.netflix.ribbonclientextensions.proxy.annotation.Http;
 import com.netflix.ribbonclientextensions.proxy.annotation.Http.Header;
 import com.netflix.ribbonclientextensions.proxy.annotation.Http.HttpMethod;
 import com.netflix.ribbonclientextensions.proxy.annotation.Hystrix;
-import com.netflix.ribbonclientextensions.proxy.annotation.ResourceGroup;
 import com.netflix.ribbonclientextensions.proxy.annotation.TemplateName;
 import com.netflix.ribbonclientextensions.proxy.annotation.Var;
 import io.netty.buffer.ByteBuf;
@@ -34,7 +32,6 @@ import io.netty.buffer.ByteBuf;
 /**
  * @author Tomasz Bak
  */
-@ResourceGroup(name = "movieServiceGroup")
 public interface MovieService {
 
     @TemplateName("recommendationsByUserId")
@@ -43,15 +40,13 @@ public interface MovieService {
             path = "/users/{userId}/recommendations",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc"),
+                    @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(
             cacheKey = "userRecommendations/{userId}",
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
     @CacheProviders(@Provider(key = "{userId}", provider = InMemoryCacheProviderFactory.class))
-    @EvCache(name = "recommendationsByUserId", appName = "recommendations", cacheKeyTemplate = "{userId}", ttl = 50,
-            enableZoneFallback = true, transcoder = MovieEVCacheTranscoder.class)
     RibbonRequest<ByteBuf> recommendationsByUserId(@Var("userId") String userId);
 
     @TemplateName("recommendationsBy")
@@ -60,15 +55,13 @@ public interface MovieService {
             path = "/recommendations?category={category}&ageGroup={ageGroup}",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc"),
+                    @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(
             cacheKey = "{category},{ageGroup}",
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
     @CacheProviders(@Provider(key = "{category},{ageGroup}", provider = InMemoryCacheProviderFactory.class))
-    @EvCache(name = "recommendations", appName = "recommendations", cacheKeyTemplate = "{category},{ageGroup}", ttl = 50,
-            enableZoneFallback = true, transcoder = MovieEVCacheTranscoder.class)
     RibbonRequest<ByteBuf> recommendationsBy(@Var("category") String category, @Var("ageGroup") String ageGroup);
 
     @TemplateName("registerMovie")
@@ -77,7 +70,7 @@ public interface MovieService {
             path = "/movies",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc"),
+                    @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(validator = RecommendationServiceResponseValidator.class)
     @ContentTransformerClass(RxMovieTransformer.class)
@@ -89,8 +82,8 @@ public interface MovieService {
             path = "/users/{userId}/recommendations",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc"),
+                    @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(validator = RecommendationServiceResponseValidator.class)
-    RibbonRequest<Void> updateRecommendations(@Var("userId") String userId, @Var("movieId") String movieId);
+    RibbonRequest<Void> updateRecommendations(@Var("userId") String userId, @Content String movieId);
 }

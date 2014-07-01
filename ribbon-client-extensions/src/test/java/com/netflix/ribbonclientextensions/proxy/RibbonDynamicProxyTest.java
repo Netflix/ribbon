@@ -5,9 +5,12 @@ import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
 import com.netflix.ribbonclientextensions.proxy.sample.Movie;
 import com.netflix.ribbonclientextensions.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbonclientextensions.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupNameAnnotation;
+import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.protocol.http.client.HttpClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.powermock.api.easymock.annotation.Mock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -18,6 +21,7 @@ import java.util.Map;
 import static com.netflix.ribbonclientextensions.proxy.Utils.*;
 import static org.easymock.EasyMock.*;
 import static org.powermock.api.easymock.PowerMock.createMock;
+import static org.powermock.api.easymock.PowerMock.expectLastCall;
 import static org.powermock.api.easymock.PowerMock.*;
 import static org.testng.Assert.*;
 
@@ -28,11 +32,17 @@ import static org.testng.Assert.*;
 @PrepareForTest({RibbonDynamicProxy.class, MethodTemplateExecutor.class})
 public class RibbonDynamicProxyTest {
 
-    private HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
+    @Mock
+    private HttpResourceGroup httpResourceGroupMock;
 
-    private HttpResourceGroupFactory httpResourceGroupFactoryMock = createMock(HttpResourceGroupFactory.class);
+    @Mock
+    private HttpResourceGroupFactory httpResourceGroupFactoryMock;
 
-    private RibbonRequest ribbonRequestMock = createMock(RibbonRequest.class);
+    @Mock
+    private RibbonRequest ribbonRequestMock;
+
+    @Mock
+    private HttpClient<ByteBuf, ByteBuf> httpClientMock;
 
     @Before
     public void setUp() throws Exception {
@@ -70,6 +80,21 @@ public class RibbonDynamicProxyTest {
         RibbonRequest<Movie> ribbonMovie = service.findMovieById("123");
 
         assertNotNull(ribbonMovie);
+    }
+
+    @Test
+    public void testLifeCycleShutdown() throws Exception {
+        initializeSampleMovieServiceMocks();
+        expect(httpResourceGroupMock.getClient()).andReturn(httpClientMock);
+        httpClientMock.shutdown();
+        expectLastCall();
+        replayAll();
+
+        SampleMovieService service = RibbonDynamicProxy.newInstance(SampleMovieService.class, httpResourceGroupMock);
+        ProxyLifeCycle proxyLifeCycle = (ProxyLifeCycle) service;
+        proxyLifeCycle.shutdown();
+
+        assertTrue(proxyLifeCycle.isShutDown());
     }
 
     @Test

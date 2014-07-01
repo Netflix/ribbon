@@ -26,9 +26,11 @@ import java.util.Map;
  * @author Tomasz Bak
  */
 public class RibbonDynamicProxy<T> implements InvocationHandler {
+    private final ProxyLifeCycle lifeCycle;
     private final Map<Method, MethodTemplateExecutor> templateExecutorMap;
 
     public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
+        this.lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
         ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
         if (httpResourceGroup == null) {
             httpResourceGroup = new HttpResourceGroupFactory<T>(classTemplate).createResourceGroup();
@@ -42,13 +44,48 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
         if (template != null) {
             return template.executeFromTemplate(args);
         }
+        if (ProxyLifeCycle.class.isAssignableFrom(method.getDeclaringClass())) {
+            return handleProxyLifeCycle(method, args);
+        }
         // This must be one of the Object methods. Lets run it on the handler itself.
         return Utils.executeOnInstance(this, method, args);
+    }
+
+    private Object handleProxyLifeCycle(Method method, Object[] args) {
+        try {
+            return method.invoke(lifeCycle, args);
+        } catch (Exception e) {
+            throw new RibbonProxyException("ProxyLifeCycle call failure on method " + method.getName(), e);
+        }
     }
 
     @Override
     public String toString() {
         return "RibbonDynamicProxy{...}";
+    }
+
+    private static class ProxyLifecycleImpl implements ProxyLifeCycle {
+
+        private final HttpResourceGroup httpResourceGroup;
+
+        private volatile boolean shutdownFlag;
+
+        public ProxyLifecycleImpl(HttpResourceGroup httpResourceGroup) {
+            this.httpResourceGroup = httpResourceGroup;
+        }
+
+        @Override
+        public boolean isShutDown() {
+            return shutdownFlag;
+        }
+
+        @Override
+        public synchronized void shutdown() {
+            if (!shutdownFlag) {
+                httpResourceGroup.getClient().shutdown();
+                shutdownFlag = true;
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -58,7 +95,7 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
         }
         return (T) Proxy.newProxyInstance(
                 Thread.currentThread().getContextClassLoader(),
-                new Class[]{clientInterface},
+                new Class[]{clientInterface, ProxyLifeCycle.class},
                 new RibbonDynamicProxy<T>(clientInterface, httpResourceGroup)
         );
     }

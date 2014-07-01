@@ -20,6 +20,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.logging.LogLevel;
 import io.netty.util.internal.ConcurrentSet;
 import io.reactivex.netty.RxNetty;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
@@ -77,21 +78,22 @@ public class RxMovieServer {
                 response.setStatus(HttpResponseStatus.NOT_FOUND);
                 return response.close();
             }
-        }).pipelineConfigurator(PipelineConfigurators.<ByteBuf, ByteBuf>httpServerConfigurator()).build();
+        }).pipelineConfigurator(PipelineConfigurators.<ByteBuf, ByteBuf>httpServerConfigurator()).enableWireLogging(LogLevel.DEBUG).build();
 
         System.out.println("RxMovie server started...");
         return server;
     }
 
     private Observable<Void> handleRecommendationsByUserId(HttpServerRequest<ByteBuf> request, HttpServerResponse<ByteBuf> response) {
+        System.out.println("Recommendations by user id request: " + request.getPath());
         final String userId = userIdFromPath(request.getPath());
         if (userId == null) {
             response.setStatus(HttpResponseStatus.BAD_REQUEST);
-            return Observable.error(new IllegalArgumentException("Invalid URL"));
+            return response.close();
         }
         if (!userRecommendations.containsKey(userId)) {
             response.setStatus(HttpResponseStatus.NOT_FOUND);
-            return Observable.error(new IllegalArgumentException("No recommendations for the user " + userId));
+            return response.close();
         }
 
         StringBuilder builder = new StringBuilder();
@@ -107,11 +109,12 @@ public class RxMovieServer {
     }
 
     private Observable<Void> handleRecommendationsBy(HttpServerRequest<ByteBuf> request, HttpServerResponse<ByteBuf> response) {
+        System.out.println("Recommendations by multiple criteria request: " + request.getPath());
         List<String> category = request.getQueryParameters().get("category");
         List<String> ageGroup = request.getQueryParameters().get("ageGroup");
         if (category.isEmpty() || ageGroup.isEmpty()) {
             response.setStatus(HttpResponseStatus.BAD_REQUEST);
-            return Observable.error(new IllegalArgumentException("Invalid URL"));
+            return response.close();
         }
 
         StringBuilder builder = new StringBuilder();
@@ -129,16 +132,17 @@ public class RxMovieServer {
     }
 
     private Observable<Void> handleUpdateRecommendationsForUser(HttpServerRequest<ByteBuf> request, final HttpServerResponse<ByteBuf> response) {
+        System.out.println("HTTP request -> update recommendations for user: " + request.getPath());
         final String userId = userIdFromPath(request.getPath());
         if (userId == null) {
             response.setStatus(HttpResponseStatus.BAD_REQUEST);
-            return Observable.error(new IllegalArgumentException("Invalid URL"));
+            return response.close();
         }
         return request.getContent().flatMap(new Func1<ByteBuf, Observable<Void>>() {
             @Override
             public Observable<Void> call(ByteBuf byteBuf) {
                 String movieId = byteBuf.toString(Charset.defaultCharset());
-                System.out.println(format("Updating recommendation for user %s and movie %s ", userId, movieId));
+                System.out.println(format("    updating recommendation for <user=%s, movie=%s>", userId, movieId));
                 synchronized (this) {
                     Set<String> recommendations;
                     if (userRecommendations.containsKey(userId)) {
@@ -156,11 +160,12 @@ public class RxMovieServer {
     }
 
     private Observable<Void> handleRegisterMovie(HttpServerRequest<ByteBuf> request, final HttpServerResponse<ByteBuf> response) {
+        System.out.println("Http request -> register movie: " + request.getPath());
         return request.getContent().flatMap(new Func1<ByteBuf, Observable<Void>>() {
             @Override
             public Observable<Void> call(ByteBuf byteBuf) {
                 String formatted = byteBuf.toString(Charset.defaultCharset());
-                System.out.println("Registering movie " + formatted);
+                System.out.println("    registering movie " + formatted);
                 try {
                     Movie movie = Movie.from(formatted);
                     movies.put(movie.getId(), movie);

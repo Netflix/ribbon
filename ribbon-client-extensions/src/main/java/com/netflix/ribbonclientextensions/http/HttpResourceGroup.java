@@ -48,7 +48,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
         return headers;
     }
     
-    HttpClient<ByteBuf, ByteBuf> getClient() {
+    public HttpClient<ByteBuf, ByteBuf> getClient() {
         return client;
     }
 }
