@@ -58,7 +58,7 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
-import com.netflix.loadbalancer.ClientObservableProvider;
+import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.Server;
@@ -185,9 +185,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (result != null) {
             return result;
         }
-        return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<O>>() {
+        return lbExecutor.create(new LoadBalancerObservableCommand<HttpClientResponse<O>>() {
             @Override
-            public Observable<HttpClientResponse<O>> getObservableForEndpoint(
+            public Observable<HttpClientResponse<O>> run(
                     Server server) {
                 return submit(server.getHost(), server.getPort(), repeatableRequest, rxClientConfig);
             }
@@ -223,9 +223,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (result != null) {
             return result;
         }
-        return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<HttpClientResponse<O>>() {
+        return lbExecutor.create(new LoadBalancerObservableCommand<HttpClientResponse<O>>() {
             @Override
-            public Observable<HttpClientResponse<O>> getObservableForEndpoint(
+            public Observable<HttpClientResponse<O>> run(
                     Server server) {
                 return submit(server.getHost(), server.getPort(), repeatableRequest, config);
             }
@@ -252,7 +252,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             }
         }
         Server server = new Server(host, port);
-        return lbExecutor.execute(server, submit(server.getHost(), server.getPort(), request, config), errorHandler);
+        return lbExecutor.retryWithSameServer(server, submit(server.getHost(), server.getPort(), request, config), errorHandler);
     }
     
     /**
@@ -260,9 +260,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
      */
     @Override
     public Observable<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>> connect() {
-        return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>>() {
+        return lbExecutor.create(new LoadBalancerObservableCommand<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>>() {
             @Override
-            public Observable<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>> getObservableForEndpoint(
+            public Observable<ObservableConnection<HttpClientResponse<O>, HttpClientRequest<I>>> run(
                     Server server) {
                 HttpClient<I, O> rxClient = getRxClient(server.getHost(), server.getPort());
                 return rxClient.connect();

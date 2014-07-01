@@ -24,7 +24,7 @@ package com.netflix.loadbalancer;
  * @author awang
  *
  */
-public interface ClientCallableProvider<T> {
+public interface LoadBalancerCommand<T> {
 
-    public T executeOnServer(Server server) throws Exception;
+    public T run(Server server) throws Exception;
 }

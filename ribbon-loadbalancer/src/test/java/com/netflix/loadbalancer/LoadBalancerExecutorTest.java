@@ -25,10 +25,10 @@ public class LoadBalancerExecutorTest {
     @Test
     public void testRetrySameServer() {
         LoadBalancerExecutor lbExecutor = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancerExecutor(list);
-        ClientObservableProvider<String> observableProvider = new ClientObservableProvider<String>() {
+        LoadBalancerObservableCommand<String> observableProvider = new LoadBalancerObservableCommand<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
-            public Observable<String> getObservableForEndpoint(final Server server) {
+            public Observable<String> run(final Server server) {
                 return Observable.create(new OnSubscribe<String>(){
                     @Override
                     public void call(Subscriber<? super String> t1) {
@@ -61,7 +61,7 @@ public class LoadBalancerExecutorTest {
                 return 0;
             }
         };
-        String result = lbExecutor.execute(server1, observableProvider.getObservableForEndpoint(server1), handler).toBlockingObservable().single();
+        String result = lbExecutor.retryWithSameServer(server1, observableProvider.run(server1), handler).toBlockingObservable().single();
         assertEquals(3, lbExecutor.getServerStats(server1).getTotalRequestsCount());
         assertEquals("1", result);
     }
@@ -69,10 +69,10 @@ public class LoadBalancerExecutorTest {
     @Test
     public void testRetryNextServer() {
         LoadBalancerExecutor lbExecutor = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancerExecutor(list);
-        ClientObservableProvider<String> observableProvider = new ClientObservableProvider<String>() {
+        LoadBalancerObservableCommand<String> observableProvider = new LoadBalancerObservableCommand<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
-            public Observable<String> getObservableForEndpoint(final Server server) {
+            public Observable<String> run(final Server server) {
                 return Observable.create(new OnSubscribe<String>(){
                     @Override
                     public void call(Subscriber<? super String> t1) {
@@ -105,7 +105,7 @@ public class LoadBalancerExecutorTest {
                 return 5;
             }
         };
-        String result = lbExecutor.executeWithLoadBalancer(observableProvider, handler).toBlockingObservable().single();
+        String result = lbExecutor.create(observableProvider, handler).toBlockingObservable().single();
         assertEquals("3", result); // server2 is picked first
         assertEquals(2, lbExecutor.getServerStats(server2).getTotalRequestsCount());
         assertEquals(1, lbExecutor.getServerStats(server3).getTotalRequestsCount());
