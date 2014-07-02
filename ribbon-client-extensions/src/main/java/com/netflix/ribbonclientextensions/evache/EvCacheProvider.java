@@ -126,8 +126,13 @@ public class EvCacheProvider<T> implements CacheProvider<T> {
                 subscriber.onError(new CacheFaultException("cache get request canceled"));
             } else {
                 try {
-                    subscriber.onNext(future.get());
-                    subscriber.onCompleted();
+                    Object value = future.get();
+                    if (value == null) {
+                        subscriber.onError(new CacheMissException());
+                    } else {
+                        subscriber.onNext(value);
+                        subscriber.onCompleted();
+                    }
                 } catch (ExecutionException e) {
                     subscriber.onError(e.getCause());
                 }

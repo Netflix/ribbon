@@ -96,6 +96,22 @@ public class EvCacheProviderTest {
     }
 
     @Test
+    public void testCacheMiss() throws Exception {
+        expect(evCacheImplMock.<String>getAsynchronous("test1")).andReturn(cacheFutureMock);
+        expect(cacheFutureMock.isDone()).andReturn(true);
+        expect(cacheFutureMock.isCancelled()).andReturn(false);
+        expect(cacheFutureMock.get()).andReturn(null);
+
+        replayAll();
+
+        EvCacheOptions options = new EvCacheOptions("testApp", "test-cache", true, 100, null, "test{id}");
+        EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
+        Observable<Object> cacheValue = cacheProvider.get("test1", null);
+
+        assertTrue(cacheValue.materialize().toBlocking().first().getThrowable() instanceof CacheMissException);
+    }
+
+    @Test
     public void testFailedAsynchronousAccessFromCache() throws Exception {
         expect(evCacheImplMock.<String>getAsynchronous("test1")).andThrow(new EVCacheException("cache error"));
 
