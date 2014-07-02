@@ -1,12 +1,13 @@
 package com.netflix.ribbonclientextensions;
 
 import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
+import com.netflix.ribbonclientextensions.proxy.RibbonDynamicProxy;
 
 public final class Ribbon {
-    
+
     private Ribbon() {
     }
- 
+
     public static HttpResourceGroup createHttpResourceGroup(String name) {
         return new HttpResourceGroup(name);
     }
@@ -16,6 +17,10 @@ public final class Ribbon {
     }
 
     public static <T> T from(Class<T> contract) {
-        return null;
-    } 
+        return RibbonDynamicProxy.newInstance(contract, null);
+    }
+
+    public static <T> T from(Class<T> contract, HttpResourceGroup httpResourceGroup) {
+        return RibbonDynamicProxy.newInstance(contract, httpResourceGroup);
+    }
 }
