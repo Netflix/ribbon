@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx.common;
 
-import org.junit.Test;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.reactivex.netty.serialization.ContentTransformer;
 
-import static com.netflix.ribbon.examples.proxy.Movie.*;
-import static org.junit.Assert.*;
+import java.nio.charset.Charset;
 
 /**
  * @author Tomasz Bak
  */
-public class MovieTest {
-
-    @Test
-    public void testStringParsing() {
-        Movie fromString = Movie.from(ORANGE_IS_THE_NEW_BLACK.toString());
-        assertEquals(ORANGE_IS_THE_NEW_BLACK, fromString);
+public class RxMovieTransformer implements ContentTransformer<Movie> {
+    @Override
+    public ByteBuf transform(Movie movie, ByteBufAllocator byteBufAllocator) {
+        byte[] bytes = movie.toString().getBytes(Charset.defaultCharset());
+        ByteBuf byteBuf = byteBufAllocator.buffer(bytes.length);
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
     }
 }

@@ -14,8 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx.proxy;
 
+import com.netflix.ribbon.examples.rx.common.InMemoryCacheProviderFactory;
+import com.netflix.ribbon.examples.rx.common.Movie;
+import com.netflix.ribbon.examples.rx.common.RecommendationServiceFallbackHandler;
+import com.netflix.ribbon.examples.rx.common.RecommendationServiceResponseValidator;
+import com.netflix.ribbon.examples.rx.common.RxMovieTransformer;
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.proxy.annotation.CacheProviders;
 import com.netflix.ribbon.proxy.annotation.CacheProviders.Provider;
@@ -43,7 +48,6 @@ public interface MovieService {
                     @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(
-            cacheKey = "userRecommendations/{userId}",
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
     @CacheProviders(@Provider(key = "{userId}", provider = InMemoryCacheProviderFactory.class))
@@ -58,7 +62,6 @@ public interface MovieService {
                     @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(
-            cacheKey = "{category},{ageGroup}",
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
     @CacheProviders(@Provider(key = "{category},{ageGroup}", provider = InMemoryCacheProviderFactory.class))

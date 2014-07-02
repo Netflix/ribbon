@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx.common;
 
+import com.netflix.ribbon.ServerError;
+import com.netflix.ribbon.UnsuccessfulResponseException;
+import com.netflix.ribbon.http.HttpResponseValidator;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.reactivex.netty.serialization.ContentTransformer;
-
-import java.nio.charset.Charset;
+import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
 /**
  * @author Tomasz Bak
  */
-public class RxMovieTransformer implements ContentTransformer<Movie> {
+public class RecommendationServiceResponseValidator implements HttpResponseValidator {
     @Override
-    public ByteBuf transform(Movie movie, ByteBufAllocator byteBufAllocator) {
-        byte[] bytes = movie.toString().getBytes(Charset.defaultCharset());
-        ByteBuf byteBuf = byteBufAllocator.buffer(bytes.length);
-        byteBuf.writeBytes(bytes);
-        return byteBuf;
+    public void validate(HttpClientResponse<ByteBuf> response) throws UnsuccessfulResponseException, ServerError {
+        if (response.getStatus().code() / 100 != 2) {
+            throw new UnsuccessfulResponseException("Unexpected HTTP status code " + response.getStatus());
+        }
     }
 }

@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx.proxy;
 
 import com.netflix.hystrix.util.HystrixTimer;
+import com.netflix.ribbon.examples.rx.RxMovieServer;
+import com.netflix.ribbon.examples.rx.common.Movie;
 import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.Ribbon;
 import com.netflix.ribbon.http.HttpResourceGroup;
@@ -27,7 +29,6 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,11 +55,11 @@ public class RxMovieProxyExample {
         movieService = Ribbon.from(MovieService.class, httpResourceGroup);
     }
 
-    private boolean registerMovies() throws URISyntaxException {
+    private boolean registerMovies() {
         System.out.print("Registering movies...");
         Notification<Void> status = Observable.concat(
                 movieService.registerMovie(Movie.ORANGE_IS_THE_NEW_BLACK).observe(),
-                movieService.registerMovie(Movie.BRAKING_BAD).observe(),
+                movieService.registerMovie(Movie.BREAKING_BAD).observe(),
                 movieService.registerMovie(Movie.HOUSE_OF_CARDS).observe()).materialize().toBlocking().last();
 
         if (status.isOnError()) {
@@ -74,7 +75,7 @@ public class RxMovieProxyExample {
         System.out.print("Updating recommendations for user " + TEST_USER + "...");
         Notification<Void> status = Observable.concat(
                 movieService.updateRecommendations(TEST_USER, Movie.ORANGE_IS_THE_NEW_BLACK.getId()).observe(),
-                movieService.updateRecommendations(TEST_USER, Movie.BRAKING_BAD.getId()).observe()).materialize().toBlocking().last();
+                movieService.updateRecommendations(TEST_USER, Movie.BREAKING_BAD.getId()).observe()).materialize().toBlocking().last();
 
         if (status.isOnError()) {
             System.err.println("ERROR: user recommendations update failure");
@@ -114,7 +115,7 @@ public class RxMovieProxyExample {
     public void shutdown() {
         System.out.println("Shutting down the proxy...");
         ((ProxyLifeCycle) movieService).shutdown();
-        HystrixTimer.reset(); // FIXME This should be done selectively in RibbonDynamicProxy
+        HystrixTimer.reset();
     }
 
     public static void main(String[] args) {
