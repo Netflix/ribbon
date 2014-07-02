@@ -1,3 +1,18 @@
+/*
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.ribbonclientextensions.http;
 
 import io.netty.buffer.ByteBuf;
@@ -5,25 +20,19 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import rx.Observable;
 import rx.functions.Func1;
 
-import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.hystrix.exception.HystrixBadRequestException;
-import com.netflix.ribbonclientextensions.CacheProvider;
 import com.netflix.ribbonclientextensions.ResponseValidator;
 import com.netflix.ribbonclientextensions.ServerError;
 import com.netflix.ribbonclientextensions.UnsuccessfulResponseException;
 import com.netflix.ribbonclientextensions.http.HttpRequest.CacheProviderWithKey;
-import com.netflix.ribbonclientextensions.http.HttpRequestTemplate.CacheProviderWithKeyTemplate;
 import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
-import com.netflix.ribbonclientextensions.template.TemplateParser;
-import com.netflix.ribbonclientextensions.template.TemplateParsingException;
 
 class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
 
