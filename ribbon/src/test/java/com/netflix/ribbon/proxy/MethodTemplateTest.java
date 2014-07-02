@@ -102,6 +102,14 @@ public class MethodTemplateTest {
     }
 
     @Test
+    public void testWithByteArrayContent() throws Exception {
+        MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithByteArrayContent"));
+
+        assertEquals(0, methodTemplate.getContentArgPosition());
+        assertNull(methodTemplate.getContentTransformerClass());
+    }
+
+    @Test
     public void testWithStringContent() throws Exception {
         MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithStringContent"));
 

@@ -40,14 +40,6 @@ public class HystrixHandlers {
         }
     }
 
-    public static class GenericFallbackHandler implements FallbackHandler<Object> {
-
-        @Override
-        public Observable<Object> getFallback(HystrixExecutableInfo<?> hystrixInfo, Map<String, Object> requestProperties) {
-            return null;
-        }
-    }
-
     public static class MovieFallbackHandler implements FallbackHandler<Movie> {
 
         @Override
