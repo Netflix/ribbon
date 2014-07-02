@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx;
 
+import com.netflix.ribbon.examples.rx.common.Movie;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.internal.ConcurrentSet;
@@ -35,7 +36,7 @@ import java.nio.charset.Charset;
 import java.util.Random;
 import java.util.Set;
 
-import static com.netflix.ribbon.examples.proxy.Movie.*;
+import static com.netflix.ribbon.examples.rx.common.Movie.*;
 import static junit.framework.Assert.*;
 
 /**
@@ -103,10 +104,10 @@ public class RxMovieServerTest {
     @Test
     public void testRecommendationsByUserId() throws Exception {
         movieServer.movies.put(ORANGE_IS_THE_NEW_BLACK.getId(), ORANGE_IS_THE_NEW_BLACK);
-        movieServer.movies.put(BRAKING_BAD.getId(), BRAKING_BAD);
+        movieServer.movies.put(BREAKING_BAD.getId(), BREAKING_BAD);
         Set<String> userRecom = new ConcurrentSet<String>();
         userRecom.add(ORANGE_IS_THE_NEW_BLACK.getId());
-        userRecom.add(BRAKING_BAD.getId());
+        userRecom.add(BREAKING_BAD.getId());
         movieServer.userRecommendations.put(TEST_USER_ID, userRecom);
 
         Observable<HttpClientResponse<ByteBuf>> httpGet = RxNetty.createHttpGet(baseURL + "/users/" + TEST_USER_ID + "/recommendations");
@@ -120,14 +121,14 @@ public class RxMovieServerTest {
     @Test
     public void testRecommendationsByMultipleCriteria() throws Exception {
         movieServer.movies.put(ORANGE_IS_THE_NEW_BLACK.getId(), ORANGE_IS_THE_NEW_BLACK);
-        movieServer.movies.put(BRAKING_BAD.getId(), BRAKING_BAD);
+        movieServer.movies.put(BREAKING_BAD.getId(), BREAKING_BAD);
         movieServer.movies.put(HOUSE_OF_CARDS.getId(), HOUSE_OF_CARDS);
 
-        String relativeURL = String.format("/recommendations?category=%s&ageGroup=%s", BRAKING_BAD.getCategory(), BRAKING_BAD.getAgeGroup());
+        String relativeURL = String.format("/recommendations?category=%s&ageGroup=%s", BREAKING_BAD.getCategory(), BREAKING_BAD.getAgeGroup());
         Movie[] movies = handleGetMoviesReply(RxNetty.createHttpGet(baseURL + relativeURL));
 
         assertEquals(1, movies.length);
-        assertEquals(BRAKING_BAD, movies[0]);
+        assertEquals(BREAKING_BAD, movies[0]);
     }
 
     private Movie[] handleGetMoviesReply(Observable<HttpClientResponse<ByteBuf>> httpGet) {

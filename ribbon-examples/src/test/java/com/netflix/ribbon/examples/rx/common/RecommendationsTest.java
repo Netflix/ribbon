@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx.common;
 
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ public class RecommendationsTest {
     public void testStringParsing() throws Exception {
         List<Movie> movies = new ArrayList<Movie>();
         movies.add(Movie.ORANGE_IS_THE_NEW_BLACK);
-        movies.add(Movie.BRAKING_BAD);
+        movies.add(Movie.BREAKING_BAD);
         Recommendations recommendations = new Recommendations(movies);
         Recommendations fromString = Recommendations.from(recommendations.toString());
         assertEquals(recommendations, fromString);

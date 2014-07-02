@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx.common;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,7 +57,7 @@ public class Recommendations {
 
     @Override
     public String toString() {
-        return "{movies=" + movies.toString() + '}';
+        return "{movies=" + movies + '}';
     }
 
     public static Recommendations from(String formatted) {
