@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx.common;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.ribbon.hystrix.FallbackHandler;

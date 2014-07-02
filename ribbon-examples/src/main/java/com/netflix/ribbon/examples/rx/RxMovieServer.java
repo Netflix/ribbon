@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.examples.rx;
 
+import com.netflix.ribbon.examples.rx.common.Movie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.codec.http.HttpMethod;
@@ -180,7 +181,7 @@ public class RxMovieServer {
         });
     }
 
-    private String userIdFromPath(String path) {
+    private static String userIdFromPath(String path) {
         Matcher matcher = USER_RECOMMENDATIONS_PATH_RE.matcher(path);
         return matcher.matches() ? matcher.group(1) : null;
     }
