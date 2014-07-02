@@ -16,8 +16,8 @@
 
 package com.netflix.ribbon.examples.proxy;
 
-import com.netflix.ribbonclientextensions.CacheProvider;
-import com.netflix.ribbonclientextensions.CacheProviderFactory;
+import com.netflix.ribbon.CacheProvider;
+import com.netflix.ribbon.CacheProviderFactory;
 import rx.Observable;
 
 import java.util.Map;

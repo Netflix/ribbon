@@ -16,17 +16,17 @@
 
 package com.netflix.ribbon.examples.proxy;
 
-import com.netflix.ribbonclientextensions.RibbonRequest;
-import com.netflix.ribbonclientextensions.proxy.annotation.CacheProviders;
-import com.netflix.ribbonclientextensions.proxy.annotation.CacheProviders.Provider;
-import com.netflix.ribbonclientextensions.proxy.annotation.Content;
-import com.netflix.ribbonclientextensions.proxy.annotation.ContentTransformerClass;
-import com.netflix.ribbonclientextensions.proxy.annotation.Http;
-import com.netflix.ribbonclientextensions.proxy.annotation.Http.Header;
-import com.netflix.ribbonclientextensions.proxy.annotation.Http.HttpMethod;
-import com.netflix.ribbonclientextensions.proxy.annotation.Hystrix;
-import com.netflix.ribbonclientextensions.proxy.annotation.TemplateName;
-import com.netflix.ribbonclientextensions.proxy.annotation.Var;
+import com.netflix.ribbon.RibbonRequest;
+import com.netflix.ribbon.proxy.annotation.CacheProviders;
+import com.netflix.ribbon.proxy.annotation.CacheProviders.Provider;
+import com.netflix.ribbon.proxy.annotation.Content;
+import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
+import com.netflix.ribbon.proxy.annotation.Http;
+import com.netflix.ribbon.proxy.annotation.Http.Header;
+import com.netflix.ribbon.proxy.annotation.Http.HttpMethod;
+import com.netflix.ribbon.proxy.annotation.Hystrix;
+import com.netflix.ribbon.proxy.annotation.TemplateName;
+import com.netflix.ribbon.proxy.annotation.Var;
 import io.netty.buffer.ByteBuf;
 
 /**

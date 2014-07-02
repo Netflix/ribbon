@@ -16,9 +16,9 @@
 
 package com.netflix.ribbon.examples.proxy;
 
-import com.netflix.ribbonclientextensions.ServerError;
-import com.netflix.ribbonclientextensions.UnsuccessfulResponseException;
-import com.netflix.ribbonclientextensions.http.HttpResponseValidator;
+import com.netflix.ribbon.ServerError;
+import com.netflix.ribbon.UnsuccessfulResponseException;
+import com.netflix.ribbon.http.HttpResponseValidator;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;

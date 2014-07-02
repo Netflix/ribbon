@@ -18,7 +18,7 @@ import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.loadbalancer.ClientObservableProvider;
+import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
@@ -140,9 +140,9 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     
     @Override
     public Observable<ObservableConnection<O, I>> connect() {
-        return lbExecutor.executeWithLoadBalancer(new ClientObservableProvider<ObservableConnection<O, I>>() {
+        return lbExecutor.create(new LoadBalancerObservableCommand<ObservableConnection<O, I>>() {
             @Override
-            public Observable<ObservableConnection<O, I>> getObservableForEndpoint(
+            public Observable<ObservableConnection<O, I>> run(
                     Server server) {
                 return getRxClient(server.getHost(), server.getPort()).connect();
             }

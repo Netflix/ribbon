@@ -11,11 +11,10 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 import rx.Observable.OnSubscribe;
+import rx.Observable.Operator;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.functions.Func1;
-import rx.subscriptions.Subscriptions;
 
 import com.netflix.client.ClientException;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
@@ -52,125 +51,17 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         super(lb, clientConfig, defaultRetryHandler);
     }
     
-    public static class CallableToObservable<T> implements ClientObservableProvider<T> {
-
-        private final ClientCallableProvider<T> callableProvider;
-        
-        public static <T> ClientObservableProvider<T> toObsevableProvider(ClientCallableProvider<T> callableProvider) {
-            return new CallableToObservable<T>(callableProvider);
-        }
-
-        public CallableToObservable(ClientCallableProvider<T> callableProvider) {
-            this.callableProvider = callableProvider;
-        }
-        
-        @Override
-        public Observable<T> getObservableForEndpoint(final Server server) {
-            OnSubscribeFunc<T> onsubscribe = new OnSubscribeFunc<T>() {
-                @Override
-                public Subscription onSubscribe(Observer<? super T> t1) {
-                    try {
-                        T obj = callableProvider.executeOnServer(server);
-                        t1.onNext(obj);
-                        t1.onCompleted();
-                    } catch (Exception e) {
-                        t1.onError(e);
-                    }
-                    return Subscriptions.empty();
-                };
-            };
-            return createObservableFromOnSubscribeFunc(onsubscribe);
-        }
-    } 
-    
-    private class RetrySameServerFunc<T> implements Func1<Throwable, Observable<T>> {
-
-        private final Server server;
-        private final OnSubscribe<T> onSubscribe;
-        private final AtomicInteger counter = new AtomicInteger();
-        private final RetryHandler callErrorHandler;
-
-        public RetrySameServerFunc(Server server, OnSubscribe<T> onSubscribe, RetryHandler errorHandler) {
-            this.server = server;
-            this.onSubscribe = onSubscribe;
-            this.callErrorHandler = errorHandler == null ? getErrorHandler() : errorHandler;
-        }
-        
-        @Override
-        public Observable<T> call(final Throwable error) {
-            logger.debug("Get error during retry on same server", error);
-            int maxRetries = callErrorHandler.getMaxRetriesOnSameServer();
-            boolean shouldRetry = maxRetries > 0 && callErrorHandler.isRetriableException(error, true);
-            final Throwable finalThrowable;
-            if (shouldRetry && !handleSameServerRetry(server, counter.incrementAndGet(), maxRetries, error)) {
-                finalThrowable = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
-                        "Number of retries exceeded max " + maxRetries + " retries, while making a call for: " + server, error);  
-                shouldRetry = false;
-            } else {
-                finalThrowable = error;
-            }
-            
-            if (shouldRetry) {
-                // try again
-                return Observable.create(onSubscribe).onErrorResumeNext(this);
-            } else {
-                return Observable.error(finalThrowable);
-            }
-        }
-    }
-
-    private class RetryNextServerFunc<T> implements Func1<Throwable, Observable<T>> {
-
-        private final AtomicInteger counter = new AtomicInteger();
-        private final OnSubscribeFunc<T> onSubscribe;
-        private final RetryHandler callErrorHandler;
-        
-        RetryNextServerFunc(OnSubscribeFunc<T> onSubscribe, RetryHandler errorHandler) {
-            this.onSubscribe = onSubscribe;
-            this.callErrorHandler = errorHandler == null ? getErrorHandler() : errorHandler;
-        }
-        
-        @Override
-        public Observable<T> call(Throwable t1) {
-            logger.debug("Get error during retry on next server", t1);   
-            int maxRetriesNextServer = callErrorHandler.getMaxRetriesOnNextServer();
-            boolean sameServerRetryExceededLimit = (t1 instanceof ClientException) &&
-                    ((ClientException) t1).getErrorType().equals(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED);
-            boolean shouldRetry = maxRetriesNextServer > 0 && (sameServerRetryExceededLimit || callErrorHandler.isRetriableException(t1, false));
-            final Throwable finalThrowable;
-            if (shouldRetry && counter.incrementAndGet() > maxRetriesNextServer) {
-                finalThrowable = new ClientException(
-                        ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
-                        "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
-                                + maxRetriesNextServer
-                                + " retries, while making a call with load balancer: "
-                                +  getDeepestCause(t1).getMessage(), t1);
-                shouldRetry = false;
-            } else {
-                finalThrowable = t1;
-            }
-            if (shouldRetry) {
-                return createObservableFromOnSubscribeFunc(onSubscribe).onErrorResumeNext(this);
-            } else {
-                return Observable.error(finalThrowable);
-                
-            }
-        }
-        
-    }
-
-    
     /**
      * Execute a task on a server chosen by load balancer with possible retries. If there are any errors that are indicated as 
      * retriable by the {@link RetryHandler}, they will be consumed internally. If number of retries has
      * exceeds the maximal allowed, a final error will be thrown. Otherwise, the first successful 
      * result during execution and retries will be returned. 
      * 
-     * @param clientCallableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     * @param command interface that provides the logic to execute network call synchronously with a given {@link Server}
      * @throws Exception If any exception happens in the exception
      */
-    public <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, RetryHandler retryHandler) throws Exception {
-        return executeWithLoadBalancer(clientCallableProvider, null, retryHandler, null);
+    public <T> T execute(final LoadBalancerCommand<T> command, RetryHandler retryHandler) throws Exception {
+        return create(command, null, retryHandler, null);
     }
     
     /**
@@ -179,11 +70,11 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * exceeds the maximal allowed, a final error will be thrown. Otherwise, the first successful 
      * result during execution and retries will be returned. 
      * 
-     * @param clientCallableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     * @param command interface that provides the logic to execute network call synchronously with a given {@link Server}
      * @throws Exception If any exception happens in the exception
      */
-    public <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider) throws Exception {
-        return executeWithLoadBalancer(clientCallableProvider, null, null, null);
+    public <T> T execute(final LoadBalancerCommand<T> command) throws Exception {
+        return create(command, null, null, null);
     }
 
     
@@ -193,7 +84,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * exceeds the maximal allowed, a final error will be thrown. Otherwise, the first successful 
      * result during execution and retries will be returned. 
      * 
-     * @param clientCallableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     * @param command interface that provides the logic to execute network call synchronously with a given {@link Server}
      * @param loadBalancerURI An optional URI that may contain a real host name and port to use as a fallback to the {@link LoadBalancerExecutor} 
      *                        if it does not have a load balancer or cannot find a server from its server list. For example, the URI contains
      *                        "www.google.com:80" will force the {@link LoadBalancerExecutor} to use www.google.com:80 as the actual server to
@@ -203,10 +94,10 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
      * @throws Exception If any exception happens in the exception
      */
-    protected <T> T executeWithLoadBalancer(final ClientCallableProvider<T> clientCallableProvider, @Nullable final URI loadBalancerURI, 
+    protected <T> T create(final LoadBalancerCommand<T> command, @Nullable final URI loadBalancerURI, 
             @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) throws Exception {
         return RxUtils.getSingleValueWithRealErrorCause(
-                executeWithLoadBalancer(CallableToObservable.toObsevableProvider(clientCallableProvider), loadBalancerURI, 
+                create(CommandToObservableConverter.toObsevableCommand(command), loadBalancerURI, 
                 retryHandler, loadBalancerKey));
     }
     
@@ -217,12 +108,12 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * exceeds the maximal allowed, a final error will be emitted by the returned {@link Observable}. Otherwise, the first successful 
      * result during execution and retries will be emitted. 
      * 
-     * @param clientObservableProvider interface that provides the logic to execute network call asynchronously with a given {@link Server}
+     * @param observableCommand interface that provides the logic to execute network call asynchronously with a given {@link Server}
      * @param retryHandler  an optional handler to determine the retry logic of the {@link LoadBalancerExecutor}. If null, the default {@link RetryHandler}
      *                   of this {@link LoadBalancerExecutor} will be used.
      */                   
-    public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final RetryHandler retryHandler) {
-        return executeWithLoadBalancer(clientObservableProvider, null, retryHandler, null);
+    public <T> Observable<T> create(final LoadBalancerObservableCommand<T> observableCommand, @Nullable final RetryHandler retryHandler) {
+        return create(observableCommand, null, retryHandler, null);
     }
     
     /**
@@ -232,12 +123,76 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * exceeds the maximal allowed, a final error will be emitted by the returned {@link Observable}. Otherwise, the first successful 
      * result during execution and retries will be emitted. 
      * 
-     * @param clientObservableProvider interface that provides the logic to execute network call synchronously with a given {@link Server}
+     * @param observableCommand interface that provides the logic to execute network call synchronously with a given {@link Server}
      */
-    public <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider) {
-        return executeWithLoadBalancer(clientObservableProvider, null, new DefaultLoadBalancerRetryHandler(), null);
+    public <T> Observable<T> create(final LoadBalancerObservableCommand<T> observableCommand) {
+        return create(observableCommand, null, new DefaultLoadBalancerRetryHandler(), null);
     }
 
+    private class RetryNextServerOperator<T> implements Operator<T, T> {
+        private LoadBalancerObservableCommand<T> clientObservableProvider;
+        private URI loadBalancerURI;
+        private RetryHandler retryHandler;
+        private Object loadBalancerKey;
+        private final AtomicInteger counter = new AtomicInteger();
+
+        public RetryNextServerOperator(final LoadBalancerObservableCommand<T> clientObservableProvider, @Nullable final URI loadBalancerURI, 
+                @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
+            this.clientObservableProvider = clientObservableProvider;
+            this.loadBalancerURI = loadBalancerURI;
+            this.retryHandler = retryHandler  == null ? getErrorHandler() : retryHandler;
+            this.loadBalancerKey = loadBalancerKey;
+        }
+        
+        @Override
+        public Subscriber<? super T> call(final Subscriber<? super T> t1) {
+            return new Subscriber<T>() {
+                @Override
+                public void onCompleted() {
+                    t1.onCompleted();
+                }
+
+                @Override
+                public void onError(Throwable e) {
+                    logger.debug("Get error during retry on next server", t1);   
+                    int maxRetriesNextServer = retryHandler.getMaxRetriesOnNextServer();
+                    boolean sameServerRetryExceededLimit = (e instanceof ClientException) &&
+                            ((ClientException) e).getErrorType().equals(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED);
+                    boolean shouldRetry = maxRetriesNextServer > 0 && (sameServerRetryExceededLimit || retryHandler.isRetriableException(e, false));
+                    final Throwable finalThrowable;
+                    if (shouldRetry && counter.incrementAndGet() > maxRetriesNextServer) {
+                        finalThrowable = new ClientException(
+                                ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
+                                "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
+                                        + maxRetriesNextServer
+                                        + " retries, while making a call with load balancer: "
+                                        +  getDeepestCause(e).getMessage(), e);
+                        shouldRetry = false;
+                    } else {
+                        finalThrowable = e;
+                    }
+                    if (shouldRetry) {
+                        Server server = null;
+                        try {
+                            server = getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
+                        } catch (Exception ex) {
+                            logger.error("Unexpected error", ex);
+                            t1.onError(ex);
+                        }
+                        retryWithSameServer(server, clientObservableProvider.run(server), retryHandler).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
+                    } else {
+                        t1.onError(finalThrowable);
+                    }
+                }
+
+                @Override
+                public void onNext(T t) {
+                    t1.onNext(t);
+                }
+            };
+        }
+        
+    }
     
     /**
      * Create an {@link Observable} that once subscribed execute network call asynchronously with a server chosen by load balancer. 
@@ -246,7 +201,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * exceeds the maximal allowed, a final error will be emitted by the returned {@link Observable}. Otherwise, the first successful 
      * result during execution and retries will be emitted. 
      * 
-     * @param clientObservableProvider interface that provides the logic to execute network call asynchronously with a given {@link Server}
+     * @param observableCommand interface that provides the logic to execute network call asynchronously with a given {@link Server}
      * @param loadBalancerURI An optional URI that may contain a real host name and port to be used by {@link LoadBalancerExecutor} 
      *                        if it does not have a load balancer or cannot find a server from its server list. For example, the URI contains
      *                        "www.google.com:80" will force the {@link LoadBalancerExecutor} to use www.google.com:80 as the actual server to
@@ -255,25 +210,87 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      *                   of this {@link LoadBalancerExecutor} will be used.
      * @param loadBalancerKey An optional key passed to the load balancer to determine which server to return.
      */
-    protected <T> Observable<T> executeWithLoadBalancer(final ClientObservableProvider<T> clientObservableProvider, @Nullable final URI loadBalancerURI, 
+    protected <T> Observable<T> create(final LoadBalancerObservableCommand<T> observableCommand, @Nullable final URI loadBalancerURI, 
             @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
-        OnSubscribeFunc<T> onSubscribe = new OnSubscribeFunc<T>() {
+        return Observable.create(new OnSubscribe<T>(){
             @Override
-            public Subscription onSubscribe(final Observer<? super T> t1) {
-                Server server = null;
-                try {
-                    server = getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
-                } catch (Exception e) {
-                    logger.error("Unexpected error", e);
-                    t1.onError(e);
-                    return Subscriptions.empty();
-                }
-                return execute(server, clientObservableProvider.getObservableForEndpoint(server), retryHandler).subscribe(t1);
+            public void call(Subscriber<? super T> t1) {
+              Server server = null;
+              try {
+                  server = getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
+              } catch (Exception e) {
+                  logger.error("Unexpected error", e);
+                  t1.onError(e);
+              }
+              retryWithSameServer(server, observableCommand.run(server), retryHandler)
+                  .lift(new RetryNextServerOperator<T>(observableCommand, loadBalancerURI, retryHandler, loadBalancerKey))
+                  .subscribe(t1);
             }
-        };
-        Observable<T> observable = createObservableFromOnSubscribeFunc(onSubscribe);
-        RetryNextServerFunc<T> retryNextServerFunc = new RetryNextServerFunc<T>(onSubscribe, retryHandler);
-        return observable.onErrorResumeNext(retryNextServerFunc);
+            
+        });
+    }
+    
+    private class RetrySameServerOperator<T> implements Operator<T, T> {
+        private final Server server;
+        private final Observable<T> singleHostObservable;
+        private final RetryHandler errorHandler;
+        private final AtomicInteger counter = new AtomicInteger();
+
+        RetrySameServerOperator(final Server server, final Observable<T> singleHostObservable, final RetryHandler errorHandler) {
+            this.server = server;
+            this.singleHostObservable = singleHostObservable;
+            this.errorHandler = errorHandler == null? getErrorHandler() : errorHandler;
+        }
+        
+        @Override
+        public Subscriber<? super T> call(final Subscriber<? super T> t1) {
+            final ServerStats serverStats = getServerStats(server); 
+            noteOpenConnection(serverStats);
+            final Stopwatch tracer = getExecuteTracer().start();
+            return new Subscriber<T>() {
+                private volatile T entity; 
+                @Override
+                public void onCompleted() {
+                    recordStats(entity, null);
+                    t1.onCompleted();
+                }
+
+                @Override
+                public void onError(Throwable e) {
+                    logger.debug("Got error %s when executed on server %s", e, server);
+                    recordStats(entity, e);                    
+                    int maxRetries = errorHandler.getMaxRetriesOnSameServer();
+                    boolean shouldRetry = maxRetries > 0 && errorHandler.isRetriableException(e, true);
+                    final Throwable finalThrowable;
+                    if (shouldRetry && !handleSameServerRetry(server, counter.incrementAndGet(), maxRetries, e)) {
+                        finalThrowable = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
+                                "Number of retries exceeded max " + maxRetries + " retries, while making a call for: " + server, e);  
+                        shouldRetry = false;
+                    } else {
+                        finalThrowable = e;
+                    }
+                    
+                    if (shouldRetry) {
+                        singleHostObservable.lift(RetrySameServerOperator.this).unsafeSubscribe(t1);
+                    } else {
+                        t1.onError(finalThrowable);
+                    }
+                }
+
+                @Override
+                public void onNext(T obj) {
+                    entity = obj;
+                    t1.onNext(obj);
+                }
+                
+                private void recordStats(Object entity, Throwable exception) {
+                    tracer.stop();
+                    long duration = tracer.getDuration(TimeUnit.MILLISECONDS);
+                    noteRequestCompletion(serverStats, entity, exception, duration, errorHandler);
+                }
+            };
+        }
+        
     }
     
     /**
@@ -281,61 +298,10 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * {@link RetryHandler}. During retry, any errors that are retriable are consumed by the function and will not be observed
      * by the external {@link Observer}. If number of retries exceeds the maximal retries allowed on one server, a final error will 
      * be emitted by the returned {@link Observable}.
+     * 
+     * @param forServer A lazy Observable that does not start execution until it is subscribed to 
      */
-    public <T> Observable<T> execute(final Server server, final Observable<T> singleHostObservable, final RetryHandler errorHandler) {
-        OnSubscribe<T> onSubscribe = new OnSubscribe<T>() {
-            @Override
-            public void call(final Subscriber<? super T> t1) {
-                final ServerStats serverStats = getServerStats(server); 
-                noteOpenConnection(serverStats);
-                final Stopwatch tracer = getExecuteTracer().start();
-                /*
-                 * A delegate Observer that observes the execution result
-                 * and records load balancer related statistics before 
-                 * sending the same result to the external Observer 
-                 */
-                Observer<T> delegate = new Observer<T>() {
-                    private volatile T entity; 
-                    @Override
-                    public void onCompleted() {
-                        recordStats(entity, null);
-                        t1.onCompleted();
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        logger.debug("Got error %s when executed on server %s", e, server);
-                        recordStats(entity, e);
-                        t1.onError(e);
-                    }
-
-                    @Override
-                    public void onNext(T obj) {
-                        entity = obj;
-                        t1.onNext(obj);
-                    }
-                    
-                    private void recordStats(Object entity, Throwable exception) {
-                        tracer.stop();
-                        long duration = tracer.getDuration(TimeUnit.MILLISECONDS);
-                        noteRequestCompletion(serverStats, entity, exception, duration, errorHandler);
-                    }
-                };
-                singleHostObservable.subscribe(delegate);
-            }
-        };
-        
-        Observable<T> observable = Observable.create(onSubscribe);
-        RetrySameServerFunc<T> retrySameServerFunc = new RetrySameServerFunc<T>(server, onSubscribe, errorHandler);
-        return observable.onErrorResumeNext(retrySameServerFunc);
-    }
-    
-    private static <T> Observable<T> createObservableFromOnSubscribeFunc(final OnSubscribeFunc<T> onSubscribe) {
-        return Observable.create(new OnSubscribe<T>() {
-            @Override
-            public void call(Subscriber<? super T> observer) {
-                onSubscribe.onSubscribe(observer);
-            }
-        });
+    public <T> Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer, final RetryHandler errorHandler) {
+        return forServer.lift(new RetrySameServerOperator<T>(server, forServer, errorHandler));
     }
 }

@@ -17,7 +17,7 @@
 package com.netflix.ribbon.examples.proxy;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
-import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
+import com.netflix.ribbon.hystrix.FallbackHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import rx.Observable;
