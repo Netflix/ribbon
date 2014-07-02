@@ -32,8 +32,7 @@ public class ConfigurationBasedServerListTest {
 	@Test
 	public void testList() {		
 		ConfigurationBasedServerList list = new ConfigurationBasedServerList();
-		DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-		config.setClientName("junit1");
+		DefaultClientConfigImpl config = DefaultClientConfigImpl.getClientConfigWithDefaultValues("junit1");
 		list.initWithNiwsConfig(config);
 		assertTrue(list.getInitialListOfServers().isEmpty());
 		ConfigurationManager.getConfigInstance().setProperty("junit1.ribbon.listOfServers", "abc.com:80,microsoft.com,1.2.3.4:8080");

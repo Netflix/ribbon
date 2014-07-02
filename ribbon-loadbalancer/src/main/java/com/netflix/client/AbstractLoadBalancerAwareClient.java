@@ -17,15 +17,17 @@
 */
 package com.netflix.client;
 
-import static com.netflix.loadbalancer.LoadBalancerExecutor.CallableToObservable.toObsevableProvider;
+import static com.netflix.loadbalancer.CommandToObservableConverter.toObsevableCommand;
 
 import java.net.URI;
+
+import rx.Observable;
 
 import com.google.common.base.Preconditions;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
-import com.netflix.loadbalancer.ClientCallableProvider;
+import com.netflix.loadbalancer.LoadBalancerCommand;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.Server;
@@ -89,17 +91,18 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
         Preconditions.checkNotNull(host);
         int port = request.getUri().getPort();
         Preconditions.checkArgument(port > 0, "port is undefined");
-        ClientCallableProvider<T> callableProvider = new ClientCallableProvider<T>() {
+        final Server server = new Server(host, port);
+        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
+        LoadBalancerCommand<T> callableProvider = new LoadBalancerCommand<T>() {
             @Override
-            public T executeOnServer(Server server) throws Exception {
+            public T run(Server server) throws Exception {
                 return execute(request, requestConfig);
             }
         };
-        
-        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
-        
+
         try {
-            return RxUtils.getSingleValueWithRealErrorCause(retrySameServer(new Server(host, port), toObsevableProvider(callableProvider), handler));
+            Observable<T> result = retryWithSameServer(server, toObsevableCommand(callableProvider).run(server), handler);
+            return RxUtils.getSingleValueWithRealErrorCause(result);
         } catch (Exception e) {
             if (e instanceof ClientException) {
                 throw (ClientException) e;
@@ -123,10 +126,10 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
      * URI which does not contain the host name or the protocol.
      */
     public T executeWithLoadBalancer(final S request, final IClientConfig requestConfig) throws ClientException {
-        ClientCallableProvider<T> callableProvider = new ClientCallableProvider<T>() {
+        LoadBalancerCommand<T> callableProvider = new LoadBalancerCommand<T>() {
             @SuppressWarnings("unchecked")
             @Override
-            public T executeOnServer(Server server) throws Exception {
+            public T run(Server server) throws Exception {
                 URI finalUri = reconstructURIWithServer(server, request.getUri());
                 S requestForServer = (S) request.replaceUri(finalUri);
                 return execute(requestForServer, requestConfig);
@@ -135,7 +138,7 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
         RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
         
         try {
-            return RxUtils.getSingleValueWithRealErrorCause(executeWithLoadBalancer(toObsevableProvider(callableProvider), request.getUri(), handler, request.getLoadBalancerKey()));
+            return RxUtils.getSingleValueWithRealErrorCause(create(toObsevableCommand(callableProvider), request.getUri(), handler, request.getLoadBalancerKey()));
         } catch (Exception e) {
             if (e instanceof ClientException) {
                 throw (ClientException) e;

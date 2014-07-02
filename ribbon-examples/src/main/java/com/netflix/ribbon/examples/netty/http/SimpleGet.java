@@ -10,12 +10,13 @@ import java.util.concurrent.TimeUnit;
 
 import rx.functions.Action1;
 
+import com.netflix.client.netty.RibbonTransport;
 import com.netflix.client.netty.http.NettyHttpClient;
 
 public class SimpleGet {
     @edu.umd.cs.findbugs.annotations.SuppressWarnings
     public static void main(String[] args) throws Exception {
-        NettyHttpClient<ByteBuf, ByteBuf> client = NettyHttpClient.createDefaultHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient();
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/");
                 
         final CountDownLatch latch = new CountDownLatch(1);
