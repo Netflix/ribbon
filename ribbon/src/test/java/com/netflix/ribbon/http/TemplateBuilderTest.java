@@ -29,7 +29,6 @@ import rx.Observable;
 
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.hystrix.HystrixObservableCommand.Setter;
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.Ribbon;
@@ -66,6 +65,7 @@ public class TemplateBuilderTest {
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("testVarReplacement", ByteBuf.class);
         template.withUriTemplate("/foo/{id}?name={name}");
         HttpClientRequest<ByteBuf> request = template
+                .withMethod("GET")
                 .requestBuilder()
                 .withRequestProperty("id", "3")
                 .withRequestProperty("name", "netflix")
@@ -79,6 +79,7 @@ public class TemplateBuilderTest {
         
         HttpRequestTemplate<String> template = group.newRequestTemplate("testCacheKeyTemplates", String.class);
         template.withUriTemplate("/foo/{id}")
+                .withMethod("GET")
             .addCacheProvider("cache.{id}", new FakeCacheProvider("cache.3"))
             .addCacheProvider("/cache/{id}", new FakeCacheProvider("/cache/5"));
         RibbonRequest<String> request = template.requestBuilder().withRequestProperty("id", 3).build();
@@ -97,6 +98,7 @@ public class TemplateBuilderTest {
         
         HttpRequestTemplate<String> template = group.newRequestTemplate("testHttpHeaders", String.class);
         template.withUriTemplate("/foo/bar")
+                .withMethod("GET")
             .withHeader("header2", "template")
             .withHeader("header1", "template");
         
@@ -122,6 +124,7 @@ public class TemplateBuilderTest {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test", clientOptions);
         HttpRequestTemplate<String> template = group.newRequestTemplate("testHystrixProperties", String.class);
         HttpRequest<String> request = (HttpRequest<String>) template.withMethod("GET")
+                .withMethod("GET")
             .withUriTemplate("/foo/bar")
             .requestBuilder().build();
         HystrixObservableCommand<String> command = request.createHystrixCommand();

@@ -16,6 +16,7 @@
 package com.netflix.ribbon;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -40,19 +41,9 @@ import rx.functions.Func1;
 
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixExecutableInfo;
-import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.hystrix.exception.HystrixBadRequestException;
-import com.netflix.ribbon.CacheProvider;
-import com.netflix.ribbon.ClientOptions;
-import com.netflix.ribbon.RequestWithMetaData;
-import com.netflix.ribbon.ResponseValidator;
-import com.netflix.ribbon.Ribbon;
-import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.RibbonResponse;
-import com.netflix.ribbon.UnsuccessfulResponseException;
+import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.hystrix.FallbackHandler;
@@ -76,13 +67,49 @@ public class RibbonTest {
                 .withMaxAutoRetriesNextServer(3)
                 .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
-        RibbonRequest<ByteBuf> request = template.withUriTemplate("/").requestBuilder().build();
+        RibbonRequest<ByteBuf> request = template
+                .withUriTemplate("/")
+                .withMethod("GET")
+                .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
         // repeat the same request
         request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
     }
+    
+    @Test
+    public void testHystrixCache() throws IOException {
+        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        MockWebServer server = new MockWebServer();
+        String content = "Hello world";
+        MockResponse response = new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+        .setBody(content);
+        server.enqueue(response);
+        
+        server.enqueue(response);       
+        server.play();
+        
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
+        RibbonRequest<ByteBuf> request = template
+                .withUriTemplate("http://localhost:" + server.getPort())
+                .withMethod("GET")
+                .withRequestCacheKey("xyz")
+                .requestBuilder().build(); 
+        HystrixRequestContext context = HystrixRequestContext.initializeContext();
+        try {
+            RibbonResponse<ByteBuf> ribbonResponse = request.withMetadata().execute();
+            assertFalse(ribbonResponse.getHystrixInfo().isResponseFromCache());
+            assertEquals(content, ribbonResponse.content().toString(Charset.defaultCharset()));
+            ribbonResponse = request.withMetadata().execute();
+            assertTrue(ribbonResponse.getHystrixInfo().isResponseFromCache());
+            assertEquals(content, ribbonResponse.content().toString(Charset.defaultCharset()));
+        } finally {
+            context.shutdown();
+        }
+    }
+
     
     
     @Test
@@ -103,6 +130,7 @@ public class RibbonTest {
         
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
+                .withMethod("GET")
                 .addCacheProvider("somekey", new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
@@ -157,7 +185,9 @@ public class RibbonTest {
                         throw new UnsuccessfulResponseException("error", new IllegalArgumentException());
                     }
                 });
-        RibbonRequest<ByteBuf> request = template.withUriTemplate("/").requestBuilder().build();
+        RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
+                .withMethod("GET")
+                .requestBuilder().build();
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
         request.toObservable().subscribe(new Action1<ByteBuf>() {
@@ -190,6 +220,7 @@ public class RibbonTest {
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         final String fallback = "fallback";
         RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
+                .withMethod("GET")
                 .withFallbackProvider(new FallbackHandler<ByteBuf>() {
                     @Override
                     public Observable<ByteBuf> getFallback(
@@ -255,6 +286,7 @@ public class RibbonTest {
                     }
                 })
                 .withUriTemplate("/")
+                .withMethod("GET")
                 .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
@@ -287,10 +319,8 @@ public class RibbonTest {
                         return Observable.error(new Exception("Cache miss again"));
                     }
                 })
+                .withMethod("GET")
                 .withUriTemplate("/")
-                .withHystrixProperties(HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group"))
-                        .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withRequestCacheEnabled(false))
-                        )
                 .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
