@@ -19,5 +19,5 @@ package com.netflix.ribbonclientextensions.evache;
 /**
  * @author Tomasz Bak
  */
-public class CacheMissException extends Throwable {
+public class CacheMissException extends RuntimeException {
 }
