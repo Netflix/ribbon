@@ -112,7 +112,7 @@ public class EmbeddedResources {
     @GET
     @Path("/context")
     @Produces(MediaType.TEXT_PLAIN)
-    public Response echoContext(@HeaderParam("RequestId") String requestId) throws IOException {
+    public Response echoContext(@HeaderParam("X-RXNETTY-REQUEST-ID") String requestId) throws IOException {
         return Response.ok(requestId).build();
     }
 

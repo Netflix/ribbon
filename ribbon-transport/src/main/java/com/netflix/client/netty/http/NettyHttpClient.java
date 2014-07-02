@@ -23,12 +23,14 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.channel.ObservableConnection;
+import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.contexts.ContextPipelineConfigurators;
 import io.reactivex.netty.contexts.RequestIdProvider;
 import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
+import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClient;
@@ -37,6 +39,7 @@ import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import io.reactivex.netty.servo.http.HttpClientListener;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -46,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import rx.Observable;
+import rx.Subscription;
 import rx.functions.Func1;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -81,6 +85,8 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     
     private HttpRequestIdProvider requestIdProvider;
     
+    HttpClientListener listener;
+    
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
@@ -103,8 +109,11 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         super(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
-        requestIdHeaderName = getProperty(IClientConfigKey.CommonKeys.RequestIdHeaderName, null, DefaultClientConfigImpl.DEFAULT_REQUEST_ID_HEADER_NAME);
-        requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
+        requestIdHeaderName = getProperty(IClientConfigKey.CommonKeys.RequestIdHeaderName, null, null);
+        if (requestIdHeaderName != null) {
+            requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
+        }
+        listener = HttpClientListener.newHttpListener(getName());
     }
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
@@ -272,11 +281,14 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
 
     @Override
     protected HttpClient<I, O> cacheLoadRxClient(Server server) {
-        HttpClientBuilder<I, O> clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
-                requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR)
-                .pipelineConfigurator(ContextPipelineConfigurators.httpClientConfigurator(requestIdProvider,
-                        RxContexts.DEFAULT_CORRELATOR,
-                        pipelineConfigurator));
+        HttpClientBuilder<I, O> clientBuilder;
+        if (requestIdProvider != null) {
+            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
+                    requestIdProvider, RxContexts.DEFAULT_CORRELATOR, pipelineConfigurator);
+        } else {
+            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
+                    RxContexts.DEFAULT_CORRELATOR, pipelineConfigurator);
+        }
         Integer connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         Integer readTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
         Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, null, null);
@@ -299,6 +311,15 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (isPoolEnabled()) {
             client.poolStateChangeObservable().subscribe(stats);
         }
+        // client.subscribe(listener);
         return client;
     }
+
+    @Override
+    public Subscription subscribe(
+            MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

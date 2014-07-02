@@ -1,8 +1,10 @@
 package com.netflix.client.netty;
 
 import io.reactivex.netty.channel.ObservableConnection;
+import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 
 import java.io.Closeable;
@@ -13,6 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 import javax.annotation.Nullable;
 
 import rx.Observable;
+import rx.Subscription;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
@@ -162,5 +165,10 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     @Override
     public PoolStats getStats() {
         return null;
+    }
+    
+    @Override
+    public String name() {
+        return clientConfig.getClientName();
     }
 }
