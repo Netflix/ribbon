@@ -17,10 +17,10 @@
 package com.netflix.ribbon.examples.proxy;
 
 import com.netflix.hystrix.util.HystrixTimer;
-import com.netflix.ribbonclientextensions.ClientOptions;
-import com.netflix.ribbonclientextensions.Ribbon;
-import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
-import com.netflix.ribbonclientextensions.proxy.ProxyLifeCycle;
+import com.netflix.ribbon.ClientOptions;
+import com.netflix.ribbon.Ribbon;
+import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.proxy.ProxyLifeCycle;
 import io.netty.buffer.ByteBuf;
 import rx.Notification;
 import rx.Observable;

@@ -14,31 +14,36 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.proxy.sample;
 
-import com.netflix.ribbon.CacheProvider;
-import com.netflix.ribbon.CacheProviderFactory;
-import rx.Observable;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import com.netflix.evcache.EVCacheTranscoder;
+import net.spy.memcached.CachedData;
 
 /**
  * @author Tomasz Bak
  */
-public class InMemoryCacheProviderFactory implements CacheProviderFactory<Movie> {
+public class EvCacheClasses {
 
-    @Override
-    public CacheProvider<Movie> createCacheProvider() {
-        return new InMemoryCacheProvider();
-    }
-
-    public static class InMemoryCacheProvider implements CacheProvider<Movie> {
-        private final Map<String, Object> cacheMap = new ConcurrentHashMap<String, Object>();
+    public static class SampleEVCacheTranscoder implements EVCacheTranscoder<Object> {
 
         @Override
-        public Observable<Movie> get(String key, Map<String, Object> requestProperties) {
+        public boolean asyncDecode(CachedData d) {
+            return false;
+        }
+
+        @Override
+        public CachedData encode(Object o) {
             return null;
+        }
+
+        @Override
+        public Object decode(CachedData d) {
+            return null;
+        }
+
+        @Override
+        public int getMaxSize() {
+            return 0;
         }
     }
 }

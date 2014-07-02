@@ -14,30 +14,29 @@
  * limitations under the License.
  */
 
-package com.netflix.ribbon.examples.proxy;
+package com.netflix.ribbon.proxy.sample;
 
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.CacheProviderFactory;
+
 import rx.Observable;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Tomasz Bak
  */
-public class InMemoryCacheProviderFactory implements CacheProviderFactory<Movie> {
+public class SampleCacheProviderFactory implements CacheProviderFactory<Object> {
 
     @Override
-    public CacheProvider<Movie> createCacheProvider() {
-        return new InMemoryCacheProvider();
+    public CacheProvider<Object> createCacheProvider() {
+        return new SampleCacheProvider();
     }
 
-    public static class InMemoryCacheProvider implements CacheProvider<Movie> {
-        private final Map<String, Object> cacheMap = new ConcurrentHashMap<String, Object>();
+    public static class SampleCacheProvider implements CacheProvider<Object> {
 
         @Override
-        public Observable<Movie> get(String key, Map<String, Object> requestProperties) {
+        public Observable<Object> get(String key, Map requestProperties) {
             return null;
         }
     }

@@ -13,24 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.netflix.ribbon.http;
 
-package com.netflix.ribbon.examples.proxy;
-
-import com.netflix.ribbon.ServerError;
-import com.netflix.ribbon.UnsuccessfulResponseException;
-import com.netflix.ribbon.http.HttpResponseValidator;
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
-/**
- * @author Tomasz Bak
- */
-public class RecommendationServiceResponseValidator implements HttpResponseValidator {
-    @Override
-    public void validate(HttpClientResponse<ByteBuf> response) throws UnsuccessfulResponseException, ServerError {
-        if (!response.getStatus().equals(HttpResponseStatus.OK)) {
-            throw new UnsuccessfulResponseException("Unexpected HTTP status code " + response.getStatus());
-        }
-    }
+import com.netflix.ribbon.ResponseValidator;
+
+public interface HttpResponseValidator extends ResponseValidator<HttpClientResponse<ByteBuf>> {
 }
