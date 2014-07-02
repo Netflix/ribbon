@@ -98,6 +98,7 @@ public class EvCacheProvider<T> implements CacheProvider<T> {
                     Future<?> future = f.getKey();
                     Subscriber subscriber = f.getValue();
                     if (subscriber.isUnsubscribed()) {
+                        future.cancel(true);
                         futureMap.remove(future);
                     } else if (future.isDone()) {
                         try {
@@ -126,6 +127,7 @@ public class EvCacheProvider<T> implements CacheProvider<T> {
             } else {
                 try {
                     subscriber.onNext(future.get());
+                    subscriber.onCompleted();
                 } catch (ExecutionException e) {
                     subscriber.onError(e.getCause());
                 }

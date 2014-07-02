@@ -143,7 +143,7 @@ public class EvCacheProviderTest {
     @Test
     public void testUnsubscribedBeforeFutureCompletes() throws Exception {
         expect(evCacheImplMock.getAsynchronous("test1", transcoderMock)).andReturn(cacheFutureMock);
-
+        expect(cacheFutureMock.cancel(true)).andReturn(true);
         replayAll();
 
         EvCacheOptions options = new EvCacheOptions("testApp", "test-cache", true, 100, transcoderMock, "test{id}");
@@ -152,6 +152,8 @@ public class EvCacheProviderTest {
 
         Subscription subscription = cacheValue.subscribe();
         subscription.unsubscribe();
+
+        Thread.sleep(10); // So the internal thread has the chance to cancel the future
 
         verifyAll();
     }
