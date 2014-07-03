@@ -5,6 +5,6 @@ Example | Description
 --------|-------------
 [RxMovieProxyExample](proxy)         | Ribbon proxy based implementation.
 [RxMovieTemplateExample](template)   | Ribbon template based implementation.
-[RxMovieTransportExample](transport) | An implementation using directly load balancing RxNetty HTTP client.
+[RxMovieTransportExample](transport) | An implementation using directly RxNetty load balancing HTTP client.
 
-Before running any of those examples, (RxMovieServer)[RxMovieServer.java] must be started first.
+Before running any of those examples, [RxMovieServer](RxMovieServer.java) must be started first.
