@@ -103,7 +103,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         super(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
-        requestIdHeaderName = getProperty(IClientConfigKey.CommonKeys.RequestIdHeaderName, null, DefaultClientConfigImpl.DEFAULT_REQUEST_ID_HEADER_NAME);
+        requestIdHeaderName = getProperty(IClientConfigKey.Keys.RequestIdHeaderName, null, DefaultClientConfigImpl.DEFAULT_REQUEST_ID_HEADER_NAME);
         requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
     }
 
@@ -154,9 +154,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (requestConfig == null) {
             return HttpClientConfig.Builder.newDefaultConfig();
         }
-        int requestReadTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, requestConfig, 
+        int requestReadTimeout = getProperty(IClientConfigKey.Keys.ReadTimeout, requestConfig, 
                 DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
-        Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, requestConfig, null);
+        Boolean followRedirect = getProperty(IClientConfigKey.Keys.FollowRedirects, requestConfig, null);
         HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
         if (followRedirect != null) {
             builder.setFollowRedirect(followRedirect);
@@ -245,7 +245,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         }
         int port = uri.getPort();
         if (port < 0) {
-            if (clientConfig.getPropertyAsBoolean(IClientConfigKey.CommonKeys.IsSecure, false)) {
+            if (clientConfig.getPropertyAsBoolean(IClientConfigKey.Keys.IsSecure, false)) {
                 port = 443;
             } else {
                 port = 80;
@@ -277,9 +277,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
                 .pipelineConfigurator(ContextPipelineConfigurators.httpClientConfigurator(requestIdProvider,
                         RxContexts.DEFAULT_CORRELATOR,
                         pipelineConfigurator));
-        Integer connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
-        Integer readTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
-        Boolean followRedirect = getProperty(IClientConfigKey.CommonKeys.FollowRedirects, null, null);
+        Integer connectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
+        Integer readTimeout = getProperty(IClientConfigKey.Keys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
+        Boolean followRedirect = getProperty(IClientConfigKey.Keys.FollowRedirects, null, null);
         HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(readTimeout, TimeUnit.MILLISECONDS);
         if (followRedirect != null) {
             builder.setFollowRedirect(followRedirect);

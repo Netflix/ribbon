@@ -173,7 +173,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         }
         logger.info("Client:" + name + " instantiated a LoadBalancer:"
                 + toString());
-        boolean enablePrimeConnections = clientConfig.getPropertyWithType(
+        boolean enablePrimeConnections = clientConfig.get(
                 CommonClientConfigKey.EnablePrimeConnections, DefaultClientConfigImpl.DEFAULT_ENABLE_PRIME_CONNECTIONS);
 
         if (enablePrimeConnections) {

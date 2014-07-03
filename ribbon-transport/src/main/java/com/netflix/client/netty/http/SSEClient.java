@@ -45,7 +45,7 @@ public class SSEClient<I> extends NettyHttpClient<I, ServerSentEvent> {
     protected HttpClient<I, ServerSentEvent> getRxClient(String host, int port) {
         HttpClientBuilder<I, ServerSentEvent> clientBuilder =
                 new HttpClientBuilder<I, ServerSentEvent>(host, port).pipelineConfigurator(pipelineConfigurator);
-        int requestConnectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
+        int requestConnectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         RxClient.ClientConfig rxClientConfig = new HttpClientConfig.Builder().build();
         
         HttpClient<I, ServerSentEvent> client = clientBuilder.channelOption(

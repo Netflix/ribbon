@@ -31,7 +31,7 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
         clientConfig = loadDefaultConfig(name);
         if (options != null) {
             for (IClientConfigKey key: options.getOptions().keySet()) {
-                clientConfig.setPropertyWithType(key, options.getOptions().get(key));
+                clientConfig.set(key, options.getOptions().get(key));
             }
         }
     }

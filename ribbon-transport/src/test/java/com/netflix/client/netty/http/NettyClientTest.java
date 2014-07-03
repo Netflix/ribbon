@@ -59,7 +59,6 @@ import com.google.mockwebserver.MockWebServer;
 import com.netflix.client.ClientException;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
-import com.netflix.client.config.ClientConfigBuilder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -198,7 +197,7 @@ public class NettyClientTest {
                 .withHeader("Content-type", "application/json")
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), myPerson, null));
         NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
-                DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.ReadTimeout, 10000));
+                DefaultClientConfigImpl.getClientConfigWithDefaultValues().set(CommonClientConfigKey.ReadTimeout, 10000));
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(myPerson, person);
@@ -216,7 +215,7 @@ public class NettyClientTest {
                 .withHeader("Content-length", String.valueOf(raw.length))
                 .withContent(buffer);
         NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
-                DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(CommonClientConfigKey.ReadTimeout, 10000));
+                DefaultClientConfigImpl.getClientConfigWithDefaultValues().set(CommonClientConfigKey.ReadTimeout, 10000));
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(request);
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(myPerson, person);
@@ -354,7 +353,7 @@ public class NettyClientTest {
         server.play();
 
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues()
-                .setPropertyWithType(CommonClientConfigKey.ReadTimeout, 100);
+                .set(CommonClientConfigKey.ReadTimeout, 100);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/readTimeout");//.withHeader("Content-length", "-1");
         
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
@@ -392,7 +391,7 @@ public class NettyClientTest {
         server.play();
 
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues()
-                .setPropertyWithType(CommonClientConfigKey.ReadTimeout, 100);
+                .set(CommonClientConfigKey.ReadTimeout, 100);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createPost("/testAsync/postTimeout")
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), EmbeddedResources.defaultPerson, null))
                 .withHeader("Content-type", "application/json");
@@ -440,7 +439,7 @@ public class NettyClientTest {
         server.play();
 
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues()
-                .setPropertyWithType(CommonClientConfigKey.ReadTimeout, 100);
+                .set(CommonClientConfigKey.ReadTimeout, 100);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createPost("/testAsync/postTimeout")
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), EmbeddedResources.defaultPerson, null))
                 .withHeader("Content-type", "application/json");
@@ -481,7 +480,7 @@ public class NettyClientTest {
 
     @Test
     public void testObservableWithMultipleServersFailed() throws Exception {        
-        IClientConfig config = ClientConfigBuilder.newBuilderWithDefaultConfigValues().withRetryOnAllOperations(true)
+        IClientConfig config = IClientConfig.Builder.newBuilder().withDefaultValues().withRetryOnAllOperations(true)
                 .withMaxAutoRetries(1)
                 .withMaxAutoRetriesNextServer(3)
                 .withConnectTimeout(100)
@@ -546,7 +545,7 @@ public class NettyClientTest {
     public void testStreamWithLoadBalancer() throws Exception {
         // NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         // IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
-        IClientConfig config = ClientConfigBuilder.newBuilder().withRetryOnAllOperations(true)
+        IClientConfig config = IClientConfig.Builder.newBuilder().withRetryOnAllOperations(true)
                 .withMaxAutoRetries(1)
                 .withMaxAutoRetriesNextServer(3)
                 .build();
@@ -601,7 +600,7 @@ public class NettyClientTest {
     @Test
     public void testLoadBalancerThrottle() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/throttle");
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, 1);
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().set(IClientConfigKey.Keys.MaxAutoRetriesNextServer, 1);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());        
         NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config);
         Server server = new Server(host, port);

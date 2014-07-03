@@ -7,7 +7,7 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.config.IClientConfigKey.CommonKeys;
+import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.Server;
@@ -45,19 +45,19 @@ public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxCli
             RetryHandler retryHandler,
             PipelineConfigurator<O, I> pipelineConfigurator, ScheduledExecutorService poolCleanerScheduler) {
         super(lb, config, retryHandler, pipelineConfigurator);
-        poolEnabled = config.getPropertyWithType(CommonClientConfigKey.EnableConnectionPool, 
+        poolEnabled = config.get(CommonClientConfigKey.EnableConnectionPool, 
                 DefaultClientConfigImpl.DEFAULT_ENABLE_CONNECTION_POOL);
         if (poolEnabled) {
             this.poolCleanerScheduler = poolCleanerScheduler;
-            int maxTotalConnections = config.getPropertyWithType(IClientConfigKey.CommonKeys.MaxTotalConnections,
+            int maxTotalConnections = config.get(IClientConfigKey.Keys.MaxTotalConnections,
                     DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_CONNECTIONS);
-            int maxConnections = config.getPropertyWithType(CommonKeys.MaxConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_CONNECTIONS_PER_HOST);
+            int maxConnections = config.get(Keys.MaxConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_CONNECTIONS_PER_HOST);
             MaxConnectionsBasedStrategy perHostStrategy = new DynamicPropertyBasedPoolStrategy(maxConnections,
                     config.getClientName() + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxConnectionsPerHost);
             globalStrategy = new DynamicPropertyBasedPoolStrategy(maxTotalConnections, 
                     config.getClientName() + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxTotalConnections);
             poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
-            idleConnectionEvictionMills = config.getPropertyWithType(CommonKeys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
+            idleConnectionEvictionMills = config.get(Keys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
             stats = new GlobalPoolStats<T>(config.getClientName(), globalStrategy, rxClientCache);
             poolStateChangeEventObservable = Observable.create(new OnSubscribe<PoolStateChangeEvent>() {
                 @Override
