@@ -63,7 +63,7 @@ class MethodTemplate {
     private final Method method;
     private final String templateName;
     private final Http.HttpMethod httpMethod;
-    private final String path;
+    private final String uriTemplate;
     private final Map<String, List<String>> headers;
     private final String[] paramNames;
     private final int[] valueIdxs;
@@ -81,7 +81,7 @@ class MethodTemplate {
         MethodAnnotationValues values = new MethodAnnotationValues(method);
         templateName = values.templateName;
         httpMethod = values.httpMethod;
-        path = values.path;
+        uriTemplate = values.uriTemplate;
         headers = Collections.unmodifiableMap(values.headers);
         paramNames = values.paramNames;
         valueIdxs = values.valueIdxs;
@@ -107,8 +107,8 @@ class MethodTemplate {
         return method;
     }
 
-    public String getPath() {
-        return path;
+    public String getUriTemplate() {
+        return uriTemplate;
     }
 
     public Map<String, List<String>> getHeaders() {
@@ -190,7 +190,7 @@ class MethodTemplate {
         private final Method method;
         private String templateName;
         private Http.HttpMethod httpMethod;
-        private String path;
+        private String uriTemplate;
         private String[] paramNames;
         private int[] valueIdxs;
         private int contentArgPosition;
@@ -254,7 +254,7 @@ class MethodTemplate {
                 throw new ProxyAnnotationException(format("Method %s misses @Http annotation", methodName()));
             }
             httpMethod = annotation.method();
-            path = annotation.path();
+            uriTemplate = annotation.uriTemplate();
             for (Header h : annotation.headers()) {
                 if (!headers.containsKey(h.name())) {
                     ArrayList<String> values = new ArrayList<String>();
