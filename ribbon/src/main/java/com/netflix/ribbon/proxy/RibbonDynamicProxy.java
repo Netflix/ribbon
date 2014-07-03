@@ -30,7 +30,7 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
     private final Map<Method, MethodTemplateExecutor> templateExecutorMap;
 
     public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
-        this.lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
+        lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
         ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
         if (httpResourceGroup == null) {
             httpResourceGroup = new HttpResourceGroupFactory<T>(classTemplate).createResourceGroup();
@@ -70,7 +70,7 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
 
         private volatile boolean shutdownFlag;
 
-        public ProxyLifecycleImpl(HttpResourceGroup httpResourceGroup) {
+        ProxyLifecycleImpl(HttpResourceGroup httpResourceGroup) {
             this.httpResourceGroup = httpResourceGroup;
         }
 

@@ -126,7 +126,12 @@ public class MethodTemplateExecutorTest {
 
     @Test
     public void testPostWithByteBuf() throws Exception {
-        doTestPostWith("/binaries", "registerBinary", createMock(ByteBuf.class));
+        doTestPostWith("/binaries/byteBuf", "registerByteBufBinary", createMock(ByteBuf.class));
+    }
+
+    @Test
+    public void testPostWithByteArray() throws Exception {
+        doTestPostWith("/binaries/byteArray", "registerByteArrayBinary", new byte[]{1});
     }
 
     private void doTestPostWith(String uriTemplate, String methodName, Object contentObject) {
@@ -134,6 +139,8 @@ public class MethodTemplateExecutorTest {
 
         expect(requestBuilderMock.withRawContentSource(anyObject(RawContentSource.class))).andReturn(requestBuilderMock);
         expect(httpResourceGroupMock.newRequestTemplate(methodName, Void.class)).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withRequestCacheKey(methodName)).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
 
         replayAll();
 

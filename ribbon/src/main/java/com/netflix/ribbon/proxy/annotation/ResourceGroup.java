@@ -27,16 +27,5 @@ import java.lang.annotation.Target;
 public @interface ResourceGroup {
     String name() default "";
 
-    Class<? extends HttpResourceGroup> resourceGroupClass() default UndefHttpResourceGroup.class;
-
-    /**
-     * Since null is not allowed as a default value in annotation, we need this marker class.
-     */
-    final class UndefHttpResourceGroup extends HttpResourceGroup {
-
-        public UndefHttpResourceGroup() {
-            super("undef");
-            throw new IllegalStateException("Marker class");
-        }
-    }
+    Class<? extends HttpResourceGroup>[] resourceGroupClass() default {};
 }

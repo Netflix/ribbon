@@ -18,8 +18,6 @@ package com.netflix.ribbon.proxy;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.annotation.ResourceGroup;
 
-import static com.netflix.ribbon.proxy.annotation.ResourceGroup.*;
-
 /**
  * @author Tomasz Bak
  */
@@ -35,10 +33,12 @@ class ClassTemplate<T> {
         if (annotation != null) {
             String name = annotation.name().trim();
             resourceGroupName = name.isEmpty() ? null : annotation.name();
-            if (UndefHttpResourceGroup.class.equals(annotation.resourceGroupClass())) {
+            if (annotation.resourceGroupClass().length == 0) {
                 resourceGroupClass = null;
+            } else if (annotation.resourceGroupClass().length == 1) {
+                resourceGroupClass = annotation.resourceGroupClass()[0];
             } else {
-                resourceGroupClass = annotation.resourceGroupClass();
+                throw new ProxyAnnotationException("only one resource group may be defined with @ResourceGroup annotation");
             }
             verify();
         } else {
@@ -65,7 +65,7 @@ class ClassTemplate<T> {
 
     private void verify() {
         if (resourceGroupName != null && resourceGroupClass != null) {
-            throw new RibbonProxyException("Both resource group name and class defined with @ResourceGroupSpec");
+            throw new RibbonProxyException("Both resource group name and class defined with @ResourceGroup");
         }
     }
 }

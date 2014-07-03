@@ -236,11 +236,15 @@ class MethodTemplate {
             if (!cacheKey.isEmpty()) {
                 hystrixCacheKey = cacheKey;
             }
-            if (!Hystrix.UndefFallbackHandler.class.equals(annotation.fallbackHandler())) {
-                hystrixFallbackHandler = Utils.newInstance(annotation.fallbackHandler());
+            if (annotation.fallbackHandler().length == 1) {
+                hystrixFallbackHandler = Utils.newInstance(annotation.fallbackHandler()[0]);
+            } else if(annotation.fallbackHandler().length > 1) {
+                throw new ProxyAnnotationException(format("more than one fallback handler defined for method %s", methodName()));
             }
-            if (!Hystrix.UndefHttpResponseValidator.class.equals(annotation.validator())) {
-                hystrixResponseValidator = Utils.newInstance(annotation.validator());
+            if (annotation.validator().length == 1) {
+                hystrixResponseValidator = Utils.newInstance(annotation.validator()[0]);
+            } else if(annotation.validator().length > 1) {
+                throw new ProxyAnnotationException(format("more than one validator defined for method %s", methodName()));
             }
         }
 
@@ -312,7 +316,10 @@ class MethodTemplate {
             }
             if (annotation == null) {
                 Class<?> contentType = method.getParameterTypes()[contentArgPosition];
-                if (RawContentSource.class.isAssignableFrom(contentType) || ByteBuf.class.isAssignableFrom(contentType) || String.class.isAssignableFrom(contentType)) {
+                if (RawContentSource.class.isAssignableFrom(contentType)
+                        || ByteBuf.class.isAssignableFrom(contentType)
+                        || byte[].class.isAssignableFrom(contentType)
+                        || String.class.isAssignableFrom(contentType)) {
                     return;
                 }
                 throw new ProxyAnnotationException(format("ContentTransformerClass annotation missing for content type %s in method %s",

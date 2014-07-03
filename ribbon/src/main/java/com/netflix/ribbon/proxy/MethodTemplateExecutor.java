@@ -22,7 +22,6 @@ import com.netflix.ribbon.evache.EvCacheProvider;
 import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.reactivex.netty.protocol.http.client.RawContentSource;
@@ -45,6 +44,15 @@ class MethodTemplateExecutor {
         @Override
         public ByteBuf transform(ByteBuf toTransform, ByteBufAllocator byteBufAllocator) {
             return toTransform;
+        }
+    };
+
+    private static final ContentTransformer<byte[]> BYTE_ARRAY_TRANSFORMER = new ContentTransformer<byte[]>() {
+        @Override
+        public ByteBuf transform(byte[] toTransform, ByteBufAllocator byteBufAllocator) {
+            ByteBuf byteBuf = byteBufAllocator.buffer(toTransform.length);
+            byteBuf.writeBytes(toTransform);
+            return byteBuf;
         }
     };
 
@@ -111,10 +119,12 @@ class MethodTemplateExecutor {
     private void withHystrixHandlers(HttpRequestTemplate httpRequestTemplate) {
         if (methodTemplate.getHystrixFallbackHandler() != null) {
             httpRequestTemplate.withFallbackProvider(methodTemplate.getHystrixFallbackHandler());
+        }
+        if (methodTemplate.getHystrixResponseValidator() != null) {
             httpRequestTemplate.withResponseValidator(methodTemplate.getHystrixResponseValidator());
-            if (methodTemplate.getHystrixCacheKey() != null) {
-                httpRequestTemplate.withRequestCacheKey(methodTemplate.getHystrixCacheKey());
-            }
+        }
+        if (methodTemplate.getHystrixCacheKey() != null) {
+            httpRequestTemplate.withRequestCacheKey(methodTemplate.getHystrixCacheKey());
         }
     }
 
@@ -150,6 +160,8 @@ class MethodTemplateExecutor {
             requestBuilder.withRawContentSource((RawContentSource<?>) contentValue);
         } else if (contentValue instanceof ByteBuf) {
             requestBuilder.withRawContentSource(new SingletonRawSource(contentValue, BYTE_BUF_TRANSFORMER));
+        } else if (contentValue instanceof byte[]) {
+            requestBuilder.withRawContentSource(new SingletonRawSource(contentValue, BYTE_ARRAY_TRANSFORMER));
         } else if (contentValue instanceof String) {
             requestBuilder.withRawContentSource(new SingletonRawSource(contentValue, STRING_TRANSFORMER));
         } else {

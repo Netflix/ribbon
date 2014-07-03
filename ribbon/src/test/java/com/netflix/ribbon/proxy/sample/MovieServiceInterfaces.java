@@ -57,6 +57,7 @@ public class MovieServiceInterfaces {
 
         @TemplateName("registerMovie")
         @Http(method = HttpMethod.POST, path = "/movies")
+        @Hystrix(cacheKey = "registerMovie", fallbackHandler = MovieFallbackHandler.class)
         @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> registerMovie(@Content Movie movie);
 
@@ -70,15 +71,23 @@ public class MovieServiceInterfaces {
 
         @TemplateName("registerMovieRaw")
         @Http(method = HttpMethod.POST, path = "/movies")
+        @Hystrix(cacheKey = "registerMovieRaw", fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> registerMovieRaw(@Content RawContentSource<Movie> rawMovieContent);
 
         @TemplateName("registerTitle")
         @Http(method = HttpMethod.POST, path = "/titles")
+        @Hystrix(cacheKey = "registerTitle", fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> registerTitle(@Content String title);
 
-        @TemplateName("registerBinary")
-        @Http(method = HttpMethod.POST, path = "/binaries")
-        RibbonRequest<Void> registerBinary(@Content ByteBuf binary);
+        @TemplateName("registerByteBufBinary")
+        @Http(method = HttpMethod.POST, path = "/binaries/byteBuf")
+        @Hystrix(cacheKey = "registerByteBufBinary", fallbackHandler = MovieFallbackHandler.class)
+        RibbonRequest<Void> registerByteBufBinary(@Content ByteBuf binary);
+
+        @TemplateName("registerByteArrayBinary")
+        @Http(method = HttpMethod.POST, path = "/binaries/byteArray")
+        @Hystrix(cacheKey = "registerByteArrayBinary", fallbackHandler = MovieFallbackHandler.class)
+        RibbonRequest<Void> registerByteArrayBinary(@Content byte[] binary);
 
         @TemplateName("deleteMovie")
         @Http(method = HttpMethod.DELETE, path = "/movies/{id}")
@@ -151,6 +160,10 @@ public class MovieServiceInterfaces {
         @TemplateName("byteBufContent")
         @Http(method = HttpMethod.POST, path = "/content/byteBufContent")
         RibbonRequest<Void> postwithByteBufContent(@Content ByteBuf byteBuf);
+
+        @TemplateName("byteArrayContent")
+        @Http(method = HttpMethod.POST, path = "/content/byteArrayContent")
+        RibbonRequest<Void> postwithByteArrayContent(@Content byte[] bytes);
 
         @TemplateName("stringContent")
         @Http(method = HttpMethod.POST, path = "/content/stringContent")
