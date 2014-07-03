@@ -59,6 +59,12 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
 
     @Override
     public RibbonRequest<T> build() {
+        if (requestTemplate.uriTemplate() == null) {
+            throw new IllegalArgumentException("URI template is not defined");
+        }
+        if (requestTemplate.method() == null) {
+            throw new IllegalArgumentException("HTTP method is not defined");
+        }
         try {
             return new HttpRequest<T>(this);
         } catch (TemplateParsingException e) {
@@ -84,7 +90,9 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
     }
     
     String hystrixCacheKey() throws TemplateParsingException {
-        if (requestTemplate.hystrixCacheKeyTemplate() == null) {
+        ParsedTemplate keyTemplate = requestTemplate.hystrixCacheKeyTemplate();
+        if (keyTemplate == null || 
+                (keyTemplate.getTemplate() == null || keyTemplate.getTemplate().length() == 0)) {
             return null;
         }
         return TemplateParser.toData(vars, requestTemplate.hystrixCacheKeyTemplate());

@@ -90,7 +90,6 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         }
         this.name = name;
         this.group = group;
-        method = HttpMethod.GET;
         headers = new DefaultHttpHeaders();
         headers.add(group.getHeaders());
         cacheProviders = new LinkedList<CacheProviderWithKeyTemplate<T>>();
