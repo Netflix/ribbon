@@ -39,62 +39,62 @@ public final class ClientOptions {
     }
         
     public ClientOptions withDiscoveryServiceIdentifier(String identifier) {
-        options.put(IClientConfigKey.CommonKeys.DeploymentContextBasedVipAddresses, identifier);
+        options.put(IClientConfigKey.Keys.DeploymentContextBasedVipAddresses, identifier);
         return this;
     }
     
     public ClientOptions withConfigurationBasedServerList(String serverList) {
-        options.put(IClientConfigKey.CommonKeys.ListOfServers, serverList);
+        options.put(IClientConfigKey.Keys.ListOfServers, serverList);
         return this;
     }
         
     public ClientOptions withMaxAutoRetries(int value) {
-        options.put(IClientConfigKey.CommonKeys.MaxAutoRetries, value);
+        options.put(IClientConfigKey.Keys.MaxAutoRetries, value);
         return this;
     }
 
     public ClientOptions withMaxAutoRetriesNextServer(int value) {
-        options.put(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, value);
+        options.put(IClientConfigKey.Keys.MaxAutoRetriesNextServer, value);
         return this;        
     }
     
     public ClientOptions withRetryOnAllOperations(boolean value) {
-        options.put(IClientConfigKey.CommonKeys.OkToRetryOnAllOperations, value);
+        options.put(IClientConfigKey.Keys.OkToRetryOnAllOperations, value);
         return this;
     }
         
     public ClientOptions withMaxConnectionsPerHost(int value) {
-        options.put(IClientConfigKey.CommonKeys.MaxConnectionsPerHost, value);
+        options.put(IClientConfigKey.Keys.MaxConnectionsPerHost, value);
         return this;        
     }
 
     public ClientOptions withMaxTotalConnections(int value) {
-        options.put(IClientConfigKey.CommonKeys.MaxTotalConnections, value);
+        options.put(IClientConfigKey.Keys.MaxTotalConnections, value);
         return this;        
     }
     
     public ClientOptions withConnectTimeout(int value) {
-        options.put(IClientConfigKey.CommonKeys.ConnectTimeout, value);
+        options.put(IClientConfigKey.Keys.ConnectTimeout, value);
         return this;                
     }
 
     public ClientOptions withReadTimeout(int value) {
-        options.put(IClientConfigKey.CommonKeys.ReadTimeout, value);
+        options.put(IClientConfigKey.Keys.ReadTimeout, value);
         return this;        
     }
 
     public ClientOptions withFollowRedirects(boolean value) {
-        options.put(IClientConfigKey.CommonKeys.FollowRedirects, value);
+        options.put(IClientConfigKey.Keys.FollowRedirects, value);
         return this;                
     }
             
     public ClientOptions withConnectionPoolIdleEvictTimeMilliseconds(int value) {
-        options.put(IClientConfigKey.CommonKeys.ConnIdleEvictTimeMilliSeconds, value);
+        options.put(IClientConfigKey.Keys.ConnIdleEvictTimeMilliSeconds, value);
         return this;                        
     }
     
     public ClientOptions withLoadBalancerEnabled(boolean value) {
-        options.put(IClientConfigKey.CommonKeys.InitializeNFLoadBalancer, value);
+        options.put(IClientConfigKey.Keys.InitializeNFLoadBalancer, value);
         return this;                                
     }
     

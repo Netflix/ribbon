@@ -64,9 +64,9 @@ public class DefaultLoadBalancerRetryHandler implements RetryHandler {
     }
     
     public DefaultLoadBalancerRetryHandler(IClientConfig clientConfig) {
-        this.retrySameServer = clientConfig.getPropertyWithType(CommonClientConfigKey.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
-        this.retryNextServer = clientConfig.getPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER);
-        this.retryEnabled = clientConfig.getPropertyWithType(CommonClientConfigKey.OkToRetryOnAllOperations, false);
+        this.retrySameServer = clientConfig.get(CommonClientConfigKey.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
+        this.retryNextServer = clientConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER);
+        this.retryEnabled = clientConfig.get(CommonClientConfigKey.OkToRetryOnAllOperations, false);
     }
     
     @Override

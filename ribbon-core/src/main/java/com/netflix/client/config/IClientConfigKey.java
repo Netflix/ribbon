@@ -27,8 +27,8 @@ package com.netflix.client.config;
 public interface IClientConfigKey<T> {
 
     @SuppressWarnings("rawtypes")
-    public static final class CommonKeys extends CommonClientConfigKey {
-        private CommonKeys(String configKey) {
+    public static final class Keys extends CommonClientConfigKey {
+        private Keys(String configKey) {
             super(configKey);
         }
     }

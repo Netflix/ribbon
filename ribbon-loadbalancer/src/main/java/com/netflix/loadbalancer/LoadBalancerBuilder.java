@@ -87,7 +87,7 @@ public class LoadBalancerBuilder<T extends Server> {
     }
     
     public ILoadBalancer buildLoadBalancerFromConfigWithReflection() {
-        String loadBalancerClassName = config.getPropertyWithType(CommonClientConfigKey.NFLoadBalancerClassName);
+        String loadBalancerClassName = config.get(CommonClientConfigKey.NFLoadBalancerClassName);
         if (loadBalancerClassName == null) {
             throw new IllegalArgumentException("NFLoadBalancerClassName is not specified in the IClientConfig");
         }

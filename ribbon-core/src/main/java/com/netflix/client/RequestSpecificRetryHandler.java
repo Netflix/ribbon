@@ -32,10 +32,10 @@ public class RequestSpecificRetryHandler implements RetryHandler {
         this.fallback = baseRetryHandler;
         if (requestConfig != null) {
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetries)) {
-                retrySameServer = requestConfig.getPropertyWithType(CommonClientConfigKey.MaxAutoRetries); 
+                retrySameServer = requestConfig.get(CommonClientConfigKey.MaxAutoRetries); 
             }
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetriesNextServer)) {
-                retryNextServer = requestConfig.getPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer); 
+                retryNextServer = requestConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer); 
             } 
         }
     }

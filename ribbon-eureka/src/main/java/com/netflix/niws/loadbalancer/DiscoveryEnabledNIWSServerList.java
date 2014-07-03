@@ -26,7 +26,7 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.config.IClientConfigKey.CommonKeys;
+import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicProperty;
 import com.netflix.discovery.DiscoveryClient;
@@ -69,7 +69,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     
     public DiscoveryEnabledNIWSServerList(String vipAddresses) {
         IClientConfig clientConfig = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
-        clientConfig.setPropertyWithType(CommonKeys.DeploymentContextBasedVipAddresses, vipAddresses);
+        clientConfig.set(Keys.DeploymentContextBasedVipAddresses, vipAddresses);
         initWithNiwsConfig(clientConfig);
     }
     

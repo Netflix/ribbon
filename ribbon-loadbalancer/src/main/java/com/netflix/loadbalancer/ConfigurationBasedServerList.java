@@ -51,7 +51,7 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 
 	@Override
 	public List<Server> getUpdatedListOfServers() {
-        String listOfServers = clientConfig.getPropertyWithType(CommonClientConfigKey.ListOfServers);
+        String listOfServers = clientConfig.get(CommonClientConfigKey.ListOfServers);
         return derive(listOfServers);
 	}
 

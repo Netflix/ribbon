@@ -20,10 +20,9 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.google.common.collect.Lists;
 import com.netflix.appinfo.InstanceInfo;
-import com.netflix.client.config.ClientConfigBuilder;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.config.IClientConfigKey.CommonKeys;
+import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
@@ -111,13 +110,13 @@ public class LBBuilderTest {
     @Test
     public void testBuildWithArchaiusProperties() {
         Configuration config = ConfigurationManager.getConfigInstance();
-        config.setProperty("client1.niws.client." + CommonKeys.DeploymentContextBasedVipAddresses, "dummy:7001");
-        config.setProperty("client1.niws.client." + CommonKeys.InitializeNFLoadBalancer, "true");
-        config.setProperty("client1.niws.client." + CommonKeys.NFLoadBalancerClassName, DynamicServerListLoadBalancer.class.getName());
-        config.setProperty("client1.niws.client." + CommonKeys.NFLoadBalancerRuleClassName, RoundRobinRule.class.getName());
-        config.setProperty("client1.niws.client." + CommonKeys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
-        config.setProperty("client1.niws.client." + CommonKeys.NIWSServerListFilterClassName, ZoneAffinityServerListFilter.class.getName());
-        IClientConfig clientConfig = ClientConfigBuilder.newBuilderWithArchaiusProperties(NiwsClientConfig.class, "client1").build();
+        config.setProperty("client1.niws.client." + Keys.DeploymentContextBasedVipAddresses, "dummy:7001");
+        config.setProperty("client1.niws.client." + Keys.InitializeNFLoadBalancer, "true");
+        config.setProperty("client1.niws.client." + Keys.NFLoadBalancerClassName, DynamicServerListLoadBalancer.class.getName());
+        config.setProperty("client1.niws.client." + Keys.NFLoadBalancerRuleClassName, RoundRobinRule.class.getName());
+        config.setProperty("client1.niws.client." + Keys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
+        config.setProperty("client1.niws.client." + Keys.NIWSServerListFilterClassName, ZoneAffinityServerListFilter.class.getName());
+        IClientConfig clientConfig = IClientConfig.Builder.newBuilder(NiwsClientConfig.class, "client1").build();
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().withClientConfig(clientConfig).buildLoadBalancerFromConfigWithReflection();
         assertNotNull(lb);
         assertEquals(DynamicServerListLoadBalancer.class.getName(), lb.getClass().getName());
@@ -132,10 +131,11 @@ public class LBBuilderTest {
     public void testBuildStaticServerListLoadBalancer() {
         List<Server> list = Lists.newArrayList(expected, expected);
         IRule rule = new AvailabilityFilteringRule();
-        IClientConfig clientConfig = ClientConfigBuilder.newBuilderWithDefaultConfigValues()
+        IClientConfig clientConfig = IClientConfig.Builder.newBuilder()
+                .withDefaultValues()
                 .withMaxAutoRetriesNextServer(3).build();
 
-        assertEquals(3, clientConfig.getPropertyWithType(CommonKeys.MaxAutoRetriesNextServer).intValue());
+        assertEquals(3, clientConfig.get(Keys.MaxAutoRetriesNextServer).intValue());
         BaseLoadBalancer lb = LoadBalancerBuilder.newBuilder()
                 .withRule(rule)
                 .buildFixedServerListLoadBalancer(list);

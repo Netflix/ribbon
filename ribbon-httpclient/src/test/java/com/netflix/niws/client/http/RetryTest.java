@@ -134,7 +134,7 @@ public class RetryTest {
         URI localUrl = new URI("/test/get503");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -150,7 +150,7 @@ public class RetryTest {
         URI localUrl = new URI("/test/getReadtimeout");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -162,7 +162,7 @@ public class RetryTest {
         URI localUrl = new URI("/test/getReadtimeout");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -174,7 +174,7 @@ public class RetryTest {
         URI localUrl = new URI("/test/postReadtimeout");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).build();
         try {
-            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -188,7 +188,7 @@ public class RetryTest {
         URI localUrl = new URI("/test/postReadtimeout");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).setRetriable(true).build();
         try {
-            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -202,7 +202,7 @@ public class RetryTest {
         lb.setServersList(Lists.newArrayList(new Server("www.google.com:81")));
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).setRetriable(true).build();
         try {
-            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
@@ -217,7 +217,7 @@ public class RetryTest {
         URI localUrl = new URI("/test/getObject");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).queryParams("name", "ribbon").build();
         try {
-            HttpResponse response = client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().setPropertyWithType(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
+            HttpResponse response = client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
             assertEquals(200, response.getStatus());
         } catch (ClientException e) { 
             fail("Unexpected exception");

@@ -20,7 +20,6 @@ import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 
-import com.netflix.client.config.ClientConfigBuilder;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.netty.RibbonTransport;
 import com.netflix.ribbon.ClientOptions;
@@ -41,7 +40,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
     }
     
     protected IClientConfig loadDefaultConfig(String groupName) {
-        return ClientConfigBuilder.newBuilderWithArchaiusProperties(groupName).build();
+        return IClientConfig.Builder.newBuilder(groupName).build();
     }
     
     public HttpResourceGroup withCommonHeader(String name, String value) {
