@@ -308,10 +308,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             clientBuilder.withNoConnectionPooling();
         }
         HttpClient<I, O> client = clientBuilder.build();
-        if (isPoolEnabled()) {
-            client.poolStateChangeObservable().subscribe(stats);
-        }
-        // client.subscribe(listener);
+        client.subscribe(listener);
         return client;
     }
 
@@ -320,6 +317,10 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
         // TODO Auto-generated method stub
         return null;
+    }
+    
+    HttpClientListener getListener() {
+        return listener;
     }
 
 }

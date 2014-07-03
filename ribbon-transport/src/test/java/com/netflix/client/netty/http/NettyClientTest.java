@@ -33,6 +33,7 @@ import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import io.reactivex.netty.servo.http.HttpClientListener;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -44,6 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -111,7 +114,7 @@ public class NettyClientTest {
             e.printStackTrace();
             fail("Unable to start server");
         }
-        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        LogManager.getRootLogger().setLevel(Level.DEBUG);
     }
     
     private static Observable<Person> getPersonObservable(Observable<HttpClientResponse<ByteBuf>> response) {
@@ -136,19 +139,18 @@ public class NettyClientTest {
     
     @Test
     public void testObservable() throws Exception {
+        
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().setPropertyWithType(IClientConfigKey.CommonKeys.ReadTimeout, 10000000);
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(config);
         // final List<Person> result = Lists.newArrayList();
-        Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(host, port, request);
+        Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(request);
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
         // need to sleep to wait until connection is released
-        Thread.sleep(1000);
-        GlobalPoolStats stats = (GlobalPoolStats) observableClient.getStats();
-        assertEquals(1, stats.getIdleCount());
-        assertEquals(1, stats.getAcquireSucceededCount());
-        assertEquals(1, stats.getReleaseSucceededCount());
-        assertEquals(1, stats.getTotalConnectionCount());
+        HttpClientListener listener = observableClient.getListener();
+        assertEquals(1, listener.getPoolAcquires());
+        assertEquals(1, listener.getConnectionCount());
     }
     
     @Test
