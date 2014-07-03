@@ -43,6 +43,8 @@ import java.util.regex.Pattern;
 import static java.lang.String.*;
 
 /**
+ * The client examples assume that the movie server runs on the default port 8080.
+ *
  * @author Tomasz Bak
  */
 public class RxMovieServer {
@@ -86,7 +88,7 @@ public class RxMovieServer {
     }
 
     private Observable<Void> handleRecommendationsByUserId(HttpServerRequest<ByteBuf> request, HttpServerResponse<ByteBuf> response) {
-        System.out.println("Recommendations by user id request: " + request.getPath());
+        System.out.println("HTTP request -> recommendations by user id request: " + request.getPath());
         final String userId = userIdFromPath(request.getPath());
         if (userId == null) {
             response.setStatus(HttpResponseStatus.BAD_REQUEST);
@@ -99,6 +101,7 @@ public class RxMovieServer {
 
         StringBuilder builder = new StringBuilder();
         for (String movieId : userRecommendations.get(userId)) {
+            System.out.println("    returning: " + movies.get(movieId));
             builder.append(movies.get(movieId)).append('\n');
         }
 
@@ -110,7 +113,7 @@ public class RxMovieServer {
     }
 
     private Observable<Void> handleRecommendationsBy(HttpServerRequest<ByteBuf> request, HttpServerResponse<ByteBuf> response) {
-        System.out.println("Recommendations by multiple criteria request: " + request.getPath());
+        System.out.println("HTTP request -> recommendations by multiple criteria: " + request.getPath());
         List<String> category = request.getQueryParameters().get("category");
         List<String> ageGroup = request.getQueryParameters().get("ageGroup");
         if (category.isEmpty() || ageGroup.isEmpty()) {
@@ -121,6 +124,7 @@ public class RxMovieServer {
         StringBuilder builder = new StringBuilder();
         for (Movie movie : movies.values()) {
             if (movie.getCategory().equals(category.get(0)) && movie.getAgeGroup().equals(ageGroup.get(0))) {
+                System.out.println("    returning: " + movie);
                 builder.append(movie).append('\n');
             }
         }
@@ -143,7 +147,7 @@ public class RxMovieServer {
             @Override
             public Observable<Void> call(ByteBuf byteBuf) {
                 String movieId = byteBuf.toString(Charset.defaultCharset());
-                System.out.println(format("    updating recommendation for <user=%s, movie=%s>", userId, movieId));
+                System.out.println(format("    updating: {user=%s, movie=%s}", userId, movieId));
                 synchronized (this) {
                     Set<String> recommendations;
                     if (userRecommendations.containsKey(userId)) {
@@ -166,7 +170,7 @@ public class RxMovieServer {
             @Override
             public Observable<Void> call(ByteBuf byteBuf) {
                 String formatted = byteBuf.toString(Charset.defaultCharset());
-                System.out.println("    registering movie " + formatted);
+                System.out.println("    movie: " + formatted);
                 try {
                     Movie movie = Movie.from(formatted);
                     movies.put(movie.getId(), movie);
