@@ -101,8 +101,8 @@ class MethodTemplateExecutor {
 
     private void withRequestUriBase(HttpRequestTemplate<?> httpRequestTemplate) {
         httpRequestTemplate.withMethod(methodTemplate.getHttpMethod().name());
-        if (methodTemplate.getPath() != null) {
-            httpRequestTemplate.withUriTemplate(methodTemplate.getPath());
+        if (methodTemplate.getUriTemplate() != null) {
+            httpRequestTemplate.withUriTemplate(methodTemplate.getUriTemplate());
         }
     }
 

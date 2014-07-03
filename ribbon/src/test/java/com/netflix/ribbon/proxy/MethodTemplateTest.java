@@ -1,8 +1,6 @@
 package com.netflix.ribbon.proxy;
 
 import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.proxy.MethodTemplate;
-import com.netflix.ribbon.proxy.ProxyAnnotationException;
 import com.netflix.ribbon.proxy.MethodTemplate.CacheProviderEntry;
 import com.netflix.ribbon.proxy.sample.Movie;
 import com.netflix.ribbon.proxy.sample.MovieTransformer;
@@ -29,7 +27,7 @@ public class MethodTemplateTest {
 
         assertEquals("id", template.getParamName(0));
         assertEquals("findMovieById", template.getTemplateName());
-        assertEquals("/movies/{id}", template.getPath());
+        assertEquals("/movies/{id}", template.getUriTemplate());
 
         assertTrue("value1.1".equals(template.getHeaders().get("X-MyHeader1").get(0)));
         assertTrue("value1.2".equals(template.getHeaders().get("X-MyHeader1").get(1)));
@@ -60,7 +58,7 @@ public class MethodTemplateTest {
         MethodTemplate template = new MethodTemplate(methodByName(SampleMovieService.class, "findMovie"));
 
         assertEquals("findMovie", template.getTemplateName());
-        assertEquals("/movies?name={name}&author={author}", template.getPath());
+        assertEquals("/movies?name={name}&author={author}", template.getUriTemplate());
         assertEquals("name", template.getParamName(0));
         assertEquals(0, template.getParamPosition(0));
         assertEquals("author", template.getParamName(1));

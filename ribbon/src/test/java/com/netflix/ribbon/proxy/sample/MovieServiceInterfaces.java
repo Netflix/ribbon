@@ -32,7 +32,7 @@ public class MovieServiceInterfaces {
         @TemplateName("findMovieById")
         @Http(
                 method = HttpMethod.GET,
-                path = "/movies/{id}",
+                uriTemplate = "/movies/{id}",
                 headers = {
                         @Header(name = "X-MyHeader1", value = "value1.1"),
                         @Header(name = "X-MyHeader1", value = "value1.2"),
@@ -48,59 +48,59 @@ public class MovieServiceInterfaces {
         RibbonRequest<Movie> findMovieById(@Var("id") String id);
 
         @TemplateName("findRawMovieById")
-        @Http(method = HttpMethod.GET, path = "/rawMovies/{id}")
+        @Http(method = HttpMethod.GET, uriTemplate = "/rawMovies/{id}")
         RibbonRequest<ByteBuf> findRawMovieById(@Var("id") String id);
 
         @TemplateName("findMovie")
-        @Http(method = HttpMethod.GET, path = "/movies?name={name}&author={author}")
+        @Http(method = HttpMethod.GET, uriTemplate = "/movies?name={name}&author={author}")
         RibbonRequest<Movie> findMovie(@Var("name") String name, @Var("author") String author);
 
         @TemplateName("registerMovie")
-        @Http(method = HttpMethod.POST, path = "/movies")
+        @Http(method = HttpMethod.POST, uriTemplate = "/movies")
         @Hystrix(cacheKey = "registerMovie", fallbackHandler = MovieFallbackHandler.class)
         @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> registerMovie(@Content Movie movie);
 
-        @Http(method = HttpMethod.PUT, path = "/movies/{id}")
+        @Http(method = HttpMethod.PUT, uriTemplate = "/movies/{id}")
         @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> updateMovie(@Var("id") String id, @Content Movie movie);
 
-        @Http(method = HttpMethod.PATCH, path = "/movies/{id}")
+        @Http(method = HttpMethod.PATCH, uriTemplate = "/movies/{id}")
         @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> updateMoviePartial(@Var("id") String id, @Content Movie movie);
 
         @TemplateName("registerMovieRaw")
-        @Http(method = HttpMethod.POST, path = "/movies")
+        @Http(method = HttpMethod.POST, uriTemplate = "/movies")
         @Hystrix(cacheKey = "registerMovieRaw", fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> registerMovieRaw(@Content RawContentSource<Movie> rawMovieContent);
 
         @TemplateName("registerTitle")
-        @Http(method = HttpMethod.POST, path = "/titles")
+        @Http(method = HttpMethod.POST, uriTemplate = "/titles")
         @Hystrix(cacheKey = "registerTitle", fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> registerTitle(@Content String title);
 
         @TemplateName("registerByteBufBinary")
-        @Http(method = HttpMethod.POST, path = "/binaries/byteBuf")
+        @Http(method = HttpMethod.POST, uriTemplate = "/binaries/byteBuf")
         @Hystrix(cacheKey = "registerByteBufBinary", fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> registerByteBufBinary(@Content ByteBuf binary);
 
         @TemplateName("registerByteArrayBinary")
-        @Http(method = HttpMethod.POST, path = "/binaries/byteArray")
+        @Http(method = HttpMethod.POST, uriTemplate = "/binaries/byteArray")
         @Hystrix(cacheKey = "registerByteArrayBinary", fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> registerByteArrayBinary(@Content byte[] binary);
 
         @TemplateName("deleteMovie")
-        @Http(method = HttpMethod.DELETE, path = "/movies/{id}")
+        @Http(method = HttpMethod.DELETE, uriTemplate = "/movies/{id}")
         RibbonRequest<Void> deleteMovie(@Var("id") String id);
     }
 
     public static interface ShortMovieService {
         @TemplateName("findMovieById")
-        @Http(method = HttpMethod.GET, path = "/movies/{id}")
+        @Http(method = HttpMethod.GET, uriTemplate = "/movies/{id}")
         RibbonRequest<ByteBuf> findMovieById(@Var("id") String id);
 
         @TemplateName("findMovieById")
-        @Http(method = HttpMethod.GET, path = "/movies")
+        @Http(method = HttpMethod.GET, uriTemplate = "/movies")
         RibbonRequest<ByteBuf> findAll();
     }
 
@@ -134,17 +134,17 @@ public class MovieServiceInterfaces {
     public static interface HystrixOptionalAnnotationValues {
 
         @TemplateName("hystrix1")
-        @Http(method = HttpMethod.GET, path = "/hystrix/1")
+        @Http(method = HttpMethod.GET, uriTemplate = "/hystrix/1")
         @Hystrix(cacheKey = "findMovieById/{id}")
         RibbonRequest<Void> hystrixWithCacheKeyOnly();
 
         @TemplateName("hystrix2")
-        @Http(method = HttpMethod.GET, path = "/hystrix/2")
+        @Http(method = HttpMethod.GET, uriTemplate = "/hystrix/2")
         @Hystrix(validator = SampleHttpResponseValidator.class)
         RibbonRequest<Void> hystrixWithValidatorOnly();
 
         @TemplateName("hystrix3")
-        @Http(method = HttpMethod.GET, path = "/hystrix/3")
+        @Http(method = HttpMethod.GET, uriTemplate = "/hystrix/3")
         @Hystrix(fallbackHandler = MovieFallbackHandler.class)
         RibbonRequest<Void> hystrixWithFallbackHandlerOnly();
 
@@ -154,28 +154,28 @@ public class MovieServiceInterfaces {
     public static interface PostsWithDifferentContentTypes {
 
         @TemplateName("rawContentSource")
-        @Http(method = HttpMethod.POST, path = "/content/rawContentSource")
+        @Http(method = HttpMethod.POST, uriTemplate = "/content/rawContentSource")
         RibbonRequest<Void> postwithRawContentSource(@Content RawContentSource<Movie> movie);
 
         @TemplateName("byteBufContent")
-        @Http(method = HttpMethod.POST, path = "/content/byteBufContent")
+        @Http(method = HttpMethod.POST, uriTemplate = "/content/byteBufContent")
         RibbonRequest<Void> postwithByteBufContent(@Content ByteBuf byteBuf);
 
         @TemplateName("byteArrayContent")
-        @Http(method = HttpMethod.POST, path = "/content/byteArrayContent")
+        @Http(method = HttpMethod.POST, uriTemplate = "/content/byteArrayContent")
         RibbonRequest<Void> postwithByteArrayContent(@Content byte[] bytes);
 
         @TemplateName("stringContent")
-        @Http(method = HttpMethod.POST, path = "/content/stringContent")
+        @Http(method = HttpMethod.POST, uriTemplate = "/content/stringContent")
         RibbonRequest<Void> postwithStringContent(@Content String content);
 
         @TemplateName("movieContent")
-        @Http(method = HttpMethod.POST, path = "/content/movieContent")
+        @Http(method = HttpMethod.POST, uriTemplate = "/content/movieContent")
         @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> postwithMovieContent(@Content Movie movie);
 
         @TemplateName("movieContentBroken")
-        @Http(method = HttpMethod.POST, path = "/content/movieContentBroken")
+        @Http(method = HttpMethod.POST, uriTemplate = "/content/movieContentBroken")
         RibbonRequest<Void> postwithMovieContentBroken(@Content Movie movie);
 
     }

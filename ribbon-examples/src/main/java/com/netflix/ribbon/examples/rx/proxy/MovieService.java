@@ -42,7 +42,7 @@ public interface MovieService {
     @TemplateName("recommendationsByUserId")
     @Http(
             method = HttpMethod.GET,
-            path = "/users/{userId}/recommendations",
+            uriTemplate = "/users/{userId}/recommendations",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
@@ -56,7 +56,7 @@ public interface MovieService {
     @TemplateName("recommendationsBy")
     @Http(
             method = HttpMethod.GET,
-            path = "/recommendations?category={category}&ageGroup={ageGroup}",
+            uriTemplate = "/recommendations?category={category}&ageGroup={ageGroup}",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
@@ -70,7 +70,7 @@ public interface MovieService {
     @TemplateName("registerMovie")
     @Http(
             method = HttpMethod.POST,
-            path = "/movies",
+            uriTemplate = "/movies",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
@@ -82,7 +82,7 @@ public interface MovieService {
     @TemplateName("updateRecommendations")
     @Http(
             method = HttpMethod.POST,
-            path = "/users/{userId}/recommendations",
+            uriTemplate = "/users/{userId}/recommendations",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
