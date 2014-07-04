@@ -140,7 +140,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                 @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
             this.clientObservableProvider = clientObservableProvider;
             this.loadBalancerURI = loadBalancerURI;
-            this.retryHandler = retryHandler  == null ? getErrorHandler() : retryHandler;
+            this.retryHandler = retryHandler  == null ? getRetryHandler() : retryHandler;
             this.loadBalancerKey = loadBalancerKey;
         }
         
@@ -212,22 +212,20 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      */
     protected <T> Observable<T> create(final LoadBalancerObservableCommand<T> observableCommand, @Nullable final URI loadBalancerURI, 
             @Nullable final RetryHandler retryHandler, @Nullable final Object loadBalancerKey) {
-        return Observable.create(new OnSubscribe<T>(){
-            @Override
-            public void call(Subscriber<? super T> t1) {
-              Server server = null;
-              try {
-                  server = getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
-              } catch (Exception e) {
-                  logger.error("Unexpected error", e);
-                  t1.onError(e);
-              }
-              retryWithSameServer(server, observableCommand.run(server), retryHandler)
-                  .lift(new RetryNextServerOperator<T>(observableCommand, loadBalancerURI, retryHandler, loadBalancerKey))
-                  .subscribe(t1);
-            }
-            
-        });
+        Server server = null;
+        try {
+            server = getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
+        } catch (Exception e) {
+            return Observable.error(e);
+        }
+        RetryHandler handler = retryHandler == null? getRetryHandler() : retryHandler;
+        Observable<T> forSameServer = retryWithSameServer(server, observableCommand.run(server), handler);
+        // short cut: if no retry, return the same Observable
+        if (handler.getMaxRetriesOnNextServer() == 0) {
+            return forSameServer;
+        } else {
+            return forSameServer.lift(new RetryNextServerOperator<T>(observableCommand, loadBalancerURI, handler, loadBalancerKey));
+        }
     }
     
     private class RetrySameServerOperator<T> implements Operator<T, T> {
@@ -239,7 +237,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         RetrySameServerOperator(final Server server, final Observable<T> singleHostObservable, final RetryHandler errorHandler) {
             this.server = server;
             this.singleHostObservable = singleHostObservable;
-            this.errorHandler = errorHandler == null? getErrorHandler() : errorHandler;
+            this.errorHandler = errorHandler == null? getRetryHandler() : errorHandler;
         }
         
         @Override
@@ -302,6 +300,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * @param forServer A lazy Observable that does not start execution until it is subscribed to 
      */
     public <T> Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer, final RetryHandler errorHandler) {
-        return forServer.lift(new RetrySameServerOperator<T>(server, forServer, errorHandler));
+        RetryHandler handler = errorHandler == null? getRetryHandler() : errorHandler;
+        return forServer.lift(new RetrySameServerOperator<T>(server, forServer, handler));
     }
 }

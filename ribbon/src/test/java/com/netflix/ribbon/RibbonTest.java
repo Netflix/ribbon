@@ -32,6 +32,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.junit.Test;
 
 import rx.Observable;
@@ -52,7 +54,7 @@ public class RibbonTest {
     
     @Test
     public void testCommand() throws IOException {
-        // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
+        // LogManager.getRootLogger().setLevel(Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
         MockResponse response = new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
@@ -65,6 +67,7 @@ public class RibbonTest {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", 
                 ClientOptions.create()
                 .withMaxAutoRetriesNextServer(3)
+                .withReadTimeout(300000)
                 .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
         RibbonRequest<ByteBuf> request = template

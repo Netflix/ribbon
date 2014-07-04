@@ -114,7 +114,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final float DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED = 0.0f;
 
-    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = 0;
+    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = 1;
 
     public static final int DEFAULT_MAX_AUTO_RETRIES = 0;
 

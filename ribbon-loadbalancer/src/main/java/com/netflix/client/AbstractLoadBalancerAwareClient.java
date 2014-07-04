@@ -61,8 +61,8 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
      */
     @Deprecated
     protected boolean isCircuitBreakerException(Throwable e) {
-        if (getErrorHandler() != null) {
-            return getErrorHandler().isCircuitTrippingException(e);
+        if (getRetryHandler() != null) {
+            return getRetryHandler().isCircuitTrippingException(e);
         }
         return false;
     }
@@ -75,8 +75,8 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
      */
     @Deprecated
     protected boolean isRetriableException(Throwable e) {
-        if (getErrorHandler() != null) {
-            return getErrorHandler().isRetriableException(e, true);
+        if (getRetryHandler() != null) {
+            return getRetryHandler().isRetriableException(e, true);
         } 
         return false;
     }

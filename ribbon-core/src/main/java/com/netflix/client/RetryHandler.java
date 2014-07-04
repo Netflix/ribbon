@@ -25,9 +25,6 @@ import java.net.ConnectException;
  * so that the load balancer can avoid such server.
  *  
  * @author awang
- *
- * @param <T> Type of request
- * @param <S> Type fo response
  */
 public interface RetryHandler {
 
@@ -52,7 +49,13 @@ public interface RetryHandler {
      */
     public boolean isCircuitTrippingException(Throwable e);
         
+    /**
+     * Number of maximal retries to be done on one server
+     */
     public int getMaxRetriesOnSameServer();
-    
+
+    /**
+     * Number of maximal different servers to retry
+     */
     public int getMaxRetriesOnNextServer();
 }
