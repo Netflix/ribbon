@@ -92,6 +92,7 @@ project(':ribbon-examples') {
     dependencies {
         compile project(':ribbon-httpclient')
         compile project(':ribbon-transport')
+        compile project(':ribbon')
         compile 'com.google.code.gson:gson:2.2.4'
         compile 'com.thoughtworks.xstream:xstream:1.4.5'
         compile 'com.sun.jersey:jersey-server:1.11'
@@ -108,7 +109,7 @@ project(':ribbon-test') {
     }
 }
 
-project(':ribbon-client-extensions') {
+project(':ribbon') {
     configurations {
         // add new configuration
         examples

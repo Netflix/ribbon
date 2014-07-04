@@ -69,11 +69,11 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
             maxRetryNextServer = retryHandler.getMaxRetriesOnNextServer();
             maxRetrySameServer = retryHandler.getMaxRetriesOnSameServer();
         } else {
-            maxRetryNextServer = clientConfig.getPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetriesNextServer, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER);
-            maxRetrySameServer = clientConfig.getPropertyWithType(IClientConfigKey.CommonKeys.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
+            maxRetryNextServer = clientConfig.get(IClientConfigKey.Keys.MaxAutoRetriesNextServer, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER);
+            maxRetrySameServer = clientConfig.get(IClientConfigKey.Keys.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
         }
-        int readTimeout = getProperty(IClientConfigKey.CommonKeys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
-        int connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
+        int readTimeout = getProperty(IClientConfigKey.Keys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
+        int connectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         return (maxRetryNextServer + 1) * (maxRetrySameServer + 1) * (readTimeout + connectTimeout);
     }
     
@@ -82,10 +82,10 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     }
         
     protected <S> S getProperty(IClientConfigKey<S> key, @Nullable IClientConfig requestConfig, S defaultValue) {
-        if (requestConfig != null && requestConfig.getPropertyWithType(key) != null) {
-            return requestConfig.getPropertyWithType(key);
+        if (requestConfig != null && requestConfig.get(key) != null) {
+            return requestConfig.get(key);
         } else {
-            return clientConfig.getPropertyWithType(key, defaultValue);
+            return clientConfig.get(key, defaultValue);
         }
     }
 

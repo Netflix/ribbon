@@ -380,7 +380,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     	this.propertyNameSpace = nameSpace;
     }
 
-    protected void loadDefaultValues() {
+    public void loadDefaultValues() {
         putDefaultIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
         putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
         putDefaultBooleanProperty(CommonClientConfigKey.EnableConnectionPool, getDefaultEnableConnectionPool());
@@ -857,7 +857,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getPropertyWithType(IClientConfigKey<T> key) {
+    public <T> T get(IClientConfigKey<T> key) {
         Object obj = getProperty(key.key());
         if (obj == null) {
             return null;
@@ -889,14 +889,14 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
-    public <T> IClientConfig setPropertyWithType(IClientConfigKey<T> key, T value) {
+    public <T> IClientConfig set(IClientConfigKey<T> key, T value) {
         properties.put(key.key(), value);
         return this;
     }
 
     @Override
-    public <T> T getPropertyWithType(IClientConfigKey<T> key, T defaultValue) {
-        T value = getPropertyWithType(key);
+    public <T> T get(IClientConfigKey<T> key, T defaultValue) {
+        T value = get(key);
         if (value == null) {
             value = defaultValue;
         }

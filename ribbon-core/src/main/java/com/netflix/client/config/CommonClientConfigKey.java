@@ -200,7 +200,7 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     }
 
     /**
-     * @deprecated see {@link #key()} 
+     * @deprecated see {@link #keys()} 
      */
     @edu.umd.cs.findbugs.annotations.SuppressWarnings
     @Deprecated

@@ -709,7 +709,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         if (!request.isRetriable()) {
             return new RequestSpecificRetryHandler(false, false, this.getErrorHandler(), requestConfig);
         }
-        if (this.ncc.getPropertyWithType(CommonClientConfigKey.OkToRetryOnAllOperations, false)) {
+        if (this.ncc.get(CommonClientConfigKey.OkToRetryOnAllOperations, false)) {
             return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
         }
         if (request.getVerb() != HttpRequest.Verb.GET) {

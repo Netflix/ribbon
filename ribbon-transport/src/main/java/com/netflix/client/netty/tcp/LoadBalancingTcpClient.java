@@ -41,7 +41,7 @@ public class LoadBalancingTcpClient<I, O> extends LoadBalancingRxClientWithPoolO
         if (pipelineConfigurator != null) {
             builder.pipelineConfigurator(pipelineConfigurator);
         }
-        Integer connectTimeout = getProperty(IClientConfigKey.CommonKeys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
+        Integer connectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         builder.channelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout);
         if (isPoolEnabled()) {
             builder.withConnectionPoolLimitStrategy(poolStrategy)
