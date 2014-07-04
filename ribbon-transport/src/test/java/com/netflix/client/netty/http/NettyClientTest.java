@@ -673,7 +673,11 @@ public class NettyClientTest {
     @Test
     public void testRedirect() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/redirect?port=" + port);
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = 
+                (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
+                        IClientConfig.Builder.newBuilder().withDefaultValues()
+                        .withFollowRedirects(true)
+                        .build());
         Person person = getPersonObservable(observableClient.submit(host, port, request)).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
     } 
