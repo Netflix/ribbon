@@ -26,7 +26,6 @@ import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.contexts.ContextPipelineConfigurators;
-import io.reactivex.netty.contexts.RequestIdProvider;
 import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
@@ -46,22 +45,18 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import rx.Observable;
-import rx.functions.Func1;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.netflix.client.CircuitException;
-import com.netflix.client.ClientException;
-import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
-import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 
