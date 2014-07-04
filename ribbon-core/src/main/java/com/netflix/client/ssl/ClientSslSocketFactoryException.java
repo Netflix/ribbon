@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client.ssl;
 
 /**
  * Reports problems detected by the ClientSslSocketFactory class.

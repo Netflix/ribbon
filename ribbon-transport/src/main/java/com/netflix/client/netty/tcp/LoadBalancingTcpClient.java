@@ -19,10 +19,14 @@ package com.netflix.client.netty.tcp;
 
 import java.util.concurrent.ScheduledExecutorService;
 
+import rx.Subscription;
+
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.RxNetty;
 import io.reactivex.netty.client.ClientBuilder;
+import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 
 import com.netflix.client.RetryHandler;
@@ -68,5 +72,18 @@ public class LoadBalancingTcpClient<I, O> extends LoadBalancingRxClientWithPoolO
             client.poolStateChangeObservable().subscribe(stats);
         }
         return client;
+    }
+
+    @Override
+    public Subscription subscribe(
+            MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public String name() {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

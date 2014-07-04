@@ -18,6 +18,7 @@
 package com.netflix.client.netty;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import rx.Observer;
 import rx.subjects.PublishSubject;
@@ -27,23 +28,22 @@ import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
 
 import com.netflix.loadbalancer.Server;
-import io.netty.util.internal.chmv8.LongAdder;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Monitors;
 
 public class GlobalPoolStats<T extends RxClient<?, ?>> implements Observer<PoolStateChangeEvent>, PoolStats {
 
-    private final LongAdder creationCount = new LongAdder();
-    private final LongAdder failedCount = new LongAdder();
-    private final LongAdder reuseCount = new LongAdder();
-    private final LongAdder evictionCount = new LongAdder();
-    private final LongAdder acquireAttemptedCount = new LongAdder();
-    private final LongAdder acquireSucceededCount = new LongAdder();
-    private final LongAdder acquireFailedCount = new LongAdder();
-    private final LongAdder releaseAttemptedCount = new LongAdder();
-    private final LongAdder releaseSucceededCount = new LongAdder();
-    private final LongAdder releaseFailedCount = new LongAdder();
+    private final AtomicLong creationCount = new AtomicLong();
+    private final AtomicLong failedCount = new AtomicLong();
+    private final AtomicLong reuseCount = new AtomicLong();
+    private final AtomicLong evictionCount = new AtomicLong();
+    private final AtomicLong acquireAttemptedCount = new AtomicLong();
+    private final AtomicLong acquireSucceededCount = new AtomicLong();
+    private final AtomicLong acquireFailedCount = new AtomicLong();
+    private final AtomicLong releaseAttemptedCount = new AtomicLong();
+    private final AtomicLong releaseSucceededCount = new AtomicLong();
+    private final AtomicLong releaseFailedCount = new AtomicLong();
 
     private final MaxConnectionsBasedStrategy maxConnectionStrategy;
     
@@ -62,43 +62,43 @@ public class GlobalPoolStats<T extends RxClient<?, ?>> implements Observer<PoolS
     }
     
     public void onConnectionCreation() {
-        creationCount.increment();
+        creationCount.incrementAndGet();
     }
 
     public void onConnectFailed() {
-        failedCount.increment();
+        failedCount.incrementAndGet();
     }
 
     public void onConnectionReuse() {
-        reuseCount.increment();
+        reuseCount.incrementAndGet();
     }
 
     public void onConnectionEviction() {
-        evictionCount.increment();
+        evictionCount.incrementAndGet();
     }
 
     public void onAcquireAttempted() {
-        acquireAttemptedCount.increment();
+        acquireAttemptedCount.incrementAndGet();
     }
 
     public void onAcquireSucceeded() {
-        acquireSucceededCount.increment();
+        acquireSucceededCount.incrementAndGet();
     }
 
     public void onAcquireFailed() {
-        acquireFailedCount.increment();
+        acquireFailedCount.incrementAndGet();
     }
 
     public void onReleaseAttempted() {
-        releaseAttemptedCount.increment();
+        releaseAttemptedCount.incrementAndGet();
     }
 
     public void onReleaseSucceeded() {
-        releaseSucceededCount.increment();
+        releaseSucceededCount.incrementAndGet();
     }
 
     public void onReleaseFailed() {
-        releaseFailedCount.increment();
+        releaseFailedCount.incrementAndGet();
     }
 
     @Monitor(name="AcquireAttempt", type=DataSourceType.COUNTER)

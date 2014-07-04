@@ -26,7 +26,7 @@ subprojects {
 
     dependencies {
         compile 'org.slf4j:slf4j-api:1.6.4'
-        compile 'com.netflix.servo:servo-core:0.4.44'
+        compile 'com.netflix.servo:servo-core:0.7.4'
         compile 'com.google.guava:guava:14.0.1'
         compile 'com.netflix.archaius:archaius-core:0.5.12'
         compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
@@ -72,8 +72,9 @@ project(':ribbon-transport') {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
         compile project(':ribbon-core')    
-        compile 'com.netflix.rxnetty:rx-netty:0.3.6'
-        compile 'com.netflix.rxnetty:rx-netty-contexts:0.3.6'
+        compile 'com.netflix.rxnetty:rx-netty:0.3.7'
+        compile 'com.netflix.rxnetty:rx-netty-contexts:0.3.7'
+        compile 'com.netflix.rxnetty:rx-netty-servo:0.3.7'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }

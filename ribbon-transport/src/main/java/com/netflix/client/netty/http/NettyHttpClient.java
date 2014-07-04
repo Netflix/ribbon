@@ -23,37 +23,47 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.reactivex.netty.channel.ObservableConnection;
+import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.contexts.ContextPipelineConfigurators;
 import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
+import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
+import io.reactivex.netty.pipeline.ssl.DefaultFactories;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import io.reactivex.netty.servo.http.HttpClientListener;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
 import rx.Observable;
+import rx.Subscription;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
+import com.netflix.client.ssl.AbstractSslContextFactory;
+import com.netflix.client.ssl.ClientSslSocketFactoryException;
+import com.netflix.client.ssl.URLSslContextFactory;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.LoadBalancerObservableCommand;
@@ -77,6 +87,8 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     
     private HttpRequestIdProvider requestIdProvider;
     
+    HttpClientListener listener;
+    
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
@@ -99,8 +111,11 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         super(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
-        requestIdHeaderName = getProperty(IClientConfigKey.Keys.RequestIdHeaderName, null, DefaultClientConfigImpl.DEFAULT_REQUEST_ID_HEADER_NAME);
-        requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
+        requestIdHeaderName = getProperty(IClientConfigKey.Keys.RequestIdHeaderName, null, null);
+        if (requestIdHeaderName != null) {
+            requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
+        }
+        listener = HttpClientListener.newHttpListener(getName());
     }
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
@@ -253,11 +268,14 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
 
     @Override
     protected HttpClient<I, O> cacheLoadRxClient(Server server) {
-        HttpClientBuilder<I, O> clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
-                requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR)
-                .pipelineConfigurator(ContextPipelineConfigurators.httpClientConfigurator(requestIdProvider,
-                        RxContexts.DEFAULT_CORRELATOR,
-                        pipelineConfigurator));
+        HttpClientBuilder<I, O> clientBuilder;
+        if (requestIdProvider != null) {
+            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
+                    requestIdProvider, RxContexts.DEFAULT_CORRELATOR, pipelineConfigurator);
+        } else {
+            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
+                    RxContexts.DEFAULT_CORRELATOR, pipelineConfigurator);
+        }
         Integer connectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         Integer readTimeout = getProperty(IClientConfigKey.Keys.ReadTimeout, null, DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
         Boolean followRedirect = getProperty(IClientConfigKey.Keys.FollowRedirects, null, null);
@@ -276,10 +294,27 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         } else {
             clientBuilder.withNoConnectionPooling();
         }
-        HttpClient<I, O> client = clientBuilder.build();
-        if (isPoolEnabled()) {
-            client.poolStateChangeObservable().subscribe(stats);
+        if (sslContextFactory != null) {
+            try {
+                clientBuilder.withSslEngineFactory(DefaultFactories.fromSSLContext(sslContextFactory.getSSLContext()));
+            } catch (ClientSslSocketFactoryException e) {
+                throw new RuntimeException(e);
+            }
         }
+        HttpClient<I, O> client = clientBuilder.build();
+        client.subscribe(listener);
         return client;
     }
+
+    @Override
+    public Subscription subscribe(
+            MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    HttpClientListener getListener() {
+        return listener;
+    }
+
 }

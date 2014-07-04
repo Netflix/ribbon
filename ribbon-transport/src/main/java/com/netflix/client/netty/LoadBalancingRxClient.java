@@ -18,23 +18,36 @@
 package com.netflix.client.netty;
 
 import io.reactivex.netty.channel.ObservableConnection;
+import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 
 import java.io.Closeable;
+import java.io.File;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import rx.Observable;
+import rx.Subscription;
 
 import com.netflix.client.RetryHandler;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.ssl.AbstractSslContextFactory;
+import com.netflix.client.ssl.ClientSslSocketFactoryException;
+import com.netflix.client.ssl.URLSslContextFactory;
 import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
@@ -44,12 +57,14 @@ import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListChangeListener;
 
 public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> implements Closeable, RxClient<I, O> {
-    
+
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancingRxClient.class);
     protected final ConcurrentMap<Server, T> rxClientCache;
     protected final LoadBalancerExecutor lbExecutor;
     protected final PipelineConfigurator<O, I> pipelineConfigurator;
     protected final IClientConfig clientConfig;
     protected final RetryHandler retryHandler;
+    protected final AbstractSslContextFactory sslContextFactory;
 
     public LoadBalancingRxClient(IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
@@ -65,6 +80,34 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         this.retryHandler = retryHandler;
         this.pipelineConfigurator = pipelineConfigurator;
         this.clientConfig = config;
+        boolean isSecure = getProperty(IClientConfigKey.Keys.IsSecure, null, false); 
+        if (isSecure) {
+            final URL trustStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.TrustStore);
+            final URL keyStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.KeyStore);
+            boolean isClientAuthRequired = clientConfig.get(IClientConfigKey.Keys.IsClientAuthRequired, false);
+            if (    // if client auth is required, need both a truststore and a keystore to warrant configuring
+                    // if client is not is not required, we only need a keystore OR a truststore to warrant configuring
+                    (isClientAuthRequired && (trustStoreUrl != null && keyStoreUrl != null))
+                    ||
+                    (!isClientAuthRequired && (trustStoreUrl != null || keyStoreUrl != null))
+                    ) {
+
+                try {
+                    sslContextFactory = new URLSslContextFactory(trustStoreUrl,
+                            clientConfig.get(CommonClientConfigKey.TrustStorePassword),
+                            keyStoreUrl,
+                            clientConfig.get(CommonClientConfigKey.KeyStorePassword));
+
+                } catch (ClientSslSocketFactoryException e) {
+                    throw new IllegalArgumentException("Unable to configure custom secure socket factory", e);
+                }
+            } else {
+                sslContextFactory = null;
+            }
+        } else {
+            sslContextFactory = null;
+        }
+
         addLoadBalancerListener();
     }
       
@@ -101,6 +144,43 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         } else {
             return clientConfig.get(key, defaultValue);
         }
+    }
+
+    protected URL getResourceForOptionalProperty(final IClientConfigKey<String> configKey) {
+        final String propValue = clientConfig.get(configKey);
+        URL result = null;
+
+        if (propValue != null) {
+            result = getResource(propValue);
+            if (result == null) {
+                throw new IllegalArgumentException("No resource found for " + configKey + ": "
+                        + propValue);
+            }
+        }
+        return result;
+    }
+
+    private static URL getResource(String resourceName)
+    {
+        URL url = null;
+        // attempt to load from the context classpath
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        if (loader != null) {
+            url = loader.getResource(resourceName);
+        }
+        if (url == null) {
+            // attempt to load from the system classpath
+            url = ClassLoader.getSystemResource(resourceName);
+        }
+        if (url == null) {
+            try {
+                resourceName = URLDecoder.decode(resourceName, "UTF-8");
+                url = (new File(resourceName)).toURI().toURL();
+            } catch (Exception e) {
+                logger.error("Problem loading resource", e);
+            }
+        }
+        return url;
     }
 
     /**
@@ -179,5 +259,10 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     @Override
     public PoolStats getStats() {
         return null;
+    }
+    
+    @Override
+    public String name() {
+        return clientConfig.getClientName();
     }
 }
