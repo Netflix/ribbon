@@ -16,12 +16,12 @@
 
 package com.netflix.ribbon.examples.rx.proxy;
 
+import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.examples.rx.common.InMemoryCacheProviderFactory;
 import com.netflix.ribbon.examples.rx.common.Movie;
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceFallbackHandler;
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceResponseValidator;
 import com.netflix.ribbon.examples.rx.common.RxMovieTransformer;
-import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.proxy.annotation.CacheProviders;
 import com.netflix.ribbon.proxy.annotation.CacheProviders.Provider;
 import com.netflix.ribbon.proxy.annotation.Content;
