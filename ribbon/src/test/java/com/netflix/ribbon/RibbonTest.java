@@ -134,7 +134,7 @@ public class RibbonTest {
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
                 .withMethod("GET")
-                .addCacheProvider("somekey", new CacheProvider<ByteBuf>(){
+                .withCacheProvider("somekey", new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss"));
@@ -169,7 +169,7 @@ public class RibbonTest {
 
    
     @Test
-    public void testTransformer() throws IOException, InterruptedException {
+    public void testValidator() throws IOException, InterruptedException {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
@@ -268,13 +268,8 @@ public class RibbonTest {
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         final String content = "from cache";
         final String cacheKey = "somekey";
-        RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
-                    @Override
-                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
-                        return Observable.error(new Exception("Cache miss"));
-                    }
-                })
-                .addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
+        RibbonRequest<ByteBuf> request = template
+                .withCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         if (key.equals(cacheKey)) {
@@ -310,13 +305,8 @@ public class RibbonTest {
 
         HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
         final String cacheKey = "somekey";
-        RibbonRequest<ByteBuf> request = template.addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
-                    @Override
-                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
-                        return Observable.error(new Exception("Cache miss"));
-                    }
-                })
-                .addCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
+        RibbonRequest<ByteBuf> request = template
+                .withCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss again"));

@@ -132,12 +132,12 @@ class MethodTemplateExecutor {
     private void withCacheProviders(HttpRequestTemplate<?> httpRequestTemplate) {
         if (methodTemplate.getCacheProviders() != null) {
             for (MethodTemplate.CacheProviderEntry entry : methodTemplate.getCacheProviders()) {
-                httpRequestTemplate.addCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
+                httpRequestTemplate.withCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
             }
         }
         EvCacheOptions evCacheOptions = methodTemplate.getEvCacheOptions();
         if (evCacheOptions != null) {
-            httpRequestTemplate.addCacheProvider(evCacheOptions.getCacheKeyTemplate(), (EvCacheProvider) evCacheProviderPool.getMatching(evCacheOptions));
+            httpRequestTemplate.withCacheProvider(evCacheOptions.getCacheKeyTemplate(), (EvCacheProvider) evCacheProviderPool.getMatching(evCacheOptions));
         }
     }
 

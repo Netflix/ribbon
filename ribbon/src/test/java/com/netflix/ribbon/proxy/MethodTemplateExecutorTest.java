@@ -78,8 +78,8 @@ public class MethodTemplateExecutorTest {
         expect(httpRequestTemplateMock.withRequestCacheKey("findMovieById/{id}")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.addCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.addCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateMock);
         expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock);
 
         replayAll();

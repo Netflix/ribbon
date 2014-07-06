@@ -54,7 +54,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
     
     private final HttpClientRequest<ByteBuf> httpRequest;
     private final String hystrixCacheKey;
-    private final List<CacheProviderWithKey<T>> cacheProviders;
+    private final CacheProviderWithKey<T> cacheProvider;
     private final Map<String, Object> requestProperties;
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final HttpRequestTemplate<T> template;
@@ -64,23 +64,18 @@ class HttpRequest<T> implements RibbonRequest<T> {
         this.httpRequest = requestBuilder.createClientRequest();
         this.hystrixCacheKey = requestBuilder.hystrixCacheKey();
         this.requestProperties = new HashMap<String, Object>(requestBuilder.requestProperties());
-        this.cacheProviders = new LinkedList<CacheProviderWithKey<T>>();
+        if (requestBuilder.cacheProvider() != null) {
+            CacheProvider<T> provider = requestBuilder.cacheProvider().getProvider();
+            String key = TemplateParser.toData(this.requestProperties, requestBuilder.cacheProvider().getKeyTemplate());
+            this.cacheProvider = new CacheProviderWithKey<T>(provider, key);
+        } else {
+            this.cacheProvider = null;
+        }
         this.template = requestBuilder.template();
-        addCacheProviders(requestBuilder.cacheProviders());
     }
 
-    private void addCacheProviders(List<CacheProviderWithKeyTemplate<T>> providers) throws TemplateParsingException {
-        if (providers != null && providers.size() > 0) {
-            for (CacheProviderWithKeyTemplate<T> cacheProviderWithTemplate: providers) {
-                CacheProvider<T> provider = cacheProviderWithTemplate.getProvider();
-                String key = TemplateParser.toData(this.requestProperties, cacheProviderWithTemplate.getKeyTemplate());
-                cacheProviders.add(new CacheProviderWithKey<T>(provider, key));
-            }
-        }
-    }
-    
     RibbonHystrixObservableCommand<T> createHystrixCommand() {
-        return new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, cacheProviders, requestProperties, template.fallbackHandler(), 
+        return new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, cacheProvider, requestProperties, template.fallbackHandler(), 
                 template.responseValidator(), template.getClassType(), template.hystrixProperties());
     }
     
