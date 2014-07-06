@@ -107,7 +107,7 @@ public class RetryTest {
         URI localUrl = new URI("/test/get503");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request);
+            client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 0));
             fail("Exception expected");
         } catch (ClientException e) {
             assertNotNull(e);
@@ -117,15 +117,16 @@ public class RetryTest {
     
     @Test
     public void testThrottledWithRetrySameServer() throws Exception {
-        client.setMaxAutoRetries(2);
         URI localUrl = new URI("/test/get503");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
-            client.executeWithLoadBalancer(request);
+            client.executeWithLoadBalancer(request, 
+                    DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetries, 1)
+                    .set(CommonClientConfigKey.MaxAutoRetriesNextServer, 0));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
         }
-        assertEquals(1, lb.getLoadBalancerStats().getSingleServerStat(localServer).getSuccessiveConnectionFailureCount());        
+        assertEquals(2, lb.getLoadBalancerStats().getSingleServerStat(localServer).getSuccessiveConnectionFailureCount());        
     }
     
     @Test

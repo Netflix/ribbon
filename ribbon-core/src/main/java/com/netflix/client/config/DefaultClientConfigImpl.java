@@ -110,11 +110,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = Boolean.TRUE;
 
-    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = Boolean.TRUE;
+    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = Boolean.FALSE;
 
     public static final float DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED = 0.0f;
 
-    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = 0;
+    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = 1;
 
     public static final int DEFAULT_MAX_AUTO_RETRIES = 0;
 
@@ -889,7 +889,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
-    public <T> IClientConfig set(IClientConfigKey<T> key, T value) {
+    public <T> DefaultClientConfigImpl set(IClientConfigKey<T> key, T value) {
         properties.put(key.key(), value);
         return this;
     }

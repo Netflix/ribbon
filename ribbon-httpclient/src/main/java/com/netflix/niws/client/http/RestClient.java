@@ -138,7 +138,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     public RestClient(ILoadBalancer lb, Client jerseyClient) {
         super(lb);
         this.restClient = jerseyClient;
-        this.setErrorHandler(new HttpClientLoadBalancerErrorHandler());
+        this.setRetryHandler(new HttpClientLoadBalancerErrorHandler());
     }
 
     @Override
@@ -161,7 +161,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                 Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ReadTimeout))));
 
         this.restClient = apacheHttpClientSpecificInitialization();
-        this.setErrorHandler(new HttpClientLoadBalancerErrorHandler(ncc));
+        this.setRetryHandler(new HttpClientLoadBalancerErrorHandler(ncc));
     }
 
     protected Client apacheHttpClientSpecificInitialization() {
@@ -707,15 +707,15 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     public RequestSpecificRetryHandler getRequestSpecificRetryHandler(
             HttpRequest request, IClientConfig requestConfig) {
         if (!request.isRetriable()) {
-            return new RequestSpecificRetryHandler(false, false, this.getErrorHandler(), requestConfig);
+            return new RequestSpecificRetryHandler(false, false, this.getRetryHandler(), requestConfig);
         }
         if (this.ncc.get(CommonClientConfigKey.OkToRetryOnAllOperations, false)) {
-            return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
+            return new RequestSpecificRetryHandler(true, true, this.getRetryHandler(), requestConfig);
         }
         if (request.getVerb() != HttpRequest.Verb.GET) {
-            return new RequestSpecificRetryHandler(true, false, this.getErrorHandler(), requestConfig);
+            return new RequestSpecificRetryHandler(true, false, this.getRetryHandler(), requestConfig);
         } else {
-            return new RequestSpecificRetryHandler(true, true, this.getErrorHandler(), requestConfig);
+            return new RequestSpecificRetryHandler(true, true, this.getRetryHandler(), requestConfig);
         } 
     }
 	

@@ -63,7 +63,7 @@ public class LoadBalancerContext implements IClientConfigAware {
     protected int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
     protected int maxAutoRetries = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES;
 
-    protected RetryHandler errorHandler = new DefaultLoadBalancerRetryHandler();
+    protected RetryHandler defaultRetryHandler = new DefaultLoadBalancerRetryHandler();
 
 
     protected boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
@@ -87,7 +87,7 @@ public class LoadBalancerContext implements IClientConfigAware {
 
     public LoadBalancerContext(ILoadBalancer lb, IClientConfig clientConfig, RetryHandler handler) {
         this(lb, clientConfig);
-        this.errorHandler = handler;
+        this.defaultRetryHandler = handler;
     }
 
     /**
@@ -107,7 +107,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         maxAutoRetriesNextServer = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer);
 
         okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
-        errorHandler = new DefaultLoadBalancerRetryHandler(clientConfig);
+        defaultRetryHandler = new DefaultLoadBalancerRetryHandler(clientConfig);
         
         tracer = getExecuteTracer();
 
@@ -137,18 +137,34 @@ public class LoadBalancerContext implements IClientConfigAware {
         this.lb = lb;
     }
 
+    /**
+     * Use {@link #getRetryHandler()} 
+     */
+    @Deprecated
     public int getMaxAutoRetriesNextServer() {
         return maxAutoRetriesNextServer;
     }
 
+    /**
+     * Use {@link #setRetryHandler(RetryHandler)} 
+     */
+    @Deprecated
     public void setMaxAutoRetriesNextServer(int maxAutoRetriesNextServer) {
         this.maxAutoRetriesNextServer = maxAutoRetriesNextServer;
     }
 
+    /**
+     * Use {@link #getRetryHandler()} 
+     */
+    @Deprecated
     public int getMaxAutoRetries() {
         return maxAutoRetries;
     }
 
+    /**
+     * Use {@link #setRetryHandler(RetryHandler)} 
+     */
+    @Deprecated
     public void setMaxAutoRetries(int maxAutoRetries) {
         this.maxAutoRetries = maxAutoRetries;
     }
@@ -257,7 +273,7 @@ public class LoadBalancerContext implements IClientConfigAware {
     protected void noteRequestCompletion(ServerStats stats, Object response, Throwable e, long responseTime, RetryHandler errorHandler) {
         try {
             recordStats(stats, responseTime);
-            RetryHandler callErrorHandler = errorHandler == null ? getErrorHandler() : errorHandler;
+            RetryHandler callErrorHandler = errorHandler == null ? getRetryHandler() : errorHandler;
             if (callErrorHandler != null && response != null) {
                 stats.clearSuccessiveConnectionFailureCount();
             } else if (callErrorHandler != null && e != null) {
@@ -280,7 +296,7 @@ public class LoadBalancerContext implements IClientConfigAware {
     protected void noteError(ServerStats stats, ClientRequest request, Throwable e, long responseTime) {
         try {
             recordStats(stats, responseTime);
-            RetryHandler errorHandler = getErrorHandler();
+            RetryHandler errorHandler = getRetryHandler();
             if (errorHandler != null && e != null) {
                 if (errorHandler.isCircuitTrippingException(e)) {
                     stats.incrementSuccessiveConnectionFailureCount();                    
@@ -301,7 +317,7 @@ public class LoadBalancerContext implements IClientConfigAware {
     protected void noteResponse(ServerStats stats, ClientRequest request, Object response, long responseTime) {
         try {
             recordStats(stats, responseTime);
-            RetryHandler errorHandler = getErrorHandler();
+            RetryHandler errorHandler = getRetryHandler();
             if (errorHandler != null && response != null) {
                 stats.clearSuccessiveConnectionFailureCount();
             } 
@@ -651,12 +667,12 @@ public class LoadBalancerContext implements IClientConfigAware {
         return true;
     }
 
-    public final RetryHandler getErrorHandler() {
-        return errorHandler;
+    public final RetryHandler getRetryHandler() {
+        return defaultRetryHandler;
     }
 
-    public final void setErrorHandler(RetryHandler errorHandler) {
-        this.errorHandler = errorHandler;
+    public final void setRetryHandler(RetryHandler retryHandler) {
+        this.defaultRetryHandler = retryHandler;
     }
 
     public final boolean isOkToRetryOnAllOperations() {

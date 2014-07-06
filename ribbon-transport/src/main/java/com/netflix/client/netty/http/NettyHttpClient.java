@@ -26,7 +26,6 @@ import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.contexts.ContextPipelineConfigurators;
-import io.reactivex.netty.contexts.RequestIdProvider;
 import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
@@ -46,21 +45,18 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import rx.Observable;
-import rx.functions.Func1;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.netflix.client.ClientException;
-import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
-import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 
@@ -109,7 +105,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
         boolean okToRetryOnAllErrors = request.getMethod().equals(HttpMethod.GET);
-        return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, lbExecutor.getErrorHandler(), requestConfig);
+        return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, lbExecutor.getRetryHandler(), requestConfig);
     }
         
     protected void setHost(HttpClientRequest<?> request, String host) {
@@ -127,27 +123,12 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         return submit(host, port, request, getRxClientConfig(null));
     }
        
-    /**
-     * Submit the request. If the server returns 503, it will emit {@link ClientException} as an error from the returned {@link Observable}.
-     *  
-     * @return
-     */
     public Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request, ClientConfig rxClientConfig) {
         Preconditions.checkNotNull(host);
         Preconditions.checkNotNull(request);
         HttpClient<I,O> rxClient = getRxClient(host, port);
         setHost(request, host);
-        return rxClient.submit(request, rxClientConfig).flatMap(new Func1<HttpClientResponse<O>, Observable<HttpClientResponse<O>>>() {
-            @Override
-            public Observable<HttpClientResponse<O>> call(
-                    HttpClientResponse<O> t1) {
-                if (t1.getStatus().code() == 503) {
-                    return Observable.error(new ClientException(ErrorType.SERVER_THROTTLED, t1.getStatus().reasonPhrase()));
-                } else {
-                    return Observable.from(t1);
-                }
-            }
-        });        
+        return rxClient.submit(request, rxClientConfig);
     }
     
     private RxClient.ClientConfig getRxClientConfig(IClientConfig requestConfig) {

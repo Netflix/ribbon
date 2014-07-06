@@ -1,6 +1,34 @@
+/*
+ *
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.client.netty;
 
+import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
+import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
+import io.reactivex.netty.client.PoolLimitDeterminationStrategy;
+import io.reactivex.netty.client.PoolStats;
+import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.pipeline.PipelineConfigurator;
+
 import java.util.concurrent.ScheduledExecutorService;
+
+import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -10,17 +38,6 @@ import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.Server;
-
-import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
-import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
-import io.reactivex.netty.client.PoolLimitDeterminationStrategy;
-import io.reactivex.netty.client.PoolStats;
-import io.reactivex.netty.client.RxClient;
-import io.reactivex.netty.pipeline.PipelineConfigurator;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Observable.OnSubscribe;
 
 public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxClient<I, O>> extends LoadBalancingRxClient<I, O, T>{
     protected CompositePoolLimitDeterminationStrategy poolStrategy;
