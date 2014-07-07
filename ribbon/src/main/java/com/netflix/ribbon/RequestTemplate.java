@@ -46,7 +46,7 @@ public abstract class RequestTemplate<T, R> {
      */
     public abstract RequestTemplate<T, R> withRequestCacheKey(String cacheKeyTemplate);
 
-    public abstract RequestTemplate<T, R> addCacheProvider(String cacheKeyTemplate, CacheProvider<T> cacheProvider);
+    public abstract RequestTemplate<T, R> withCacheProvider(String cacheKeyTemplate, CacheProvider<T> cacheProvider);
     
     public abstract RequestTemplate<T, R> withHystrixProperties(HystrixObservableCommand.Setter setter);
     

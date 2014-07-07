@@ -219,6 +219,9 @@ class MethodTemplate {
         private void extractCacheProviders() {
             CacheProviders annotation = method.getAnnotation(CacheProviders.class);
             if (annotation != null) {
+                if (annotation.value().length > 1) {
+                    throw new ProxyAnnotationException(format("more than one cache provider defined for method %s", methodName()));                    
+                }
                 for (Provider provider : annotation.value()) {
                     Class<? extends CacheProviderFactory<?>> providerClass = provider.provider();
                     CacheProviderFactory<?> factory = Utils.newInstance(providerClass);
