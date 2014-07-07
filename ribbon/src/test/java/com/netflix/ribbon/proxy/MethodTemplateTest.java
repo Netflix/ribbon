@@ -1,5 +1,7 @@
 package com.netflix.ribbon.proxy;
 
+import io.netty.buffer.ByteBuf;
+
 import com.netflix.ribbon.evache.EvCacheOptions;
 import com.netflix.ribbon.proxy.MethodTemplate.CacheProviderEntry;
 import com.netflix.ribbon.proxy.sample.Movie;
@@ -87,8 +89,9 @@ public class MethodTemplateTest {
     public void testWithRawContentSourceContent() throws Exception {
         MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithRawContentSource"));
 
-        assertEquals(0, methodTemplate.getContentArgPosition());
-        assertNull(methodTemplate.getContentTransformerClass());
+        assertEquals(2, methodTemplate.getContentArgPosition());
+        assertNotNull(methodTemplate.getContentTransformerClass());
+        assertEquals(Movie.class, methodTemplate.getGenericContentType());
     }
 
     @Test

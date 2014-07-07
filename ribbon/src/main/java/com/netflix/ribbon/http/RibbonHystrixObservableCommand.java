@@ -39,7 +39,7 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
     private final HttpClient<ByteBuf, ByteBuf> httpClient;
     private final HttpClientRequest<ByteBuf> httpRequest;
     private final String hystrixCacheKey;
-    private final List<CacheProviderWithKey<T>> cacheProviders;
+    private final CacheProviderWithKey<T> cacheProvider;
     private final Map<String, Object> requestProperties;
     private final FallbackHandler<T> fallbackHandler;
     private final Class<? extends T> classType;
@@ -47,7 +47,7 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
 
     RibbonHystrixObservableCommand(HttpClient<ByteBuf, ByteBuf> httpClient,
             HttpClientRequest<ByteBuf> httpRequest, String hystrixCacheKey,
-            List<CacheProviderWithKey<T>> cacheProviders,
+            CacheProviderWithKey<T> cacheProvider,
             Map<String, Object> requestProperties,
             FallbackHandler<T> fallbackHandler,
             ResponseValidator<HttpClientResponse<ByteBuf>> validator,
@@ -59,7 +59,7 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
         this.validator = validator;
         this.httpRequest = httpRequest;
         this.hystrixCacheKey = hystrixCacheKey;
-        this.cacheProviders = cacheProviders;
+        this.cacheProvider = cacheProvider;
         this.classType = classType;
         this.requestProperties = requestProperties;
     }
@@ -85,13 +85,8 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
     @Override
     protected Observable<T> run() {
         Observable<T> cached = null;
-        for (CacheProviderWithKey<T> provider: cacheProviders) { 
-            Observable<T> fromTheProvider = provider.getCacheProvider().get(provider.getKey(), this.requestProperties);
-            if (cached == null) {
-                cached = fromTheProvider;
-            } else {
-                cached = cached.onErrorResumeNext(fromTheProvider);
-            }
+        if (cacheProvider != null) {
+            cached = cacheProvider.getCacheProvider().get(cacheProvider.getKey(), this.requestProperties);
         }
         Observable<HttpClientResponse<ByteBuf>> httpResponseObservable = httpClient.submit(httpRequest);
         if (this.validator != null) {

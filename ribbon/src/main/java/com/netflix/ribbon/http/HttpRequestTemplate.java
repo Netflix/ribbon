@@ -50,7 +50,7 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     private ResponseValidator<HttpClientResponse<ByteBuf>> validator;
     private HttpMethod method;
     private final String name;
-    private final List<CacheProviderWithKeyTemplate<T>> cacheProviders;
+    private CacheProviderWithKeyTemplate<T> cacheProvider;
     private ParsedTemplate hystrixCacheKeyTemplate;
     private Map<String, ParsedTemplate> parsedTemplates;
     private final Class<? extends T> classType;
@@ -78,13 +78,12 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     public HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType) {
         this.client = group.getClient();
         this.classType = classType;
+        clientName = client.name();
         if (client instanceof LoadBalancingRxClient) {
             LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
             maxResponseTime = ribbonClient.getResponseTimeOut();
-            clientName = ribbonClient.getName();
             concurrentRequestLimit = ribbonClient.getMaxConcurrentRequests();
         } else {
-            clientName = client.getClass().getName();
             maxResponseTime = -1;
             concurrentRequestLimit = -1;
         }
@@ -92,7 +91,6 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         this.group = group;
         headers = new DefaultHttpHeaders();
         headers.add(group.getHeaders());
-        cacheProviders = new LinkedList<CacheProviderWithKeyTemplate<T>>();
         parsedTemplates = new HashMap<String, ParsedTemplate>();
     }
     
@@ -151,10 +149,10 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     }
 
     @Override
-    public HttpRequestTemplate<T> addCacheProvider(String keyTemplate, 
+    public HttpRequestTemplate<T> withCacheProvider(String keyTemplate, 
             CacheProvider<T> cacheProvider) {
         ParsedTemplate template = createParsedTemplate(keyTemplate);
-        cacheProviders.add(new CacheProviderWithKeyTemplate<T>(template, cacheProvider));
+        this.cacheProvider = new CacheProviderWithKeyTemplate<T>(template, cacheProvider);
         return this;
     }
         
@@ -162,8 +160,8 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         return hystrixCacheKeyTemplate;
     }
     
-    List<CacheProviderWithKeyTemplate<T>> cacheProviders() {
-        return cacheProviders;
+    CacheProviderWithKeyTemplate<T> cacheProvider() {
+        return cacheProvider;
     }
     
     ResponseValidator<HttpClientResponse<ByteBuf>> responseValidator() {
@@ -205,7 +203,7 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     @Override
     public HttpRequestTemplate<T> copy(String name) {
         HttpRequestTemplate<T> newTemplate = new HttpRequestTemplate<T>(name, this.group, this.classType);
-        newTemplate.cacheProviders.addAll(this.cacheProviders);
+        newTemplate.cacheProvider = this.cacheProvider;
         newTemplate.method = this.method;
         newTemplate.headers.add(this.headers);
         newTemplate.parsedTemplates.putAll(this.parsedTemplates);

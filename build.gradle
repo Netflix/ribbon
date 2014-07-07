@@ -71,7 +71,6 @@ project(':ribbon-transport') {
     dependencies {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
-        compile project(':ribbon-core')    
         compile 'com.netflix.rxnetty:rx-netty:0.3.8'
         compile 'com.netflix.rxnetty:rx-netty-contexts:0.3.8'
         compile 'com.netflix.rxnetty:rx-netty-servo:0.3.8'

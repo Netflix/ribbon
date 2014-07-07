@@ -55,7 +55,7 @@ import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListChangeListener;
 
-public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> implements Closeable, RxClient<I, O> {
+public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> implements RxClient<I, O> {
 
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancingRxClient.class);
     protected final ConcurrentMap<Server, T> rxClientCache;
@@ -113,11 +113,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     public IClientConfig getClientConfig() {
         return clientConfig;
     }
-    
-    public String getName() {
-        return clientConfig.getClientName();
-    }
-    
+        
     public int getResponseTimeOut() {
         int maxRetryNextServer = 0;
         int maxRetrySameServer = 0;
@@ -226,13 +222,6 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         client.shutdown();
         return client;
     }
-
-    @Override
-    public void close() {
-        for (Server server: rxClientCache.keySet()) {
-            removeClient(server);
-        }
-    }
     
     @Override
     public Observable<ObservableConnection<O, I>> connect() {
@@ -247,7 +236,9 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
 
     @Override
     public void shutdown() {
-        close();
+        for (Server server: rxClientCache.keySet()) {
+            removeClient(server);
+        }
     }
 
     @Override

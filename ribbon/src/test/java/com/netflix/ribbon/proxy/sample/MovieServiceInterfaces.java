@@ -1,5 +1,9 @@
 package com.netflix.ribbon.proxy.sample;
 
+import java.util.concurrent.atomic.AtomicReference;
+
+import rx.Observable;
+
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.proxy.annotation.CacheProviders;
 import com.netflix.ribbon.proxy.annotation.Content;
@@ -147,6 +151,11 @@ public class MovieServiceInterfaces {
     @ResourceGroup(name = "testResourceGroup")
     public static interface PostsWithDifferentContentTypes {
 
+        @TemplateName("rawContentSource")
+        @Http(method = HttpMethod.POST, uriTemplate = "/content/rawContentSource")
+        @ContentTransformerClass(MovieTransformer.class)
+        RibbonRequest<Void> postwithRawContentSource(AtomicReference<Object> arg1, int arg2, @Content Observable<Movie> movie);
+        
         @TemplateName("byteBufContent")
         @Http(method = HttpMethod.POST, uriTemplate = "/content/byteBufContent")
         RibbonRequest<Void> postwithByteBufContent(@Content ByteBuf byteBuf);

@@ -27,8 +27,7 @@ import com.netflix.ribbon.examples.rx.common.RxMovieTransformer;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.RawContentSource.SingletonRawSource;
-import io.reactivex.netty.serialization.StringTransformer;
+import io.reactivex.netty.channel.StringTransformer;
 import rx.Observable;
 
 /**
@@ -78,13 +77,13 @@ public class RxMovieTemplateExample extends AbstractRxMovieClient {
     protected Observable<Void>[] triggerMoviesRegistration() {
         return new Observable[]{
                 registerMovieTemplate.requestBuilder()
-                        .withRawContentSource(new SingletonRawSource<Movie>(Movie.ORANGE_IS_THE_NEW_BLACK, new RxMovieTransformer()))
+                        .withRawContentSource(Observable.just(Movie.ORANGE_IS_THE_NEW_BLACK), new RxMovieTransformer())
                         .build().observe(),
                 registerMovieTemplate.requestBuilder()
-                        .withRawContentSource(new SingletonRawSource<Movie>(Movie.BREAKING_BAD, new RxMovieTransformer()))
+                        .withRawContentSource(Observable.just(Movie.BREAKING_BAD), new RxMovieTransformer())
                         .build().observe(),
                 registerMovieTemplate.requestBuilder()
-                        .withRawContentSource(new SingletonRawSource<Movie>(Movie.HOUSE_OF_CARDS, new RxMovieTransformer()))
+                        .withRawContentSource(Observable.just(Movie.HOUSE_OF_CARDS), new RxMovieTransformer())
                         .build().observe()
         };
     }
@@ -94,11 +93,11 @@ public class RxMovieTemplateExample extends AbstractRxMovieClient {
     protected Observable<Void>[] triggerRecommendationsUpdate() {
         return new Observable[]{
                 updateRecommendationTemplate.requestBuilder()
-                        .withRawContentSource(new SingletonRawSource<String>(Movie.ORANGE_IS_THE_NEW_BLACK.getId(), new StringTransformer()))
+                        .withRawContentSource(Observable.just(Movie.ORANGE_IS_THE_NEW_BLACK.getId()), new StringTransformer())
                         .withRequestProperty("userId", TEST_USER)
                         .build().observe(),
                 updateRecommendationTemplate.requestBuilder()
-                        .withRawContentSource(new SingletonRawSource<String>(Movie.BREAKING_BAD.getId(), new StringTransformer()))
+                        .withRawContentSource(Observable.just(Movie.BREAKING_BAD.getId()), new StringTransformer())
                         .withRequestProperty("userId", TEST_USER)
                         .build().observe()
         };

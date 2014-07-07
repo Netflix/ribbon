@@ -80,14 +80,10 @@ public class TemplateBuilderTest {
         HttpRequestTemplate<String> template = group.newRequestTemplate("testCacheKeyTemplates", String.class);
         template.withUriTemplate("/foo/{id}")
                 .withMethod("GET")
-            .addCacheProvider("cache.{id}", new FakeCacheProvider("cache.3"))
-            .addCacheProvider("/cache/{id}", new FakeCacheProvider("/cache/5"));
-        RibbonRequest<String> request = template.requestBuilder().withRequestProperty("id", 3).build();
-        String result = request.execute();
-        assertEquals("cache.3", result); 
+            .withCacheProvider("/cache/{id}", new FakeCacheProvider("/cache/5"));
         
-        request = template.requestBuilder().withRequestProperty("id", 5).build();
-        result = request.execute();
+        RibbonRequest<String> request = template.requestBuilder().withRequestProperty("id", 5).build();
+        String result = request.execute();
         assertEquals("/cache/5", result);
     }
     

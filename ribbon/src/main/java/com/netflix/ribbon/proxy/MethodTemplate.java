@@ -40,11 +40,14 @@ import io.reactivex.netty.channel.ContentTransformer;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.hibernate.validator.cfg.defs.GenericConstraintDef;
 
 import rx.Observable;
 
@@ -71,6 +74,7 @@ class MethodTemplate {
     private final int contentArgPosition;
     private final Class<? extends ContentTransformer<?>> contentTansformerClass;
     private final Class<?> resultType;
+    private final Class<?> genericContentType;
     private final String hystrixCacheKey;
     private final FallbackHandler<?> hystrixFallbackHandler;
     private final HttpResponseValidator hystrixResponseValidator;
@@ -89,6 +93,7 @@ class MethodTemplate {
         contentArgPosition = values.contentArgPosition;
         contentTansformerClass = values.contentTansformerClass;
         resultType = values.resultType;
+        genericContentType = values.genericContentType;
         hystrixCacheKey = values.hystrixCacheKey;
         hystrixFallbackHandler = values.hystrixFallbackHandler;
         hystrixResponseValidator = values.hystrixResponseValidator;
@@ -140,6 +145,10 @@ class MethodTemplate {
         return resultType;
     }
 
+    public Class<?> getGenericContentType() {
+        return genericContentType;
+    }
+    
     public String getHystrixCacheKey() {
         return hystrixCacheKey;
     }
@@ -197,6 +206,7 @@ class MethodTemplate {
         private int contentArgPosition;
         private Class<? extends ContentTransformer<?>> contentTansformerClass;
         private Class<?> resultType;
+        private Class<?> genericContentType;
         public String hystrixCacheKey;
         private FallbackHandler<?> hystrixFallbackHandler;
         private HttpResponseValidator hystrixResponseValidator;
@@ -220,6 +230,9 @@ class MethodTemplate {
         private void extractCacheProviders() {
             CacheProviders annotation = method.getAnnotation(CacheProviders.class);
             if (annotation != null) {
+                if (annotation.value().length > 1) {
+                    throw new ProxyAnnotationException(format("more than one cache provider defined for method %s", methodName()));                    
+                }
                 for (Provider provider : annotation.value()) {
                     Class<? extends CacheProviderFactory<?>> providerClass = provider.provider();
                     CacheProviderFactory<?> factory = Utils.newInstance(providerClass);
@@ -305,6 +318,15 @@ class MethodTemplate {
                 throw new ProxyAnnotationException(format("Method %s annotates multiple parameters as @Content - at most one is allowed ", methodName()));
             }
             contentArgPosition = pos;
+            if (contentArgPosition >= 0) {
+                Type type = method.getGenericParameterTypes()[contentArgPosition];
+                if (type instanceof ParameterizedType) {
+                    ParameterizedType pType = (ParameterizedType) type;
+                    if (pType.getActualTypeArguments() != null) {
+                        genericContentType = (Class<?>) pType.getActualTypeArguments()[0];
+                    }
+                }
+            }
         }
 
         private void extractContentTransformerClass() {
@@ -317,7 +339,7 @@ class MethodTemplate {
             }
             if (annotation == null) {
                 Class<?> contentType = method.getParameterTypes()[contentArgPosition];
-                if (Observable.class.isAssignableFrom(contentType)
+                if ((Observable.class.isAssignableFrom(contentType) && ByteBuf.class.isAssignableFrom(genericContentType))
                         || ByteBuf.class.isAssignableFrom(contentType)
                         || byte[].class.isAssignableFrom(contentType)
                         || String.class.isAssignableFrom(contentType)) {

@@ -17,12 +17,16 @@ import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.ShortMovieService;
 
 import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.channel.ContentTransformer;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.annotation.Mock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+
+import rx.Observable;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -77,8 +81,8 @@ public class MethodTemplateExecutorTest {
         expect(httpRequestTemplateMock.withRequestCacheKey("findMovieById/{id}")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.addCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.addCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateMock.withCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateMock);
         expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock);
 
         replayAll();
@@ -134,7 +138,8 @@ public class MethodTemplateExecutorTest {
         expect(httpResourceGroupMock.newRequestTemplate(methodName, Void.class)).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withRequestCacheKey(methodName)).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
-
+        expect(requestBuilderMock.withRawContentSource(anyObject(Observable.class), anyObject(ContentTransformer.class))).andReturn(requestBuilderMock);
+        
         replayAll();
 
         MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, methodName);

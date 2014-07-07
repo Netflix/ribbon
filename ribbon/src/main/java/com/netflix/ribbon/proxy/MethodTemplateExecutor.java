@@ -132,12 +132,12 @@ class MethodTemplateExecutor {
     private void withCacheProviders(HttpRequestTemplate<?> httpRequestTemplate) {
         if (methodTemplate.getCacheProviders() != null) {
             for (MethodTemplate.CacheProviderEntry entry : methodTemplate.getCacheProviders()) {
-                httpRequestTemplate.addCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
+                httpRequestTemplate.withCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
             }
         }
         EvCacheOptions evCacheOptions = methodTemplate.getEvCacheOptions();
         if (evCacheOptions != null) {
-            httpRequestTemplate.addCacheProvider(evCacheOptions.getCacheKeyTemplate(), (EvCacheProvider) evCacheProviderPool.getMatching(evCacheOptions));
+            httpRequestTemplate.withCacheProvider(evCacheOptions.getCacheKeyTemplate(), (EvCacheProvider) evCacheProviderPool.getMatching(evCacheOptions));
         }
     }
 
@@ -157,7 +157,12 @@ class MethodTemplateExecutor {
         }
         Object contentValue = args[methodTemplate.getContentArgPosition()];
         if (contentValue instanceof Observable) {
-            requestBuilder.withContent((Observable<ByteBuf>) contentValue); 
+            if (ByteBuf.class.isAssignableFrom(methodTemplate.getGenericContentType())) {
+                requestBuilder.withContent((Observable<ByteBuf>) contentValue); 
+            } else {
+                ContentTransformer contentTransformer = Utils.newInstance(methodTemplate.getContentTransformerClass());
+                requestBuilder.withRawContentSource((Observable) contentValue, contentTransformer);
+            }
         } else if (contentValue instanceof ByteBuf) {
             requestBuilder.withRawContentSource(Observable.just((ByteBuf) contentValue), BYTE_BUF_TRANSFORMER);
         } else if (contentValue instanceof byte[]) {

@@ -121,8 +121,8 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
         return vars;
     }
     
-    List<CacheProviderWithKeyTemplate<T>> cacheProviders() {
-        return requestTemplate.cacheProviders();
+    CacheProviderWithKeyTemplate<T> cacheProvider() {
+        return requestTemplate.cacheProvider();
     }
     
     HttpRequestTemplate<T> template() {

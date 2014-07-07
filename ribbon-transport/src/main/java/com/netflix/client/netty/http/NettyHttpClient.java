@@ -114,7 +114,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (requestIdHeaderName != null) {
             requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
         }
-        listener = HttpClientListener.newHttpListener(getName());
+        listener = HttpClientListener.newHttpListener(name());
     }
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
