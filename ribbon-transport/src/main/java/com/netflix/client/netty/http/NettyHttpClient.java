@@ -86,8 +86,6 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     
     private HttpRequestIdProvider requestIdProvider;
     
-    HttpClientListener listener;
-    
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
@@ -114,7 +112,6 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (requestIdHeaderName != null) {
             requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
         }
-        listener = HttpClientListener.newHttpListener(name());
     }
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
@@ -295,19 +292,17 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             }
         }
         HttpClient<I, O> client = clientBuilder.build();
-        client.subscribe(listener);
         return client;
-    }
-
-    @Override
-    public Subscription subscribe(
-            MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
-        // TODO Auto-generated method stub
-        return null;
     }
     
     HttpClientListener getListener() {
-        return listener;
+        return (HttpClientListener) listener;
+    }
+
+    @Override
+    protected MetricEventsListener<? extends ClientMetricsEvent<?>> createListener(
+            String name) {
+        return HttpClientListener.newHttpListener(name);
     }
 
 }

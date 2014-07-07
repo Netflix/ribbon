@@ -24,6 +24,7 @@ import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.protocol.udp.client.UdpClientBuilder;
+import io.reactivex.netty.servo.udp.UdpClientListener;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
@@ -55,18 +56,9 @@ public class LoadBalancingUdpClient<I, O> extends LoadBalancingRxClient<I, O, Rx
         return builder.build();
     }
 
-
     @Override
-    public Subscription subscribe(
-            MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-
-    @Override
-    public String name() {
-        // TODO Auto-generated method stub
-        return null;
+    protected MetricEventsListener<? extends ClientMetricsEvent<?>> createListener(
+            String name) {
+        return UdpClientListener.newUdpListener(name);
     }
 }

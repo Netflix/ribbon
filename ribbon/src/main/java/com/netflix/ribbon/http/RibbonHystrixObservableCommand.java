@@ -45,6 +45,14 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
     private final Class<? extends T> classType;
     private final ResponseValidator<HttpClientResponse<ByteBuf>> validator;
 
+    private static final Func1<ByteBuf, ByteBuf> refCountIncrementer = new Func1<ByteBuf, ByteBuf>() {
+        @Override
+        public ByteBuf call(ByteBuf t1) {
+            t1.retain();
+            return t1;
+        }
+    };
+
     RibbonHystrixObservableCommand(HttpClient<ByteBuf, ByteBuf> httpClient,
             HttpClientRequest<ByteBuf> httpRequest, String hystrixCacheKey,
             CacheProviderWithKey<T> cacheProvider,
@@ -79,6 +87,14 @@ class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
             return super.getFallback();
         } else {
             return fallbackHandler.getFallback(this, this.requestProperties);
+        }
+    }
+
+    Observable<T> getObservable() {
+        if (ByteBuf.class.isAssignableFrom(classType)) {
+            return ((Observable) toObservable()).map(refCountIncrementer);
+        } else {
+            return toObservable();
         }
     }
 

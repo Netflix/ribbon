@@ -28,6 +28,7 @@ import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
+import io.reactivex.netty.servo.tcp.TcpClientListener;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
@@ -72,9 +73,9 @@ public class LoadBalancingTcpClient<I, O> extends LoadBalancingRxClientWithPoolO
     }
 
     @Override
-    public Subscription subscribe(
-            MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
-        // TODO Auto-generated method stub
-        return null;
+    protected MetricEventsListener<? extends ClientMetricsEvent<?>> createListener(
+            String name) {
+        return TcpClientListener.newListener(name);
     }
+
 }

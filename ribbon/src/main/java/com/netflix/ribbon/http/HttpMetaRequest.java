@@ -117,7 +117,7 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
     @Override
     public Future<RibbonResponse<T>> queue() {
         final RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
-        final Future<T> f = hystrixCommand.queue();
+        final Future<T> f = hystrixCommand.getObservable().toBlocking().toFuture();
         return new Future<RibbonResponse<T>>() {
             @Override
             public boolean cancel(boolean arg0) {
@@ -154,7 +154,7 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
     @Override
     public RibbonResponse<T> execute() {
         RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
-        T obj = hystrixCommand.execute();
+        T obj = hystrixCommand.getObservable().toBlocking().last();
         return new HttpMetaResponse<T>(obj, hystrixCommand);
     }    
 }

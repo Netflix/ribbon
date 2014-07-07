@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 import rx.Observable;
+import rx.functions.Func1;
 
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RequestWithMetaData;
@@ -81,12 +82,12 @@ class HttpRequest<T> implements RibbonRequest<T> {
     
     @Override
     public T execute() {
-        return createHystrixCommand().execute();
+        return createHystrixCommand().getObservable().toBlocking().last();
     }
 
     @Override
     public Future<T> queue() {
-        return createHystrixCommand().queue();
+        return createHystrixCommand().getObservable().toBlocking().toFuture();
     }
 
     @Override

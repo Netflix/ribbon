@@ -21,6 +21,7 @@ import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.metrics.MetricEventsListener;
+import io.reactivex.netty.metrics.MetricsEvent;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 
 import java.io.Closeable;
@@ -30,6 +31,7 @@ import java.net.URLDecoder;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -38,6 +40,8 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 import rx.Subscription;
+import rx.subjects.PublishSubject;
+import rx.subscriptions.Subscriptions;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -64,6 +68,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     protected final IClientConfig clientConfig;
     protected final RetryHandler retryHandler;
     protected final AbstractSslContextFactory sslContextFactory;
+    protected final MetricEventsListener<? extends ClientMetricsEvent<?>> listener;
 
     public LoadBalancingRxClient(IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
@@ -79,6 +84,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         this.retryHandler = retryHandler;
         this.pipelineConfigurator = pipelineConfigurator;
         this.clientConfig = config;
+        this.listener = createListener(config.getClientName());
         boolean isSecure = getProperty(IClientConfigKey.Keys.IsSecure, null, false); 
         if (isSecure) {
             final URL trustStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.TrustStore);
@@ -208,6 +214,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
             return client;
         } else {
             client = cacheLoadRxClient(server);
+            client.subscribe(listener);
             T old = rxClientCache.putIfAbsent(server, client);
             if (old != null) {
                 return old;
@@ -234,6 +241,8 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         });
     }
 
+    protected abstract MetricEventsListener<? extends ClientMetricsEvent<?>> createListener(String name);
+    
     @Override
     public void shutdown() {
         for (Server server: rxClientCache.keySet()) {
@@ -244,5 +253,11 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     @Override
     public String name() {
         return clientConfig.getClientName();
+    }
+
+    @Override
+    public Subscription subscribe(
+            MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
+       return Subscriptions.empty();
     }
 }

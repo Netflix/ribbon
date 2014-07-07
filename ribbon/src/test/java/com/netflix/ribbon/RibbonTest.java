@@ -64,14 +64,14 @@ public class RibbonTest {
     
     
     @Test
-    public void testCommand() throws IOException {
+    public void testCommand() throws IOException, InterruptedException, ExecutionException {
         // LogManager.getRootLogger().setLevel(Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
         MockResponse response = new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
         .setBody(content);
-        server.enqueue(response);
-        
+        server.enqueue(response);        
+        server.enqueue(response);       
         server.enqueue(response);       
         server.play();
         
@@ -85,10 +85,13 @@ public class RibbonTest {
                 .withUriTemplate("/")
                 .withMethod("GET")
                 .requestBuilder().build();
-        String result = toStringBlocking(request);
+        String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
         // repeat the same request
-        result = toStringBlocking(request);
+        result = request.execute().toString(Charset.defaultCharset());
+        assertEquals(content, result);
+        
+        result = request.queue().get().toString(Charset.defaultCharset());
         assertEquals(content, result);
     }
     
@@ -133,6 +136,8 @@ public class RibbonTest {
                 .setBody(content));
         server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
                 .setBody(content));       
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+                .setBody(content));       
 
         server.play();
         
@@ -172,7 +177,12 @@ public class RibbonTest {
         Future<RibbonResponse<ByteBuf>> future = metaRequest.queue();
         RibbonResponse<ByteBuf> response = future.get();
         assertTrue(future.isDone());
-        assertTrue(response.getHystrixInfo().isSuccessfulExecution());
+        assertEquals(content, response.content().toString(Charset.defaultCharset()));
+        assertTrue(response.getHystrixInfo().isSuccessfulExecution()); 
+        
+        RibbonResponse<ByteBuf> result1 = metaRequest.execute();
+        assertEquals(content, result1.content().toString(Charset.defaultCharset()));
+        assertTrue(result1.getHystrixInfo().isSuccessfulExecution());
     }
 
    
