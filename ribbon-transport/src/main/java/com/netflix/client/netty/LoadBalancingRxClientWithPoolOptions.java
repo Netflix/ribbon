@@ -20,7 +20,6 @@ package com.netflix.client.netty;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
 import io.reactivex.netty.client.PoolLimitDeterminationStrategy;
-import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 
@@ -43,8 +42,6 @@ public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxCli
     protected CompositePoolLimitDeterminationStrategy poolStrategy;
     protected MaxConnectionsBasedStrategy globalStrategy;
     protected int idleConnectionEvictionMills;
-    protected GlobalPoolStats<T> stats;
-    private Observable<PoolStateChangeEvent> poolStateChangeEventObservable; 
     protected ScheduledExecutorService poolCleanerScheduler;
     protected boolean poolEnabled = true;
 
@@ -75,13 +72,6 @@ public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxCli
                     config.getClientName() + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxTotalConnections);
             poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
             idleConnectionEvictionMills = config.get(Keys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
-            stats = new GlobalPoolStats<T>(config.getClientName(), globalStrategy, rxClientCache);
-            poolStateChangeEventObservable = Observable.create(new OnSubscribe<PoolStateChangeEvent>() {
-                @Override
-                public void call(Subscriber<? super PoolStateChangeEvent> t1) {
-                    stats.getPublishSubject().subscribe(t1);
-                }
-            });
         }
     }
 
@@ -97,23 +87,6 @@ public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxCli
         return poolEnabled;
     }
     
-    @Override
-    public Observable<PoolStateChangeEvent> poolStateChangeObservable() {
-        if (poolEnabled) {
-            return poolStateChangeEventObservable;
-        } else {
-            return Observable.empty();
-        }
-    }
-
-    @Override
-    public PoolStats getStats() {
-        if (poolEnabled) {
-            return stats;
-        } 
-        return super.getStats();
-    }
-
     @Override
     public int getMaxConcurrentRequests() {
         if (poolEnabled) {

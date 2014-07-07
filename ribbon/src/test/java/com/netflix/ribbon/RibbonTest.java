@@ -52,6 +52,17 @@ import com.netflix.ribbon.hystrix.FallbackHandler;
 
 public class RibbonTest {
     
+    private static String toStringBlocking(RibbonRequest<ByteBuf> request) {
+        return request.toObservable().map(new Func1<ByteBuf, String>() {
+            @Override
+            public String call(ByteBuf t1) {
+                return t1.toString(Charset.defaultCharset());
+            }
+            
+        }).toBlocking().single();
+    }
+    
+    
     @Test
     public void testCommand() throws IOException {
         // LogManager.getRootLogger().setLevel(Level.DEBUG);
@@ -74,10 +85,10 @@ public class RibbonTest {
                 .withUriTemplate("/")
                 .withMethod("GET")
                 .requestBuilder().build();
-        String result = request.execute().toString(Charset.defaultCharset());
+        String result = toStringBlocking(request);
         assertEquals(content, result);
         // repeat the same request
-        request.execute().toString(Charset.defaultCharset());
+        result = toStringBlocking(request);
         assertEquals(content, result);
     }
     
@@ -104,10 +115,8 @@ public class RibbonTest {
         try {
             RibbonResponse<ByteBuf> ribbonResponse = request.withMetadata().execute();
             assertFalse(ribbonResponse.getHystrixInfo().isResponseFromCache());
-            assertEquals(content, ribbonResponse.content().toString(Charset.defaultCharset()));
             ribbonResponse = request.withMetadata().execute();
             assertTrue(ribbonResponse.getHystrixInfo().isResponseFromCache());
-            assertEquals(content, ribbonResponse.content().toString(Charset.defaultCharset()));
         } finally {
             context.shutdown();
         }
@@ -162,7 +171,6 @@ public class RibbonTest {
         
         Future<RibbonResponse<ByteBuf>> future = metaRequest.queue();
         RibbonResponse<ByteBuf> response = future.get();
-        assertEquals(content, response.content().toString(Charset.defaultCharset()));
         assertTrue(future.isDone());
         assertTrue(response.getHystrixInfo().isSuccessfulExecution());
     }
@@ -325,7 +333,7 @@ public class RibbonTest {
                 .withMethod("GET")
                 .withUriTemplate("/")
                 .requestBuilder().build();
-        String result = request.execute().toString(Charset.defaultCharset());
+        String result = toStringBlocking(request);
         assertEquals(content, result);
     } 
 }

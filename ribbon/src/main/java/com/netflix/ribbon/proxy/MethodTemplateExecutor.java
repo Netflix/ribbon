@@ -24,16 +24,16 @@ import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.reactivex.netty.protocol.http.client.RawContentSource;
-import io.reactivex.netty.protocol.http.client.RawContentSource.SingletonRawSource;
-import io.reactivex.netty.serialization.ContentTransformer;
-import io.reactivex.netty.serialization.StringTransformer;
+import io.reactivex.netty.channel.ContentTransformer;
+import io.reactivex.netty.channel.StringTransformer;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import rx.Observable;
 
 /**
  * @author Tomasz Bak
@@ -42,14 +42,14 @@ class MethodTemplateExecutor {
 
     private static final ContentTransformer<ByteBuf> BYTE_BUF_TRANSFORMER = new ContentTransformer<ByteBuf>() {
         @Override
-        public ByteBuf transform(ByteBuf toTransform, ByteBufAllocator byteBufAllocator) {
+        public ByteBuf call(ByteBuf toTransform, ByteBufAllocator byteBufAllocator) {
             return toTransform;
         }
     };
 
     private static final ContentTransformer<byte[]> BYTE_ARRAY_TRANSFORMER = new ContentTransformer<byte[]>() {
         @Override
-        public ByteBuf transform(byte[] toTransform, ByteBufAllocator byteBufAllocator) {
+        public ByteBuf call(byte[] toTransform, ByteBufAllocator byteBufAllocator) {
             ByteBuf byteBuf = byteBufAllocator.buffer(toTransform.length);
             byteBuf.writeBytes(toTransform);
             return byteBuf;
@@ -156,17 +156,17 @@ class MethodTemplateExecutor {
             return;
         }
         Object contentValue = args[methodTemplate.getContentArgPosition()];
-        if (contentValue instanceof RawContentSource) {
-            requestBuilder.withRawContentSource((RawContentSource<?>) contentValue);
+        if (contentValue instanceof Observable) {
+            requestBuilder.withContent((Observable<ByteBuf>) contentValue); 
         } else if (contentValue instanceof ByteBuf) {
-            requestBuilder.withRawContentSource(new SingletonRawSource(contentValue, BYTE_BUF_TRANSFORMER));
+            requestBuilder.withRawContentSource(Observable.just((ByteBuf) contentValue), BYTE_BUF_TRANSFORMER);
         } else if (contentValue instanceof byte[]) {
-            requestBuilder.withRawContentSource(new SingletonRawSource(contentValue, BYTE_ARRAY_TRANSFORMER));
+            requestBuilder.withRawContentSource(Observable.just((byte[]) contentValue), BYTE_ARRAY_TRANSFORMER);
         } else if (contentValue instanceof String) {
-            requestBuilder.withRawContentSource(new SingletonRawSource(contentValue, STRING_TRANSFORMER));
+            requestBuilder.withRawContentSource(Observable.just((String) contentValue), STRING_TRANSFORMER);
         } else {
-            ContentTransformer<?> contentTransformer = Utils.newInstance(methodTemplate.getContentTransformerClass());
-            requestBuilder.withRawContentSource(new SingletonRawSource(contentValue, contentTransformer));
+            ContentTransformer contentTransformer = Utils.newInstance(methodTemplate.getContentTransformerClass());
+            requestBuilder.withRawContentSource(Observable.just(contentValue), contentTransformer);
         }
     }
 

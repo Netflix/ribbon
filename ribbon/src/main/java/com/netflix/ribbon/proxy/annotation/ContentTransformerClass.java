@@ -16,7 +16,8 @@
 
 package com.netflix.ribbon.proxy.annotation;
 
-import io.reactivex.netty.serialization.ContentTransformer;
+
+import io.reactivex.netty.channel.ContentTransformer;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

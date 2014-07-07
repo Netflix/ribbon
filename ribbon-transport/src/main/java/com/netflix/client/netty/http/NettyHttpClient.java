@@ -37,7 +37,6 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 import io.reactivex.netty.servo.http.HttpClientListener;
 
@@ -127,13 +126,6 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         request.getHeaders().set(HttpHeaders.Names.HOST, host);
     }
 
-    protected static <I> RepeatableContentHttpRequest<I> getRepeatableRequest(HttpClientRequest<I> original) {
-        if (original instanceof RepeatableContentHttpRequest) {
-            return (RepeatableContentHttpRequest<I>) original;
-        }
-        return new RepeatableContentHttpRequest<I>(original);
-    }
-
     public Observable<HttpClientResponse<O>> submit(String host, int port, final HttpClientRequest<I> request) {
         return submit(host, port, request, getRxClientConfig(null));
     }
@@ -174,10 +166,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
      * @return
      */
     public Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig) {
-        final RepeatableContentHttpRequest<I> repeatableRequest = getRepeatableRequest(request);
         final RetryHandler retryHandler = (errorHandler == null) ? getRequestRetryHandler(request, requestConfig) : errorHandler;
         final ClientConfig rxClientConfig = getRxClientConfig(requestConfig);
-        Observable<HttpClientResponse<O>> result = submitToServerInURI(repeatableRequest, rxClientConfig, errorHandler);
+        Observable<HttpClientResponse<O>> result = submitToServerInURI(request, rxClientConfig, retryHandler);
         if (result != null) {
             return result;
         }
@@ -185,7 +176,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             @Override
             public Observable<HttpClientResponse<O>> run(
                     Server server) {
-                return submit(server.getHost(), server.getPort(), repeatableRequest, rxClientConfig);
+                return submit(server.getHost(), server.getPort(), request, rxClientConfig);
             }
         }, retryHandler);
     }
@@ -212,8 +203,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
      * @return
      */
     @Override
-    public Observable<HttpClientResponse<O>> submit(HttpClientRequest<I> request, final ClientConfig config) {
-        final RepeatableContentHttpRequest<I> repeatableRequest = getRepeatableRequest(request);
+    public Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final ClientConfig config) {
         final RetryHandler retryHandler = getRequestRetryHandler(request, null);
         Observable<HttpClientResponse<O>> result = submitToServerInURI(request, config, retryHandler);
         if (result != null) {
@@ -223,7 +213,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             @Override
             public Observable<HttpClientResponse<O>> run(
                     Server server) {
-                return submit(server.getHost(), server.getPort(), repeatableRequest, config);
+                return submit(server.getHost(), server.getPort(), request, config);
             }
         }, retryHandler);
     }
@@ -246,6 +236,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             } else {
                 port = 80;
             }
+        }
+        if (errorHandler.getMaxRetriesOnSameServer() == 0) {
+            return submit(host, port, request, config);
         }
         Server server = new Server(host, port);
         return lbExecutor.retryWithSameServer(server, submit(server.getHost(), server.getPort(), request, config), errorHandler);

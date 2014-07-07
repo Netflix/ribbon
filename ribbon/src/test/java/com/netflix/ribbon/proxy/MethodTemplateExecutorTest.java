@@ -17,7 +17,6 @@ import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.ShortMovieService;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.RawContentSource;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -115,11 +114,6 @@ public class MethodTemplateExecutorTest {
     }
 
     @Test
-    public void testPostWithRawContent() throws Exception {
-        doTestPostWith("/movies", "registerMovieRaw", createMock(RawContentSource.class));
-    }
-
-    @Test
     public void testPostWithString() throws Exception {
         doTestPostWith("/titles", "registerTitle", "some title");
     }
@@ -137,7 +131,6 @@ public class MethodTemplateExecutorTest {
     private void doTestPostWith(String uriTemplate, String methodName, Object contentObject) {
         expectUrlBase("POST", uriTemplate);
 
-        expect(requestBuilderMock.withRawContentSource(anyObject(RawContentSource.class))).andReturn(requestBuilderMock);
         expect(httpResourceGroupMock.newRequestTemplate(methodName, Void.class)).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withRequestCacheKey(methodName)).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);

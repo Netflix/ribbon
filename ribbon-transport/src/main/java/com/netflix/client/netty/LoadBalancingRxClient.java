@@ -19,7 +19,6 @@ package com.netflix.client.netty;
 
 import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.ClientMetricsEvent;
-import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
@@ -251,16 +250,6 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         close();
     }
 
-    @Override
-    public Observable<PoolStateChangeEvent> poolStateChangeObservable() {
-        return Observable.empty();
-    }
-
-    @Override
-    public PoolStats getStats() {
-        return null;
-    }
-    
     @Override
     public String name() {
         return clientConfig.getClientName();

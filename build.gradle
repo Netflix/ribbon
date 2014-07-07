@@ -72,9 +72,9 @@ project(':ribbon-transport') {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
         compile project(':ribbon-core')    
-        compile 'com.netflix.rxnetty:rx-netty:0.3.7'
-        compile 'com.netflix.rxnetty:rx-netty-contexts:0.3.7'
-        compile 'com.netflix.rxnetty:rx-netty-servo:0.3.7'
+        compile 'com.netflix.rxnetty:rx-netty:0.3.8'
+        compile 'com.netflix.rxnetty:rx-netty-contexts:0.3.8'
+        compile 'com.netflix.rxnetty:rx-netty-servo:0.3.8'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }
@@ -143,7 +143,6 @@ project(':ribbon') {
             compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
             compile 'com.netflix.evcache:evcache-client:1.0.5'
             compile project(':ribbon-transport')
-            compile project(':ribbon-eureka')            
             testCompile 'com.google.mockwebserver:mockwebserver:20130706'
             
     }

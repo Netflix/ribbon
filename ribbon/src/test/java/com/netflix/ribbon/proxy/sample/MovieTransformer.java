@@ -18,14 +18,14 @@ package com.netflix.ribbon.proxy.sample;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.reactivex.netty.serialization.ContentTransformer;
+import io.reactivex.netty.channel.ContentTransformer;
 
 /**
  * @author Tomasz Bak
  */
 public class MovieTransformer implements ContentTransformer<MovieTransformer> {
     @Override
-    public ByteBuf transform(MovieTransformer toTransform, ByteBufAllocator byteBufAllocator) {
+    public ByteBuf call(MovieTransformer toTransform, ByteBufAllocator byteBufAllocator) {
         return null;
     }
 }

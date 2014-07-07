@@ -68,21 +68,12 @@ public class LoadBalancingTcpClient<I, O> extends LoadBalancingRxClientWithPoolO
             builder.withNoConnectionPooling();
         }
         RxClient<I, O> client = builder.build();
-        if (isPoolEnabled()) {
-            client.poolStateChangeObservable().subscribe(stats);
-        }
         return client;
     }
 
     @Override
     public Subscription subscribe(
             MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public String name() {
         // TODO Auto-generated method stub
         return null;
     }

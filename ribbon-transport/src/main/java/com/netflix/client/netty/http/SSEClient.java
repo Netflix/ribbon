@@ -18,7 +18,6 @@
 package com.netflix.client.netty.http;
 
 import io.netty.channel.ChannelOption;
-import io.reactivex.netty.client.PoolStats;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.protocol.http.client.HttpClient;
@@ -71,16 +70,6 @@ public class SSEClient<I> extends NettyHttpClient<I, ServerSentEvent> {
     }
 
     @Override
-    public PoolStats getStats() {
-        return null;
-    }
-
-    @Override
     public void shutdown() {
-    }
-
-    @Override
-    public Observable<PoolStateChangeEvent> poolStateChangeObservable() {
-        return Observable.empty();
     }
 }

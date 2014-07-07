@@ -67,7 +67,6 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.GlobalPoolStats;
 import com.netflix.client.netty.RibbonTransport;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
@@ -114,7 +113,7 @@ public class NettyClientTest {
             e.printStackTrace();
             fail("Unable to start server");
         }
-        LogManager.getRootLogger().setLevel(Level.DEBUG);
+        // LogManager.getRootLogger().setLevel(Level.DEBUG);
     }
     
     private static Observable<Person> getPersonObservable(Observable<HttpClientResponse<ByteBuf>> response) {
@@ -142,14 +141,14 @@ public class NettyClientTest {
         
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
         NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
-        // final List<Person> result = Lists.newArrayList();
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(request);
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
-        // need to sleep to wait until connection is released
         HttpClientListener listener = observableClient.getListener();
+        Thread.sleep(1000);
         assertEquals(1, listener.getPoolAcquires());
         assertEquals(1, listener.getConnectionCount());
+        assertEquals(1, listener.getPoolReleases());
     }
     
     @Test
@@ -162,33 +161,34 @@ public class NettyClientTest {
         assertEquals(EmbeddedResources.defaultPerson, person);
         // need to sleep to wait until connection is released
         Thread.sleep(1000);
-        GlobalPoolStats stats = (GlobalPoolStats) observableClient.getStats();
-        // assertEquals(1, stats.getIdleCount());
-        assertEquals(1, stats.getAcquireSucceededCount());
-        // assertEquals(1, stats.getReleaseSucceededCount());
-        assertEquals(1, stats.getTotalConnectionCount());
+        HttpClientListener listener = observableClient.getListener();
+        assertEquals(1, listener.getConnectionCount());
+        assertEquals(1, listener.getPoolAcquires());
+        assertEquals(1, listener.getPoolReleases());
     }
 
     
     @Test
     public void testPoolReuse() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
-        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
-        // final List<Person> result = Lists.newArrayList();
+        NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
+                IClientConfig.Builder.newBuilder()
+                .withMaxAutoRetries(1)
+                .withMaxAutoRetriesNextServer(1).build());
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(request);
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
         Thread.sleep(1000);
-        // assertEquals(1, observableClient.getStats().getIdleCount());
-        response = observableClient.submit(host, port, request);
+        response = observableClient.submit(request);
         person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
         Thread.sleep(1000);
-        GlobalPoolStats stats = (GlobalPoolStats) observableClient.getStats();
-        assertEquals(2, stats.getAcquireSucceededCount());
-        // assertEquals(2, stats.getReleaseSucceededCount());
-        // assertEquals(1, stats.getTotalConnectionCount());
-        // assertEquals(1, stats.getReuseCount());
+        HttpClientListener listener = observableClient.getListener();
+
+        assertEquals(2, listener.getPoolAcquires());
+        assertEquals(2, listener.getPoolReleases());
+        assertEquals(1, listener.getConnectionCount());
+        assertEquals(1, listener.getPoolReuse());
     }
 
     
@@ -274,7 +274,6 @@ public class NettyClientTest {
         assertEquals(4, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
-        // two requests to bad server because retry same server is set to 1
         assertEquals(1, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
@@ -305,10 +304,14 @@ public class NettyClientTest {
         assertEquals(4, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
-        // two requests to bad server because retry same server is set to 1
         assertEquals(1, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
+        
+        Thread.sleep(1000);
+        HttpClientListener listener = lbObservables.getListener();
+        assertEquals(1, listener.getConnectionCount());
+        assertEquals(1, listener.getPoolReleases());
     }
 
     
@@ -378,7 +381,6 @@ public class NettyClientTest {
         assertEquals(4, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
-        // two requests to bad server because retry same server is set to 1
         assertEquals(1, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
@@ -474,7 +476,6 @@ public class NettyClientTest {
         assertEquals(2, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
-        // two requests to bad server because retry same server is set to 1
         assertEquals(1, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());

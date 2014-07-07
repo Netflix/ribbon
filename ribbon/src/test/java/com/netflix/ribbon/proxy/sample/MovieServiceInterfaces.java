@@ -18,7 +18,6 @@ import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.RawContentSource;
 
 import static com.netflix.ribbon.proxy.sample.ResourceGroupClasses.*;
 
@@ -68,11 +67,6 @@ public class MovieServiceInterfaces {
         @Http(method = HttpMethod.PATCH, uriTemplate = "/movies/{id}")
         @ContentTransformerClass(MovieTransformer.class)
         RibbonRequest<Void> updateMoviePartial(@Var("id") String id, @Content Movie movie);
-
-        @TemplateName("registerMovieRaw")
-        @Http(method = HttpMethod.POST, uriTemplate = "/movies")
-        @Hystrix(cacheKey = "registerMovieRaw", fallbackHandler = MovieFallbackHandler.class)
-        RibbonRequest<Void> registerMovieRaw(@Content RawContentSource<Movie> rawMovieContent);
 
         @TemplateName("registerTitle")
         @Http(method = HttpMethod.POST, uriTemplate = "/titles")
@@ -152,10 +146,6 @@ public class MovieServiceInterfaces {
 
     @ResourceGroup(name = "testResourceGroup")
     public static interface PostsWithDifferentContentTypes {
-
-        @TemplateName("rawContentSource")
-        @Http(method = HttpMethod.POST, uriTemplate = "/content/rawContentSource")
-        RibbonRequest<Void> postwithRawContentSource(@Content RawContentSource<Movie> movie);
 
         @TemplateName("byteBufContent")
         @Http(method = HttpMethod.POST, uriTemplate = "/content/byteBufContent")

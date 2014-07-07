@@ -35,8 +35,7 @@ import com.netflix.ribbon.proxy.annotation.Http.Header;
 import com.netflix.ribbon.proxy.annotation.Http.HttpMethod;
 
 import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.RawContentSource;
-import io.reactivex.netty.serialization.ContentTransformer;
+import io.reactivex.netty.channel.ContentTransformer;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -46,6 +45,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import rx.Observable;
 
 import static java.lang.String.*;
 
@@ -316,7 +317,7 @@ class MethodTemplate {
             }
             if (annotation == null) {
                 Class<?> contentType = method.getParameterTypes()[contentArgPosition];
-                if (RawContentSource.class.isAssignableFrom(contentType)
+                if (Observable.class.isAssignableFrom(contentType)
                         || ByteBuf.class.isAssignableFrom(contentType)
                         || byte[].class.isAssignableFrom(contentType)
                         || String.class.isAssignableFrom(contentType)) {
