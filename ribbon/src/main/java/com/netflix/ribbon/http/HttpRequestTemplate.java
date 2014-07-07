@@ -78,13 +78,12 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     public HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType) {
         this.client = group.getClient();
         this.classType = classType;
+        clientName = client.name();
         if (client instanceof LoadBalancingRxClient) {
             LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
             maxResponseTime = ribbonClient.getResponseTimeOut();
-            clientName = ribbonClient.getName();
             concurrentRequestLimit = ribbonClient.getMaxConcurrentRequests();
         } else {
-            clientName = client.getClass().getName();
             maxResponseTime = -1;
             concurrentRequestLimit = -1;
         }

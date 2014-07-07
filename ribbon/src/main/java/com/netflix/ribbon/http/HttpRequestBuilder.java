@@ -16,13 +16,15 @@
 package com.netflix.ribbon.http;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.reactivex.netty.channel.ContentTransformer;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
-import io.reactivex.netty.protocol.http.client.RawContentSource;
-import io.reactivex.netty.protocol.http.client.RepeatableContentHttpRequest;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import rx.Observable;
 
 import com.netflix.hystrix.exception.HystrixBadRequestException;
 import com.netflix.ribbon.RibbonRequest;
@@ -37,7 +39,16 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
     private final HttpRequestTemplate<T> requestTemplate;
     private final Map<String, Object> vars;
     private final ParsedTemplate parsedUriTemplate;
-    private RawContentSource<?> rawContentSource;
+    private Observable rawContentSource;
+    private ContentTransformer contentTransformer;
+    
+    private static final ContentTransformer<ByteBuf> passThroughContentTransformer = new ContentTransformer<ByteBuf>() {
+        @Override
+        public ByteBuf call(ByteBuf t1, ByteBufAllocator t2) {
+            return t1;
+        }
+        
+    };
     
     HttpRequestBuilder(HttpRequestTemplate<T> requestTemplate) {
         this.requestTemplate = requestTemplate;
@@ -52,10 +63,18 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
         return this;
     }
         
-    public HttpRequestBuilder<T> withRawContentSource(RawContentSource<?> raw) {
+    public <S> HttpRequestBuilder<T> withRawContentSource(Observable<S> raw, ContentTransformer<S> transformer) {
         this.rawContentSource = raw;
+        this.contentTransformer = transformer;
         return this;
     }
+    
+    public HttpRequestBuilder<T> withContent(Observable<ByteBuf> content) {
+        this.rawContentSource = content;
+        this.contentTransformer = passThroughContentTransformer;
+        return this;
+    }
+
 
     @Override
     public RibbonRequest<T> build() {
@@ -84,9 +103,9 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
             request.withHeader(entry.getKey(), entry.getValue());
         }
         if (rawContentSource != null) {
-            request.withRawContentSource(rawContentSource);
+            request.withRawContentSource(rawContentSource, contentTransformer);
         }
-        return new RepeatableContentHttpRequest<ByteBuf>(request);
+        return request;
     }
     
     String hystrixCacheKey() throws TemplateParsingException {

@@ -21,11 +21,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.internal.ConcurrentSet;
 import io.reactivex.netty.RxNetty;
+import io.reactivex.netty.channel.StringTransformer;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.http.client.RawContentSource;
-import io.reactivex.netty.protocol.http.client.RawContentSource.SingletonRawSource;
 import io.reactivex.netty.protocol.http.server.HttpServer;
-import io.reactivex.netty.serialization.StringTransformer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,9 +68,8 @@ public class RxMovieServerTest {
     @Test
     public void testMovieRegistration() {
         String movieFormatted = ORANGE_IS_THE_NEW_BLACK.toString();
-        final RawContentSource<String> contentSource = new SingletonRawSource<String>(movieFormatted, new StringTransformer());
 
-        HttpResponseStatus statusCode = RxNetty.createHttpPost(baseURL + "/movies", contentSource)
+        HttpResponseStatus statusCode = RxNetty.createHttpPost(baseURL + "/movies", Observable.just(movieFormatted), new StringTransformer())
                 .flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<HttpResponseStatus>>() {
                     @Override
                     public Observable<HttpResponseStatus> call(HttpClientResponse<ByteBuf> httpClientResponse) {
@@ -87,9 +84,7 @@ public class RxMovieServerTest {
     @Test
     public void testUpateRecommendations() {
         movieServer.movies.put(ORANGE_IS_THE_NEW_BLACK.getId(), ORANGE_IS_THE_NEW_BLACK);
-        final RawContentSource<String> contentSource = new SingletonRawSource<String>(ORANGE_IS_THE_NEW_BLACK.getId(), new StringTransformer());
-
-        HttpResponseStatus statusCode = RxNetty.createHttpPost(baseURL + "/users/" + TEST_USER_ID + "/recommendations", contentSource)
+        HttpResponseStatus statusCode = RxNetty.createHttpPost(baseURL + "/users/" + TEST_USER_ID + "/recommendations", Observable.just(ORANGE_IS_THE_NEW_BLACK.getId()), new StringTransformer())
                 .flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<HttpResponseStatus>>() {
                     @Override
                     public Observable<HttpResponseStatus> call(HttpClientResponse<ByteBuf> httpClientResponse) {

@@ -146,8 +146,6 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
     
-    public static final String DEFAULT_REQUEST_ID_HEADER_NAME = "RequestId";
-
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
     
     protected Map<IClientConfigKey<?>, Object> typedProperties = new ConcurrentHashMap<IClientConfigKey<?>, Object>();
@@ -310,10 +308,6 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS;
 	}
 	
-	public String getDefaultRequestIdHeaderName() {
-	    return DEFAULT_REQUEST_ID_HEADER_NAME;
-	}
-
 	public VipAddressResolver getResolver() {
 		return resolver;
 	}
@@ -430,7 +424,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultStringProperty(CommonClientConfigKey.NIWSServerListClassName, getDefaultSeverListClass());
         putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());
         putDefaultBooleanProperty(CommonClientConfigKey.IsClientAuthRequired, getDefaultIsClientAuthRequired());
-        putDefaultStringProperty(CommonClientConfigKey.RequestIdHeaderName, getDefaultRequestIdHeaderName());
+        // putDefaultStringProperty(CommonClientConfigKey.RequestIdHeaderName, getDefaultRequestIdHeaderName());
         putDefaultStringProperty(CommonClientConfigKey.ListOfServers, "");
     }
 

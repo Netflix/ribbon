@@ -12,6 +12,9 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
+import rx.observers.SafeSubscriber;
+import rx.subscriptions.CompositeSubscription;
+import rx.subscriptions.SerialSubscription;
 import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
@@ -146,7 +149,10 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         
         @Override
         public Subscriber<? super T> call(final Subscriber<? super T> t1) {
-            return new Subscriber<T>() {
+            SerialSubscription serialSubscription = new SerialSubscription();
+            t1.add(serialSubscription);
+
+            Subscriber<T> subscriber = new Subscriber<T>() {
                 @Override
                 public void onCompleted() {
                     t1.onCompleted();
@@ -179,7 +185,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                             logger.error("Unexpected error", ex);
                             t1.onError(ex);
                         }
-                        retryWithSameServer(server, clientObservableProvider.run(server), retryHandler).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
+                        retryWithSameServer(server, clientObservableProvider.run(server), retryHandler).lift(RetryNextServerOperator.this).subscribe(t1);
                     } else {
                         t1.onError(finalThrowable);
                     }
@@ -190,6 +196,8 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                     t1.onNext(t);
                 }
             };
+            serialSubscription.set(subscriber);
+            return subscriber;
         }
         
     }
@@ -242,10 +250,12 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
         
         @Override
         public Subscriber<? super T> call(final Subscriber<? super T> t1) {
+            SerialSubscription serialSubscription = new SerialSubscription();
+            t1.add(serialSubscription);
             final ServerStats serverStats = getServerStats(server); 
             noteOpenConnection(serverStats);
             final Stopwatch tracer = getExecuteTracer().start();
-            return new Subscriber<T>() {
+            Subscriber<T> subscriber = new Subscriber<T>() {
                 private volatile T entity; 
                 @Override
                 public void onCompleted() {
@@ -269,7 +279,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                     }
                     
                     if (shouldRetry) {
-                        singleHostObservable.lift(RetrySameServerOperator.this).unsafeSubscribe(t1);
+                        singleHostObservable.lift(RetrySameServerOperator.this).subscribe(t1);
                     } else {
                         t1.onError(finalThrowable);
                     }
@@ -287,6 +297,9 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                     noteRequestCompletion(serverStats, entity, exception, duration, errorHandler);
                 }
             };
+            Subscriber<T> safeSubscriber = new SafeSubscriber<T>(subscriber);
+            serialSubscription.set(safeSubscriber); 
+            return safeSubscriber;
         }
         
     }
@@ -300,6 +313,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * @param forServer A lazy Observable that does not start execution until it is subscribed to 
      */
     public <T> Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer, final RetryHandler errorHandler) {
+        // return forServer;
         RetryHandler handler = errorHandler == null? getRetryHandler() : errorHandler;
         return forServer.lift(new RetrySameServerOperator<T>(server, forServer, handler));
     }

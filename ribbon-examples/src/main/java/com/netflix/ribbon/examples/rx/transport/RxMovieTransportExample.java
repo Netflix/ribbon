@@ -25,10 +25,9 @@ import com.netflix.ribbon.examples.rx.RxMovieServer;
 import com.netflix.ribbon.examples.rx.common.Movie;
 import com.netflix.ribbon.examples.rx.common.RxMovieTransformer;
 import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.channel.StringTransformer;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.http.client.RawContentSource.SingletonRawSource;
-import io.reactivex.netty.serialization.StringTransformer;
 import rx.Observable;
 import rx.functions.Func1;
 
@@ -63,7 +62,7 @@ public class RxMovieTransportExample extends AbstractRxMovieClient {
         HttpClientRequest<ByteBuf> httpRequest = HttpClientRequest.createPost("/movies")
                 .withHeader("X-Platform-Version", "xyz")
                 .withHeader("X-Auth-Token", "abc")
-                .withRawContentSource(new SingletonRawSource<Movie>(movie, new RxMovieTransformer()));
+                .withRawContentSource(Observable.just(movie), new RxMovieTransformer());
 
         return client.submit(httpRequest).flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<Void>>() {
             @Override
@@ -90,7 +89,7 @@ public class RxMovieTransportExample extends AbstractRxMovieClient {
         HttpClientRequest<ByteBuf> httpRequest = HttpClientRequest.createPost(format("/users/%s/recommendations", user))
                 .withHeader("X-Platform-Version", "xyz")
                 .withHeader("X-Auth-Token", "abc")
-                .withRawContentSource(new SingletonRawSource<String>(movie.getId(), new StringTransformer()));
+                .withRawContentSource(Observable.just(movie.getId()), new StringTransformer());
 
         return client.submit(httpRequest).flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<Void>>() {
             @Override

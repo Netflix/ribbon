@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.cert;
+package com.netflix.client.ssl;
 
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -31,8 +31,6 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.netflix.niws.client.ClientSslSocketFactoryException;
 
 /**
  * 

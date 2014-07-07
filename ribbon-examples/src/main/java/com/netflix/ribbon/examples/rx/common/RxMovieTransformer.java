@@ -18,7 +18,7 @@ package com.netflix.ribbon.examples.rx.common;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.reactivex.netty.serialization.ContentTransformer;
+import io.reactivex.netty.channel.ContentTransformer;
 
 import java.nio.charset.Charset;
 
@@ -27,7 +27,7 @@ import java.nio.charset.Charset;
  */
 public class RxMovieTransformer implements ContentTransformer<Movie> {
     @Override
-    public ByteBuf transform(Movie movie, ByteBufAllocator byteBufAllocator) {
+    public ByteBuf call(Movie movie, ByteBufAllocator byteBufAllocator) {
         byte[] bytes = movie.toString().getBytes(Charset.defaultCharset());
         ByteBuf byteBuf = byteBufAllocator.buffer(bytes.length);
         byteBuf.writeBytes(bytes);

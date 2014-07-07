@@ -15,7 +15,7 @@
 * limitations under the License.
 *
 */
-package com.netflix.niws.client;
+package com.netflix.client.ssl;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.netflix.niws.cert.AbstractSslContextFactory;
 
 /**
  * Secure socket factory that is used the NIWS code if a non-standard key store or trust store
