@@ -401,6 +401,8 @@ public class NettyClientTest {
         NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config, errorHandler);
+        HttpClientListener externalListener = HttpClientListener.newHttpListener("external");
+        lbObservables.subscribe(externalListener);
         Server server1 = new Server("localhost:" + server.getPort());
         Server server2 = new Server("localhost:" + port);
         List<Server> servers = Lists.newArrayList(server1, server2);
@@ -447,6 +449,8 @@ public class NettyClientTest {
         assertEquals(2, listener.getPoolReleases());
         assertEquals(2, listener.getConnectionCount());
         assertEquals(0, listener.getPoolReuse());
+        
+        assertEquals(2, externalListener.getPoolAcquires());
     }
     
     @Test
