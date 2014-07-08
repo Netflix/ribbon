@@ -47,7 +47,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.validator.cfg.defs.GenericConstraintDef;
 
 import rx.Observable;
 
