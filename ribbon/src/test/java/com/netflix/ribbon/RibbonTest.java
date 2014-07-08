@@ -88,7 +88,9 @@ public class RibbonTest {
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
         // repeat the same request
-        result = request.execute().toString(Charset.defaultCharset());
+        ByteBuf raw = request.execute();
+        result = raw.toString(Charset.defaultCharset());
+        raw.release();
         assertEquals(content, result);
         
         result = request.queue().get().toString(Charset.defaultCharset());
