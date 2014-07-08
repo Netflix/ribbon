@@ -184,7 +184,6 @@ public class NettyClientTest {
         assertEquals(EmbeddedResources.defaultPerson, person);
         Thread.sleep(1000);
         HttpClientListener listener = observableClient.getListener();
-
         assertEquals(2, listener.getPoolAcquires());
         assertEquals(2, listener.getPoolReleases());
         assertEquals(1, listener.getConnectionCount());
@@ -386,6 +385,74 @@ public class NettyClientTest {
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
     }
    
+    @Test
+    public void testLoadBalancingWithTwoServers() throws Exception {
+        MockWebServer server = new MockWebServer();
+        String content = "{\"name\": \"ribbon\", \"age\": 2}";
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "application/json")
+                .setBody(content));       
+        server.play();
+
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+                
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createPost("/testAsync/person")
+                .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), EmbeddedResources.defaultPerson, null))
+                .withHeader("Content-type", "application/json");
+        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
+        BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
+        NettyHttpClient<ByteBuf, ByteBuf> lbObservables = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(lb, config, errorHandler);
+        HttpClientListener externalListener = HttpClientListener.newHttpListener("external");
+        lbObservables.subscribe(externalListener);
+        Server server1 = new Server("localhost:" + server.getPort());
+        Server server2 = new Server("localhost:" + port);
+        List<Server> servers = Lists.newArrayList(server1, server2);
+        lb.setServersList(servers);
+        RetryHandler handler = new RequestSpecificRetryHandler(true, true, errorHandler, null) {
+            @Override
+            public boolean isRetriableException(Throwable e, boolean sameServer) {
+                return true;
+            }
+        };
+        Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request, handler, null));
+        ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
+        observableWithRetries.subscribe(observer);
+        observer.await();
+        if (observer.error != null) {
+            observer.error.printStackTrace();
+        }
+        assertEquals("ribbon", observer.obj.name);
+        assertEquals(EmbeddedResources.defaultPerson.age, observer.obj.age);
+        
+        observer = new ObserverWithLatch<Person>();
+        observableWithRetries = getPersonObservable(lbObservables.submit(request, handler, null));
+        observableWithRetries.subscribe(observer);
+        observer.await();
+        if (observer.error != null) {
+            observer.error.printStackTrace();
+        }
+        assertEquals("ribbon", observer.obj.name);
+        assertEquals(2, observer.obj.age);
+        
+        ServerStats stats = lbObservables.getServerStats(server1);
+        server.shutdown();
+        // assertEquals(1, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getActiveRequestsCount());
+        
+        stats = lbObservables.getServerStats(server2);
+        // two requests to bad server because retry same server is set to 1
+        assertEquals(1, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getActiveRequestsCount());
+        assertEquals(0, stats.getSuccessiveConnectionFailureCount());
+        Thread.sleep(1000);
+        HttpClientListener listener = lbObservables.getListener();
+        assertEquals(2, listener.getPoolAcquires());
+        assertEquals(2, listener.getPoolReleases());
+        assertEquals(2, listener.getConnectionCount());
+        assertEquals(0, listener.getPoolReuse());
+        
+        assertEquals(2, externalListener.getPoolAcquires());
+    }
+    
     @Test
     public void testLoadBalancingPostWithReadTimeout() throws Exception {
         MockWebServer server = new MockWebServer();

@@ -23,8 +23,6 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import com.netflix.client.netty.LoadBalancingRxClient;
@@ -39,6 +37,17 @@ import com.netflix.ribbon.ResponseValidator;
 import com.netflix.ribbon.hystrix.FallbackHandler;
 import com.netflix.ribbon.template.ParsedTemplate;
 
+/**
+ * Provides API to construct a request template for HTTP resource. 
+ * <p/>
+ * <b>Note:</b> This class is not thread safe. It is advised that the template is created and
+ * constructed in same thread at initialization of the application. Users can call {@link #requestBuilder()}
+ * later on which returns a {@link RequestBuilder} which is thread safe. 
+ * 
+ * @author Allen Wang
+ *
+ * @param <T> Type for the return Object of the Http resource
+ */
 public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientResponse<ByteBuf>> {
 
     private final HttpClient<ByteBuf, ByteBuf> client;

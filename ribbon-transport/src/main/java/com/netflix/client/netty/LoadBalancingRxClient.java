@@ -21,6 +21,7 @@ import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.metrics.MetricEventsListener;
+import io.reactivex.netty.metrics.MetricEventsSubject;
 import io.reactivex.netty.metrics.MetricsEvent;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 
@@ -69,6 +70,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     protected final RetryHandler retryHandler;
     protected final AbstractSslContextFactory sslContextFactory;
     protected final MetricEventsListener<? extends ClientMetricsEvent<?>> listener;
+    protected final MetricEventsSubject<ClientMetricsEvent<?>> eventSubject;
 
     public LoadBalancingRxClient(IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
@@ -85,6 +87,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         this.pipelineConfigurator = pipelineConfigurator;
         this.clientConfig = config;
         this.listener = createListener(config.getClientName());
+        eventSubject = new MetricEventsSubject<ClientMetricsEvent<?>>();
         boolean isSecure = getProperty(IClientConfigKey.Keys.IsSecure, null, false); 
         if (isSecure) {
             final URL trustStoreUrl = getResourceForOptionalProperty(CommonClientConfigKey.TrustStore);
@@ -215,6 +218,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
         } else {
             client = cacheLoadRxClient(server);
             client.subscribe(listener);
+            client.subscribe(eventSubject);
             T old = rxClientCache.putIfAbsent(server, client);
             if (old != null) {
                 return old;
@@ -258,6 +262,6 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     @Override
     public Subscription subscribe(
             MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
-       return Subscriptions.empty();
+       return eventSubject.subscribe(listener);
     }
 }
