@@ -26,7 +26,7 @@ subprojects {
 
     dependencies {
         compile 'org.slf4j:slf4j-api:1.6.4'
-        compile 'com.netflix.servo:servo-core:0.4.44'
+        compile 'com.netflix.servo:servo-core:0.7.4'
         compile 'com.google.guava:guava:14.0.1'
         compile 'com.netflix.archaius:archaius-core:0.5.12'
         compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
@@ -40,14 +40,21 @@ subprojects {
 
 project(':ribbon-core') {
     dependencies {
+    }
+}
+
+project(':ribbon-loadbalancer') {
+    dependencies {
+        compile project(':ribbon-core')
         compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
-        compile 'com.netflix.rxjava:rxjava-core:0.14.2'
+        compile 'com.netflix.rxjava:rxjava-core:[0.17,)'
     }
 }
 
 project(':ribbon-httpclient') {
     dependencies {
         compile project(':ribbon-core')
+        compile project(':ribbon-loadbalancer')
         compile 'org.apache.httpcomponents:httpclient:4.2.1' 
         compile 'com.sun.jersey:jersey-client:1.11'
         compile 'com.sun.jersey:jersey-core:1.11'
@@ -60,31 +67,82 @@ project(':ribbon-httpclient') {
     }
 }
 
+project(':ribbon-transport') {
+    dependencies {
+        compile project(':ribbon-core')
+        compile project(':ribbon-loadbalancer')
+        compile 'com.netflix.rxnetty:rx-netty:0.3.8'
+        compile 'com.netflix.rxnetty:rx-netty-contexts:0.3.8'
+        compile 'com.netflix.rxnetty:rx-netty-servo:0.3.8'
+        testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+        testCompile project(':ribbon-test')        
+    }
+}
+
+
 project(':ribbon-eureka') {   
     dependencies {
         compile project(':ribbon-core')
+        compile project(':ribbon-loadbalancer')
         compile 'com.netflix.eureka:eureka-client:1.1.126'
     }    
-}
-
-project(':ribbon-httpasyncclient') {
-    dependencies {
-        compile project(':ribbon-core')
-        compile 'org.apache.httpcomponents:httpasyncclient:4.0'
-        testCompile 'com.sun.jersey:jersey-server:1.11'
-        testCompile 'com.sun.jersey:jersey-core:1.11'        
-        testCompile 'asm:asm-all:3.2'
-        testCompile 'commons-io:commons-io:2.0.1' 
-    }
 }
 
 project(':ribbon-examples') {
     dependencies {
         compile project(':ribbon-httpclient')
-        compile project(':ribbon-httpasyncclient')
+        compile project(':ribbon-transport')
+        compile project(':ribbon')
         compile 'com.google.code.gson:gson:2.2.4'
         compile 'com.thoughtworks.xstream:xstream:1.4.5'
         compile 'com.sun.jersey:jersey-server:1.11'
     }
 }
 
+project(':ribbon-test') {
+    dependencies {
+        compile project(':ribbon-core')
+        compile 'com.sun.jersey:jersey-server:1.11'
+        compile 'javax.ws.rs:jsr311-api:1.1.1' 
+        compile 'com.sun.jersey:jersey-core:1.11'    
+        compile 'junit:junit:4.10'
+    }
+}
+
+project(':ribbon') {
+    configurations {
+        // add new configuration
+        examples
+
+        //adding a configuration that extends existing configuration:
+        //(testCompile was added by the java plugin)
+        examples.extendsFrom(compile)
+        examplesCompile.extendsFrom(compile)
+        examplesRuntime.extendsFrom runtime
+    }
+
+    sourceSets.test.java.srcDir 'src/test/java'
+
+    tasks.withType(Javadoc).each {
+        it.classpath = sourceSets.main.compileClasspath
+    }
+    
+    //include /src/examples folder
+    sourceSets {
+        examples {
+            // no idea why this is needed
+            java.srcDirs = []
+        }
+    }
+    
+    //include 'examples' in build task
+    tasks.build { dependsOn(examplesClasses) }
+    
+    dependencies {
+            compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
+            compile 'com.netflix.evcache:evcache-client:1.0.5'
+            compile project(':ribbon-transport')
+            testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+            
+    }
+}

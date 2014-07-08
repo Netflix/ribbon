@@ -25,6 +25,8 @@ import com.netflix.appinfo.InstanceInfo.InstanceStatus;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicProperty;
 import com.netflix.discovery.DiscoveryClient;
@@ -56,6 +58,24 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
 
     int overridePort = DefaultClientConfigImpl.DEFAULT_PORT;
     boolean shouldUseOverridePort = false;
+    
+    /**
+     * @deprecated use {@link #DiscoveryEnabledNIWSServerList(String)}
+     * or {@link #DiscoveryEnabledNIWSServerList(IClientConfig)}
+     */
+    @Deprecated
+    public DiscoveryEnabledNIWSServerList() {
+    }
+    
+    public DiscoveryEnabledNIWSServerList(String vipAddresses) {
+        IClientConfig clientConfig = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+        clientConfig.set(Keys.DeploymentContextBasedVipAddresses, vipAddresses);
+        initWithNiwsConfig(clientConfig);
+    }
+    
+    public DiscoveryEnabledNIWSServerList(IClientConfig clientConfig) {
+        initWithNiwsConfig(clientConfig);
+    }
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {

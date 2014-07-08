@@ -23,12 +23,12 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
-import com.netflix.client.ClientFactory;
 import com.netflix.client.VipAddressResolver;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicPropertyFactory;
@@ -110,11 +110,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = Boolean.TRUE;
 
-    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = Boolean.TRUE;
+    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = Boolean.FALSE;
 
     public static final float DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED = 0.0f;
 
-    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = 0;
+    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = 1;
 
     public static final int DEFAULT_MAX_AUTO_RETRIES = 0;
 
@@ -124,10 +124,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_CONNECT_TIMEOUT = 2000;
 
+    public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = Boolean.TRUE;
+    
+    @Deprecated
     public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = 50;
 
+    @Deprecated
     public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = 200;
 
+    public static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 50;
+
+    public static final int DEFAULT_MAX_TOTAL_CONNECTIONS = 200;
 
     public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = 1.0f;
 
@@ -138,8 +145,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
 
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
-
+    
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
+    
+    protected Map<IClientConfigKey<?>, Object> typedProperties = new ConcurrentHashMap<IClientConfigKey<?>, Object>();
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
 
@@ -261,14 +270,24 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return DEFAULT_CONNECT_TIMEOUT;
 	}
 
+	@Deprecated
 	public int getDefaultMaxHttpConnectionsPerHost() {
 		return DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST;
 	}
 
+	@Deprecated
 	public int getDefaultMaxTotalHttpConnections() {
 		return DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS;
 	}
 
+	public int getDefaultMaxConnectionsPerHost() {
+	    return DEFAULT_MAX_CONNECTIONS_PER_HOST;
+	}
+
+	public int getDefaultMaxTotalConnections() {
+	    return DEFAULT_MAX_TOTAL_CONNECTIONS;
+	}
+	
 	public float getDefaultMinPrimeConnectionsRatio() {
 		return DEFAULT_MIN_PRIME_CONNECTIONS_RATIO;
 	}
@@ -288,7 +307,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public int getDefaultConnectionidleTimeInMsecs() {
 		return DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS;
 	}
-
+	
 	public VipAddressResolver getResolver() {
 		return resolver;
 	}
@@ -355,9 +374,12 @@ public class DefaultClientConfigImpl implements IClientConfig {
     	this.propertyNameSpace = nameSpace;
     }
 
-    protected void loadDefaultValues() {
+    public void loadDefaultValues() {
         putDefaultIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
         putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
+        putDefaultBooleanProperty(CommonClientConfigKey.EnableConnectionPool, getDefaultEnableConnectionPool());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxConnectionsPerHost, getDefaultMaxConnectionsPerHost());
+        putDefaultIntegerProperty(CommonClientConfigKey.MaxTotalConnections, getDefaultMaxTotalConnections());
         putDefaultIntegerProperty(CommonClientConfigKey.ConnectTimeout, getDefaultConnectTimeout());
         putDefaultIntegerProperty(CommonClientConfigKey.ConnectionManagerTimeout, getDefaultConnectionManagerTimeout());
         putDefaultIntegerProperty(CommonClientConfigKey.ReadTimeout, getDefaultReadTimeout());
@@ -402,6 +424,12 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultStringProperty(CommonClientConfigKey.NIWSServerListClassName, getDefaultSeverListClass());
         putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());
         putDefaultBooleanProperty(CommonClientConfigKey.IsClientAuthRequired, getDefaultIsClientAuthRequired());
+        // putDefaultStringProperty(CommonClientConfigKey.RequestIdHeaderName, getDefaultRequestIdHeaderName());
+        putDefaultStringProperty(CommonClientConfigKey.ListOfServers, "");
+    }
+
+    public Boolean getDefaultEnableConnectionPool() {
+        return DEFAULT_ENABLE_CONNECTION_POOL;
     }
 
     protected void setPropertyInternal(IClientConfigKey propName, Object value) {
@@ -542,9 +570,42 @@ public class DefaultClientConfigImpl implements IClientConfig {
             if (prop.startsWith(getNameSpace())){
                 prop = prop.substring(getNameSpace().length() + 1);
             }
-            setPropertyInternal(prop, props.getProperty(key));
+            setPropertyInternal(prop, getStringValue(props, key));
         }
+    }
+    
+    /**
+     * This is to workaround the issue that {@link AbstractConfiguration} by default
+     * automatically convert comma delimited string to array
+     */
+    protected static String getStringValue(Configuration config, String key) {
+        try {
+            String values[] = config.getStringArray(key);
+            if (values == null) {
+                return null;
+            }
+            if (values.length == 0) {
+                return config.getString(key);
+            } else if (values.length == 1) {
+                return values[0];
+            }
 
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < values.length; i++) {
+                sb.append(values[i]);
+                if (i != values.length - 1) {
+                    sb.append(",");
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            Object v = config.getProperty(key);
+            if (v != null) {
+                return String.valueOf(v);
+            } else {
+                return null;
+            }
+        }
     }
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "DC_DOUBLECHECK")
@@ -567,8 +628,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @Override
 	public String resolveDeploymentContextbasedVipAddresses(){
-
         String deploymentContextBasedVipAddressesMacro = (String) getProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses);
+        if (deploymentContextBasedVipAddressesMacro == null) {
+            return null;
+        }
         return getVipAddressResolver().resolve(deploymentContextBasedVipAddressesMacro, this);
     }
 
@@ -643,7 +706,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @Override
 	public Object getProperty(IClientConfigKey key){
         String propName = key.key();
-        return getProperty(propName);
+        Object value = getProperty(propName);
+        return value;
     }
 
     /* (non-Javadoc)
@@ -693,7 +757,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         final StringBuilder sb = new StringBuilder();
         String separator = "";
 
-        sb.append("NiwsClientConfig:");
+        sb.append("ClientConfig:");
         for (IClientConfigKey key: CommonClientConfigKey.values()) {
             final Object value = getProperty(key);
 
@@ -729,15 +793,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return propertyNameSpace;
 	}
 
+	public static DefaultClientConfigImpl getEmptyConfig() {
+	    return new DefaultClientConfigImpl();
+	}
+	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
 		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
 	}
 	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
-	    DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-	    config.loadDefaultValues();
-	    return config;
-	}
+        return getClientConfigWithDefaultValues("default", DEFAULT_PROPERTY_NAME_SPACE);
+    }
 
 
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {
@@ -781,5 +847,53 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
         }
         return defaultValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T get(IClientConfigKey<T> key) {
+        Object obj = getProperty(key.key());
+        if (obj == null) {
+            return null;
+        }
+        Class<T> type = key.type();
+        try {
+            return type.cast(obj);
+        } catch (ClassCastException e) {
+            if (obj instanceof String) {
+                String stringValue = (String) obj;
+                if (Integer.class.equals(type)) {
+                    return (T) Integer.valueOf(stringValue);
+                } else if (Boolean.class.equals(type)) {
+                    return (T) Boolean.valueOf(stringValue);
+                } else if (Float.class.equals(type)) {
+                    return (T) Float.valueOf(stringValue);
+                } else if (Long.class.equals(type)) {
+                    return (T) Long.valueOf(stringValue);
+                } else if (Double.class.equals(type)) {
+                    return (T) Double.valueOf(stringValue);
+                } else if (TimeUnit.class.equals(type)) {
+                    return (T) TimeUnit.valueOf(stringValue);
+                }
+                throw new IllegalArgumentException("Unable to convert string value to desired type " + type);
+            } else {
+               throw e;
+            }
+        }
+    }
+
+    @Override
+    public <T> DefaultClientConfigImpl set(IClientConfigKey<T> key, T value) {
+        properties.put(key.key(), value);
+        return this;
+    }
+
+    @Override
+    public <T> T get(IClientConfigKey<T> key, T defaultValue) {
+        T value = get(key);
+        if (value == null) {
+            value = defaultValue;
+        }
+        return value;
     }
 }
