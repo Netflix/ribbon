@@ -28,6 +28,10 @@ To get ribbon binaries, go to [maven central](http://search.maven.org/#search%7C
 * ribbon-example: Examples
 * ribbon-core: Client configuration APIs and other shared APIs
 
+## Release notes
+
+See https://github.com/Netflix/ribbon/releases
+
 ## Code example
 
 ### Access HTTP resource using template
