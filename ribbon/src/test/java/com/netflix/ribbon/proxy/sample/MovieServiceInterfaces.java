@@ -129,6 +129,12 @@ public class MovieServiceInterfaces {
     }
 
     @ResourceGroup(name = "testResourceGroup")
+    public static interface TemplateNameDerivedFromMethodName {
+        @Http(method = HttpMethod.GET, uriTemplate = "/template")
+        RibbonRequest<Void> myTemplateName();
+    }
+
+    @ResourceGroup(name = "testResourceGroup")
     public static interface HystrixOptionalAnnotationValues {
 
         @TemplateName("hystrix1")
