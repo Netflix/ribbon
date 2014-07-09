@@ -56,6 +56,7 @@ Observable<ByteBuf> result = recommendationsByUserIdTemplate.requestBuilder()
 
 ```java
 public interface MovieService {
+    @TemplateName("recommendations")
     @Http(
             method = HttpMethod.GET,
             uriTemplate = "/users/{userId}/recommendations",
