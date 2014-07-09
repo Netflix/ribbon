@@ -17,9 +17,11 @@ package com.netflix.ribbon.http;
 
 import static org.junit.Assert.assertEquals;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpRequestHeaders;
 
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +41,7 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 
 public class TemplateBuilderTest {
     
-    private static class FakeCacheProvider implements CacheProvider<String> {
+    private static class FakeCacheProvider implements CacheProvider<ByteBuf> {
         String id;
         
         FakeCacheProvider(String id) {
@@ -47,10 +49,10 @@ public class TemplateBuilderTest {
         }
         
         @Override
-        public Observable<String> get(final String key,
+        public Observable<ByteBuf> get(final String key,
                 Map<String, Object> requestProperties) {
             if (key.equals(id)) {
-                return Observable.just(id);
+                return Observable.just(Unpooled.buffer().writeBytes(id.getBytes(Charset.defaultCharset())));
 
             } else {
                 return Observable.error(new IllegalArgumentException());
@@ -77,14 +79,14 @@ public class TemplateBuilderTest {
     public void testCacheKeyTemplates() {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
         
-        HttpRequestTemplate<String> template = group.newRequestTemplate("testCacheKeyTemplates", String.class);
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("testCacheKeyTemplates", ByteBuf.class);
         template.withUriTemplate("/foo/{id}")
                 .withMethod("GET")
             .withCacheProvider("/cache/{id}", new FakeCacheProvider("/cache/5"));
         
-        RibbonRequest<String> request = template.requestBuilder().withRequestProperty("id", 5).build();
-        String result = request.execute();
-        assertEquals("/cache/5", result);
+        RibbonRequest<ByteBuf> request = template.requestBuilder().withRequestProperty("id", 5).build();
+        ByteBuf result = request.execute();
+        assertEquals("/cache/5", result.toString(Charset.defaultCharset()));
     }
     
     @Test
@@ -118,12 +120,12 @@ public class TemplateBuilderTest {
                 .withMaxTotalConnections(400)
                 .withReadTimeout(2000);
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test", clientOptions);
-        HttpRequestTemplate<String> template = group.newRequestTemplate("testHystrixProperties", String.class);
-        HttpRequest<String> request = (HttpRequest<String>) template.withMethod("GET")
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("testHystrixProperties", ByteBuf.class);
+        HttpRequest<ByteBuf> request = (HttpRequest<ByteBuf>) template.withMethod("GET")
                 .withMethod("GET")
             .withUriTemplate("/foo/bar")
             .requestBuilder().build();
-        HystrixObservableCommand<String> command = request.createHystrixCommand();
+        HystrixObservableCommand<ByteBuf> command = request.createHystrixCommand();
         HystrixCommandProperties props = command.getProperties();
         assertEquals(400, props.executionIsolationSemaphoreMaxConcurrentRequests().get().intValue());
         assertEquals(12000, props.executionIsolationThreadTimeoutInMilliseconds().get().intValue());
