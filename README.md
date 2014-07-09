@@ -94,7 +94,7 @@ LoadBalancerExecutor lbExecutor = LoadBalancerBuilder.newBuilder()
 String statusLine = lbExecutor.execute(new LoadBalancerCommand<String>() {
             @Override
             public String run(Server server) throws Exception {
-                URL url = new URL("http://" + server.getHost() + ":" + server.getPort() + path);
+                URL url = new URL("http://" + server.getHost() + ":" + server.getPort() + "/");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 return conn.getResponseMessage();
             }
