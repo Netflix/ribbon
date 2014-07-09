@@ -43,47 +43,25 @@ public abstract class AbstractRxMovieClient {
     protected static final String TEST_USER = "user1";
     protected static final Pattern NEW_LINE_SPLIT_RE = Pattern.compile("\n");
 
-    protected abstract Observable<Void>[] triggerMoviesRegistration();
+    protected abstract Observable<ByteBuf>[] triggerMoviesRegistration();
 
-    protected abstract Observable<Void>[] triggerRecommendationsUpdate();
+    protected abstract Observable<ByteBuf>[] triggerRecommendationsUpdate();
 
     protected abstract Observable<ByteBuf>[] triggerRecommendationsSearch();
 
-    protected boolean registerMovies() {
-        System.out.print("Registering movies...");
-
-        Notification<Void> status = Observable.concat(Observable.from(triggerMoviesRegistration())).materialize().toBlocking().last();
-
-        if (status.isOnError()) {
-            System.err.println("ERROR");
-            status.getThrowable().printStackTrace();
-            return false;
-        }
-        System.out.println("DONE");
-        return true;
+    protected Observable<ByteBuf> registerMovies() {
+        return Observable.concat(Observable.from(triggerMoviesRegistration()));
     }
 
-    protected boolean updateRecommendations() {
-        System.out.print("Updating user recommendations...");
-
-        Notification<Void> status = Observable.concat(Observable.from(triggerRecommendationsUpdate())).materialize().toBlocking().last();
-
-        if (status.isOnError()) {
-            System.err.println("ERROR");
-            status.getThrowable().printStackTrace();
-            return false;
-        }
-        System.out.println("DONE");
-        return true;
+    protected Observable<ByteBuf> updateRecommendations() {
+        return Observable.concat(Observable.from(triggerRecommendationsUpdate()));
     }
 
-    protected boolean searchCatalog() {
-        System.out.println("Searching through the movie catalog...");
-
+    protected Observable<Void> searchCatalog() {
         List<String> searches = new ArrayList<String>(2);
         Collections.addAll(searches, "findById", "findRawMovieById", "findMovie(name, category)");
 
-        Notification<Void> status = Observable.concat(Observable.from(triggerRecommendationsSearch())).flatMap(new Func1<ByteBuf, Observable<List<Movie>>>() {
+        return Observable.concat(Observable.from(triggerRecommendationsSearch())).flatMap(new Func1<ByteBuf, Observable<List<Movie>>>() {
             @Override
             public Observable<List<Movie>> call(ByteBuf byteBuf) {
                 List<Movie> movies = new ArrayList<Movie>();
@@ -99,32 +77,67 @@ public abstract class AbstractRxMovieClient {
                 System.out.println(format("    %s=%s", query, movies));
                 return null;
             }
-        }).materialize().toBlocking().last();
-
-        if (status.isOnError()) {
-            System.err.println("ERROR");
-            status.getThrowable().printStackTrace();
-            return false;
-        }
-        System.out.println("DONE");
-        return true;
+        });
     }
 
-    public void execute() {
+    public boolean runExample() {
+        boolean allGood = true;
         try {
-            if (registerMovies() && updateRecommendations() && searchCatalog()) {
+            System.out.print("Registering movies...");
+
+            Notification<Void> result = executeServerCalls();
+            allGood = !result.isOnError();
+            if (allGood) {
                 System.out.println("Application finished");
             } else {
                 System.err.println("ERROR: execution failure");
+                result.getThrowable().printStackTrace();
             }
         } catch (Exception e) {
             e.printStackTrace();
+            allGood = false;
         } finally {
             shutdown();
         }
+        return allGood;
+    }
+
+    Notification<Void> executeServerCalls() {
+        Observable<Void> resultObservable = registerMovies().materialize().flatMap(
+                new Func1<Notification<ByteBuf>, Observable<Void>>() {
+                    @Override
+                    public Observable<Void> call(Notification<ByteBuf> notif) {
+                        if (!verifyStatus(notif)) {
+                            return Observable.error(notif.getThrowable());
+                        }
+                        System.out.print("Updating user recommendations...");
+                        return updateRecommendations().materialize().flatMap(
+                                new Func1<Notification<ByteBuf>, Observable<Void>>() {
+                                    @Override
+                                    public Observable<Void> call(Notification<ByteBuf> notif) {
+                                        if (!verifyStatus(notif)) {
+                                            return Observable.error(notif.getThrowable());
+                                        }
+                                        System.out.println("Searching through the movie catalog...");
+                                        return searchCatalog();
+                                    }
+                                });
+                    }
+                }
+        );
+        return resultObservable.materialize().toBlocking().last();
     }
 
     protected void shutdown() {
         HystrixTimer.reset();
+    }
+
+    private static boolean verifyStatus(Notification<ByteBuf> notif) {
+        if (notif.isOnError()) {
+            System.out.println("ERROR");
+            return false;
+        }
+        System.out.println("DONE");
+        return true;
     }
 }

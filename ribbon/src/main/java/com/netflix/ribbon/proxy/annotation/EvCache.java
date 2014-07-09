@@ -31,7 +31,7 @@ public @interface EvCache {
 
     String appName();
 
-    String cacheKeyTemplate();
+    String cacheKey();
 
     int ttl() default 100;
 
