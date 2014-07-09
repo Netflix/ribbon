@@ -73,6 +73,9 @@ class HttpRequest<T> implements RibbonRequest<T> {
             this.cacheProvider = null;
         }
         this.template = requestBuilder.template();
+        if (!ByteBuf.class.isAssignableFrom(template.getClassType())) {
+            throw new IllegalArgumentException("Return type other than ByteBuf is not currently supported as serialization functionality is still work in progress");
+        }
     }
 
     RibbonHystrixObservableCommand<T> createHystrixCommand() {
