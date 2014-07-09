@@ -100,3 +100,9 @@ String statusLine = lbExecutor.execute(new LoadBalancerCommand<String>() {
             }
         });
 ```
+
+## Questions?
+
+Email ribbon-users@googlegroups.com or [join us](https://groups.google.com/forum/#!forum/ribbon-users)
+
+
