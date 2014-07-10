@@ -150,7 +150,7 @@ class MethodTemplateExecutor {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void withContent(HttpRequestBuilder<?> requestBuilder, Object[] args) {
         if (methodTemplate.getContentArgPosition() < 0) {
             return;

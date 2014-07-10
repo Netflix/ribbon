@@ -16,26 +16,24 @@
 package com.netflix.ribbon.proxy;
 
 import com.netflix.evcache.EVCacheTranscoder;
-import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.CacheProviderFactory;
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.evache.EvCacheOptions;
 import com.netflix.ribbon.http.HttpResponseValidator;
 import com.netflix.ribbon.hystrix.FallbackHandler;
-import com.netflix.ribbon.proxy.annotation.CacheProviders;
+import com.netflix.ribbon.proxy.annotation.CacheProvider;
 import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
 import com.netflix.ribbon.proxy.annotation.EvCache;
 import com.netflix.ribbon.proxy.annotation.Http;
+import com.netflix.ribbon.proxy.annotation.Http.Header;
+import com.netflix.ribbon.proxy.annotation.Http.HttpMethod;
 import com.netflix.ribbon.proxy.annotation.Hystrix;
 import com.netflix.ribbon.proxy.annotation.TemplateName;
 import com.netflix.ribbon.proxy.annotation.Var;
-import com.netflix.ribbon.proxy.annotation.CacheProviders.Provider;
-import com.netflix.ribbon.proxy.annotation.Http.Header;
-import com.netflix.ribbon.proxy.annotation.Http.HttpMethod;
-
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.channel.ContentTransformer;
+import rx.Observable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -46,9 +44,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-
-import rx.Observable;
 
 import static java.lang.String.*;
 
@@ -147,7 +142,7 @@ class MethodTemplate {
     public Class<?> getGenericContentType() {
         return genericContentType;
     }
-    
+
     public String getHystrixCacheKey() {
         return hystrixCacheKey;
     }
@@ -178,9 +173,9 @@ class MethodTemplate {
 
     static class CacheProviderEntry {
         private final String key;
-        private final CacheProvider<?> cacheProvider;
+        private final com.netflix.ribbon.CacheProvider cacheProvider;
 
-        CacheProviderEntry(String key, CacheProvider<?> cacheProvider) {
+        CacheProviderEntry(String key, com.netflix.ribbon.CacheProvider cacheProvider) {
             this.key = key;
             this.cacheProvider = cacheProvider;
         }
@@ -189,7 +184,7 @@ class MethodTemplate {
             return key;
         }
 
-        public CacheProvider<?> getCacheProvider() {
+        public com.netflix.ribbon.CacheProvider getCacheProvider() {
             return cacheProvider;
         }
     }
@@ -222,21 +217,15 @@ class MethodTemplate {
             extractContentTransformerClass();
             extractResultType();
             extractHystrixHandlers();
-            extractCacheProviders();
+            extractCacheProvider();
             extractEvCacheOptions();
         }
 
-        private void extractCacheProviders() {
-            CacheProviders annotation = method.getAnnotation(CacheProviders.class);
+        private void extractCacheProvider() {
+            CacheProvider annotation = method.getAnnotation(CacheProvider.class);
             if (annotation != null) {
-                if (annotation.value().length > 1) {
-                    throw new ProxyAnnotationException(format("more than one cache provider defined for method %s", methodName()));                    
-                }
-                for (Provider provider : annotation.value()) {
-                    Class<? extends CacheProviderFactory<?>> providerClass = provider.provider();
-                    CacheProviderFactory<?> factory = Utils.newInstance(providerClass);
-                    cacheProviders.add(new CacheProviderEntry(provider.key(), factory.createCacheProvider()));
-                }
+                CacheProviderFactory<?> factory = Utils.newInstance(annotation.provider());
+                cacheProviders.add(new CacheProviderEntry(annotation.key(), factory.createCacheProvider()));
             }
         }
 
@@ -251,12 +240,12 @@ class MethodTemplate {
             }
             if (annotation.fallbackHandler().length == 1) {
                 hystrixFallbackHandler = Utils.newInstance(annotation.fallbackHandler()[0]);
-            } else if(annotation.fallbackHandler().length > 1) {
+            } else if (annotation.fallbackHandler().length > 1) {
                 throw new ProxyAnnotationException(format("more than one fallback handler defined for method %s", methodName()));
             }
             if (annotation.validator().length == 1) {
                 hystrixResponseValidator = Utils.newInstance(annotation.validator()[0]);
-            } else if(annotation.validator().length > 1) {
+            } else if (annotation.validator().length > 1) {
                 throw new ProxyAnnotationException(format("more than one validator defined for method %s", methodName()));
             }
         }
@@ -267,7 +256,7 @@ class MethodTemplate {
                 throw new ProxyAnnotationException(format("Method %s misses @Http annotation", methodName()));
             }
             httpMethod = annotation.method();
-            uriTemplate = annotation.uriTemplate();
+            uriTemplate = annotation.uri();
             for (Header h : annotation.headers()) {
                 if (!headers.containsKey(h.name())) {
                     ArrayList<String> values = new ArrayList<String>();
@@ -338,7 +327,7 @@ class MethodTemplate {
             }
             if (annotation == null) {
                 Class<?> contentType = method.getParameterTypes()[contentArgPosition];
-                if ((Observable.class.isAssignableFrom(contentType) && ByteBuf.class.isAssignableFrom(genericContentType))
+                if (Observable.class.isAssignableFrom(contentType) && ByteBuf.class.isAssignableFrom(genericContentType)
                         || ByteBuf.class.isAssignableFrom(contentType)
                         || byte[].class.isAssignableFrom(contentType)
                         || String.class.isAssignableFrom(contentType)) {
@@ -354,17 +343,23 @@ class MethodTemplate {
             TemplateName annotation = method.getAnnotation(TemplateName.class);
             if (null != annotation) {
                 templateName = annotation.value();
+            } else {
+                templateName = method.getName();
             }
         }
 
         private void extractResultType() {
             Class<?> returnClass = method.getReturnType();
             if (!returnClass.isAssignableFrom(RibbonRequest.class)) {
-                throw new ProxyAnnotationException(format("Method %s must return Void or RibbonRequest<T> type not %s",
+                throw new ProxyAnnotationException(format("Method %s must return RibbonRequest<ByteBuf> type not %s",
                         methodName(), returnClass.getSimpleName()));
             }
             ParameterizedType returnType = (ParameterizedType) method.getGenericReturnType();
             resultType = (Class<?>) returnType.getActualTypeArguments()[0];
+            if (!ByteBuf.class.isAssignableFrom(resultType)) {
+                throw new ProxyAnnotationException(format("Method %s must return RibbonRequest<ByteBuf> type; instead %s type parameter found",
+                        methodName(), resultType.getSimpleName()));
+            }
         }
 
         private void extractEvCacheOptions() {
@@ -389,7 +384,7 @@ class MethodTemplate {
                     annotation.enableZoneFallback(),
                     annotation.ttl(),
                     transcoder,
-                    annotation.cacheKeyTemplate());
+                    annotation.key());
         }
 
         private String methodName() {

@@ -37,7 +37,7 @@ public @interface Http {
 
     HttpMethod method();
 
-    String uriTemplate() default "";
+    String uri() default "";
 
     Header[] headers() default {};
 

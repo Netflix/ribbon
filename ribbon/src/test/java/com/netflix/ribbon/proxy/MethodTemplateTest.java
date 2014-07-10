@@ -1,18 +1,17 @@
 package com.netflix.ribbon.proxy;
 
-import io.netty.buffer.ByteBuf;
-
 import com.netflix.ribbon.evache.EvCacheOptions;
 import com.netflix.ribbon.proxy.MethodTemplate.CacheProviderEntry;
-import com.netflix.ribbon.proxy.sample.Movie;
-import com.netflix.ribbon.proxy.sample.MovieTransformer;
 import com.netflix.ribbon.proxy.sample.EvCacheClasses.SampleEVCacheTranscoder;
+import com.netflix.ribbon.proxy.sample.Movie;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.BrokenMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.HystrixOptionalAnnotationValues;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.PostsWithDifferentContentTypes;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
+import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.TemplateNameDerivedFromMethodName;
+import com.netflix.ribbon.proxy.sample.MovieTransformer;
 import com.netflix.ribbon.proxy.sample.SampleCacheProviderFactory.SampleCacheProvider;
-
+import io.netty.buffer.ByteBuf;
 import org.junit.Test;
 
 import static com.netflix.ribbon.proxy.Utils.*;
@@ -36,7 +35,7 @@ public class MethodTemplateTest {
         assertTrue("value2".equals(template.getHeaders().get("X-MyHeader2").get(0)));
 
         assertEquals(0, template.getParamPosition(0));
-        assertEquals(template.getResultType(), Movie.class);
+        assertEquals(template.getResultType(), ByteBuf.class);
 
         assertEquals("findMovieById/{id}", template.getHystrixCacheKey());
         assertNotNull(template.getHystrixFallbackHandler());
@@ -65,6 +64,12 @@ public class MethodTemplateTest {
         assertEquals(0, template.getParamPosition(0));
         assertEquals("author", template.getParamName(1));
         assertEquals(1, template.getParamPosition(1));
+    }
+
+    @Test
+    public void testTemplateNameCanBeDerivedFromMethodName() throws Exception {
+        MethodTemplate template = new MethodTemplate(methodByName(TemplateNameDerivedFromMethodName.class, "myTemplateName"));
+        assertEquals("myTemplateName", template.getTemplateName());
     }
 
     @Test

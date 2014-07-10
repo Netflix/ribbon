@@ -24,13 +24,9 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CacheProviders {
+public @interface CacheProvider {
 
-    Provider[] value() default {};
+    String key();
 
-    @interface Provider {
-        String key();
-
-        Class<? extends CacheProviderFactory<?>> provider();
-    }
+    Class<? extends CacheProviderFactory<?>> provider();
 }
