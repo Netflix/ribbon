@@ -384,7 +384,7 @@ class MethodTemplate {
                     annotation.enableZoneFallback(),
                     annotation.ttl(),
                     transcoder,
-                    annotation.cacheKey());
+                    annotation.key());
         }
 
         private String methodName() {

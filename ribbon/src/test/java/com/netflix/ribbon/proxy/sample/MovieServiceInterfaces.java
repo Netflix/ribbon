@@ -43,7 +43,7 @@ public class MovieServiceInterfaces {
                 validator = SampleHttpResponseValidator.class,
                 fallbackHandler = MovieFallbackHandler.class)
         @CacheProvider(key = "findMovieById_{id}", provider = SampleCacheProviderFactory.class)
-        @EvCache(name = "movie-cache", appName = "movieService", cacheKey = "movie-{id}", ttl = 50,
+        @EvCache(name = "movie-cache", appName = "movieService", key = "movie-{id}", ttl = 50,
                 enableZoneFallback = true, transcoder = SampleEVCacheTranscoder.class)
         RibbonRequest<ByteBuf> findMovieById(@Var("id") String id);
 
