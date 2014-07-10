@@ -20,18 +20,15 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
 import rx.Observable;
-import rx.functions.Func1;
+import rx.subjects.ReplaySubject;
 
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RequestWithMetaData;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.http.HttpRequestTemplate.CacheProviderWithKeyTemplate;
 import com.netflix.ribbon.template.TemplateParser;
 import com.netflix.ribbon.template.TemplateParsingException;
 
@@ -95,7 +92,9 @@ class HttpRequest<T> implements RibbonRequest<T> {
 
     @Override
     public Observable<T> observe() {
-        return createHystrixCommand().observe();
+        ReplaySubject<T> subject = ReplaySubject.create();
+        createHystrixCommand().getObservable().subscribe(subject);
+        return subject;
     }
 
     @Override

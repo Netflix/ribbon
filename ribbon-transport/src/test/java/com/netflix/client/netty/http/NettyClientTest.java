@@ -374,6 +374,12 @@ public class NettyClientTest {
         assertEquals(2, observer.obj.age);
         ServerStats stats = lbObservables.getServerStats(badServer);
         server.shutdown();
+        
+        HttpClientListener listener = lbObservables.getListener();
+        Thread.sleep(1000);
+        assertEquals(5, listener.getPoolReleases());
+        assertEquals(0, listener.getPoolReuse());
+
         // two requests to bad server because retry same server is set to 1
         assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());

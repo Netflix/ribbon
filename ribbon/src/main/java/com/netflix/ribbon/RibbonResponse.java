@@ -18,6 +18,14 @@ package com.netflix.ribbon;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
 
+/**
+ * Response object from {@link RequestWithMetaData} that contains the content
+ * and the meta data from execution.
+ * 
+ * @author Allen Wang
+ *
+ * @param <T> Data type of the returned object
+ */
 public abstract class RibbonResponse<T> {
     public abstract T content();
     
