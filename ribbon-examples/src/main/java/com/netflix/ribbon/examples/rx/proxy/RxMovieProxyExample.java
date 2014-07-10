@@ -35,30 +35,30 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
 
     private final MovieService movieService;
 
-    public RxMovieProxyExample() {
+    public RxMovieProxyExample(int port) {
         HttpResourceGroup httpResourceGroup = Ribbon.createHttpResourceGroup("movieServiceClient",
                 ClientOptions.create()
                         .withMaxAutoRetriesNextServer(3)
-                        .withConfigurationBasedServerList("localhost:" + RxMovieServer.DEFAULT_PORT));
+                        .withConfigurationBasedServerList("localhost:" + port));
         movieService = Ribbon.from(MovieService.class, httpResourceGroup);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    protected Observable<Void>[] triggerMoviesRegistration() {
+    protected Observable<ByteBuf>[] triggerMoviesRegistration() {
         return new Observable[]{
-                movieService.registerMovie(Movie.ORANGE_IS_THE_NEW_BLACK).observe(),
-                movieService.registerMovie(Movie.BREAKING_BAD).observe(),
-                movieService.registerMovie(Movie.HOUSE_OF_CARDS).observe()
+                movieService.registerMovie(Movie.ORANGE_IS_THE_NEW_BLACK).toObservable(),
+                movieService.registerMovie(Movie.BREAKING_BAD).toObservable(),
+                movieService.registerMovie(Movie.HOUSE_OF_CARDS).toObservable()
         };
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    protected Observable<Void>[] triggerRecommendationsUpdate() {
+    protected Observable<ByteBuf>[] triggerRecommendationsUpdate() {
         return new Observable[]{
-                movieService.updateRecommendations(TEST_USER, Movie.ORANGE_IS_THE_NEW_BLACK.getId()).observe(),
-                movieService.updateRecommendations(TEST_USER, Movie.BREAKING_BAD.getId()).observe()
+                movieService.updateRecommendations(TEST_USER, Movie.ORANGE_IS_THE_NEW_BLACK.getId()).toObservable(),
+                movieService.updateRecommendations(TEST_USER, Movie.BREAKING_BAD.getId()).toObservable()
         };
     }
 
@@ -66,8 +66,8 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
     @Override
     protected Observable<ByteBuf>[] triggerRecommendationsSearch() {
         return new Observable[]{
-                movieService.recommendationsByUserId(TEST_USER).observe(),
-                movieService.recommendationsBy("Drama", "Adults").observe()
+                movieService.recommendationsByUserId(TEST_USER).toObservable(),
+                movieService.recommendationsBy("Drama", "Adults").toObservable()
         };
     }
 
@@ -79,6 +79,6 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
 
     public static void main(String[] args) {
         System.out.println("Starting proxy based movie service...");
-        new RxMovieProxyExample().execute();
+        new RxMovieProxyExample(RxMovieServer.DEFAULT_PORT).runExample();
     }
 }

@@ -22,8 +22,7 @@ import com.netflix.ribbon.examples.rx.common.Movie;
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceFallbackHandler;
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceResponseValidator;
 import com.netflix.ribbon.examples.rx.common.RxMovieTransformer;
-import com.netflix.ribbon.proxy.annotation.CacheProviders;
-import com.netflix.ribbon.proxy.annotation.CacheProviders.Provider;
+import com.netflix.ribbon.proxy.annotation.CacheProvider;
 import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
 import com.netflix.ribbon.proxy.annotation.Http;
@@ -42,7 +41,7 @@ public interface MovieService {
     @TemplateName("recommendationsByUserId")
     @Http(
             method = HttpMethod.GET,
-            uriTemplate = "/users/{userId}/recommendations",
+            uri = "/users/{userId}/recommendations",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
@@ -50,13 +49,13 @@ public interface MovieService {
     @Hystrix(
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
-    @CacheProviders(@Provider(key = "{userId}", provider = InMemoryCacheProviderFactory.class))
+    @CacheProvider(key = "{userId}", provider = InMemoryCacheProviderFactory.class)
     RibbonRequest<ByteBuf> recommendationsByUserId(@Var("userId") String userId);
 
     @TemplateName("recommendationsBy")
     @Http(
             method = HttpMethod.GET,
-            uriTemplate = "/recommendations?category={category}&ageGroup={ageGroup}",
+            uri = "/recommendations?category={category}&ageGroup={ageGroup}",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
@@ -64,29 +63,29 @@ public interface MovieService {
     @Hystrix(
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
-    @CacheProviders(@Provider(key = "{category},{ageGroup}", provider = InMemoryCacheProviderFactory.class))
+    @CacheProvider(key = "{category},{ageGroup}", provider = InMemoryCacheProviderFactory.class)
     RibbonRequest<ByteBuf> recommendationsBy(@Var("category") String category, @Var("ageGroup") String ageGroup);
 
     @TemplateName("registerMovie")
     @Http(
             method = HttpMethod.POST,
-            uriTemplate = "/movies",
+            uri = "/movies",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(validator = RecommendationServiceResponseValidator.class)
     @ContentTransformerClass(RxMovieTransformer.class)
-    RibbonRequest<Void> registerMovie(@Content Movie movie);
+    RibbonRequest<ByteBuf> registerMovie(@Content Movie movie);
 
     @TemplateName("updateRecommendations")
     @Http(
             method = HttpMethod.POST,
-            uriTemplate = "/users/{userId}/recommendations",
+            uri = "/users/{userId}/recommendations",
             headers = {
                     @Header(name = "X-Platform-Version", value = "xyz"),
                     @Header(name = "X-Auth-Token", value = "abc")
             })
     @Hystrix(validator = RecommendationServiceResponseValidator.class)
-    RibbonRequest<Void> updateRecommendations(@Var("userId") String userId, @Content String movieId);
+    RibbonRequest<ByteBuf> updateRecommendations(@Var("userId") String userId, @Content String movieId);
 }

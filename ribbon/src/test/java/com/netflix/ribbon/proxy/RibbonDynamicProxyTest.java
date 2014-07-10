@@ -83,7 +83,7 @@ public class RibbonDynamicProxyTest {
         replayAll();
 
         SampleMovieService service = RibbonDynamicProxy.newInstance(SampleMovieService.class, httpResourceGroupMock);
-        RibbonRequest<Movie> ribbonMovie = service.findMovieById("123");
+        RibbonRequest<ByteBuf> ribbonMovie = service.findMovieById("123");
 
         assertNotNull(ribbonMovie);
     }

@@ -16,14 +16,12 @@
 package com.netflix.ribbon.proxy;
 
 import com.netflix.evcache.EVCacheTranscoder;
-import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.CacheProviderFactory;
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.evache.EvCacheOptions;
 import com.netflix.ribbon.http.HttpResponseValidator;
 import com.netflix.ribbon.hystrix.FallbackHandler;
-import com.netflix.ribbon.proxy.annotation.CacheProviders;
-import com.netflix.ribbon.proxy.annotation.CacheProviders.Provider;
+import com.netflix.ribbon.proxy.annotation.CacheProvider;
 import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
 import com.netflix.ribbon.proxy.annotation.EvCache;
@@ -175,9 +173,9 @@ class MethodTemplate {
 
     static class CacheProviderEntry {
         private final String key;
-        private final CacheProvider<?> cacheProvider;
+        private final com.netflix.ribbon.CacheProvider cacheProvider;
 
-        CacheProviderEntry(String key, CacheProvider<?> cacheProvider) {
+        CacheProviderEntry(String key, com.netflix.ribbon.CacheProvider cacheProvider) {
             this.key = key;
             this.cacheProvider = cacheProvider;
         }
@@ -186,7 +184,7 @@ class MethodTemplate {
             return key;
         }
 
-        public CacheProvider<?> getCacheProvider() {
+        public com.netflix.ribbon.CacheProvider getCacheProvider() {
             return cacheProvider;
         }
     }
@@ -219,20 +217,15 @@ class MethodTemplate {
             extractContentTransformerClass();
             extractResultType();
             extractHystrixHandlers();
-            extractCacheProviders();
+            extractCacheProvider();
             extractEvCacheOptions();
         }
 
-        private void extractCacheProviders() {
-            CacheProviders annotation = method.getAnnotation(CacheProviders.class);
-            if (annotation != null && annotation.value().length > 0) {
-                if (annotation.value().length > 1) {
-                    throw new ProxyAnnotationException(format("more than one cache provider defined for method %s", methodName()));
-                }
-                Provider provider = annotation.value()[0];
-                Class<? extends CacheProviderFactory<?>> providerClass = provider.provider();
-                CacheProviderFactory<?> factory = Utils.newInstance(providerClass);
-                cacheProviders.add(new CacheProviderEntry(provider.key(), factory.createCacheProvider()));
+        private void extractCacheProvider() {
+            CacheProvider annotation = method.getAnnotation(CacheProvider.class);
+            if (annotation != null) {
+                CacheProviderFactory<?> factory = Utils.newInstance(annotation.provider());
+                cacheProviders.add(new CacheProviderEntry(annotation.key(), factory.createCacheProvider()));
             }
         }
 
@@ -263,7 +256,7 @@ class MethodTemplate {
                 throw new ProxyAnnotationException(format("Method %s misses @Http annotation", methodName()));
             }
             httpMethod = annotation.method();
-            uriTemplate = annotation.uriTemplate();
+            uriTemplate = annotation.uri();
             for (Header h : annotation.headers()) {
                 if (!headers.containsKey(h.name())) {
                     ArrayList<String> values = new ArrayList<String>();
@@ -358,11 +351,15 @@ class MethodTemplate {
         private void extractResultType() {
             Class<?> returnClass = method.getReturnType();
             if (!returnClass.isAssignableFrom(RibbonRequest.class)) {
-                throw new ProxyAnnotationException(format("Method %s must return RibbonRequest<T> type not %s",
+                throw new ProxyAnnotationException(format("Method %s must return RibbonRequest<ByteBuf> type not %s",
                         methodName(), returnClass.getSimpleName()));
             }
             ParameterizedType returnType = (ParameterizedType) method.getGenericReturnType();
             resultType = (Class<?>) returnType.getActualTypeArguments()[0];
+            if (!ByteBuf.class.isAssignableFrom(resultType)) {
+                throw new ProxyAnnotationException(format("Method %s must return RibbonRequest<ByteBuf> type; instead %s type parameter found",
+                        methodName(), resultType.getSimpleName()));
+            }
         }
 
         private void extractEvCacheOptions() {
@@ -387,7 +384,7 @@ class MethodTemplate {
                     annotation.enableZoneFallback(),
                     annotation.ttl(),
                     transcoder,
-                    annotation.cacheKeyTemplate());
+                    annotation.key());
         }
 
         private String methodName() {

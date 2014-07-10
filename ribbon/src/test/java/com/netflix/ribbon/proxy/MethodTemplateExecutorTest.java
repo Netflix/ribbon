@@ -7,25 +7,19 @@ import com.netflix.ribbon.evache.EvCacheProvider;
 import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.proxy.EvCacheProviderPool;
-import com.netflix.ribbon.proxy.MethodTemplate;
-import com.netflix.ribbon.proxy.MethodTemplateExecutor;
-import com.netflix.ribbon.proxy.sample.Movie;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
+import com.netflix.ribbon.proxy.sample.Movie;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.ShortMovieService;
-
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.channel.ContentTransformer;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.annotation.Mock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-
 import rx.Observable;
 
 import java.lang.reflect.Method;
@@ -73,7 +67,7 @@ public class MethodTemplateExecutorTest {
         expectUrlBase("GET", "/movies/{id}");
 
         expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
-        expect(httpResourceGroupMock.newRequestTemplate("findMovieById", Movie.class)).andReturn(httpRequestTemplateMock);
+        expect(httpResourceGroupMock.newRequestTemplate("findMovieById")).andReturn(httpRequestTemplateMock);
 
         expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1.1")).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1.2")).andReturn(httpRequestTemplateMock);
@@ -135,11 +129,11 @@ public class MethodTemplateExecutorTest {
     private void doTestPostWith(String uriTemplate, String methodName, Object contentObject) {
         expectUrlBase("POST", uriTemplate);
 
-        expect(httpResourceGroupMock.newRequestTemplate(methodName, Void.class)).andReturn(httpRequestTemplateMock);
+        expect(httpResourceGroupMock.newRequestTemplate(methodName)).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withRequestCacheKey(methodName)).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
         expect(requestBuilderMock.withRawContentSource(anyObject(Observable.class), anyObject(ContentTransformer.class))).andReturn(requestBuilderMock);
-        
+
         replayAll();
 
         MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, methodName);

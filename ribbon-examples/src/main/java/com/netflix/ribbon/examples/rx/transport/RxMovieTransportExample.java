@@ -42,15 +42,15 @@ public class RxMovieTransportExample extends AbstractRxMovieClient {
 
     private final NettyHttpClient<ByteBuf, ByteBuf> client;
 
-    public RxMovieTransportExample() {
+    public RxMovieTransportExample(int port) {
         IClientConfig clientConfig = IClientConfig.Builder.newBuilder("movieServiceClient").build();
-        clientConfig.set(CommonClientConfigKey.ListOfServers, "localhost:" + RxMovieServer.DEFAULT_PORT);
+        clientConfig.set(CommonClientConfigKey.ListOfServers, "localhost:" + port);
         client = RibbonTransport.newHttpClient(clientConfig);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    protected Observable<Void>[] triggerMoviesRegistration() {
+    protected Observable<ByteBuf>[] triggerMoviesRegistration() {
         return new Observable[]{
                 registerMovie(Movie.ORANGE_IS_THE_NEW_BLACK),
                 registerMovie(Movie.BREAKING_BAD),
@@ -78,7 +78,7 @@ public class RxMovieTransportExample extends AbstractRxMovieClient {
 
     @SuppressWarnings("unchecked")
     @Override
-    protected Observable<Void>[] triggerRecommendationsUpdate() {
+    protected Observable<ByteBuf>[] triggerRecommendationsUpdate() {
         return new Observable[]{
                 updateRecommendation(TEST_USER, Movie.ORANGE_IS_THE_NEW_BLACK),
                 updateRecommendation(TEST_USER, Movie.BREAKING_BAD)
@@ -139,6 +139,6 @@ public class RxMovieTransportExample extends AbstractRxMovieClient {
 
     public static void main(String[] args) {
         System.out.println("Starting transport based movie service...");
-        new RxMovieTransportExample().execute();
+        new RxMovieTransportExample(RxMovieServer.DEFAULT_PORT).runExample();
     }
 }
