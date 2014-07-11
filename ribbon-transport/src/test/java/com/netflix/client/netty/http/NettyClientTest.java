@@ -17,6 +17,7 @@
  */
 package com.netflix.client.netty.http;
 
+import static com.netflix.ribbon.testutils.TestUtils.waitUntilTrueOrTimeout;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -45,8 +46,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -55,6 +54,7 @@ import org.junit.Test;
 import rx.Observable;
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.functions.Func0;
 import rx.functions.Func1;
 
 import com.google.common.collect.Lists;
@@ -138,17 +138,20 @@ public class NettyClientTest {
     
     @Test
     public void testObservable() throws Exception {
-        
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
         NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient();
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(request);
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
-        HttpClientListener listener = observableClient.getListener();
-        Thread.sleep(1000);
+        final HttpClientListener listener = observableClient.getListener();
         assertEquals(1, listener.getPoolAcquires());
         assertEquals(1, listener.getConnectionCount());
-        assertEquals(1, listener.getPoolReleases());
+        waitUntilTrueOrTimeout(1000, new Func0<Boolean>() {
+            @Override
+            public Boolean call() {
+                return listener.getPoolReleases() == 1;
+            }
+        });
     }
     
     @Test
@@ -160,11 +163,15 @@ public class NettyClientTest {
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
         // need to sleep to wait until connection is released
-        Thread.sleep(1000);
-        HttpClientListener listener = observableClient.getListener();
+        final HttpClientListener listener = observableClient.getListener();
         assertEquals(1, listener.getConnectionCount());
         assertEquals(1, listener.getPoolAcquires());
-        assertEquals(1, listener.getPoolReleases());
+        waitUntilTrueOrTimeout(1000, new Func0<Boolean>() {
+            @Override
+            public Boolean call() {
+                return listener.getPoolReleases() == 1;
+            }
+        });
     }
 
     
@@ -178,14 +185,17 @@ public class NettyClientTest {
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(request);
         Person person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
-        Thread.sleep(1000);
         response = observableClient.submit(request);
         person = getPersonObservable(response).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
-        Thread.sleep(1000);
-        HttpClientListener listener = observableClient.getListener();
+        final HttpClientListener listener = observableClient.getListener();
         assertEquals(2, listener.getPoolAcquires());
-        assertEquals(2, listener.getPoolReleases());
+        waitUntilTrueOrTimeout(1000, new Func0<Boolean>() {
+            @Override
+            public Boolean call() {
+                return listener.getPoolReleases() == 2;
+            }
+        });
         assertEquals(1, listener.getConnectionCount());
         assertEquals(1, listener.getPoolReuse());
     }
@@ -307,10 +317,14 @@ public class NettyClientTest {
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
         
-        Thread.sleep(1000);
-        HttpClientListener listener = lbObservables.getListener();
+        final HttpClientListener listener = lbObservables.getListener();
         assertEquals(1, listener.getConnectionCount());
-        assertEquals(1, listener.getPoolReleases());
+        waitUntilTrueOrTimeout(1000, new Func0<Boolean>() {
+            @Override
+            public Boolean call() {
+                return listener.getPoolReleases() == 1;
+            }
+        });
     }
 
     
@@ -375,9 +389,13 @@ public class NettyClientTest {
         ServerStats stats = lbObservables.getServerStats(badServer);
         server.shutdown();
         
-        HttpClientListener listener = lbObservables.getListener();
-        Thread.sleep(1000);
-        assertEquals(5, listener.getPoolReleases());
+        final HttpClientListener listener = lbObservables.getListener();
+        waitUntilTrueOrTimeout(1000, new Func0<Boolean>() {
+            @Override
+            public Boolean call() {
+                return listener.getPoolReleases() == 5;
+            }
+        });
         assertEquals(0, listener.getPoolReuse());
 
         // two requests to bad server because retry same server is set to 1
@@ -449,10 +467,14 @@ public class NettyClientTest {
         assertEquals(1, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
-        Thread.sleep(1000);
-        HttpClientListener listener = lbObservables.getListener();
+        final HttpClientListener listener = lbObservables.getListener();
         assertEquals(2, listener.getPoolAcquires());
-        assertEquals(2, listener.getPoolReleases());
+        waitUntilTrueOrTimeout(1000, new Func0<Boolean>() {
+            @Override
+            public Boolean call() {
+                return listener.getPoolReleases() == 2;
+            }
+        });
         assertEquals(2, listener.getConnectionCount());
         assertEquals(0, listener.getPoolReuse());
         
@@ -753,5 +775,5 @@ public class NettyClientTest {
                         .build());
         Person person = getPersonObservable(observableClient.submit(host, port, request)).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
-    } 
+    }     
 }

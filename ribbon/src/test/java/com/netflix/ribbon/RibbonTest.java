@@ -331,13 +331,15 @@ public class RibbonTest {
                 .requestBuilder().build();
         Observable<ByteBuf> result = request.observe();
         final CountDownLatch latch = new CountDownLatch(1);
-        final String[] fromCommand = new String[]{""};
-        Thread.sleep(2000);
+        final AtomicReference<String> fromCommand = new AtomicReference<String>();
+        // We need to wait until the response is received and processed by event loop
+        // and make sure that subscribing to it again will not cause ByteBuf ref count issue
+        result.toBlocking().last();
         result.subscribe(new Action1<ByteBuf>() {
             @Override
             public void call(ByteBuf t1) {
                 try {
-                    fromCommand[0] = t1.toString(Charset.defaultCharset());
+                    fromCommand.set(t1.toString(Charset.defaultCharset()));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -345,12 +347,14 @@ public class RibbonTest {
             }
         });
         latch.await();
-        assertEquals(content, fromCommand[0]);
+        assertEquals(content, fromCommand.get());
         
         Observable<RibbonResponse<Observable<ByteBuf>>> metaResult = request.withMetadata().observe();
-        fromCommand[0] = "";
-        Thread.sleep(2000);
-        fromCommand[0] = metaResult.flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<ByteBuf>>(){
+        String result2 = "";
+        // We need to wait until the response is received and processed by event loop
+        // and make sure that subscribing to it again will not cause ByteBuf ref count issue
+        metaResult.toBlocking().last();
+        result2 = metaResult.flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<ByteBuf>>(){
             @Override
             public Observable<ByteBuf> call(
                     RibbonResponse<Observable<ByteBuf>> t1) {
@@ -362,7 +366,7 @@ public class RibbonTest {
                 return t1.toString(Charset.defaultCharset());
             }
         }).toBlocking().single();
-        assertEquals(content, fromCommand[0]);
+        assertEquals(content, result2);
     }
     
     @Test

@@ -41,7 +41,7 @@ public interface RibbonRequest<T> {
     /**
      * Non blocking API that returns an {@link Observable} while the execution is started asynchronously.
      * Subscribing to the returned {@link Observable} is guaranteed to get the complete sequence from 
-     * the beginning, which might be replayed by the framework. 
+     * the beginning, which might be replayed by the framework. Use this API for "fire and forget".
      */
     public Observable<T> observe();
     
