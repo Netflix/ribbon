@@ -26,6 +26,7 @@ import rx.Observer;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.subjects.PublishSubject;
+import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
 import com.netflix.hystrix.HystrixExecutableInfo;
@@ -66,8 +67,9 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
     @Override
     public Observable<RibbonResponse<Observable<T>>> observe() {
         RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
-        final Observable<T> output = hystrixCommand.observe();
-        return convertToRibbonResponse(output, hystrixCommand);
+        ReplaySubject<T> subject = ReplaySubject.create();
+        hystrixCommand.getObservable().subscribe(subject);
+        return convertToRibbonResponse(subject, hystrixCommand);
     }
 
     @Override

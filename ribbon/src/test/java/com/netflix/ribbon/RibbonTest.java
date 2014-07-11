@@ -310,6 +310,64 @@ public class RibbonTest {
         assertEquals(content, result);
     }
     
+    @Test
+    public void testObserve() throws IOException, InterruptedException {
+        MockWebServer server = new MockWebServer();
+        String content = "Hello world";
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+                .setBody(content));       
+        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+                .setBody(content));       
+        server.play();
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", 
+                ClientOptions.create()
+                .withMaxAutoRetriesNextServer(3)
+                .withReadTimeout(300000)
+                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
+        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
+        RibbonRequest<ByteBuf> request = template
+                .withUriTemplate("/")
+                .withMethod("GET")
+                .requestBuilder().build();
+        Observable<ByteBuf> result = request.observe();
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<String> fromCommand = new AtomicReference<String>();
+        // We need to wait until the response is received and processed by event loop
+        // and make sure that subscribing to it again will not cause ByteBuf ref count issue
+        result.toBlocking().last();
+        result.subscribe(new Action1<ByteBuf>() {
+            @Override
+            public void call(ByteBuf t1) {
+                try {
+                    fromCommand.set(t1.toString(Charset.defaultCharset()));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                latch.countDown();
+            }
+        });
+        latch.await();
+        assertEquals(content, fromCommand.get());
+        
+        Observable<RibbonResponse<Observable<ByteBuf>>> metaResult = request.withMetadata().observe();
+        String result2 = "";
+        // We need to wait until the response is received and processed by event loop
+        // and make sure that subscribing to it again will not cause ByteBuf ref count issue
+        metaResult.toBlocking().last();
+        result2 = metaResult.flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<ByteBuf>>(){
+            @Override
+            public Observable<ByteBuf> call(
+                    RibbonResponse<Observable<ByteBuf>> t1) {
+                return t1.content();
+            }
+        }).map(new Func1<ByteBuf, String>(){
+            @Override
+            public String call(ByteBuf t1) {
+                return t1.toString(Charset.defaultCharset());
+            }
+        }).toBlocking().single();
+        assertEquals(content, result2);
+    }
     
     @Test
     public void testCacheMiss() throws IOException, InterruptedException {
