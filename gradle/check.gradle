@@ -9,7 +9,8 @@ checkstyle {
 */
 // FindBugs
 apply plugin: 'findbugs'
-tasks.withType(FindBugs) { 
+tasks.withType(FindBugs) {
+    findbugs.toolVersion "3.0.0"
     reports.html.enabled true 
     reports.xml.enabled false
 }

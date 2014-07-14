@@ -158,7 +158,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     }
 
     void restOfInit(IClientConfig clientConfig) {
-        refeshIntervalMills = Integer.valueOf(clientConfig.getProperty(
+        refeshIntervalMills = Integer.parseInt(clientConfig.getProperty(
                 CommonClientConfigKey.ServerListRefreshInterval,
                 LISTOFSERVERS_CACHE_REPEAT_INTERVAL).toString());
 

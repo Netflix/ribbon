@@ -33,9 +33,6 @@ import com.netflix.client.config.IClientConfig;
  * {@link RetryHandler}
  * 
  * @author awang
- *
- * @param <T> Type of request
- * @param <S> Type of response
  */
 public class DefaultLoadBalancerRetryHandler implements RetryHandler {
 

@@ -119,8 +119,8 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
     /**
      * This method should be used when the caller wants to dispatch the request to a server chosen by
      * the load balancer, instead of specifying the server in the request's URI. 
-     * It calculates the final URI by calling {@link #computeFinalUriWithLoadBalancer(ClientRequest)}
-     * and then calls {@link #execute(ClientRequest)}.
+     * It calculates the final URI by calling {@link #reconstructURIWithServer(com.netflix.loadbalancer.Server, java.net.URI)}
+     * and then calls {@link #executeWithLoadBalancer(ClientRequest, com.netflix.client.config.IClientConfig)}.
      * 
      * @param request request to be dispatched to a server chosen by the load balancer. The URI can be a partial
      * URI which does not contain the host name or the protocol.

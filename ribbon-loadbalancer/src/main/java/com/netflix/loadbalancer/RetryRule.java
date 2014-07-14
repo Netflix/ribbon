@@ -21,7 +21,7 @@ import com.netflix.client.config.IClientConfig;
 
 /**
  * Given that
- * <code>IRule<code> can be cascaded, this RetryRule class allows adding a retry logic to an existing Rule.
+ * {@link IRule} can be cascaded, this {@link RetryRule} class allows adding a retry logic to an existing Rule.
  * 
  * @author stonse
  * 

@@ -17,7 +17,7 @@ package com.netflix.ribbon.template;
 
 
 /**
- * TemplateVar is a base type for use in the template parser & URI Fragment builder to isolate template values from
+ * TemplateVar is a base type for use in the template parser &amp; URI Fragment builder to isolate template values from
  * static values
  */
 class TemplateVar {

@@ -71,12 +71,18 @@ public class SecureAcceptAllGetTest {
         TEST_FILE_TS = File.createTempFile("SecureAcceptAllGetTest", ".truststore");
 
         FileOutputStream keystoreFileOut = new FileOutputStream(TEST_FILE_KS);
-        keystoreFileOut.write(sampleKeystore1);
-        keystoreFileOut.close();
+        try {
+            keystoreFileOut.write(sampleKeystore1);
+        } finally {
+            keystoreFileOut.close();
+        }
 
         FileOutputStream truststoreFileOut = new FileOutputStream(TEST_FILE_TS);
-        truststoreFileOut.write(sampleTruststore1);
-        truststoreFileOut.close();
+        try {
+            truststoreFileOut.write(sampleTruststore1);
+        } finally {
+            truststoreFileOut.close();
+        }
 
         try{
             TEST_SERVER = new SimpleSSLTestServer(TEST_FILE_TS, SecureGetTest.PASSWORD, TEST_FILE_KS, SecureGetTest.PASSWORD, TEST_PORT, false);

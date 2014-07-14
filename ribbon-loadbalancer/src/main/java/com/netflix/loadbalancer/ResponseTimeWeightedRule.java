@@ -34,34 +34,34 @@ import com.netflix.client.config.IClientConfigKey;
  * Rule that use the average/percentile response times
  * to assign dynamic "weights" per Server which is then used in 
  * the "Weighted Round Robin" fashion. 
- * <p/>
+ * <p>
  * The basic idea for weighted round robin has been obtained from JCS
  * The implementation for choosing the endpoint from the list of endpoints
  * is as follows:Let's assume 4 endpoints:A(wt=10), B(wt=30), C(wt=40), 
  * D(wt=20). 
- * <p/>
+ * <p>
  * Using the Random API, generate a random number between 1 and10+30+40+20.
  * Let's assume that the above list is randomized. Based on the weights, we
  * have intervals as follows:
- * <p/>
+ * <p>
  * 1-----10 (A's weight)
- * <br/>
+ * <br>
  * 11----40 (A's weight + B's weight)
- * <br/>
+ * <br>
  * 41----80 (A's weight + B's weight + C's weight)
- * <br/>
+ * <br>
  * 81----100(A's weight + B's weight + C's weight + C's weight)
- * <p/>
+ * <p>
  * Here's the psuedo code for deciding where to send the request:
- * <p/>
- * if (random_number between 1 & 10) {send request to A;}
- * <br/>
- * else if (random_number between 11 & 40) {send request to B;}
- * <br/>
- * else if (random_number between 41 & 80) {send request to C;}
- * <br/>
- * else if (random_number between 81 & 100) {send request to D;}
- * <p/>
+ * <p>
+ * if (random_number between 1 &amp; 10) {send request to A;}
+ * <br>
+ * else if (random_number between 11 &amp; 40) {send request to B;}
+ * <br>
+ * else if (random_number between 41 &amp; 80) {send request to C;}
+ * <br>
+ * else if (random_number between 81 &amp; 100) {send request to D;}
+ * <p>
  * When there is not enough statistics gathered for the servers, this rule
  * will fall back to use {@link RoundRobinRule}. 
  * @author stonse
@@ -273,7 +273,7 @@ public class ResponseTimeWeightedRule extends RoundRobinRule {
 	@Override
 	public void initWithNiwsConfig(IClientConfig clientConfig) {
 	    super.initWithNiwsConfig(clientConfig);
-	    serverWeightTaskTimerInterval = Integer.valueOf(
+	    serverWeightTaskTimerInterval = Integer.parseInt(
 	            String.valueOf(clientConfig.getProperty(WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY, DEFAULT_TIMER_INTERVAL)));
 	}
 

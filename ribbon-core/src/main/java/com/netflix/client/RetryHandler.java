@@ -33,7 +33,7 @@ public interface RetryHandler {
     /**
      * Test if an exception is retriable for the load balancer
      * 
-     * @param request Request that causes such exception
+     * @param e the original exception
      * @param sameServer if true, the method is trying to determine if retry can be 
      *        done on the same server. Otherwise, it is testing whether retry can be
      *        done on a different server

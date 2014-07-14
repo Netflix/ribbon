@@ -52,13 +52,18 @@ public class SecureRestClientKeystoreTest {
 		File tempTruststore = File.createTempFile(this.getClass().getName(), ".truststore");
 
 		FileOutputStream keystoreFileOut = new FileOutputStream(tempKeystore);
-		keystoreFileOut.write(dummyKeystore);
-		keystoreFileOut.close();
+        try {
+            keystoreFileOut.write(dummyKeystore);
+        } finally {
+            keystoreFileOut.close();
+        }
 
 		FileOutputStream truststoreFileOut = new FileOutputStream(tempTruststore);
-		truststoreFileOut.write(dummyTruststore);
-		truststoreFileOut.close();
-
+        try {
+            truststoreFileOut.write(dummyTruststore);
+        } finally {
+            truststoreFileOut.close();
+        }
 
 		AbstractConfiguration cm = ConfigurationManager.getConfigInstance();
 
@@ -94,13 +99,18 @@ public class SecureRestClientKeystoreTest {
 		File tempTruststore = File.createTempFile(this.getClass().getName(), ".truststore");
 
 		FileOutputStream keystoreFileOut = new FileOutputStream(tempKeystore);
-		keystoreFileOut.write(dummyKeystore);
-		keystoreFileOut.close();
+        try {
+            keystoreFileOut.write(dummyKeystore);
+        } finally {
+            keystoreFileOut.close();
+        }
 
 		FileOutputStream truststoreFileOut = new FileOutputStream(tempTruststore);
-		truststoreFileOut.write(dummyTruststore);
-		truststoreFileOut.close();
-
+        try {
+            truststoreFileOut.write(dummyTruststore);
+        } finally {
+            truststoreFileOut.close();
+        }
 
 		AbstractConfiguration cm = ConfigurationManager.getConfigInstance();
 

@@ -49,7 +49,7 @@ public class ClientRequest implements Cloneable {
      *
      * 
      * @param uri  URI to set
-     * @param loadBalancerKey the object that is used by {@link ILoadBalancer#chooseServer(Object)}, can be null
+     * @param loadBalancerKey the object that is used by {code com.netflix.loadbalancer.ILoadBalancer#chooseServer(Object)}, can be null
      * @param isRetriable if the operation is retriable on failures
      * @param overrideConfig client configuration that is used for this specific request. can be null. 
      */
@@ -122,7 +122,7 @@ public class ClientRequest implements Cloneable {
     }
     
     /**
-     * Create a client request using a new URI. This is used by {@link AbstractLoadBalancerAwareClient#computeFinalUriWithLoadBalancer(ClientRequest)}.
+     * Create a client request using a new URI. This is used by {@code com.netflix.client.AbstractLoadBalancerAwareClient#computeFinalUriWithLoadBalancer(ClientRequest)}.
      * It first tries to clone the request and if that fails it will use the copy constructor {@link #ClientRequest(ClientRequest)}.
      * Sub classes are recommended to override this method to provide more efficient implementation.
      * 

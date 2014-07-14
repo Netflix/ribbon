@@ -47,7 +47,7 @@ You can define properties in a file on classpath or as system properties. If for
 <p>
 By default, "ribbon" should be the nameSpace.
 <p>
-If there is no property specified for a named client, {@link ClientFactory} will still create the client and
+If there is no property specified for a named client, {@code com.netflix.client.ClientFactory} will still create the client and
 load balancer with default values for all necessary properties. The default
 values are specified in this class as constants.
 <p>
@@ -60,11 +60,12 @@ ribbon.ReadTimeout=1000
 This will establish the default ReadTimeout property for all clients.
 <p>
 You can also programmatically set properties by constructing instance of DefaultClientConfigImpl. Follow these steps:
-
+<ul>
 <li> Get an instance by calling {@link #getClientConfigWithDefaultValues(String)} to load default values,
 and any properties that are already defined with Configuration in Archaius
 <li> Set all desired properties by calling {@link #setProperty(IClientConfigKey, Object)} API.
-<li> Pass this instance together with client name to {@link ClientFactory} API.
+<li> Pass this instance together with client name to {@code com.netflix.client.ClientFactory} API.
+</ul>
 <p><p>
 If it is desired to have properties defined in a different name space, for example, "foo"
 
