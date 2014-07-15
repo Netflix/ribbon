@@ -79,15 +79,17 @@ public interface IClientConfig {
     
     /**
      * Returns a typed property. If the property of IClientConfigKey is not set, it returns null.
-     * <p/>
+     * <p>
      * For {@link DefaultClientConfigImpl}, if the value of the property is String, 
      * it will do basic type conversion from String to the following type:
+     * <ul>
      * <li>Integer</li>
      * <li>Boolean</li>
      * <li>Float</li>
      * <li>Long</li>
      * <li>Double</li>
-     * <br/><br/>
+     * </ul>
+     * <br><br>
      */
     public <T> T get(IClientConfigKey<T> key);
     

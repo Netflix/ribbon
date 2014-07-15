@@ -39,7 +39,7 @@ import com.netflix.ribbon.template.ParsedTemplate;
 
 /**
  * Provides API to construct a request template for HTTP resource. 
- * <p/>
+ * <p>
  * <b>Note:</b> This class is not thread safe. It is advised that the template is created and
  * constructed in same thread at initialization of the application. Users can call {@link #requestBuilder()}
  * later on which returns a {@link RequestBuilder} which is thread safe. 

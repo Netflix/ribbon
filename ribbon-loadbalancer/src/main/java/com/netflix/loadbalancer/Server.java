@@ -100,7 +100,7 @@ public class Server {
             } else {
                 host = id.substring(0, colon_idx);
                 try {
-                    port = Integer.valueOf(id.substring(colon_idx + 1));
+                    port = Integer.parseInt(id.substring(colon_idx + 1));
                 } catch (NumberFormatException e) {
                     throw e;
                 }

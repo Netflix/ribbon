@@ -49,9 +49,6 @@ import com.netflix.util.Pair;
  * A class contains APIs intended to be used be load balancing client which is subclass of this class.
  * 
  * @author awang
- *
- * @param <T> Type of the request
- * @param <S> Type of the response
  */
 public class LoadBalancerContext implements IClientConfigAware {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerContext.class);
@@ -344,10 +341,9 @@ public class LoadBalancerContext implements IClientConfigAware {
     /**
      * Derive scheme and port from a partial URI. For example, for HTTP based client, the URI with 
      * only path "/" should return "http" and 80, whereas the URI constructed with scheme "https" and
-     * path "/" should return
-     * "https" and 443. This method is called by {@link #computeFinalUriWithLoadBalancer(ClientRequest)}
-     * to get the complete executable URI.
-     * 
+     * path "/" should return "https" and 443.
+     * This method is called by {@link #getServerFromLoadBalancer(java.net.URI, Object)} and
+     * {@link #reconstructURIWithServer(Server, java.net.URI)} methods to get the complete executable URI.
      */
     protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(URI uri) {
         boolean isSecure = false;
@@ -394,7 +390,7 @@ public class LoadBalancerContext implements IClientConfigAware {
 
     /**
      * Derive the host and port from virtual address if virtual address is indeed contains the actual host 
-     * and port of the server. This is the final resort to compute the final URI in {@link #computeFinalUriWithLoadBalancer(ClientRequest)}
+     * and port of the server. This is the final resort to compute the final URI in {@link #getServerFromLoadBalancer(java.net.URI, Object)}
      * if there is no load balancer available and the request URI is incomplete. Sub classes can override this method
      * to be more accurate or throws ClientException if it does not want to support virtual address to be the
      * same as physical server address.
@@ -445,14 +441,15 @@ public class LoadBalancerContext implements IClientConfigAware {
 
     /**
      * Compute the final URI from a partial URI in the request. The following steps are performed:
-     * 
+     * <ul>
      * <li> if host is missing and there is a load balancer, get the host/port from server chosen from load balancer
      * <li> if host is missing and there is no load balancer, try to derive host/port from virtual address set with the client
      * <li> if host is present and the authority part of the URI is a virtual address set for the client, 
      * and there is a load balancer, get the host/port from server chosen from load balancer
      * <li> if host is present but none of the above applies, interpret the host as the actual physical address
      * <li> if host is missing but none of the above applies, throws ClientException
-     * 
+     * </ul>
+     *
      * @param original Original URI passed from caller
      */
     protected Server getServerFromLoadBalancer(@Nullable URI original, @Nullable Object loadBalancerKey) throws ClientException {

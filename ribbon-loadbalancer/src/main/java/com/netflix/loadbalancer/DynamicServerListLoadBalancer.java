@@ -66,7 +66,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
             false);
 
     private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; // msecs;
-    private static long LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 * 1000; // msecs;
+    private static int LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 * 1000; // msecs;
                                                                          // //
                                                                          // every
                                                                          // 30
@@ -158,9 +158,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     }
 
     void restOfInit(IClientConfig clientConfig) {
-        refeshIntervalMills = Integer.valueOf(clientConfig.getProperty(
-                CommonClientConfigKey.ServerListRefreshInterval,
-                LISTOFSERVERS_CACHE_REPEAT_INTERVAL).toString());
+        refeshIntervalMills =clientConfig.get(CommonClientConfigKey.ServerListRefreshInterval, LISTOFSERVERS_CACHE_REPEAT_INTERVAL);
 
         boolean primeConnection = this.isEnablePrimingConnections();
         // turn this off to avoid duplicated asynchronous priming done in BaseLoadBalancer.setServerList()
