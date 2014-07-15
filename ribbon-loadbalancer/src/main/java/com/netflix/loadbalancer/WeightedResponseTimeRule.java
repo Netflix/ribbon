@@ -283,8 +283,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         super.initWithNiwsConfig(clientConfig);
-        serverWeightTaskTimerInterval = Integer.parseInt(
-                String.valueOf(clientConfig.getProperty(WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY, DEFAULT_TIMER_INTERVAL)));
+        serverWeightTaskTimerInterval = clientConfig.get(WEIGHT_TASK_TIMER_INTERVAL_CONFIG_KEY, DEFAULT_TIMER_INTERVAL);
     }
 
 }
