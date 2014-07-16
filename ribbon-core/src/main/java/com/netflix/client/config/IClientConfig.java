@@ -343,7 +343,7 @@ public interface IClientConfig {
             config.set(CommonClientConfigKey.ServerListRefreshInterval, value);
             return this;
         }
-          
+        
         public Builder withZoneAffinityEnabled(boolean value) {
             config.set(CommonClientConfigKey.EnableZoneAffinity, value);
             return this;
