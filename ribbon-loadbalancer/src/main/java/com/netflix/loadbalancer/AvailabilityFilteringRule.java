@@ -25,9 +25,12 @@ import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 
 /**
- * A load balancer rule that filters out servers that 
- * <li> are in circuit breaker tripped state due to consecutive connection or read failures, or
- * <li> have active connections that exceeds a configurable limit (default is Integer.MAX_VALUE). The property 
+ * A load balancer rule that filters out servers that:
+ * <ul>
+ * <li> are in circuit breaker tripped state due to consecutive connection or read failures, or</li>
+ * <li> have active connections that exceeds a configurable limit (default is Integer.MAX_VALUE).</li>
+ * </ul>
+ * The property
  * to change this limit is 
  * <pre>{@code
  * 

@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * A rule that skips servers with "tripped" circuit breaker and picks the
  * server with lowest concurrent requests.
- * <p/>
+ * <p>
  * This rule should typically work with {@link ServerListSubsetFilter} which puts a limit on the 
  * servers that is visible to the rule. This ensure that it only needs to find the minimal 
  * concurrent requests among a small number of servers. Also, each client will get a random list of 

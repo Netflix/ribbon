@@ -97,7 +97,6 @@ class HttpClientResponse implements HttpResponse {
         * Returns the raw entity if available from the response 
         * @return
         * @throws IllegalArgumentException
-        * @throws ClientException
         */
     public InputStream getRawEntity() {
         return bcr.getEntityInputStream();

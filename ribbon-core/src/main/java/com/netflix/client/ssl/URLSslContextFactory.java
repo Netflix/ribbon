@@ -77,19 +77,23 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
     /**
      * Opens the specified key or trust store using the given password.
      *
+     * In case of failure {@link com.netflix.client.ssl.ClientSslSocketFactoryException} is thrown, and wrapps the
+     * underlying cause exception. That could be:
+     * <ul>
+     *     <li>KeyStoreException if the JRE doesn't support the standard Java Keystore format, in other words: never</li>
+     *     <li>NoSuchAlgorithmException if the algorithm used to check the integrity of the keystore cannot be found</li>
+     *     <li>CertificateException if any of the certificates in the keystore could not be loaded</li>
+     *     <li>
+     *         IOException if there is an I/O or format problem with the keystore data, if a
+     *         password is required but not given, or if the given password was incorrect. If the
+     *         error is due to a wrong password, the cause of the IOException should be an UnrecoverableKeyException.
+     *     </li>
+     * </ul>
+     *
      * @param storeFile the location of the store to load
      * @param password the password protecting the store
      * @return the newly loaded key store
-     * @throws ClientSslSocketFactoryException 
-     * @throws KeyStoreException if the JRE doesn't support the standard Java Keystore format, in
-     *         other words: never
-     * @throws NoSuchAlgorithmException if the algorithm used to check the integrity of the keystore
-     *         cannot be found
-     * @throws CertificateException if any of the certificates in the keystore could not be loaded
-     * @throws IOException if there is an I/O or format problem with the keystore data, if a
-     *         password is required but not given, or if the given password was incorrect. If the
-     *         error is due to a wrong password, the cause of the IOException should be an
-     *         UnrecoverableKeyException
+     * @throws ClientSslSocketFactoryException a wrapper exception for any problems encountered during keystore creation.
      */
     private static KeyStore createKeyStore(final URL storeFile, final String password) throws ClientSslSocketFactoryException {
     	
