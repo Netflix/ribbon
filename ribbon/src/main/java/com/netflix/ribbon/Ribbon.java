@@ -19,16 +19,17 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
 public final class Ribbon {
-
+    private static final HttpResourceGroupFactory factory = new DefaultHttpResourceGroupFactory();
+    
     private Ribbon() {
     }
 
     public static HttpResourceGroup createHttpResourceGroup(String name) {
-        return new HttpResourceGroup(name);
+        return factory.createHttpResourceGroup(name);
     }
 
     public static HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
-        return new HttpResourceGroup(name, options);
+        return factory.createHttpResourceGroup(name, options);
     }
 
     public static <T> T from(Class<T> contract) {
