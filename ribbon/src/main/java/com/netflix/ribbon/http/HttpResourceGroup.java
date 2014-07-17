@@ -38,7 +38,8 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
         client = RibbonTransport.newHttpClient(getClientConfig());
         headers = new DefaultHttpHeaders();
     }
-    
+
+    @Override
     protected IClientConfig loadDefaultConfig(String groupName) {
         return IClientConfig.Builder.newBuilder(groupName).build();
     }
