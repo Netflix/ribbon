@@ -15,34 +15,33 @@
  */
 package com.netflix.ribbon.http;
 
+import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.ribbon.RequestWithMetaData;
+import com.netflix.ribbon.RibbonResponse;
+import com.netflix.ribbon.http.hystrix.HystrixNotification;
+import io.netty.buffer.ByteBuf;
+import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.subjects.ReplaySubject;
+import rx.subjects.Subject;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import rx.Observable;
-import rx.Observer;
-import rx.Observable.OnSubscribe;
-import rx.Subscriber;
-import rx.subjects.PublishSubject;
-import rx.subjects.ReplaySubject;
-import rx.subjects.Subject;
-
-import com.netflix.hystrix.HystrixExecutableInfo;
-import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.ribbon.RequestWithMetaData;
-import com.netflix.ribbon.RibbonResponse;
-
 class HttpMetaRequest<T> implements RequestWithMetaData<T> {
 
     private static class ResponseWithSubject<T> extends RibbonResponse<Observable<T>> {
         Subject<T, T> subject;
         HystrixExecutableInfo<?> info;
-        
+
         public ResponseWithSubject(Subject<T, T> subject,
-                HystrixExecutableInfo<?> info) {
-            super();
+                                   HystrixExecutableInfo<?> info) {
             this.subject = subject;
             this.info = info;
         }
@@ -55,7 +54,7 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
         @Override
         public HystrixExecutableInfo<?> getHystrixInfo() {
             return info;
-        }        
+        }
     }
 
     private final HttpRequest<T> request;
@@ -65,80 +64,45 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
     }
 
     @Override
-    public Observable<RibbonResponse<Observable<T>>> observe() {
-        RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
-        ReplaySubject<T> subject = ReplaySubject.create();
-        hystrixCommand.getObservable().subscribe(subject);
-        return convertToRibbonResponse(subject, hystrixCommand);
+    public Observable<RibbonResponse<Observable<T>>> toObservable() {
+        return convertToRibbonResponse(request.createHystrixCommandChain().materializedNotificationObservable());
     }
 
     @Override
-    public Observable<RibbonResponse<Observable<T>>> toObservable() {
-        RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
-        final Observable<T> output = hystrixCommand.toObservable();
-        return convertToRibbonResponse(output, hystrixCommand);        
+    public Observable<RibbonResponse<Observable<T>>> observe() {
+        Observable<HystrixNotification<T>> notificationObservable = request
+                .createHystrixCommandChain()
+                .materializedNotificationObservable();
+        notificationObservable = retainBufferIfNeeded(notificationObservable);
+        ReplaySubject<HystrixNotification<T>> subject = ReplaySubject.create();
+        notificationObservable.subscribe(subject);
+        return convertToRibbonResponse(subject);
     }
-    
-    private Observable<RibbonResponse<Observable<T>>> convertToRibbonResponse(final Observable<T> content, final HystrixObservableCommand<T> hystrixCommand) {
-        return Observable.<RibbonResponse<Observable<T>>>create(new OnSubscribe<RibbonResponse<Observable<T>>>() {
-            @Override
-            public void call(
-                    final Subscriber<? super RibbonResponse<Observable<T>>> t1) {
-                final Subject<T, T> subject = PublishSubject.<T>create();
-                content.subscribe(new Observer<T>() {
-                    AtomicBoolean first = new AtomicBoolean(true);                    
-                    
-                    void createRibbonResponseOnFirstInvocation() {
-                        if (first.compareAndSet(true, false)) {
-                            t1.onNext(new ResponseWithSubject<T>(subject, hystrixCommand));
-                            t1.onCompleted();
-                        }                        
-                    }
-                    
-                    @Override
-                    public void onCompleted() {
-                        createRibbonResponseOnFirstInvocation();
-                        subject.onCompleted();
-                    }
-                    @Override
-                    public void onError(Throwable e) {
-                        createRibbonResponseOnFirstInvocation();                        
-                        subject.onError(e);
-                    }
-                    @Override
-                    public void onNext(T t) {
-                        createRibbonResponseOnFirstInvocation();                        
-                        subject.onNext(t);
-                    }
-                });
-            }
-        });
-    }
-    
 
     @Override
     public Future<RibbonResponse<T>> queue() {
-        final RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
-        final Future<T> f = hystrixCommand.getObservable().toBlocking().toFuture();
+        Observable<HystrixNotification<T>> notificationObservable = request.createHystrixCommandChain().toNotificationObservable();
+        notificationObservable = retainBufferIfNeeded(notificationObservable);
+        final Future<HystrixNotification<T>> f = notificationObservable.toBlocking().toFuture();
         return new Future<RibbonResponse<T>>() {
             @Override
-            public boolean cancel(boolean arg0) {
-                return f.cancel(arg0);
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return f.cancel(mayInterruptIfRunning);
             }
 
             @Override
             public RibbonResponse<T> get() throws InterruptedException,
                     ExecutionException {
-                final T obj = f.get();
-                return new HttpMetaResponse<T>(obj, hystrixCommand);
+                final HystrixNotification<T> notification = f.get();
+                return new HttpMetaResponse<T>(notification.toFutureResult(), notification.getHystrixObservableCommand());
             }
 
             @Override
-            public RibbonResponse<T> get(long arg0, TimeUnit arg1)
+            public RibbonResponse<T> get(long timeout, TimeUnit timeUnit)
                     throws InterruptedException, ExecutionException,
                     TimeoutException {
-                final T obj = f.get(arg0, arg1);
-                return new HttpMetaResponse<T>(obj, hystrixCommand);
+                final HystrixNotification<T> notification = f.get(timeout, timeUnit);
+                return new HttpMetaResponse<T>(notification.toFutureResult(), notification.getHystrixObservableCommand());
             }
 
             @Override
@@ -155,8 +119,51 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
 
     @Override
     public RibbonResponse<T> execute() {
-        RibbonHystrixObservableCommand<T> hystrixCommand = request.createHystrixCommand();
-        T obj = hystrixCommand.getObservable().toBlocking().last();
-        return new HttpMetaResponse<T>(obj, hystrixCommand);
-    }    
+        RibbonResponse<Observable<T>> response = observe().toBlocking().last();
+        return new HttpMetaResponse<T>(response.content().toBlocking().last(), response.getHystrixInfo());
+    }
+
+    private Observable<HystrixNotification<T>> retainBufferIfNeeded(Observable<HystrixNotification<T>> notificationObservable) {
+        if (request.isByteBufResponse()) {
+            notificationObservable = notificationObservable.flatMap(new Func1<HystrixNotification<T>, Observable<HystrixNotification<T>>>() {
+                @Override
+                public Observable<HystrixNotification<T>> call(HystrixNotification<T> notification) {
+                    if (notification.isOnNext()) {
+                        ((ByteBuf) notification.getValue()).retain();
+                    }
+                    return Observable.just(notification);
+                }
+            });
+        }
+        return notificationObservable;
+    }
+
+    private Observable<RibbonResponse<Observable<T>>> convertToRibbonResponse(
+            final Observable<HystrixNotification<T>> hystrixNotificationObservable) {
+        return Observable.create(new OnSubscribe<RibbonResponse<Observable<T>>>() {
+            @Override
+            public void call(
+                    final Subscriber<? super RibbonResponse<Observable<T>>> t1) {
+                final Subject<T, T> subject = ReplaySubject.create();
+                hystrixNotificationObservable.subscribe(new Action1<HystrixNotification<T>>() {
+                    AtomicBoolean first = new AtomicBoolean(true);
+
+                    @Override
+                    public void call(HystrixNotification<T> notification) {
+                        if (first.compareAndSet(true, false)) {
+                            t1.onNext(new ResponseWithSubject<T>(subject, notification.getHystrixObservableCommand()));
+                            t1.onCompleted();
+                        }
+                        if (notification.isOnNext()) {
+                            subject.onNext(notification.getValue());
+                        } else if (notification.isOnCompleted()) {
+                            subject.onCompleted();
+                        } else { // onError
+                            subject.onError(notification.getThrowable());
+                        }
+                    }
+                });
+            }
+        });
+    }
 }

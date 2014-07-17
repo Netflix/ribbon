@@ -15,97 +15,129 @@
  */
 package com.netflix.ribbon.http;
 
-import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.protocol.http.client.HttpClient;
-import io.reactivex.netty.protocol.http.client.HttpClientRequest;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Future;
-
-import rx.Observable;
-import rx.subjects.ReplaySubject;
-
+import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RequestWithMetaData;
 import com.netflix.ribbon.RibbonRequest;
+import com.netflix.ribbon.http.hystrix.HystrixCacheObservableCommand;
+import com.netflix.ribbon.http.hystrix.HystrixObservableCommandChain;
+import com.netflix.ribbon.http.hystrix.RibbonHystrixObservableCommand;
 import com.netflix.ribbon.template.TemplateParser;
 import com.netflix.ribbon.template.TemplateParsingException;
+import io.netty.buffer.ByteBuf;
+import io.reactivex.netty.protocol.http.client.HttpClient;
+import io.reactivex.netty.protocol.http.client.HttpClientRequest;
+import rx.Observable;
+import rx.functions.Func1;
+import rx.subjects.ReplaySubject;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Future;
 
 class HttpRequest<T> implements RibbonRequest<T> {
-    
+
     static class CacheProviderWithKey<T> {
         CacheProvider<T> cacheProvider;
         String key;
+
         public CacheProviderWithKey(CacheProvider<T> cacheProvider, String key) {
-            super();
             this.cacheProvider = cacheProvider;
             this.key = key;
         }
+
         public final CacheProvider<T> getCacheProvider() {
             return cacheProvider;
         }
+
         public final String getKey() {
             return key;
         }
     }
-    
+
+    private static final Func1<ByteBuf, ByteBuf> refCountIncrementer = new Func1<ByteBuf, ByteBuf>() {
+        @Override
+        public ByteBuf call(ByteBuf t1) {
+            t1.retain();
+            return t1;
+        }
+    };
+
     private final HttpClientRequest<ByteBuf> httpRequest;
     private final String hystrixCacheKey;
     private final CacheProviderWithKey<T> cacheProvider;
     private final Map<String, Object> requestProperties;
     private final HttpClient<ByteBuf, ByteBuf> client;
-    private final HttpRequestTemplate<T> template;
+    /* package private for HttpMetaRequest */ final HttpRequestTemplate<T> template;
 
     HttpRequest(HttpRequestBuilder<T> requestBuilder) throws TemplateParsingException {
-        this.client = requestBuilder.template().getClient();
-        this.httpRequest = requestBuilder.createClientRequest();
-        this.hystrixCacheKey = requestBuilder.hystrixCacheKey();
-        this.requestProperties = new HashMap<String, Object>(requestBuilder.requestProperties());
+        client = requestBuilder.template().getClient();
+        httpRequest = requestBuilder.createClientRequest();
+        hystrixCacheKey = requestBuilder.hystrixCacheKey();
+        requestProperties = new HashMap<String, Object>(requestBuilder.requestProperties());
         if (requestBuilder.cacheProvider() != null) {
             CacheProvider<T> provider = requestBuilder.cacheProvider().getProvider();
             String key = TemplateParser.toData(this.requestProperties, requestBuilder.cacheProvider().getKeyTemplate());
-            this.cacheProvider = new CacheProviderWithKey<T>(provider, key);
+            cacheProvider = new CacheProviderWithKey<T>(provider, key);
         } else {
-            this.cacheProvider = null;
+            cacheProvider = null;
         }
-        this.template = requestBuilder.template();
+        template = requestBuilder.template();
         if (!ByteBuf.class.isAssignableFrom(template.getClassType())) {
             throw new IllegalArgumentException("Return type other than ByteBuf is not currently supported as serialization functionality is still work in progress");
         }
     }
 
-    RibbonHystrixObservableCommand<T> createHystrixCommand() {
-        return new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, cacheProvider, requestProperties, template.fallbackHandler(), 
-                template.responseValidator(), template.getClassType(), template.hystrixProperties());
+    HystrixObservableCommandChain<T> createHystrixCommandChain() {
+        List<HystrixObservableCommand<T>> commands = new ArrayList<HystrixObservableCommand<T>>(2);
+        if (cacheProvider != null) {
+            commands.add(new HystrixCacheObservableCommand<T>(cacheProvider.getCacheProvider(), cacheProvider.getKey(),
+                    requestProperties, template.hystrixProperties()));
+        }
+        commands.add(new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, requestProperties, template.fallbackHandler(),
+                template.responseValidator(), template.getClassType(), template.hystrixProperties()));
+
+        return new HystrixObservableCommandChain<T>(commands);
     }
-    
+
+    @Override
+    public Observable<T> toObservable() {
+        return createHystrixCommandChain().toObservable();
+    }
+
     @Override
     public T execute() {
-        return createHystrixCommand().getObservable().toBlocking().last();
+        return getObservable().toBlocking().last();
     }
 
     @Override
     public Future<T> queue() {
-        return createHystrixCommand().getObservable().toBlocking().toFuture();
+        return getObservable().toBlocking().toFuture();
     }
 
     @Override
     public Observable<T> observe() {
         ReplaySubject<T> subject = ReplaySubject.create();
-        createHystrixCommand().getObservable().subscribe(subject);
+        getObservable().subscribe(subject);
         return subject;
-    }
-
-    @Override
-    public Observable<T> toObservable() {
-        return createHystrixCommand().toObservable();
     }
 
     @Override
     public RequestWithMetaData<T> withMetadata() {
         return new HttpMetaRequest<T>(this);
     }
-    
 
+    boolean isByteBufResponse() {
+        return ByteBuf.class.isAssignableFrom(template.getClassType());
+    }
+
+    Observable<T> getObservable() {
+        if (isByteBufResponse()) {
+            return ((Observable) toObservable()).map(refCountIncrementer);
+        } else {
+            return toObservable();
+        }
+    }
 }
