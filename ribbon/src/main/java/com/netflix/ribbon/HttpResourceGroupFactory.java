@@ -10,8 +10,5 @@ import com.netflix.ribbon.http.HttpResourceGroup;
  */
 public interface HttpResourceGroupFactory {
 
-    HttpResourceGroup createHttpResourceGroup(String name);
-
-    HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options);
-
+    HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory);
 }

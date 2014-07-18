@@ -25,11 +25,11 @@ public final class Ribbon {
     }
 
     public static HttpResourceGroup createHttpResourceGroup(String name) {
-        return factory.createHttpResourceGroup(name);
+        return factory.createHttpResourceGroup(name, ClientOptions.create(), ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     }
 
     public static HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
-        return factory.createHttpResourceGroup(name, options);
+        return factory.createHttpResourceGroup(name, options, ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     }
 
     public static <T> T from(Class<T> contract) {

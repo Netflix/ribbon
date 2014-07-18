@@ -15,35 +15,33 @@
  */
 package com.netflix.ribbon.http;
 
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.netty.RibbonTransport;
+import com.netflix.ribbon.ClientConfigFactory;
+import com.netflix.ribbon.ClientOptions;
+import com.netflix.ribbon.ResourceGroup;
+import com.netflix.ribbon.RibbonTransportFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 
-import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.RibbonTransport;
-import com.netflix.ribbon.ClientOptions;
-import com.netflix.ribbon.DefaultHttpRequestTemplateFactory;
-import com.netflix.ribbon.ResourceGroup;
-
 public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final HttpHeaders headers;
-    private final HttpRequestTemplateFactory templateFactory;
-    
+
     public HttpResourceGroup(String groupName) {
         this(groupName, null);
     }
     
     public HttpResourceGroup(String groupName, ClientOptions options) {
-        this(groupName, null, new DefaultHttpRequestTemplateFactory());
+        this(groupName, options, ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     }
     
-    public HttpResourceGroup(String groupName, ClientOptions options, HttpRequestTemplateFactory templateFactory) {
-        super(groupName, options);
+    public HttpResourceGroup(String groupName, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+        super(groupName, options, configFactory, transportFactory);
         client = RibbonTransport.newHttpClient(getClientConfig());
         headers = new DefaultHttpHeaders();
-        this.templateFactory = templateFactory;
     }
     
     protected IClientConfig loadDefaultConfig(String groupName) {
@@ -58,7 +56,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
     @Override
     public <T> HttpRequestTemplate<T> newRequestTemplate(String name,
             Class<? extends T> classType) {
-        return templateFactory.newRequestTemplate(name, this, classType);
+        return new HttpRequestTemplate<T>(name, this, classType);
     }
     
     public HttpRequestTemplate<ByteBuf> newRequestTemplate(String name) {

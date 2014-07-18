@@ -23,29 +23,24 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
     private IClientConfig clientConfig;
 
     public ResourceGroup(String name) {
-        this(name, null);
+        this(name, null, null, null);
     }
 
-    public ResourceGroup(String name, ClientOptions options) {
+    public ResourceGroup(String name, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         this.name = name;
-        clientConfig = loadDefaultConfig(name);
+        clientConfig = configFactory.newConfig();
+        clientConfig.loadProperties(name);
         if (options != null) {
             for (IClientConfigKey key: options.getOptions().keySet()) {
                 clientConfig.set(key, options.getOptions().get(key));
             }
         }
     }
-    
-    ResourceGroup(IClientConfig clientConfig) {
-        this.clientConfig = clientConfig;
-    }
-    
-    protected abstract IClientConfig loadDefaultConfig(String name);
-    
+
     protected final IClientConfig getClientConfig() {
         return clientConfig;
     }
-    
+
     public String name() {
         return name;
     }

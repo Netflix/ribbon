@@ -20,6 +20,7 @@ apply from: file('gradle/maven.gradle')
 apply from: file('gradle/check.gradle')
 apply from: file('gradle/license.gradle')
 apply from: file('gradle/release.gradle')
+apply plugin: 'idea'
 
 subprojects {
     group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
@@ -110,18 +111,6 @@ project(':ribbon-test') {
     }
 }
 
-project(':ribbon-guice') {
-    dependencies {
-        compile project(':ribbon')
-        compile project(':ribbon-core')
-        compile project(':ribbon-httpclient')
-        compile project(':ribbon-loadbalancer')
-        
-        compile 'com.google.inject:guice:3.0'
-        compile 'com.google.inject.extensions:guice-multibindings:3.0'
-    }
-}
-
 project(':ribbon') {
     configurations {
         // add new configuration
@@ -157,6 +146,15 @@ project(':ribbon') {
             compile project(':ribbon-transport')
             testCompile 'com.google.mockwebserver:mockwebserver:20130706'
             
+    }
+}
+
+project(':ribbon-guice') {
+    dependencies {
+        compile project(':ribbon')
+        compile 'com.google.inject:guice:3.0'
+        compile 'com.google.inject.extensions:guice-multibindings:3.0'
+        testCompile project(':ribbon-examples')
     }
 }
 
