@@ -12,7 +12,10 @@ public interface ClientConfigFactory {
     public static class DefaultClientConfigFactory implements ClientConfigFactory {
         @Override
         public IClientConfig newConfig() {
-            return new DefaultClientConfigImpl();
+            IClientConfig config = new DefaultClientConfigImpl();
+            config.loadDefaultValues();
+            return config;
+            
         }        
     }
     

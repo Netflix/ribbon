@@ -16,6 +16,8 @@
 package com.netflix.ribbon.proxy;
 
 import com.netflix.client.config.IClientConfig;
+import com.netflix.ribbon.ClientConfigFactory;
+import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
 import com.netflix.ribbon.HttpResourceGroupFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
@@ -29,21 +31,24 @@ class ProxyHttpResourceGroupFactory<T> {
     private final ClassTemplate<T> classTemplate;
     private final HttpResourceGroupFactory httpResourceGroupFactory;
     private final IClientConfig clientConfig;
-    private final RibbonTransportFactory transportFactory;
 
+    ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate) {
+        this(classTemplate, new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
+                ClientConfigFactory.DEFAULT.newConfig(), RibbonTransportFactory.DEFAULT);
+    }
+    
     ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, HttpResourceGroupFactory httpResourceGroupFactory, IClientConfig clientConfig, 
             RibbonTransportFactory transportFactory) {
         this.classTemplate = classTemplate;
         this.httpResourceGroupFactory = httpResourceGroupFactory;
         this.clientConfig = clientConfig;
-        this.transportFactory = transportFactory;
     }
 
     public HttpResourceGroup createResourceGroup() {
         String name = classTemplate.getResourceGroupName();
         Class<? extends HttpResourceGroup> resourceClass = classTemplate.getResourceGroupClass();
         if (name != null) {
-            return httpResourceGroupFactory.createHttpResourceGroup(name, clientConfig, transportFactory);
+            return httpResourceGroupFactory.createHttpResourceGroup(name, clientConfig);
         }
         if (resourceClass == null) {
             throw new RibbonProxyException(format(

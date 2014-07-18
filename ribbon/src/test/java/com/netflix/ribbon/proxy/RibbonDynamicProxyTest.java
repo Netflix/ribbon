@@ -1,6 +1,10 @@
 package com.netflix.ribbon.proxy;
 
+import com.netflix.client.config.IClientConfig;
+import com.netflix.ribbon.ClientConfigFactory;
+import com.netflix.ribbon.HttpResourceGroupFactory;
 import com.netflix.ribbon.RibbonRequest;
+import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.ClassTemplate;
 import com.netflix.ribbon.proxy.ProxyHttpResourceGroupFactory;
@@ -70,11 +74,13 @@ public class RibbonDynamicProxyTest {
     @Test
     public void testSetupWithResourceGroupNameInAnnotation() throws Exception {
         mockStatic(ProxyHttpResourceGroupFactory.class);
-        expectNew(ProxyHttpResourceGroupFactory.class, new Class[]{ClassTemplate.class}, anyObject()).andReturn(httpResourceGroupFactoryMock);
+        expectNew(ProxyHttpResourceGroupFactory.class, new Class[]{ClassTemplate.class, 
+            HttpResourceGroupFactory.class, IClientConfig.class, 
+            RibbonTransportFactory.class}, anyObject(), anyObject(), anyObject(), anyObject()).andReturn(httpResourceGroupFactoryMock);
 
         replayAll();
 
-        RibbonDynamicProxy.newInstance(SampleMovieServiceWithResourceGroupNameAnnotation.class, null);
+        RibbonDynamicProxy.newInstance(SampleMovieServiceWithResourceGroupNameAnnotation.class);
     }
 
     @Test

@@ -19,24 +19,24 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
 public final class Ribbon {
-    private static final HttpResourceGroupFactory factory = new DefaultHttpResourceGroupFactory();
+    private static final HttpResourceGroupFactory factory = new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     
     private Ribbon() {
     }
 
     public static HttpResourceGroup createHttpResourceGroup(String name) {
-        return factory.createHttpResourceGroup(name, ClientOptions.create(), ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+        return factory.createHttpResourceGroup(name, ClientOptions.create());
     }
 
     public static HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
-        return factory.createHttpResourceGroup(name, options, ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+        return factory.createHttpResourceGroup(name, options);
     }
 
     public static <T> T from(Class<T> contract) {
-        return RibbonDynamicProxy.newInstance(contract, null);
+        return factory.from(contract);
     }
 
     public static <T> T from(Class<T> contract, HttpResourceGroup httpResourceGroup) {
-        return RibbonDynamicProxy.newInstance(contract, httpResourceGroup);
+        return factory.from(contract, httpResourceGroup);
     }
 }

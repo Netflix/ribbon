@@ -38,11 +38,11 @@ public class RibbonModuleTest {
         private final HttpRequestTemplate<ByteBuf> recommendationsByTemplate;
 
         @Inject
-        public MyService(HttpResourceGroupFactory factory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+        public MyService(HttpResourceGroupFactory factory) {
             httpResourceGroup = factory.createHttpResourceGroup("movieServiceClient",
                     ClientOptions.create()
                             .withMaxAutoRetriesNextServer(3)
-                            .withConfigurationBasedServerList("localhost:" + PORT), configFactory, transportFactory);
+                            .withConfigurationBasedServerList("localhost:" + PORT));
 
             registerMovieTemplate = httpResourceGroup.newRequestTemplate("registerMovie", ByteBuf.class)
                     .withMethod("POST")
