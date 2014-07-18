@@ -1,30 +1,25 @@
 package com.netflix.loadbalancer;
 
-import java.net.URI;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Observable.Operator;
-import rx.observers.SafeSubscriber;
-import rx.subscriptions.CompositeSubscription;
-import rx.subscriptions.SerialSubscription;
-import rx.Observer;
-import rx.Subscriber;
-import rx.Subscription;
-
 import com.netflix.client.ClientException;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Stopwatch;
 import com.netflix.utils.RxUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Observable;
+import rx.Observable.Operator;
+import rx.Observer;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.observers.SafeSubscriber;
+import rx.subscriptions.SerialSubscription;
+
+import javax.annotation.Nullable;
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Provides APIs to execute and retry tasks on a server chosen by the associated load balancer. 
@@ -265,7 +260,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
 
                 @Override
                 public void onError(Throwable e) {
-                    logger.debug("Got error %s when executed on server %s", e, server);
+                    logger.debug("Got error {} when executed on server {}", e, server);
                     recordStats(entity, e);                    
                     int maxRetries = errorHandler.getMaxRetriesOnSameServer();
                     boolean shouldRetry = maxRetries > 0 && errorHandler.isRetriableException(e, true);

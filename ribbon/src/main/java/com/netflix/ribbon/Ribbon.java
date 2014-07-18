@@ -24,10 +24,25 @@ public final class Ribbon {
     private Ribbon() {
     }
 
+    /**
+     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name. The underlying transport client
+     * will be created from the client configuration created via
+     * {@link com.netflix.client.config.IClientConfig.Builder#newBuilder(String)}
+     *
+     * @param name name of the resource group, as well as the transport client
+     */
     public static HttpResourceGroup createHttpResourceGroup(String name) {
         return factory.createHttpResourceGroup(name, ClientOptions.create());
     }
 
+    /**
+     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name. The underlying transport client
+     * will be created from the client configuration created via
+     * {@link com.netflix.client.config.IClientConfig.Builder#newBuilder(String)}
+     *
+     * @param name name of the resource group, as well as the transport client
+     * @param options Options to override the client configuration created
+     */
     public static HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
         return factory.createHttpResourceGroup(name, options);
     }
