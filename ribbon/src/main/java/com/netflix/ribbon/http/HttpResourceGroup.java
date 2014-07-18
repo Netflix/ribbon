@@ -38,9 +38,16 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
         this(groupName, options, ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     }
     
+    public HttpResourceGroup(String name, IClientConfig clientConfig,
+            RibbonTransportFactory transportFactory) {
+        super(name, clientConfig, transportFactory);
+        client = transportFactory.newHttpClient(getClientConfig());
+        headers = new DefaultHttpHeaders();
+    }
+
     public HttpResourceGroup(String groupName, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         super(groupName, options, configFactory, transportFactory);
-        client = RibbonTransport.newHttpClient(getClientConfig());
+        client = transportFactory.newHttpClient(getClientConfig());
         headers = new DefaultHttpHeaders();
     }
     

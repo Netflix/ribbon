@@ -9,10 +9,12 @@ import com.netflix.client.config.IClientConfig;
 public interface ClientConfigFactory {
     IClientConfig newConfig();
 
-    public static final ClientConfigFactory DEFAULT = new ClientConfigFactory() {
+    public static class DefaultClientConfigFactory implements ClientConfigFactory {
         @Override
         public IClientConfig newConfig() {
             return new DefaultClientConfigImpl();
-        }
-    };
+        }        
+    }
+    
+    public static final ClientConfigFactory DEFAULT = new DefaultClientConfigFactory();
 }

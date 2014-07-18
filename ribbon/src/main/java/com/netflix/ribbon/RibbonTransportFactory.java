@@ -11,10 +11,14 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 public interface RibbonTransportFactory {
     public HttpClient<ByteBuf, ByteBuf> newHttpClient(IClientConfig config);
 
-    public static final RibbonTransportFactory DEFAULT = new RibbonTransportFactory() {
+    public class DefaultRibbonTransportFactory implements RibbonTransportFactory {
+
         @Override
         public HttpClient<ByteBuf, ByteBuf> newHttpClient(IClientConfig config) {
-            return RibbonTransport.newHttpClient(config);
+            return RibbonTransport.newHttpClient(config);            
         }
-    };
+        
+    }
+    
+    public static final RibbonTransportFactory DEFAULT = new DefaultRibbonTransportFactory();
 }
