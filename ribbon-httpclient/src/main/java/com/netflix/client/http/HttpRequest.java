@@ -212,6 +212,8 @@ public class HttpRequest extends ClientRequest {
         .queryParams(this.queryParams)
         .setRetriable(this.isRetriable())
         .loadBalancerKey(this.getLoadBalancerKey())
-        .verb(this.getVerb()).build();        
+        .verb(this.getVerb())
+        .entity(this.entity)
+        .build();        
     }
 }
