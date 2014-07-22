@@ -119,6 +119,8 @@ project(':ribbon-guice') {
         
         compile 'com.google.inject:guice:3.0'
         compile 'com.google.inject.extensions:guice-multibindings:3.0'
+
+        testCompile project(':ribbon-examples')        
     }
 }
 
