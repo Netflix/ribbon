@@ -114,6 +114,20 @@ project(':ribbon-test') {
     }
 }
 
+project(':ribbon-guice') {
+    dependencies {
+        compile project(':ribbon')
+        compile project(':ribbon-core')
+        compile project(':ribbon-httpclient')
+        compile project(':ribbon-loadbalancer')
+        
+        compile 'com.google.inject:guice:3.0'
+        compile 'com.google.inject.extensions:guice-multibindings:3.0'
+
+        testCompile project(':ribbon-examples')        
+    }
+}
+
 project(':ribbon') {
     configurations {
         // add new configuration
