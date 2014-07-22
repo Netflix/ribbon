@@ -19,9 +19,8 @@ import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RequestWithMetaData;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.http.hystrix.HystrixCacheObservableCommand;
-import com.netflix.ribbon.http.hystrix.HystrixObservableCommandChain;
-import com.netflix.ribbon.http.hystrix.RibbonHystrixObservableCommand;
+import com.netflix.ribbon.hystrix.HystrixCacheObservableCommand;
+import com.netflix.ribbon.hystrix.HystrixObservableCommandChain;
 import com.netflix.ribbon.template.TemplateParser;
 import com.netflix.ribbon.template.TemplateParsingException;
 import io.netty.buffer.ByteBuf;
@@ -67,6 +66,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
 
     private final HttpClientRequest<ByteBuf> httpRequest;
     private final String hystrixCacheKey;
+    private final String cacheHystrixCacheKey;
     private final CacheProviderWithKey<T> cacheProvider;
     private final Map<String, Object> requestProperties;
     private final HttpClient<ByteBuf, ByteBuf> client;
@@ -76,6 +76,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
         client = requestBuilder.template().getClient();
         httpRequest = requestBuilder.createClientRequest();
         hystrixCacheKey = requestBuilder.hystrixCacheKey();
+        cacheHystrixCacheKey = hystrixCacheKey == null ? null : hystrixCacheKey + HttpRequestTemplate.CACHE_HYSTRIX_COMMAND_SUFFIX;
         requestProperties = new HashMap<String, Object>(requestBuilder.requestProperties());
         if (requestBuilder.cacheProvider() != null) {
             CacheProvider<T> provider = requestBuilder.cacheProvider().getProvider();
@@ -93,8 +94,8 @@ class HttpRequest<T> implements RibbonRequest<T> {
     HystrixObservableCommandChain<T> createHystrixCommandChain() {
         List<HystrixObservableCommand<T>> commands = new ArrayList<HystrixObservableCommand<T>>(2);
         if (cacheProvider != null) {
-            commands.add(new HystrixCacheObservableCommand<T>(cacheProvider.getCacheProvider(), cacheProvider.getKey(),
-                    requestProperties, template.hystrixProperties()));
+            commands.add(new HystrixCacheObservableCommand<T>(cacheProvider.getCacheProvider(), cacheProvider.getKey(), cacheHystrixCacheKey,
+                    requestProperties, template.cacheHystrixProperties()));
         }
         commands.add(new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, requestProperties, template.fallbackHandler(),
                 template.responseValidator(), template.getClassType(), template.hystrixProperties()));

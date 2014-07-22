@@ -1,4 +1,4 @@
-package com.netflix.ribbon.http.hystrix;
+package com.netflix.ribbon.hystrix;
 
 import com.netflix.hystrix.HystrixObservableCommand;
 import rx.Notification.Kind;

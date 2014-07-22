@@ -1,4 +1,4 @@
-package com.netflix.ribbon.http.hystrix;
+package com.netflix.ribbon.hystrix;
 
 import com.netflix.hystrix.HystrixObservableCommand;
 import rx.Observable;
@@ -14,12 +14,12 @@ import java.util.List;
  * This class implements chaining mechanism for Hystrix commands. If a command in a chain fails, the next one
  * is run. If all commands in the chain failed, the error from the last one is reported.
  * To be able to identify the Hystrix command for which request was executed, a materialized
- * {@link com.netflix.ribbon.http.hystrix.HystrixNotification} event stream is returned by
+ * {@link HystrixNotification} event stream is returned by
  * {@link #materializedNotificationObservable()} method. For convinvience this stream is mapped by:
  * <ul>
  *     <li>{@link #toObservable()} - value of T observable (no access to Hystrix information)</li>
  *     <li>{@link #toNotificationObservable()} -
- *         does not encapsulate error in {@link com.netflix.ribbon.http.hystrix.HystrixNotification}, but calls
+ *         does not encapsulate error in {@link HystrixNotification}, but calls
  *         onError directly (we need it for mapping to future from observable).
  *     </li>
  * </ul>

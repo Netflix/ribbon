@@ -18,7 +18,7 @@ package com.netflix.ribbon.http;
 import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.ribbon.RequestWithMetaData;
 import com.netflix.ribbon.RibbonResponse;
-import com.netflix.ribbon.http.hystrix.HystrixNotification;
+import com.netflix.ribbon.hystrix.HystrixNotification;
 import io.netty.buffer.ByteBuf;
 import rx.Observable;
 import rx.Observable.OnSubscribe;

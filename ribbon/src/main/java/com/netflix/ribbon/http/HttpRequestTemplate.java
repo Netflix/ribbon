@@ -43,17 +43,21 @@ import com.netflix.ribbon.template.ParsedTemplate;
  * <b>Note:</b> This class is not thread safe. It is advised that the template is created and
  * constructed in same thread at initialization of the application. Users can call {@link #requestBuilder()}
  * later on which returns a {@link RequestBuilder} which is thread safe. 
- * 
+ *
  * @author Allen Wang
  *
  * @param <T> Type for the return Object of the Http resource
  */
 public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientResponse<ByteBuf>> {
 
+    public static final String CACHE_HYSTRIX_COMMAND_SUFFIX = ".cache";
+    public static final int DEFAULT_CACHE_TIMEOUT = 20;
+
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final String clientName;
     private final int maxResponseTime;
     private HystrixObservableCommand.Setter setter;
+    private final HystrixObservableCommand.Setter cacheSetter;
     private FallbackHandler<T> fallbackHandler;
     private ParsedTemplate parsedUriTemplate;
     private ResponseValidator<HttpClientResponse<ByteBuf>> validator;
@@ -66,13 +70,12 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     private final int concurrentRequestLimit;
     private final HttpHeaders headers;
     private final HttpResourceGroup group;
-    
+
     static class CacheProviderWithKeyTemplate<T> {
         private ParsedTemplate keyTemplate;
         private CacheProvider<T> provider;
         public CacheProviderWithKeyTemplate(ParsedTemplate keyTemplate,
                 CacheProvider<T> provider) {
-            super();
             this.keyTemplate = keyTemplate;
             this.provider = provider;
         }
@@ -83,7 +86,7 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
             return provider;
         }
     }
-    
+
     public HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType) {
         this.client = group.getClient();
         this.classType = classType;
@@ -101,8 +104,15 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         headers = new DefaultHttpHeaders();
         headers.add(group.getHeaders());
         parsedTemplates = new HashMap<String, ParsedTemplate>();
+
+        String cacheName = clientName + CACHE_HYSTRIX_COMMAND_SUFFIX;
+        cacheSetter = HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(cacheName))
+                .andCommandKey(HystrixCommandKey.Factory.asKey(cacheName));
+        HystrixCommandProperties.Setter cacheCommandProps = HystrixCommandProperties.Setter();
+        cacheCommandProps.withExecutionIsolationThreadTimeoutInMilliseconds(DEFAULT_CACHE_TIMEOUT);
+        cacheSetter.andCommandPropertiesDefaults(cacheCommandProps);
     }
-    
+
     @Override
     public HttpRequestTemplate<T> withFallbackProvider(FallbackHandler<T> fallbackHandler) {
         this.fallbackHandler = fallbackHandler;
@@ -119,37 +129,37 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
                commandProps.withExecutionIsolationThreadTimeoutInMilliseconds(maxResponseTime);
             }
             if (concurrentRequestLimit > 0) {
-                commandProps.withExecutionIsolationSemaphoreMaxConcurrentRequests(concurrentRequestLimit);                
+                commandProps.withExecutionIsolationSemaphoreMaxConcurrentRequests(concurrentRequestLimit);
             }
             setter.andCommandPropertiesDefaults(commandProps);
         }
         return new HttpRequestBuilder<T>(this);
     }
-    
+
     public HttpRequestTemplate<T> withMethod(String method) {
         this.method = HttpMethod.valueOf(method);
         return this;
     }
-    
+
     private ParsedTemplate createParsedTemplate(String template) {
         ParsedTemplate parsedTemplate = parsedTemplates.get(template);
         if (parsedTemplate == null) {
             parsedTemplate = ParsedTemplate.create(template);
             parsedTemplates.put(template, parsedTemplate);
-        } 
+        }
         return parsedTemplate;
     }
-    
+
     public HttpRequestTemplate<T> withUriTemplate(String uri) {
         this.parsedUriTemplate = createParsedTemplate(uri);
         return this;
     }
-    
+
     public HttpRequestTemplate<T> withHeader(String name, String value) {
         headers.add(name, value);
         return this;
-    }    
-    
+    }
+
     @Override
     public HttpRequestTemplate<T> withRequestCacheKey(
             String cacheKeyTemplate) {
@@ -158,50 +168,50 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     }
 
     @Override
-    public HttpRequestTemplate<T> withCacheProvider(String keyTemplate, 
+    public HttpRequestTemplate<T> withCacheProvider(String keyTemplate,
             CacheProvider<T> cacheProvider) {
         ParsedTemplate template = createParsedTemplate(keyTemplate);
         this.cacheProvider = new CacheProviderWithKeyTemplate<T>(template, cacheProvider);
         return this;
     }
-        
+
     ParsedTemplate hystrixCacheKeyTemplate() {
         return hystrixCacheKeyTemplate;
     }
-    
+
     CacheProviderWithKeyTemplate<T> cacheProvider() {
         return cacheProvider;
     }
-    
+
     ResponseValidator<HttpClientResponse<ByteBuf>> responseValidator() {
         return validator;
     }
-    
+
     FallbackHandler<T> fallbackHandler() {
         return fallbackHandler;
     }
-    
+
     ParsedTemplate uriTemplate() {
         return parsedUriTemplate;
     }
-    
+
     HttpMethod method() {
         return method;
     }
-    
+
     Class<? extends T> getClassType() {
         return this.classType;
     }
-    
+
     HttpHeaders getHeaders() {
         return this.headers;
     }
-    
+
     @Override
     public String name() {
         return name;
     }
-    
+
     @Override
     public HttpRequestTemplate<T> withResponseValidator(
             ResponseValidator<HttpClientResponse<ByteBuf>> validator) {
@@ -230,13 +240,16 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         this.setter = propertiesSetter;
         return this;
     }
-    
+
     Setter hystrixProperties() {
         return this.setter;
     }
-    
+
+    Setter cacheHystrixProperties() {
+        return cacheSetter;
+    }
+
     HttpClient<ByteBuf, ByteBuf> getClient() {
         return this.client;
     }
-    
 }

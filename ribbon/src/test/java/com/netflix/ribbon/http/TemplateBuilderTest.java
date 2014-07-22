@@ -17,7 +17,7 @@ package com.netflix.ribbon.http;
 
 import static org.junit.Assert.assertEquals;
 
-import com.netflix.ribbon.http.hystrix.HystrixObservableCommandChain;
+import com.netflix.ribbon.hystrix.HystrixObservableCommandChain;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
