@@ -3,12 +3,11 @@ package com.netflix.ribbon.hystrix;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixObservableCommand;
 import org.junit.Test;
+import rx.Notification;
 import rx.Observable;
 import rx.Observer;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
-
-import java.util.Iterator;
 
 import static org.junit.Assert.*;
 
@@ -25,40 +24,26 @@ public class HystrixCommandChainTest {
     @Test
     public void testMaterializedNotificationObservableFirstOK() throws Exception {
         HystrixObservableCommandChain<String> commandChain = new HystrixObservableCommandChain<String>(command1, errorCommand1);
-        Iterator<HystrixNotification<String>> iterator = commandChain.materializedNotificationObservable().toBlocking().getIterator();
-        assertMaterializedIsSuccessful(iterator, "result1", command1);
+        ResultCommandPair<String> pair = commandChain.toResultCommandPairObservable().toBlocking().single();
+        assertEquals("result1", pair.getResult());
+        assertEquals("expected first hystrix command", command1, pair.getCommand());
     }
 
     @Test
     public void testMaterializedNotificationObservableLastOK() throws Exception {
         HystrixObservableCommandChain<String> commandChain = new HystrixObservableCommandChain<String>(errorCommand1, command2);
-        Iterator<HystrixNotification<String>> iterator = commandChain.materializedNotificationObservable().toBlocking().getIterator();
-        assertMaterializedIsSuccessful(iterator, "result2", command2);
+        ResultCommandPair<String> pair = commandChain.toResultCommandPairObservable().toBlocking().single();
+        assertEquals("result2", pair.getResult());
+        assertEquals("expected first hystrix command", command2, pair.getCommand());
     }
 
     @Test
     public void testMaterializedNotificationObservableError() throws Exception {
         HystrixObservableCommandChain<String> commandChain = new HystrixObservableCommandChain<String>(errorCommand1, errorCommand2);
-        HystrixNotification<String> onError = commandChain.materializedNotificationObservable().toBlocking().single();
+        Notification<ResultCommandPair<String>> notification = commandChain.toResultCommandPairObservable().materialize().toBlocking().single();
 
-        assertTrue("onError notification expected", onError.isOnError());
-        assertEquals(errorCommand2, onError.getHystrixObservableCommand());
-    }
-
-    @Test
-    public void testNotificationObservableOK() throws Exception {
-        HystrixObservableCommandChain<String> commandChain = new HystrixObservableCommandChain<String>(command1, errorCommand1);
-        HystrixNotification<String> onNext = commandChain.toNotificationObservable().toBlocking().single();
-
-        assertTrue("onNext notification expected", onNext.isOnNext());
-        assertEquals("result1", onNext.getValue());
-        assertEquals(command1, onNext.getHystrixObservableCommand());
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testNotificationObservableError() throws Exception {
-        HystrixObservableCommandChain<String> commandChain = new HystrixObservableCommandChain<String>(errorCommand1, errorCommand2);
-        commandChain.toNotificationObservable().toBlocking().last();
+        assertTrue("onError notification expected", notification.isOnError());
+        assertEquals(errorCommand2, commandChain.getLastCommand());
     }
 
     @Test
@@ -72,16 +57,6 @@ public class HystrixCommandChainTest {
     public void testObservableError() throws Exception {
         HystrixObservableCommandChain<String> commandChain = new HystrixObservableCommandChain<String>(errorCommand1, errorCommand2);
         commandChain.toObservable().toBlocking().single();
-    }
-
-    private void assertMaterializedIsSuccessful(Iterator<HystrixNotification<String>> iterator, String result, HystrixObservableCommand<String> expectedCommand) {
-        HystrixNotification<String> onNext = iterator.next();
-        HystrixNotification<String> onComplete = iterator.next();
-
-        assertEquals(result, onNext.getValue());
-        assertEquals(expectedCommand, onNext.getHystrixObservableCommand());
-        assertTrue("expected onCompleted, and is " + onComplete.getKind(), onComplete.isOnCompleted());
-        assertTrue("more elements than expected", !iterator.hasNext());
     }
 
     private static final class TestableHystrixObservableCommand extends HystrixObservableCommand<String> {
