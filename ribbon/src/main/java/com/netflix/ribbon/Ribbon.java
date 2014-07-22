@@ -19,24 +19,39 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
 public final class Ribbon {
-    private static final HttpResourceGroupFactory factory = new DefaultHttpResourceGroupFactory();
+    private static final HttpResourceGroupFactory factory = new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     
     private Ribbon() {
     }
 
+    /**
+     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name. The underlying transport client
+     * will be created from the client configuration created via
+     * {@link com.netflix.client.config.IClientConfig.Builder#newBuilder(String)}
+     *
+     * @param name name of the resource group, as well as the transport client
+     */
     public static HttpResourceGroup createHttpResourceGroup(String name) {
-        return factory.createHttpResourceGroup(name);
+        return factory.createHttpResourceGroup(name, ClientOptions.create());
     }
 
+    /**
+     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name. The underlying transport client
+     * will be created from the client configuration created via
+     * {@link com.netflix.client.config.IClientConfig.Builder#newBuilder(String)}
+     *
+     * @param name name of the resource group, as well as the transport client
+     * @param options Options to override the client configuration created
+     */
     public static HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
         return factory.createHttpResourceGroup(name, options);
     }
 
     public static <T> T from(Class<T> contract) {
-        return RibbonDynamicProxy.newInstance(contract, null);
+        return factory.from(contract);
     }
 
     public static <T> T from(Class<T> contract, HttpResourceGroup httpResourceGroup) {
-        return RibbonDynamicProxy.newInstance(contract, httpResourceGroup);
+        return factory.from(contract, httpResourceGroup);
     }
 }

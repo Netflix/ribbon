@@ -15,6 +15,11 @@
  */
 package com.netflix.ribbon.proxy;
 
+import com.netflix.client.config.IClientConfig;
+import com.netflix.ribbon.ClientConfigFactory;
+import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
+import com.netflix.ribbon.HttpResourceGroupFactory;
+import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 
 import java.lang.reflect.InvocationHandler;
@@ -31,11 +36,19 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
 
     public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
         lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
-        ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
-        if (httpResourceGroup == null) {
-            httpResourceGroup = new HttpResourceGroupFactory<T>(classTemplate).createResourceGroup();
-        }
         templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
+    }
+    
+    public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroupFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+        ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
+        IClientConfig config =  createClientConfig(classTemplate, configFactory);
+        HttpResourceGroup httpResourceGroup = new ProxyHttpResourceGroupFactory<T>(classTemplate, resourceGroupFactory, config, transportFactory).createResourceGroup();
+        templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
+        lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
+    }
+
+    private IClientConfig createClientConfig(ClassTemplate<T> classTemplate, ClientConfigFactory configFactory) {
+        return configFactory.newConfig();
     }
 
     @Override
@@ -88,15 +101,35 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
         }
     }
 
+    public static <T> T newInstance(Class<T> clientInterface) {
+        return newInstance(clientInterface, new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT), 
+                ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    }
+    
     @SuppressWarnings("unchecked")
     public static <T> T newInstance(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
+        if (!clientInterface.isInterface()) {
+            throw new IllegalArgumentException(clientInterface.getName() + " is a class not interface");
+        }
+        if (httpResourceGroup == null) {
+            throw new NullPointerException("HttpResourceGroup is null");
+        }
+        return (T) Proxy.newProxyInstance(
+                Thread.currentThread().getContextClassLoader(),
+                new Class[]{clientInterface, ProxyLifeCycle.class},
+                new RibbonDynamicProxy<T>(clientInterface, httpResourceGroup)
+        );
+    }
+    
+    @SuppressWarnings("unchecked")
+    public static <T> T newInstance(Class<T> clientInterface, HttpResourceGroupFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         if (!clientInterface.isInterface()) {
             throw new IllegalArgumentException(clientInterface.getName() + " is a class not interface");
         }
         return (T) Proxy.newProxyInstance(
                 Thread.currentThread().getContextClassLoader(),
                 new Class[]{clientInterface, ProxyLifeCycle.class},
-                new RibbonDynamicProxy<T>(clientInterface, httpResourceGroup)
+                new RibbonDynamicProxy<T>(clientInterface, resourceGroupFactory, configFactory, transportFactory)
         );
     }
 }

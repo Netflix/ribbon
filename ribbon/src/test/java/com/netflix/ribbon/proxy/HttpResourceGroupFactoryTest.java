@@ -16,9 +16,12 @@
 
 package com.netflix.ribbon.proxy;
 
+import com.netflix.ribbon.ClientConfigFactory;
+import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
+import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.ClassTemplate;
-import com.netflix.ribbon.proxy.HttpResourceGroupFactory;
+import com.netflix.ribbon.proxy.ProxyHttpResourceGroupFactory;
 import com.netflix.ribbon.proxy.RibbonProxyException;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupClassAnnotation;
@@ -36,8 +39,9 @@ public class HttpResourceGroupFactoryTest {
 
     @Test(expected = RibbonProxyException.class)
     public void testResourceGroupAnnotationMissing() throws Exception {
-        ClassTemplate classTemplate = new ClassTemplate(SampleMovieService.class);
-        new HttpResourceGroupFactory(classTemplate).createResourceGroup();
+        ClassTemplate<SampleMovieService> classTemplate = new ClassTemplate<SampleMovieService>(SampleMovieService.class);
+        new ProxyHttpResourceGroupFactory<SampleMovieService>(classTemplate, new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT), 
+                ClientConfigFactory.DEFAULT.newConfig(), RibbonTransportFactory.DEFAULT).createResourceGroup();
     }
 
     @Test
@@ -52,7 +56,7 @@ public class HttpResourceGroupFactoryTest {
 
     private void testResourceGroupCreation(Class<?> clientInterface, Class<? extends HttpResourceGroup> httpResourceGroupClass) {
         ClassTemplate classTemplate = new ClassTemplate(clientInterface);
-        HttpResourceGroup resourceGroup = new HttpResourceGroupFactory(classTemplate).createResourceGroup();
+        HttpResourceGroup resourceGroup = new ProxyHttpResourceGroupFactory(classTemplate).createResourceGroup();
         assertNotNull("got null and expected instance of " + httpResourceGroupClass, resourceGroup);
     }
 }
