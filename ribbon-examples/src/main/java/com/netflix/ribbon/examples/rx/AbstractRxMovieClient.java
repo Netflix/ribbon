@@ -125,7 +125,7 @@ public abstract class AbstractRxMovieClient {
                     }
                 }
         );
-        return resultObservable.materialize().toBlocking().last();
+        return resultObservable.materialize().toBlockingObservable().last();
     }
 
     protected void shutdown() {

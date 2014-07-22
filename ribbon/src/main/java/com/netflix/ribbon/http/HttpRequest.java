@@ -82,12 +82,12 @@ class HttpRequest<T> implements RibbonRequest<T> {
     
     @Override
     public T execute() {
-        return createHystrixCommand().getObservable().toBlocking().last();
+        return createHystrixCommand().getObservable().toBlockingObservable().last();
     }
 
     @Override
     public Future<T> queue() {
-        return createHystrixCommand().getObservable().toBlocking().toFuture();
+        return createHystrixCommand().getObservable().toBlockingObservable().toFuture();
     }
 
     @Override
