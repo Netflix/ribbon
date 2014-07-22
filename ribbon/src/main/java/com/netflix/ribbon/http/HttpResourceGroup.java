@@ -51,11 +51,6 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
         headers = new DefaultHttpHeaders();
     }
 
-    @Override
-    protected IClientConfig loadDefaultConfig(String groupName) {
-        return IClientConfig.Builder.newBuilder(groupName).build();
-    }
-    
     public HttpResourceGroup withCommonHeader(String name, String value) {
         headers.add(name, value);
         return this;

@@ -2,7 +2,6 @@ package com.netflix.ribbon;
 
 import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
 /**
  * Factory for creating an HttpResourceGroup.  For DI either bind DefaultHttpResourceGroupFactory
