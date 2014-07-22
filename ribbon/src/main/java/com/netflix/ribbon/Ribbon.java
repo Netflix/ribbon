@@ -19,7 +19,7 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
 public final class Ribbon {
-    private static final HttpResourceGroupFactory factory = new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    private static final RibbonResourceFactory factory = new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     
     private Ribbon() {
     }

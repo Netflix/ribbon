@@ -10,7 +10,7 @@ import com.netflix.ribbon.proxy.RibbonDynamicProxy;
  * 
  * @author elandau
  */
-public interface HttpResourceGroupFactory {
+public interface RibbonResourceFactory {
     HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options);
     
     HttpResourceGroup createHttpResourceGroup(String name, IClientConfig config);

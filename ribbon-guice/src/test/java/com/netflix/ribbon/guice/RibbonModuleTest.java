@@ -15,7 +15,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.netflix.ribbon.ClientConfigFactory;
 import com.netflix.ribbon.ClientOptions;
-import com.netflix.ribbon.HttpResourceGroupFactory;
+import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
 import com.netflix.ribbon.examples.rx.common.Movie;
@@ -38,7 +38,7 @@ public class RibbonModuleTest {
         private final HttpRequestTemplate<ByteBuf> recommendationsByTemplate;
 
         @Inject
-        public MyService(HttpResourceGroupFactory factory) {
+        public MyService(RibbonResourceFactory factory) {
             httpResourceGroup = factory.createHttpResourceGroup("movieServiceClient",
                     ClientOptions.create()
                             .withMaxAutoRetriesNextServer(3)

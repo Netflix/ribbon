@@ -18,7 +18,7 @@ package com.netflix.ribbon.proxy;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.ClientConfigFactory;
 import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
-import com.netflix.ribbon.HttpResourceGroupFactory;
+import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 
@@ -39,7 +39,7 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
         templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
     }
     
-    public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroupFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+    public RibbonDynamicProxy(Class<T> clientInterface, RibbonResourceFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
         IClientConfig config =  createClientConfig(classTemplate, configFactory);
         HttpResourceGroup httpResourceGroup = new ProxyHttpResourceGroupFactory<T>(classTemplate, resourceGroupFactory, config, transportFactory).createResourceGroup();
@@ -122,7 +122,7 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
     }
     
     @SuppressWarnings("unchecked")
-    public static <T> T newInstance(Class<T> clientInterface, HttpResourceGroupFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+    public static <T> T newInstance(Class<T> clientInterface, RibbonResourceFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         if (!clientInterface.isInterface()) {
             throw new IllegalArgumentException(clientInterface.getName() + " is a class not interface");
         }

@@ -6,7 +6,7 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
-public class DefaultHttpResourceGroupFactory implements HttpResourceGroupFactory {
+public class DefaultHttpResourceGroupFactory implements RibbonResourceFactory {
 
     private ClientConfigFactory clientConfigFactory;
     private RibbonTransportFactory transportFactory;
