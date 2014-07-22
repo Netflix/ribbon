@@ -65,6 +65,7 @@ import com.netflix.client.ssl.ClientSslSocketFactoryException;
 import com.netflix.client.ssl.URLSslContextFactory;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
@@ -97,7 +98,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             RetryHandler retryHandler,
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
-        this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildDynamicServerListLoadBalancer(),
+        this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
                 config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
     }
 
@@ -299,6 +300,10 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         return (HttpClientListener) listener;
     }
 
+    LoadBalancerExecutor getLoadBalancerExecutor() {
+        return lbExecutor;
+    }
+    
     @Override
     protected MetricEventsListener<? extends ClientMetricsEvent<?>> createListener(
             String name) {

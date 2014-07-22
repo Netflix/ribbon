@@ -179,7 +179,7 @@ public class NettyClientTest {
     public void testPoolReuse() throws Exception {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet(SERVICE_URI + "testAsync/person");
         NettyHttpClient<ByteBuf, ByteBuf> observableClient = (NettyHttpClient<ByteBuf, ByteBuf>) RibbonTransport.newHttpClient(
-                IClientConfig.Builder.newBuilder()
+                IClientConfig.Builder.newBuilder().withDefaultValues()
                 .withMaxAutoRetries(1)
                 .withMaxAutoRetriesNextServer(1).build());
         Observable<HttpClientResponse<ByteBuf>> response = observableClient.submit(request);

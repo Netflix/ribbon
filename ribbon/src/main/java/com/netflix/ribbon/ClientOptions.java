@@ -15,10 +15,10 @@
  */
 package com.netflix.ribbon;
 
+import com.netflix.client.config.IClientConfigKey;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.netflix.client.config.IClientConfigKey;
 
 /**
  * API to construct Ribbon client options to be used by {@link ResourceGroup}
@@ -97,7 +97,7 @@ public final class ClientOptions {
         options.put(IClientConfigKey.Keys.InitializeNFLoadBalancer, value);
         return this;                                
     }
-    
+
     Map<IClientConfigKey<?>, Object> getOptions() {
         return options;
     }
