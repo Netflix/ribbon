@@ -5,7 +5,7 @@ import com.google.inject.spi.BindingTargetVisitor;
 import com.google.inject.spi.ProviderInstanceBinding;
 import com.google.inject.spi.ProviderWithExtensionVisitor;
 import com.google.inject.spi.Toolable;
-import com.netflix.ribbon.HttpResourceGroupFactory;
+import com.netflix.ribbon.RibbonResourceFactory;
 
 /**
  * Guice Provider extension to create a ribbon resource from an injectable
@@ -17,7 +17,7 @@ import com.netflix.ribbon.HttpResourceGroupFactory;
  */
 public class RibbonResourceProvider<T> implements ProviderWithExtensionVisitor<T> {
 
-    private HttpResourceGroupFactory factory;
+    private RibbonResourceFactory factory;
     private final Class<T> contract;
     
     public RibbonResourceProvider(Class<T> contract) {
@@ -42,7 +42,7 @@ public class RibbonResourceProvider<T> implements ProviderWithExtensionVisitor<T
 
     @Inject
     @Toolable
-    void initialize(HttpResourceGroupFactory factory) {
+    void initialize(RibbonResourceFactory factory) {
         this.factory = factory;
     }
 }

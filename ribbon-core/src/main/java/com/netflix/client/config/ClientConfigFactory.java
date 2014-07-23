@@ -1,7 +1,5 @@
-package com.netflix.ribbon;
+package com.netflix.client.config;
 
-import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfig;
 
 /**
  * Created by awang on 7/18/14.
