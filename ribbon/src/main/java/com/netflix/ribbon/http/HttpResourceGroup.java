@@ -15,9 +15,8 @@
  */
 package com.netflix.ribbon.http;
 
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.RibbonTransport;
-import com.netflix.ribbon.ClientConfigFactory;
 import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.ResourceGroup;
 import com.netflix.ribbon.RibbonTransportFactory;

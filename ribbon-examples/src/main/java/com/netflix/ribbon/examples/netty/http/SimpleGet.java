@@ -21,7 +21,7 @@ public class SimpleGet {
                 
         final CountDownLatch latch = new CountDownLatch(1);
         client.submit("www.google.com", 80, request)
-            .toBlockingObservable()
+            .toBlocking()
             .forEach(new Action1<HttpClientResponse<ByteBuf>>() {
                 @Override
                 public void call(HttpClientResponse<ByteBuf> t1) {

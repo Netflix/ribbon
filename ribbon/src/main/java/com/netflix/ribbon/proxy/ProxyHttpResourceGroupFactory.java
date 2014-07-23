@@ -15,10 +15,10 @@
  */
 package com.netflix.ribbon.proxy;
 
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.ribbon.ClientConfigFactory;
 import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
-import com.netflix.ribbon.HttpResourceGroupFactory;
+import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 
@@ -29,7 +29,7 @@ import static java.lang.String.*;
  */
 class ProxyHttpResourceGroupFactory<T> {
     private final ClassTemplate<T> classTemplate;
-    private final HttpResourceGroupFactory httpResourceGroupFactory;
+    private final RibbonResourceFactory httpResourceGroupFactory;
     private final IClientConfig clientConfig;
 
     ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate) {
@@ -37,7 +37,7 @@ class ProxyHttpResourceGroupFactory<T> {
                 ClientConfigFactory.DEFAULT.newConfig(), RibbonTransportFactory.DEFAULT);
     }
     
-    ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, HttpResourceGroupFactory httpResourceGroupFactory, IClientConfig clientConfig, 
+    ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, RibbonResourceFactory httpResourceGroupFactory, IClientConfig clientConfig, 
             RibbonTransportFactory transportFactory) {
         this.classTemplate = classTemplate;
         this.httpResourceGroupFactory = httpResourceGroupFactory;

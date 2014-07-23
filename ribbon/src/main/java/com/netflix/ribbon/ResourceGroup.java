@@ -15,6 +15,7 @@
  */
 package com.netflix.ribbon;
 
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
