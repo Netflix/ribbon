@@ -13,10 +13,8 @@ import rx.Observable;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.RibbonResourceFactory;
-import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
 import com.netflix.ribbon.examples.rx.common.Movie;
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceFallbackHandler;

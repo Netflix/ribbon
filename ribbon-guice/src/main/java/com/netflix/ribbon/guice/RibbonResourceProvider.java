@@ -5,6 +5,7 @@ import com.google.inject.spi.BindingTargetVisitor;
 import com.google.inject.spi.ProviderInstanceBinding;
 import com.google.inject.spi.ProviderWithExtensionVisitor;
 import com.google.inject.spi.Toolable;
+import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.RibbonResourceFactory;
 
 /**
@@ -26,7 +27,8 @@ public class RibbonResourceProvider<T> implements ProviderWithExtensionVisitor<T
     
     @Override
     public T get() {
-        return factory.from(contract);
+        // TODO: Get name from annotations (not only class name of contract)
+        return factory.from(contract, factory.createHttpResourceGroup(contract.getName(), ClientOptions.create()));
     }
 
     /**
