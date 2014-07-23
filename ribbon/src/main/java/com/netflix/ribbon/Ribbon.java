@@ -15,6 +15,7 @@
  */
 package com.netflix.ribbon;
 
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 

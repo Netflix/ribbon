@@ -1,7 +1,7 @@
 package com.netflix.ribbon.proxy;
 
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.ribbon.ClientConfigFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.RibbonTransportFactory;

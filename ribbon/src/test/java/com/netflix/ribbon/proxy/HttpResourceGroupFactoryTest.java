@@ -16,7 +16,7 @@
 
 package com.netflix.ribbon.proxy;
 
-import com.netflix.ribbon.ClientConfigFactory;
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;

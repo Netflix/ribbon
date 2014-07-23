@@ -81,7 +81,7 @@ public class EvCacheProviderTest {
         EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
         Observable<Object> cacheValue = cacheProvider.get("test1", null);
 
-        assertEquals("value1", cacheValue.toBlockingObservable().first());
+        assertEquals("value1", cacheValue.toBlocking().first());
     }
 
     @Test
@@ -97,7 +97,7 @@ public class EvCacheProviderTest {
         EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
         Observable<Object> cacheValue = cacheProvider.get("test1", null);
 
-        assertEquals("value1", cacheValue.toBlockingObservable().first());
+        assertEquals("value1", cacheValue.toBlocking().first());
     }
 
     @Test
@@ -113,7 +113,7 @@ public class EvCacheProviderTest {
         EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
         Observable<Object> cacheValue = cacheProvider.get("test1", null);
 
-        assertTrue(cacheValue.materialize().toBlockingObservable().first().getThrowable() instanceof CacheMissException);
+        assertTrue(cacheValue.materialize().toBlocking().first().getThrowable() instanceof CacheMissException);
     }
 
     @Test
@@ -126,7 +126,7 @@ public class EvCacheProviderTest {
         EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
         Observable<Object> cacheValue = cacheProvider.get("test1", null);
 
-        Notification<Object> notification = cacheValue.materialize().toBlockingObservable().first();
+        Notification<Object> notification = cacheValue.materialize().toBlocking().first();
         assertTrue(notification.getThrowable() instanceof CacheFaultException);
     }
 
@@ -142,7 +142,7 @@ public class EvCacheProviderTest {
         EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
         Observable<Object> cacheValue = cacheProvider.get("test1", null);
 
-        assertTrue(cacheValue.materialize().toBlockingObservable().first().getThrowable() instanceof CacheFaultException);
+        assertTrue(cacheValue.materialize().toBlocking().first().getThrowable() instanceof CacheFaultException);
     }
 
     @Test
@@ -158,7 +158,7 @@ public class EvCacheProviderTest {
         EvCacheProvider<Object> cacheProvider = new EvCacheProvider<Object>(options);
         Observable<Object> cacheValue = cacheProvider.get("test1", null);
 
-        assertTrue(cacheValue.materialize().toBlockingObservable().first().getThrowable() instanceof RuntimeException);
+        assertTrue(cacheValue.materialize().toBlocking().first().getThrowable() instanceof RuntimeException);
     }
 
     @Test

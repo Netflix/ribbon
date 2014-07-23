@@ -59,7 +59,7 @@ public class RibbonTest {
                 return t1.toString(Charset.defaultCharset());
             }
             
-        }).toBlockingObservable().single();
+        }).toBlocking().single();
     }
     
     
@@ -172,7 +172,7 @@ public class RibbonTest {
                 });
             }
         });
-        String s = result.toBlockingObservable().single();
+        String s = result.toBlocking().single();
         assertEquals(content, s);
         assertTrue(success.get());
         
@@ -273,7 +273,7 @@ public class RibbonTest {
                 });
             }
         });
-        String s = result.toBlockingObservable().single();
+        String s = result.toBlocking().single();
         // this returns true only after the blocking call is done
         assertTrue(hystrixInfo.get().isResponseFromFallback());
         assertTrue(failed.get());
@@ -334,7 +334,7 @@ public class RibbonTest {
         final AtomicReference<String> fromCommand = new AtomicReference<String>();
         // We need to wait until the response is received and processed by event loop
         // and make sure that subscribing to it again will not cause ByteBuf ref count issue
-        result.toBlockingObservable().last();
+        result.toBlocking().last();
         result.subscribe(new Action1<ByteBuf>() {
             @Override
             public void call(ByteBuf t1) {
@@ -353,7 +353,7 @@ public class RibbonTest {
         String result2 = "";
         // We need to wait until the response is received and processed by event loop
         // and make sure that subscribing to it again will not cause ByteBuf ref count issue
-        metaResult.toBlockingObservable().last();
+        metaResult.toBlocking().last();
         result2 = metaResult.flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<ByteBuf>>(){
             @Override
             public Observable<ByteBuf> call(
@@ -365,7 +365,7 @@ public class RibbonTest {
             public String call(ByteBuf t1) {
                 return t1.toString(Charset.defaultCharset());
             }
-        }).toBlockingObservable().single();
+        }).toBlocking().single();
         assertEquals(content, result2);
     }
     

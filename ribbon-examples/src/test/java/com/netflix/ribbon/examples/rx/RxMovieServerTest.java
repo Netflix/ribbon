@@ -75,7 +75,7 @@ public class RxMovieServerTest {
                     public Observable<HttpResponseStatus> call(HttpClientResponse<ByteBuf> httpClientResponse) {
                         return Observable.just(httpClientResponse.getStatus());
                     }
-                }).toBlockingObservable().first();
+                }).toBlocking().first();
 
         assertEquals(HttpResponseStatus.CREATED, statusCode);
         assertEquals(ORANGE_IS_THE_NEW_BLACK, movieServer.movies.get(ORANGE_IS_THE_NEW_BLACK.getId()));
@@ -90,7 +90,7 @@ public class RxMovieServerTest {
                     public Observable<HttpResponseStatus> call(HttpClientResponse<ByteBuf> httpClientResponse) {
                         return Observable.just(httpClientResponse.getStatus());
                     }
-                }).toBlockingObservable().first();
+                }).toBlocking().first();
 
         assertEquals(HttpResponseStatus.OK, statusCode);
         assertTrue(movieServer.userRecommendations.get(TEST_USER_ID).contains(ORANGE_IS_THE_NEW_BLACK.getId()));
@@ -143,7 +143,7 @@ public class RxMovieServerTest {
                             }
                         });
                     }
-                }).toBlockingObservable().first();
+                }).toBlocking().first();
     }
 
 }
