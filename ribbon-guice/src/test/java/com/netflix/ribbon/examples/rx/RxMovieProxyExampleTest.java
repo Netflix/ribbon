@@ -1,4 +1,4 @@
-package com.netflix.ribbon.guice;
+package com.netflix.ribbon.examples.rx;
 
 import static org.junit.Assert.assertTrue;
 
@@ -10,7 +10,9 @@ import com.google.inject.Injector;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.ribbon.examples.rx.RxMovieClientTestBase;
 import com.netflix.ribbon.examples.rx.proxy.MovieService;
-import com.netflix.ribbon.guice.examples.RxMovieProxyExample;
+import com.netflix.ribbon.examples.rx.proxy.RxMovieProxyExample;
+import com.netflix.ribbon.guice.RibbonModule;
+import com.netflix.ribbon.guice.RibbonResourceProvider;
 
 public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
     

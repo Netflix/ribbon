@@ -1,4 +1,4 @@
-package com.netflix.ribbon.guice.examples;
+package com.netflix.ribbon.examples.rx.proxy;
 
 import io.netty.buffer.ByteBuf;
 

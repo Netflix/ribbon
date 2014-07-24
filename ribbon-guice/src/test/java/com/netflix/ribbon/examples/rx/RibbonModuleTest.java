@@ -1,4 +1,4 @@
-package com.netflix.ribbon.guice;
+package com.netflix.ribbon.examples.rx;
 
 
 import io.netty.buffer.ByteBuf;
@@ -20,6 +20,7 @@ import com.netflix.ribbon.examples.rx.common.Movie;
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceFallbackHandler;
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceResponseValidator;
 import com.netflix.ribbon.examples.rx.common.RxMovieTransformer;
+import com.netflix.ribbon.guice.RibbonModule;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
 
