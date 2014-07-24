@@ -30,7 +30,7 @@ import rx.functions.Func1;
 
 import java.util.Map;
 
-public class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<T> {
+public class HttpResourceObservableCommand<T> extends HystrixObservableCommand<T> {
 
     private final HttpClient<ByteBuf, ByteBuf> httpClient;
     private final HttpClientRequest<ByteBuf> httpRequest;
@@ -40,13 +40,13 @@ public class RibbonHystrixObservableCommand<T> extends HystrixObservableCommand<
     private final Class<? extends T> classType;
     private final ResponseValidator<HttpClientResponse<ByteBuf>> validator;
 
-    public RibbonHystrixObservableCommand(HttpClient<ByteBuf, ByteBuf> httpClient,
-                                   HttpClientRequest<ByteBuf> httpRequest, String hystrixCacheKey,
-                                   Map<String, Object> requestProperties,
-                                   FallbackHandler<T> fallbackHandler,
-                                   ResponseValidator<HttpClientResponse<ByteBuf>> validator,
-                                   Class<? extends T> classType,
-                                   HystrixObservableCommand.Setter setter) {
+    public HttpResourceObservableCommand(HttpClient<ByteBuf, ByteBuf> httpClient,
+                                         HttpClientRequest<ByteBuf> httpRequest, String hystrixCacheKey,
+                                         Map<String, Object> requestProperties,
+                                         FallbackHandler<T> fallbackHandler,
+                                         ResponseValidator<HttpClientResponse<ByteBuf>> validator,
+                                         Class<? extends T> classType,
+                                         HystrixObservableCommand.Setter setter) {
         super(setter);
         this.httpClient = httpClient;
         this.fallbackHandler = fallbackHandler;

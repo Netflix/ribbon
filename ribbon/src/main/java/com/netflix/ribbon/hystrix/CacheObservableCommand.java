@@ -9,14 +9,14 @@ import java.util.Map;
 /**
  * @author Tomasz Bak
  */
-public class HystrixCacheObservableCommand<T> extends HystrixObservableCommand<T> {
+public class CacheObservableCommand<T> extends HystrixObservableCommand<T> {
 
     private final CacheProvider<T> cacheProvider;
     private final String key;
     private final String hystrixCacheKey;
     private final Map<String, Object> requestProperties;
 
-    public HystrixCacheObservableCommand(
+    public CacheObservableCommand(
             CacheProvider<T> cacheProvider,
             String key,
             String hystrixCacheKey,

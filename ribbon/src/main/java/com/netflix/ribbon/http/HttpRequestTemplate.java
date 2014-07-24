@@ -50,7 +50,7 @@ import com.netflix.ribbon.template.ParsedTemplate;
  */
 public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientResponse<ByteBuf>> {
 
-    public static final String CACHE_HYSTRIX_COMMAND_SUFFIX = ".cache";
+    public static final String CACHE_HYSTRIX_COMMAND_SUFFIX = "_cache";
     public static final int DEFAULT_CACHE_TIMEOUT = 20;
 
     private final HttpClient<ByteBuf, ByteBuf> client;

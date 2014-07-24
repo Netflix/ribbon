@@ -19,7 +19,7 @@ import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RequestWithMetaData;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.hystrix.HystrixCacheObservableCommand;
+import com.netflix.ribbon.hystrix.CacheObservableCommand;
 import com.netflix.ribbon.hystrix.HystrixObservableCommandChain;
 import com.netflix.ribbon.template.TemplateParser;
 import com.netflix.ribbon.template.TemplateParsingException;
@@ -94,10 +94,10 @@ class HttpRequest<T> implements RibbonRequest<T> {
     HystrixObservableCommandChain<T> createHystrixCommandChain() {
         List<HystrixObservableCommand<T>> commands = new ArrayList<HystrixObservableCommand<T>>(2);
         if (cacheProvider != null) {
-            commands.add(new HystrixCacheObservableCommand<T>(cacheProvider.getCacheProvider(), cacheProvider.getKey(), cacheHystrixCacheKey,
+            commands.add(new CacheObservableCommand<T>(cacheProvider.getCacheProvider(), cacheProvider.getKey(), cacheHystrixCacheKey,
                     requestProperties, template.cacheHystrixProperties()));
         }
-        commands.add(new RibbonHystrixObservableCommand<T>(client, httpRequest, hystrixCacheKey, requestProperties, template.fallbackHandler(),
+        commands.add(new HttpResourceObservableCommand<T>(client, httpRequest, hystrixCacheKey, requestProperties, template.fallbackHandler(),
                 template.responseValidator(), template.getClassType(), template.hystrixProperties()));
 
         return new HystrixObservableCommandChain<T>(commands);
