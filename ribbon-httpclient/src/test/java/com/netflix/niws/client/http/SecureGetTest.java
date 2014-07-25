@@ -275,12 +275,18 @@ public class SecureGetTest {
 		FILE_TS1 = File.createTempFile("SecureGetTest1", ".truststore");
 
 		FileOutputStream keystoreFileOut = new FileOutputStream(FILE_KS1);
-		keystoreFileOut.write(sampleKeystore1);
-		keystoreFileOut.close();
+        try {
+            keystoreFileOut.write(sampleKeystore1);
+        } finally {
+            keystoreFileOut.close();
+        }
 
 		FileOutputStream truststoreFileOut = new FileOutputStream(FILE_TS1);
-		truststoreFileOut.write(sampleTruststore1);
-		truststoreFileOut.close();
+        try {
+            truststoreFileOut.write(sampleTruststore1);
+        } finally {
+            truststoreFileOut.close();
+        }
 
 		try{
 			testServer1 = new SimpleSSLTestServer(FILE_TS1, PASSWORD, FILE_KS1, PASSWORD, PORT1, true);
@@ -302,12 +308,18 @@ public class SecureGetTest {
 		FILE_TS2 = File.createTempFile("SecureGetTest2", ".truststore");
 
 		keystoreFileOut = new FileOutputStream(FILE_KS2);
-		keystoreFileOut.write(sampleKeystore2);
-		keystoreFileOut.close();
+        try {
+            keystoreFileOut.write(sampleKeystore2);
+        } finally {
+            keystoreFileOut.close();
+        }
 
 		truststoreFileOut = new FileOutputStream(FILE_TS2);
-		truststoreFileOut.write(sampleTruststore2);
-		truststoreFileOut.close();
+        try {
+            truststoreFileOut.write(sampleTruststore2);
+        } finally {
+            truststoreFileOut.close();
+        }
 
 		try{
 			testServer2 = new SimpleSSLTestServer(FILE_TS2, PASSWORD, FILE_KS2, PASSWORD, PORT2, false);

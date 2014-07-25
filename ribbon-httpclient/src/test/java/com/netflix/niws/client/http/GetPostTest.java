@@ -75,7 +75,7 @@ public class GetPostTest {
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(TestObject.class).name.equals("test"));
     }
-
+    
     @Test
     public void testPost() throws Exception {
     	URI getUri = new URI(SERVICE_URI + "test/setObject");

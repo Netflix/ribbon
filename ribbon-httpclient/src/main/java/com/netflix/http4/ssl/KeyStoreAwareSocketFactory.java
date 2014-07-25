@@ -27,8 +27,8 @@ import javax.net.ssl.SSLContext;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 
-import com.netflix.niws.cert.AbstractSslContextFactory;
-import com.netflix.niws.client.ClientSslSocketFactoryException;
+import com.netflix.client.ssl.AbstractSslContextFactory;
+import com.netflix.client.ssl.ClientSslSocketFactoryException;
 
 /**
  *

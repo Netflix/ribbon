@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.collections.keyvalue.MultiKey;
-import org.apache.http.client.HttpClient;
 
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -89,9 +88,9 @@ public class NFHttpClientFactory {
 	}	
 	
 	public static void shutdownNFHttpClient(String name) {
-	    HttpClient c = namedClientMap.get(name);
-	    if(c != null) {
-	        c.getConnectionManager().shutdown();
+	    NFHttpClient c = namedClientMap.get(name);
+	    if (c != null) {
+	        c.shutdown();
 	        namedClientMap.remove(name);
 	        Monitors.unregisterObject(name, c);
 	    }
