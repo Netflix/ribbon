@@ -16,6 +16,8 @@
 package com.netflix.ribbon.http;
 
 import static org.junit.Assert.assertEquals;
+
+import com.netflix.ribbon.hystrix.HystrixObservableCommandChain;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
@@ -30,14 +32,10 @@ import org.junit.Test;
 import rx.Observable;
 
 import com.netflix.hystrix.HystrixCommandProperties;
-import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.Ribbon;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.http.HttpRequest;
-import com.netflix.ribbon.http.HttpRequestTemplate;
-import com.netflix.ribbon.http.HttpResourceGroup;
 
 public class TemplateBuilderTest {
     
@@ -125,8 +123,8 @@ public class TemplateBuilderTest {
                 .withMethod("GET")
             .withUriTemplate("/foo/bar")
             .requestBuilder().build();
-        HystrixObservableCommand<ByteBuf> command = request.createHystrixCommand();
-        HystrixCommandProperties props = command.getProperties();
+        HystrixObservableCommandChain<ByteBuf> hystrixCommandChain = request.createHystrixCommandChain();
+        HystrixCommandProperties props = hystrixCommandChain.getCommands().get(0).getProperties();
         assertEquals(400, props.executionIsolationSemaphoreMaxConcurrentRequests().get().intValue());
         assertEquals(12000, props.executionIsolationThreadTimeoutInMilliseconds().get().intValue());
     }
