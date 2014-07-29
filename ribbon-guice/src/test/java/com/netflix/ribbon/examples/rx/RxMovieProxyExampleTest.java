@@ -18,7 +18,16 @@ package com.netflix.ribbon.examples.rx;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Scopes;
+import com.netflix.client.config.ClientConfigFactory;
+import com.netflix.client.config.ClientConfigFactory.DefaultClientConfigFactory;
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
+import com.netflix.ribbon.DefaultResourceFactory;
+import com.netflix.ribbon.RibbonResourceFactory;
+import com.netflix.ribbon.RibbonTransportFactory;
+import com.netflix.ribbon.RibbonTransportFactory.DefaultRibbonTransportFactory;
 import com.netflix.ribbon.examples.rx.proxy.MovieService;
 import com.netflix.ribbon.examples.rx.proxy.RxMovieProxyExample;
 import com.netflix.ribbon.guice.RibbonModule;
@@ -28,7 +37,19 @@ import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 
 public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
-    
+
+    static class MyClientConfigFactory extends DefaultClientConfigFactory {
+        @Override
+        public IClientConfig newConfig() {
+            return new DefaultClientConfigImpl() {
+                @Override
+                public String getNameSpace() {
+                    return "MyConfig";
+                }
+            };
+        }
+    }
+
     @Test
     public void shouldBind() {
         ConfigurationManager.getConfigInstance().setProperty(MovieService.class.getSimpleName() + ".ribbon.listOfServers", "localhost:" + port);
@@ -47,4 +68,31 @@ public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
         assertTrue(example.runExample());
 
     }
+
+    @Test
+    public void shouldBindCustomClientConfigFactory() {
+        ConfigurationManager.getConfigInstance().setProperty(MovieService.class.getSimpleName() + ".MyConfig.listOfServers", "localhost:" + port);
+
+        Injector injector = Guice.createInjector(
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(RibbonResourceFactory.class).to(DefaultResourceFactory.class).in(Scopes.SINGLETON);
+                        bind(RibbonTransportFactory.class).to(DefaultRibbonTransportFactory.class).in(Scopes.SINGLETON);
+                        bind(ClientConfigFactory.class).to(MyClientConfigFactory.class).in(Scopes.SINGLETON);
+                    }
+                },
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(MovieService.class).toProvider(new RibbonResourceProvider<MovieService>(MovieService.class)).asEagerSingleton();
+                    }
+                }
+        );
+
+        RxMovieProxyExample example = injector.getInstance(RxMovieProxyExample.class);
+        assertTrue(example.runExample());
+
+    }
+
 }
