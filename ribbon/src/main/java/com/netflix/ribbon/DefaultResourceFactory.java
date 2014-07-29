@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.ribbon.examples.rx.proxy;
+package com.netflix.ribbon;
 
-import com.netflix.ribbon.examples.rx.RxMovieClientTestBase;
-import org.junit.Test;
+import com.netflix.client.config.ClientConfigFactory;
 
-import static junit.framework.Assert.*;
+import javax.inject.Inject;
 
-/**
- * @author Tomasz Bak
- */
-public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
+public class DefaultResourceFactory extends RibbonResourceFactory {
 
-    @Test
-    public void testProxyExample() throws Exception {
-        assertTrue(new RxMovieProxyExample(port).runExample());
+    @Inject
+    public DefaultResourceFactory(ClientConfigFactory clientConfigFactory, RibbonTransportFactory transportFactory) {
+        super(clientConfigFactory, transportFactory);
     }
 }

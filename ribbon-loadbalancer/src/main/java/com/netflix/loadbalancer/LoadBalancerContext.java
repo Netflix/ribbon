@@ -17,33 +17,25 @@
  */
 package com.netflix.loadbalancer;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Strings;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientRequest;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.RetryHandler;
-import com.netflix.client.ClientException.ErrorType;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.AbstractLoadBalancer;
-import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.LoadBalancerStats;
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ServerStats;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A class contains APIs intended to be used be load balancing client which is subclass of this class.
@@ -474,7 +466,7 @@ public class LoadBalancerContext implements IClientConfigAware {
                 Server svc = lb.chooseServer(loadBalancerKey);
                 if (svc == null){
                     throw new ClientException(ClientException.ErrorType.GENERAL,
-                            "LoadBalancer does not have availble server for client: "
+                            "Load balancer does not have available server for client: "
                                     + clientName);
                 }
                 host = svc.getHost();

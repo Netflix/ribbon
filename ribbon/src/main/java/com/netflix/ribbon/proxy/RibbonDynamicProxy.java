@@ -17,7 +17,7 @@ package com.netflix.ribbon.proxy;
 
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
+import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
@@ -34,11 +34,11 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
     private final ProxyLifeCycle lifeCycle;
     private final Map<Method, MethodTemplateExecutor> templateExecutorMap;
 
-    public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
+    RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
         lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
         templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
     }
-    
+
     public RibbonDynamicProxy(Class<T> clientInterface, RibbonResourceFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
         IClientConfig config =  createClientConfig(classTemplate, configFactory);
@@ -102,12 +102,12 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
     }
 
     public static <T> T newInstance(Class<T> clientInterface) {
-        return newInstance(clientInterface, new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT), 
+        return newInstance(clientInterface, new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
                 ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     }
     
     @SuppressWarnings("unchecked")
-    public static <T> T newInstance(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
+    static <T> T newInstance(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
         if (!clientInterface.isInterface()) {
             throw new IllegalArgumentException(clientInterface.getName() + " is a class not interface");
         }

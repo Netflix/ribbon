@@ -17,12 +17,10 @@ package com.netflix.ribbon.proxy;
 
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
+import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
-
-import static java.lang.String.*;
 
 /**
  * @author Tomasz Bak
@@ -33,11 +31,11 @@ class ProxyHttpResourceGroupFactory<T> {
     private final IClientConfig clientConfig;
 
     ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate) {
-        this(classTemplate, new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
+        this(classTemplate, new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
                 ClientConfigFactory.DEFAULT.newConfig(), RibbonTransportFactory.DEFAULT);
     }
     
-    ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, RibbonResourceFactory httpResourceGroupFactory, IClientConfig clientConfig, 
+    ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, RibbonResourceFactory httpResourceGroupFactory, IClientConfig clientConfig,
             RibbonTransportFactory transportFactory) {
         this.classTemplate = classTemplate;
         this.httpResourceGroupFactory = httpResourceGroupFactory;
@@ -45,16 +43,16 @@ class ProxyHttpResourceGroupFactory<T> {
     }
 
     public HttpResourceGroup createResourceGroup() {
-        String name = classTemplate.getResourceGroupName();
         Class<? extends HttpResourceGroup> resourceClass = classTemplate.getResourceGroupClass();
-        if (name != null) {
-            return httpResourceGroupFactory.createHttpResourceGroup(name, clientConfig);
+        if (resourceClass != null) {
+            return Utils.newInstance(resourceClass);
+        } else {
+            String name = classTemplate.getResourceGroupName();
+            if (name == null) {
+                name = classTemplate.getClientInterface().getSimpleName();
+            }
+            clientConfig.loadProperties(name);
+            return httpResourceGroupFactory.createHttpResourceGroup(clientConfig);
         }
-        if (resourceClass == null) {
-            throw new RibbonProxyException(format(
-                    "ResourceGroup not defined for interface %s - must be provided by annotation or passed explicitly during dynamic proxy creation",
-                    classTemplate.getClientInterface()));
-        }
-        return Utils.newInstance(resourceClass);
     }
 }
