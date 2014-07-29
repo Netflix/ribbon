@@ -16,6 +16,14 @@
 
 package com.netflix.ribbon.examples.rx;
 
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.netflix.ribbon.examples.rx.common.Movie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -31,14 +39,6 @@ import io.reactivex.netty.protocol.http.server.HttpServerResponse;
 import io.reactivex.netty.protocol.http.server.RequestHandler;
 import rx.Observable;
 import rx.functions.Func1;
-
-import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static java.lang.String.*;
 
@@ -81,7 +81,7 @@ public class RxMovieServer {
                 response.setStatus(HttpResponseStatus.NOT_FOUND);
                 return response.close();
             }
-        }).pipelineConfigurator(PipelineConfigurators.<ByteBuf, ByteBuf>httpServerConfigurator()).enableWireLogging(LogLevel.DEBUG).build();
+        }).pipelineConfigurator(PipelineConfigurators.<ByteBuf, ByteBuf>httpServerConfigurator()).enableWireLogging(LogLevel.ERROR).build();
 
         System.out.println("RxMovie server started...");
         return server;
@@ -113,7 +113,7 @@ public class RxMovieServer {
     }
 
     private Observable<Void> handleRecommendationsBy(HttpServerRequest<ByteBuf> request, HttpServerResponse<ByteBuf> response) {
-        System.out.println("HTTP request -> recommendations by multiple criteria: " + request.getPath());
+        System.out.println(format("HTTP request -> recommendations by multiple criteria: %s?%s", request.getPath(), request.getQueryString()));
         List<String> category = request.getQueryParameters().get("category");
         List<String> ageGroup = request.getQueryParameters().get("ageGroup");
         if (category.isEmpty() || ageGroup.isEmpty()) {
@@ -121,11 +121,20 @@ public class RxMovieServer {
             return response.close();
         }
 
+        boolean any = false;
         StringBuilder builder = new StringBuilder();
         for (Movie movie : movies.values()) {
             if (movie.getCategory().equals(category.get(0)) && movie.getAgeGroup().equals(ageGroup.get(0))) {
                 System.out.println("    returning: " + movie);
                 builder.append(movie).append('\n');
+                any = true;
+            }
+        }
+        if (!any) {
+            System.out.println("No movie matched the given criteria:");
+            for (Movie movie : movies.values()) {
+                System.out.print("    ");
+                System.out.println(movie);
             }
         }
 
