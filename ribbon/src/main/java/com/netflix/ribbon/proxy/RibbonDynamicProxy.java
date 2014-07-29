@@ -34,11 +34,11 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
     private final ProxyLifeCycle lifeCycle;
     private final Map<Method, MethodTemplateExecutor> templateExecutorMap;
 
-    public RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
+    RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
         lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
         templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
     }
-    
+
     public RibbonDynamicProxy(Class<T> clientInterface, RibbonResourceFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
         IClientConfig config =  createClientConfig(classTemplate, configFactory);
@@ -107,7 +107,7 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
     }
     
     @SuppressWarnings("unchecked")
-    public static <T> T newInstance(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
+    static <T> T newInstance(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
         if (!clientInterface.isInterface()) {
             throw new IllegalArgumentException(clientInterface.getName() + " is a class not interface");
         }

@@ -21,8 +21,6 @@ import com.netflix.client.config.IClientConfigKey;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
-import javax.inject.Inject;
-
 /**
  * Factory for creating an HttpResourceGroup.  For DI either bind DefaultHttpResourceGroupFactory
  * or implement your own to customize or override HttpResourceGroup.
@@ -35,7 +33,6 @@ public abstract class RibbonResourceFactory {
 
     public static final RibbonResourceFactory DEFAULT = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
 
-    @Inject
     public RibbonResourceFactory(ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         this.clientConfigFactory = configFactory;
         this.transportFactory = transportFactory;
@@ -50,7 +47,6 @@ public abstract class RibbonResourceFactory {
     }
 
     public HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
-        // return new HttpResourceGroup(name, options, clientConfigFactory, RibbonTransportFactory.DEFAULT);
         return createHttpResourceGroup(getClientConfigFromOptions(name, options));
     }
 
