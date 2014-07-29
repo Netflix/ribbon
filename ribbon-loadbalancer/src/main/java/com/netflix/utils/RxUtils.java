@@ -16,6 +16,6 @@ public class RxUtils {
                     return Observable.error(t1);
                 }
             }            
-        }).toBlockingObservable().single();
+        }).toBlocking().single();
     }
 }

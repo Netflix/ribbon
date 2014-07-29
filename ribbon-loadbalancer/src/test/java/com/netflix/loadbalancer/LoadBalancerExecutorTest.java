@@ -61,7 +61,7 @@ public class LoadBalancerExecutorTest {
                 return 0;
             }
         };
-        String result = lbExecutor.retryWithSameServer(server1, observableProvider.run(server1), handler).toBlockingObservable().single();
+        String result = lbExecutor.retryWithSameServer(server1, observableProvider.run(server1), handler).toBlocking().single();
         assertEquals(3, lbExecutor.getServerStats(server1).getTotalRequestsCount());
         assertEquals("1", result);
     }
@@ -105,7 +105,7 @@ public class LoadBalancerExecutorTest {
                 return 5;
             }
         };
-        String result = lbExecutor.create(observableProvider, handler).toBlockingObservable().single();
+        String result = lbExecutor.create(observableProvider, handler).toBlocking().single();
         assertEquals("3", result); // server2 is picked first
         assertEquals(2, lbExecutor.getServerStats(server2).getTotalRequestsCount());
         assertEquals(1, lbExecutor.getServerStats(server3).getTotalRequestsCount());
