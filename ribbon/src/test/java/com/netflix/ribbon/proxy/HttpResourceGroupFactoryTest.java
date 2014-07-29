@@ -17,12 +17,9 @@
 package com.netflix.ribbon.proxy;
 
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.ribbon.DefaultHttpResourceGroupFactory;
+import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.proxy.ClassTemplate;
-import com.netflix.ribbon.proxy.ProxyHttpResourceGroupFactory;
-import com.netflix.ribbon.proxy.RibbonProxyException;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupClassAnnotation;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupNameAnnotation;
@@ -37,10 +34,10 @@ import static org.junit.Assert.*;
  */
 public class HttpResourceGroupFactoryTest {
 
-    @Test(expected = RibbonProxyException.class)
+    @Test
     public void testResourceGroupAnnotationMissing() throws Exception {
         ClassTemplate<SampleMovieService> classTemplate = new ClassTemplate<SampleMovieService>(SampleMovieService.class);
-        new ProxyHttpResourceGroupFactory<SampleMovieService>(classTemplate, new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT), 
+        new ProxyHttpResourceGroupFactory<SampleMovieService>(classTemplate, new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
                 ClientConfigFactory.DEFAULT.newConfig(), RibbonTransportFactory.DEFAULT).createResourceGroup();
     }
 

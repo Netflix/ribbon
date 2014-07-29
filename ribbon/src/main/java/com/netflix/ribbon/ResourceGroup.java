@@ -41,7 +41,6 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
     public ResourceGroup(String name, IClientConfig clientConfig, RibbonTransportFactory transportFactory) {
         this.name = name;
         this.clientConfig = clientConfig;
-        clientConfig.loadProperties(name);
     }
 
     protected final IClientConfig getClientConfig() {

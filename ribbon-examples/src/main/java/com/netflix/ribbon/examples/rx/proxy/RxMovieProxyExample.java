@@ -16,12 +16,12 @@
 
 package com.netflix.ribbon.examples.rx.proxy;
 
-import com.netflix.ribbon.ClientOptions;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.config.ConfigurationManager;
 import com.netflix.ribbon.Ribbon;
 import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
 import com.netflix.ribbon.examples.rx.RxMovieServer;
 import com.netflix.ribbon.examples.rx.common.Movie;
-import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.ProxyLifeCycle;
 import io.netty.buffer.ByteBuf;
 import rx.Observable;
@@ -36,11 +36,9 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
     private final MovieService movieService;
 
     public RxMovieProxyExample(int port) {
-        HttpResourceGroup httpResourceGroup = Ribbon.createHttpResourceGroup("movieServiceClient",
-                ClientOptions.create()
-                        .withMaxAutoRetriesNextServer(3)
-                        .withConfigurationBasedServerList("localhost:" + port));
-        movieService = Ribbon.from(MovieService.class, httpResourceGroup);
+        ConfigurationManager.getConfigInstance().setProperty("MovieService.ribbon." + CommonClientConfigKey.MaxAutoRetriesNextServer, "3");
+        ConfigurationManager.getConfigInstance().setProperty("MovieService.ribbon." + CommonClientConfigKey.ListOfServers, "localhost:" + port);
+        movieService = Ribbon.from(MovieService.class);
     }
 
     @SuppressWarnings("unchecked")

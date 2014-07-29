@@ -17,10 +17,9 @@ package com.netflix.ribbon;
 
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
 public final class Ribbon {
-    private static final RibbonResourceFactory factory = new DefaultHttpResourceGroupFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    private static final RibbonResourceFactory factory = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     
     private Ribbon() {
     }
@@ -48,11 +47,14 @@ public final class Ribbon {
         return factory.createHttpResourceGroup(name, options);
     }
 
+    /**
+     * Create an instance of remote service interface.
+     *
+     * @param contract interface class of the remote service
+     *
+     * @param <T> Type of the instance
+     */
     public static <T> T from(Class<T> contract) {
         return factory.from(contract);
-    }
-
-    public static <T> T from(Class<T> contract, HttpResourceGroup httpResourceGroup) {
-        return factory.from(contract, httpResourceGroup);
     }
 }
