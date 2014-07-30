@@ -158,11 +158,12 @@ project(':ribbon') {
     tasks.build { dependsOn(examplesClasses) }
     
     dependencies {
-            compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
-            compile 'com.netflix.evcache:evcache-client:1.0.5'
-            compile project(':ribbon-transport')
-            testCompile project(':ribbon-test')            
-            testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+        compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
+        compile 'com.netflix.evcache:evcache-client:1.0.5'
+        compile 'javax.inject:javax.inject:1'
+        compile project(':ribbon-transport')
+        testCompile project(':ribbon-test')
+        testCompile 'com.google.mockwebserver:mockwebserver:20130706'
             
     }
 }
