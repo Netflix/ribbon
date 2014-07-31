@@ -13,20 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.ribbon.examples.rx.proxy;
+package com.netflix.client.config;
 
-import com.netflix.ribbon.examples.rx.RxMovieClientTestBase;
-import org.junit.Test;
-
-import static junit.framework.Assert.*;
 
 /**
- * @author Tomasz Bak
+ * Created by awang on 7/18/14.
  */
-public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
+public interface ClientConfigFactory {
+    IClientConfig newConfig();
 
-    @Test
-    public void testProxyExample() throws Exception {
-        assertTrue(new RxMovieProxyExample(port).runExample());
+    public static class DefaultClientConfigFactory implements ClientConfigFactory {
+        @Override
+        public IClientConfig newConfig() {
+            IClientConfig config = new DefaultClientConfigImpl();
+            config.loadDefaultValues();
+            return config;
+            
+        }        
     }
+    
+    public static final ClientConfigFactory DEFAULT = new DefaultClientConfigFactory();
 }

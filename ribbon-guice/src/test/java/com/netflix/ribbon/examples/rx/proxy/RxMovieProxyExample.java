@@ -1,44 +1,25 @@
-/*
- * Copyright 2014 Netflix, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.netflix.ribbon.examples.rx.proxy;
 
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.config.ConfigurationManager;
-import com.netflix.ribbon.Ribbon;
-import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
-import com.netflix.ribbon.examples.rx.RxMovieServer;
-import com.netflix.ribbon.examples.rx.common.Movie;
-import com.netflix.ribbon.proxy.ProxyLifeCycle;
 import io.netty.buffer.ByteBuf;
+
+import javax.inject.Inject;
+
 import rx.Observable;
 
-/**
- * Run {@link com.netflix.ribbon.examples.rx.RxMovieServer} prior to runnng this example!
- *
- * @author Tomasz Bak
- */
+import com.google.inject.Singleton;
+import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
+import com.netflix.ribbon.examples.rx.common.Movie;
+import com.netflix.ribbon.examples.rx.proxy.MovieService;
+import com.netflix.ribbon.proxy.ProxyLifeCycle;
+
+@Singleton
 public class RxMovieProxyExample extends AbstractRxMovieClient {
 
     private final MovieService movieService;
 
-    public RxMovieProxyExample(int port) {
-        ConfigurationManager.getConfigInstance().setProperty("MovieService.ribbon." + CommonClientConfigKey.MaxAutoRetriesNextServer, "3");
-        ConfigurationManager.getConfigInstance().setProperty("MovieService.ribbon." + CommonClientConfigKey.ListOfServers, "localhost:" + port);
-        movieService = Ribbon.from(MovieService.class);
+    @Inject
+    public RxMovieProxyExample(MovieService movieService) {
+        this.movieService = movieService;
     }
 
     @SuppressWarnings("unchecked")
@@ -73,10 +54,5 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
     public void shutdown() {
         super.shutdown();
         ((ProxyLifeCycle) movieService).shutdown();
-    }
-
-    public static void main(String[] args) {
-        System.out.println("Starting proxy based movie service...");
-        new RxMovieProxyExample(RxMovieServer.DEFAULT_PORT).runExample();
     }
 }

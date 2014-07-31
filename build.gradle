@@ -20,6 +20,7 @@ apply from: file('gradle/maven.gradle')
 apply from: file('gradle/check.gradle')
 apply from: file('gradle/license.gradle')
 apply from: file('gradle/release.gradle')
+apply plugin: 'idea'
 
 subprojects {
     group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
@@ -46,7 +47,7 @@ project(':ribbon-loadbalancer') {
     dependencies {
         compile project(':ribbon-core')
         compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
-        compile 'com.netflix.rxjava:rxjava-core:0.18+'
+        compile "com.netflix.rxjava:rxjava-core:${rx_java_version}"
     }
 }
 
@@ -71,9 +72,9 @@ project(':ribbon-transport') {
     dependencies {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
-        compile 'com.netflix.rxnetty:rx-netty:0.3.9'
-        compile 'com.netflix.rxnetty:rx-netty-contexts:0.3.9'
-        compile 'com.netflix.rxnetty:rx-netty-servo:0.3.9'
+        compile "com.netflix.rxnetty:rx-netty:${rx_netty_version}"
+        compile "com.netflix.rxnetty:rx-netty-contexts:${rx_netty_version}"
+        compile "com.netflix.rxnetty:rx-netty-servo:${rx_netty_version}"
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }
@@ -105,11 +106,25 @@ project(':ribbon-test') {
         compile project(':ribbon-eureka')
         compile 'org.powermock:powermock-easymock-release-full:1.5.4'
         compile 'org.easymock:easymock:3.2'
-        compile 'com.netflix.rxjava:rxjava-core:0.18+'
+        compile "com.netflix.rxjava:rxjava-core:${rx_java_version}"
         compile 'com.sun.jersey:jersey-server:1.11'
         compile 'javax.ws.rs:jsr311-api:1.1.1' 
         compile 'com.sun.jersey:jersey-core:1.11'    
         compile 'junit:junit:4.10'
+    }
+}
+
+project(':ribbon-guice') {
+    dependencies {
+        compile project(':ribbon')
+        compile project(':ribbon-core')
+        compile project(':ribbon-httpclient')
+        compile project(':ribbon-loadbalancer')
+
+        compile 'com.google.inject:guice:3.0'
+        compile 'com.google.inject.extensions:guice-multibindings:3.0'
+
+        testCompile project(':ribbon-examples')
     }
 }
 
@@ -143,12 +158,22 @@ project(':ribbon') {
     tasks.build { dependsOn(examplesClasses) }
     
     dependencies {
-            compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
-            compile 'com.netflix.evcache:evcache-client:1.0.5'
-            compile project(':ribbon-transport')
-            testCompile project(':ribbon-test')            
-            testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+        compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
+        compile 'com.netflix.evcache:evcache-client:1.0.5'
+        compile 'javax.inject:javax.inject:1'
+        compile project(':ribbon-transport')
+        testCompile project(':ribbon-test')
+        testCompile 'com.google.mockwebserver:mockwebserver:20130706'
             
+    }
+}
+
+project(':ribbon-guice') {
+    dependencies {
+        compile project(':ribbon')
+        compile 'com.google.inject:guice:3.0'
+        compile 'com.google.inject.extensions:guice-multibindings:3.0'
+        testCompile project(':ribbon-examples')
     }
 }
 

@@ -131,15 +131,15 @@ public class RxMovieServerTest {
                 .flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<Movie[]>>() {
                     @Override
                     public Observable<Movie[]> call(HttpClientResponse<ByteBuf> httpClientResponse) {
-                        return httpClientResponse.getContent().flatMap(new Func1<ByteBuf, Observable<Movie[]>>() {
+                        return httpClientResponse.getContent().map(new Func1<ByteBuf, Movie[]>() {
                             @Override
-                            public Observable<Movie[]> call(ByteBuf byteBuf) {
+                            public Movie[] call(ByteBuf byteBuf) {
                                 String[] lines = byteBuf.toString(Charset.defaultCharset()).split("\n");
                                 Movie[] movies = new Movie[lines.length];
                                 for (int i = 0; i < movies.length; i++) {
                                     movies[i] = Movie.from(lines[i]);
                                 }
-                                return Observable.just(movies);
+                                return movies;
                             }
                         });
                     }
