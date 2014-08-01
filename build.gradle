@@ -81,12 +81,12 @@ project(':ribbon-transport') {
 }
 
 
-project(':ribbon-eureka') {   
+project(':ribbon-eureka') {
     dependencies {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
         compile 'com.netflix.eureka:eureka-client:1.1.136'
-    }    
+    }
 }
 
 project(':ribbon-examples') {
@@ -111,20 +111,6 @@ project(':ribbon-test') {
         compile 'javax.ws.rs:jsr311-api:1.1.1' 
         compile 'com.sun.jersey:jersey-core:1.11'    
         compile 'junit:junit:4.10'
-    }
-}
-
-project(':ribbon-guice') {
-    dependencies {
-        compile project(':ribbon')
-        compile project(':ribbon-core')
-        compile project(':ribbon-httpclient')
-        compile project(':ribbon-loadbalancer')
-
-        compile 'com.google.inject:guice:3.0'
-        compile 'com.google.inject.extensions:guice-multibindings:3.0'
-
-        testCompile project(':ribbon-examples')
     }
 }
 

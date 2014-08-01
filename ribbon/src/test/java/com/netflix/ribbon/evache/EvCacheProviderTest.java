@@ -20,11 +20,7 @@ import com.netflix.evcache.EVCache;
 import com.netflix.evcache.EVCacheException;
 import com.netflix.evcache.EVCacheImpl;
 import com.netflix.evcache.EVCacheTranscoder;
-import com.netflix.ribbon.evache.CacheFaultException;
-import com.netflix.ribbon.evache.CacheMissException;
-import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.evache.EvCacheProvider;
-
+import com.netflix.ribbon.testutils.TestUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,11 +31,13 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import rx.Notification;
 import rx.Observable;
 import rx.Subscription;
+import rx.functions.Func0;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static junit.framework.Assert.*;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 import static org.easymock.EasyMock.*;
 import static org.powermock.api.easymock.PowerMock.*;
 
@@ -174,8 +172,17 @@ public class EvCacheProviderTest {
         Subscription subscription = cacheValue.subscribe();
         subscription.unsubscribe();
 
-        Thread.sleep(10); // So the internal thread has the chance to cancel the future
-
-        verifyAll();
+        TestUtils.waitUntilTrueOrTimeout(10000, new Func0<Boolean>() {
+            @Override
+            public Boolean call() {
+                try {
+                    verifyAll();
+                    return true;
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            }
+        });
     }
 }
