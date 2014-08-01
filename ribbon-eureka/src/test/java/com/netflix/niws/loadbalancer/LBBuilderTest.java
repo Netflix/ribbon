@@ -1,23 +1,5 @@
 package com.netflix.niws.loadbalancer;
 
-import static org.easymock.EasyMock.expect;
-import static org.junit.Assert.*;
-import static org.powermock.api.easymock.PowerMock.createMock;
-import static org.powermock.api.easymock.PowerMock.replay;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.configuration.Configuration;
-import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.easymock.PowerMock;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-
 import com.google.common.collect.Lists;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.client.config.DefaultClientConfigImpl;
@@ -39,6 +21,23 @@ import com.netflix.loadbalancer.ServerList;
 import com.netflix.loadbalancer.ServerListFilter;
 import com.netflix.loadbalancer.ZoneAffinityServerListFilter;
 import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
+import org.apache.commons.configuration.Configuration;
+import org.easymock.EasyMock;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.api.easymock.PowerMock;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.easymock.EasyMock.expect;
+import static org.junit.Assert.*;
+import static org.powermock.api.easymock.PowerMock.createMock;
+import static org.powermock.api.easymock.PowerMock.replay;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest( {DiscoveryManager.class, DiscoveryClient.class} )
@@ -105,6 +104,9 @@ public class LBBuilderTest {
         assertEquals(Lists.newArrayList(expected), lb.getServerList(false));
         assertSame(filter, lb.getFilter());
         assertSame(list, lb.getServerListImpl());
+        Server server = lb.chooseServer();
+        // make sure load balancer does not recreate the server instance
+        assertTrue(server instanceof DiscoveryEnabledServer);
     }
 
     @Test

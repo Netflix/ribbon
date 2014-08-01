@@ -470,15 +470,12 @@ public class LoadBalancerContext implements IClientConfigAware {
                                     + clientName);
                 }
                 host = svc.getHost();
-                port = svc.getPort();
-
                 if (host == null){
                     throw new ClientException(ClientException.ErrorType.GENERAL,
                             "Invalid Server for :" + svc);
                 }
-                if (logger.isDebugEnabled()){
-                    logger.debug(clientName + " using LB returned Server:" + svc + "for request");
-                }
+                logger.debug("{} using LB returned Server: {} for request {}", clientName, svc, original);
+                return svc;
             } else {
                 // No Full URL - and we dont have a LoadBalancer registered to
                 // obtain a server
@@ -488,12 +485,11 @@ public class LoadBalancerContext implements IClientConfigAware {
                 if (vipAddresses != null && vipAddresses.contains(",")) {
                     throw new ClientException(
                             ClientException.ErrorType.GENERAL,
-                            this.clientName
-                            + "Partial URI of ("
+                            "Method is invoked for client " + clientName + " with partial URI of ("
                             + original
-                            + ") has been sent in to RestClient (with no LB) to be executed."
-                            + " Also, there are multiple vipAddresses and hence RestClient cant pick"
-                            + "one vipAddress to complete this partial uri");
+                            + ") with no load balancer configured."
+                            + " Also, there are multiple vipAddresses and hence no vip address can be chosen"
+                            + " to complete this partial uri");
                 } else if (vipAddresses != null) {
                     try {
                         Pair<String,Integer> hostAndPort = deriveHostAndPortFromVipAddress(vipAddresses);
@@ -502,13 +498,12 @@ public class LoadBalancerContext implements IClientConfigAware {
                     } catch (URISyntaxException e) {
                         throw new ClientException(
                                 ClientException.ErrorType.GENERAL,
-                                this.clientName
-                                + "Partial URI of ("
+                                "Method is invoked for client " + clientName + " with partial URI of ("
                                 + original
-                                + ") has been sent in to RestClient (with no LB) to be executed."
+                                + ") with no load balancer configured. "
                                 + " Also, the configured/registered vipAddress is unparseable (to determine host and port)");
                     }
-                }else{
+                } else {
                     throw new ClientException(
                             ClientException.ErrorType.GENERAL,
                             this.clientName
@@ -534,26 +529,20 @@ public class LoadBalancerContext implements IClientConfigAware {
                 Server svc = lb.chooseServer(loadBalancerKey);
                 if (svc != null){
                     host = svc.getHost();
-                    port = svc.getPort();
                     if (host == null){
                         throw new ClientException(ClientException.ErrorType.GENERAL,
                                 "Invalid Server for :" + svc);
                     }
-                    if (logger.isDebugEnabled()){
-                        logger.debug("using LB returned Server:" + svc + "for request:" + original);
-                    }
-                }else{
+                    logger.debug("using LB returned Server: {} for request: {}", svc, original);
+                    return svc;
+                } else {
                     // just fall back as real DNS
-                    if (logger.isDebugEnabled()){
-                        logger.debug(host + ":" + port + " assumed to be a valid VIP address or exists in the DNS");
-                    }
+                    logger.debug("{}:{} assumed to be a valid VIP address or exists in the DNS", host, port);
                 }
             } else {
                 // consult LB to obtain vipAddress backed instance given full URL
                 //Full URL execute request - where url!=vipAddress
-                if (logger.isDebugEnabled()){
-                    logger.debug("Using full URL passed in by caller (not using LB/Discovery):" + original);
-                }
+                logger.debug("Using full URL passed in by caller (not using load balancer): {}", original);
             }
         }
         // end of creating final URL
