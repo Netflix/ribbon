@@ -18,7 +18,21 @@
 
 package com.netflix.client.netty.http;
 
-import io.netty.buffer.ByteBuf;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.netflix.client.RequestSpecificRetryHandler;
+import com.netflix.client.RetryHandler;
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
+import com.netflix.client.ssl.ClientSslSocketFactoryException;
+import com.netflix.loadbalancer.ILoadBalancer;
+import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.LoadBalancerExecutor;
+import com.netflix.loadbalancer.LoadBalancerObservableCommand;
+import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ServerStats;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
@@ -26,49 +40,24 @@ import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
-import io.reactivex.netty.contexts.ContextPipelineConfigurators;
 import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
 import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
-import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.pipeline.ssl.DefaultFactories;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 import io.reactivex.netty.servo.http.HttpClientListener;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import rx.Observable;
 
 import javax.annotation.Nullable;
-
-import rx.Observable;
-import rx.Subscription;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.netflix.client.RequestSpecificRetryHandler;
-import com.netflix.client.RetryHandler;
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
-import com.netflix.client.ssl.AbstractSslContextFactory;
-import com.netflix.client.ssl.ClientSslSocketFactoryException;
-import com.netflix.client.ssl.URLSslContextFactory;
-import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.LoadBalancerExecutor;
-import com.netflix.loadbalancer.LoadBalancerObservableCommand;
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ServerStats;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A Netty HttpClient that can connect to different servers. Internally it caches the RxNetty's HttpClient, with each created with 
@@ -78,11 +67,6 @@ import com.netflix.loadbalancer.ServerStats;
  */
 public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
         implements HttpClient<I, O> {
-    protected static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_PIPELINE_CONFIGURATOR = 
-            PipelineConfigurators.httpClientConfigurator();
-    protected static final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<ByteBuf>> DEFAULT_SSE_PIPELINE_CONFIGURATOR = 
-            PipelineConfigurators.sseClientConfigurator();
-    
     private String requestIdHeaderName;
     
     private HttpRequestIdProvider requestIdProvider;
@@ -302,6 +286,10 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
 
     LoadBalancerExecutor getLoadBalancerExecutor() {
         return lbExecutor;
+    }
+
+    Map<Server, HttpClient<I, O>> getRxClients() {
+        return rxClientCache;
     }
     
     @Override
