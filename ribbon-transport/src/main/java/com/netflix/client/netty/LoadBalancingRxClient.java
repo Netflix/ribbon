@@ -17,33 +17,6 @@
  */
 package com.netflix.client.netty;
 
-import io.reactivex.netty.channel.ObservableConnection;
-import io.reactivex.netty.client.ClientMetricsEvent;
-import io.reactivex.netty.client.RxClient;
-import io.reactivex.netty.metrics.MetricEventsListener;
-import io.reactivex.netty.metrics.MetricEventsSubject;
-import io.reactivex.netty.metrics.MetricsEvent;
-import io.reactivex.netty.pipeline.PipelineConfigurator;
-
-import java.io.Closeable;
-import java.io.File;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.Subscription;
-import rx.subjects.PublishSubject;
-import rx.subscriptions.Subscriptions;
-
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
@@ -52,13 +25,33 @@ import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.ssl.AbstractSslContextFactory;
 import com.netflix.client.ssl.ClientSslSocketFactoryException;
 import com.netflix.client.ssl.URLSslContextFactory;
-import com.netflix.loadbalancer.LoadBalancerObservableCommand;
-import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
+import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.LoadBalancerExecutor;
+import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListChangeListener;
+import io.reactivex.netty.channel.ObservableConnection;
+import io.reactivex.netty.client.ClientMetricsEvent;
+import io.reactivex.netty.client.RxClient;
+import io.reactivex.netty.metrics.MetricEventsListener;
+import io.reactivex.netty.metrics.MetricEventsSubject;
+import io.reactivex.netty.pipeline.PipelineConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Observable;
+import rx.Subscription;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> implements RxClient<I, O> {
 
@@ -192,14 +185,16 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
      */
     private void addLoadBalancerListener() {
         ILoadBalancer lb = lbExecutor.getLoadBalancer();
-        if (!(lb instanceof DynamicServerListLoadBalancer)) {
+        if (!(lb instanceof BaseLoadBalancer)) {
             return;
         }
-        ((DynamicServerListLoadBalancer<?>) lb).addServerListChangeListener(new ServerListChangeListener() {
+        ((BaseLoadBalancer) lb).addServerListChangeListener(new ServerListChangeListener() {
             @Override
             public void serverListChanged(List<Server> oldList, List<Server> newList) {
+                Set<Server> removedServers = new HashSet<Server>(oldList);
+                removedServers.removeAll(newList);
                 for (Server server: rxClientCache.keySet()) {
-                    if (!newList.contains(server)) {
+                    if (removedServers.contains(server)) {
                         // this server is no longer in UP status
                         removeClient(server);
                     }
