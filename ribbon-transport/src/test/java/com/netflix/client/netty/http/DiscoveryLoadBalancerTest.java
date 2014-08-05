@@ -19,7 +19,7 @@ import com.google.common.collect.Lists;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.RibbonTransport;
-import com.netflix.loadbalancer.LoadBalancerExecutor;
+import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.Server;
 import com.netflix.niws.loadbalancer.DiscoveryEnabledNIWSServerList;
 import com.netflix.ribbon.testutils.MockedDiscoveryServerListTest;
@@ -48,8 +48,8 @@ public class DiscoveryLoadBalancerTest extends MockedDiscoveryServerListTest {
                 .withDeploymentContextBasedVipAddresses(getVipAddress()).build()
                 .set(IClientConfigKey.Keys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
         NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(config);
-        LoadBalancerExecutor lbExecutor = client.getLoadBalancerExecutor();
-        List<Server> serverList = lbExecutor.getLoadBalancer().getServerList(false);
+        LoadBalancerContext lbContext = client.getLoadBalancerContext();
+        List<Server> serverList = lbContext.getLoadBalancer().getServerList(false);
         assertEquals(getMockServerList(), serverList);
     }
 }

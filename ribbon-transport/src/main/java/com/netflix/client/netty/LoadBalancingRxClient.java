@@ -28,6 +28,7 @@ import com.netflix.client.ssl.URLSslContextFactory;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.Server;
@@ -260,7 +261,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
        return eventSubject.subscribe(listener);
     }
 
-    public final LoadBalancerExecutor getLoadBalancerExecutor() {
+    public final LoadBalancerContext getLoadBalancerContext() {
         return lbExecutor;
     }
 }
