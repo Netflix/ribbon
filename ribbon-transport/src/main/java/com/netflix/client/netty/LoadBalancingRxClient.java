@@ -259,4 +259,8 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
             MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
        return eventSubject.subscribe(listener);
     }
+
+    public final LoadBalancerExecutor getLoadBalancerExecutor() {
+        return lbExecutor;
+    }
 }
