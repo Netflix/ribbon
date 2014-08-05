@@ -32,7 +32,6 @@ import rx.Observable;
 import rx.functions.Func1;
 
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.nio.charset.Charset;
 
@@ -65,7 +64,6 @@ public class UdpClientTest {
                 @Override
                 public Observable<DatagramPacket> call(ObservableConnection<DatagramPacket, DatagramPacket> connection) {
                     connection.writeStringAndFlush("Is there anybody out there?");
-                    InetSocketAddress address = (InetSocketAddress) connection.getChannelHandlerContext().channel().remoteAddress();
                     return connection.getInput();
                 }
             }).take(1)
