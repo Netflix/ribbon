@@ -1,7 +1,6 @@
 package com.netflix.loadbalancer;
 
 import com.netflix.client.ClientException;
-import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Stopwatch;
@@ -124,7 +123,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
      * @param observableCommand interface that provides the logic to execute network call synchronously with a given {@link Server}
      */
     public <T> Observable<T> create(final LoadBalancerObservableCommand<T> observableCommand) {
-        return create(observableCommand, null, new DefaultLoadBalancerRetryHandler(), null);
+        return create(observableCommand, null, null, null);
     }
 
     private class RetryNextServerOperator<T> implements Operator<T, T> {

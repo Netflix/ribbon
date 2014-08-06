@@ -20,6 +20,7 @@ package com.netflix.client.netty.udp;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.netty.MyUDPClient;
 import com.netflix.client.netty.RibbonTransport;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
@@ -34,8 +35,11 @@ import rx.functions.Func1;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.nio.charset.Charset;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Created by awang on 8/5/14.
@@ -80,4 +84,34 @@ public class UdpClientTest {
             server.shutdown();
         }
     }
+
+    @Test
+    public void testUdpClientTimeout() throws Exception {
+        int port = choosePort();
+        UdpServer<DatagramPacket, DatagramPacket> server = new HelloUdpServer(port, 5000).createServer();
+        server.start();
+        BaseLoadBalancer lb = new BaseLoadBalancer();
+        Server myServer = new Server("localhost", port);
+        lb.setServersList(Lists.newArrayList(myServer));
+        MyUDPClient client = new MyUDPClient(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues());
+        try {
+            String response = client.submit("Is there anybody out there?")
+                    .map(new Func1<DatagramPacket, String>() {
+                        @Override
+                        public String call(DatagramPacket datagramPacket) {
+                            return datagramPacket.content().toString(Charset.defaultCharset());
+                        }
+                    })
+                    .toBlocking()
+                    .first();
+            fail("Exception expected");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof TimeoutException);
+            assertEquals(1, client.getLoadBalancerContext().getServerStats(myServer).getSuccessiveConnectionFailureCount());
+        }
+        finally {
+            server.shutdown();
+        }
+    }
+
 }
