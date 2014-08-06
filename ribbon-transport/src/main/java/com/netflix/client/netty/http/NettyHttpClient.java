@@ -29,7 +29,6 @@ import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
 import com.netflix.client.ssl.ClientSslSocketFactoryException;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
@@ -282,10 +281,6 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     
     HttpClientListener getListener() {
         return (HttpClientListener) listener;
-    }
-
-    LoadBalancerExecutor getLoadBalancerExecutor() {
-        return lbExecutor;
     }
 
     Map<Server, HttpClient<I, O>> getRxClients() {
