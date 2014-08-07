@@ -29,6 +29,24 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final HttpHeaders headers;
 
+    public static class Builder {
+        public Builder(ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+        }
+
+        public void withClientOptions(ClientOptions options) {
+
+        }
+
+        public void withHeader() {
+
+        }
+
+        public void withClientConfig(IClientConfig config) {
+
+        }
+
+    }
+
     public HttpResourceGroup(String groupName) {
         this(groupName, null);
     }

@@ -25,7 +25,7 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 /**
  * @author Tomasz Bak
  */
-class ProxyHttpResourceGroupFactory<T> {
+public class ProxyHttpResourceGroupFactory<T> {
     private final ClassTemplate<T> classTemplate;
     private final RibbonResourceFactory httpResourceGroupFactory;
     private final IClientConfig clientConfig;

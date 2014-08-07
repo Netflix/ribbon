@@ -17,23 +17,22 @@ package com.netflix.ribbon.proxy;
 
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.evache.EvCacheProvider;
 import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessor;
+import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.reactivex.netty.channel.ContentTransformer;
 import io.reactivex.netty.channel.StringTransformer;
+import rx.Observable;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import rx.Observable;
 
 /**
  * @author Tomasz Bak
@@ -59,14 +58,14 @@ class MethodTemplateExecutor {
     private static final StringTransformer STRING_TRANSFORMER = new StringTransformer();
 
     private final HttpResourceGroup httpResourceGroup;
-    private final MethodTemplate methodTemplate;
     private final HttpRequestTemplate<?> httpRequestTemplate;
-    private final EvCacheProviderPool evCacheProviderPool;
+    private final ProxyAnnotations proxyAnnotations;
+    private final MethodTemplate methodTemplate;
 
-    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, EvCacheProviderPool evCacheProviderPool) {
+    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, ProxyAnnotations proxyAnnotations) {
         this.httpResourceGroup = httpResourceGroup;
+        this.proxyAnnotations = proxyAnnotations;
         this.methodTemplate = methodTemplate;
-        this.evCacheProviderPool = evCacheProviderPool;
         httpRequestTemplate = createHttpRequestTemplate();
     }
 
@@ -81,10 +80,9 @@ class MethodTemplateExecutor {
 
     private HttpRequestTemplate<?> createHttpRequestTemplate() {
         HttpRequestTemplate<?> httpRequestTemplate = createBaseHttpRequestTemplate(httpResourceGroup);
-        withRequestUriBase(httpRequestTemplate);
-        withHttpHeaders(httpRequestTemplate);
-        withHystrixHandlers(httpRequestTemplate);
-        withCacheProviders(httpRequestTemplate);
+        for (AnnotationProcessor processor: proxyAnnotations.getProcessors()) {
+            processor.process(httpRequestTemplate, methodTemplate.getMethod());
+        }
         return httpRequestTemplate;
     }
 
@@ -135,10 +133,6 @@ class MethodTemplateExecutor {
                 httpRequestTemplate.withCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
             }
         }
-        EvCacheOptions evCacheOptions = methodTemplate.getEvCacheOptions();
-        if (evCacheOptions != null) {
-            httpRequestTemplate.withCacheProvider(evCacheOptions.getCacheKeyTemplate(), (EvCacheProvider) evCacheProviderPool.getMatching(evCacheOptions));
-        }
     }
 
     private void withParameters(HttpRequestBuilder<?> requestBuilder, Object[] args) {
@@ -180,7 +174,7 @@ class MethodTemplateExecutor {
         EvCacheProviderPool evCacheProviderPool = new EvCacheProviderPool(methodTemplates);
         Map<Method, MethodTemplateExecutor> tgm = new HashMap<Method, MethodTemplateExecutor>();
         for (MethodTemplate mt : methodTemplates) {
-            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt, evCacheProviderPool));
+            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt, ProxyAnnotations.getInstance()));
         }
         return tgm;
     }
