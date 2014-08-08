@@ -23,11 +23,15 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
     private String name;
     private IClientConfig clientConfig;
 
-    public ResourceGroup(String name) {
-        this(name, null, ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    public static abstract class TemplateBuilder<T extends RequestTemplate> {
+        public abstract T build();
     }
 
-    public ResourceGroup(String name, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+    protected ResourceGroup(String name) {
+        this(name, ClientOptions.create(), ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    }
+
+    protected ResourceGroup(String name, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         this.name = name;
         clientConfig = configFactory.newConfig();
         clientConfig.loadProperties(name);
@@ -36,11 +40,6 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
                 clientConfig.set(key, options.getOptions().get(key));
             }
         }
-    }
-    
-    public ResourceGroup(String name, IClientConfig clientConfig, RibbonTransportFactory transportFactory) {
-        this.name = name;
-        this.clientConfig = clientConfig;
     }
 
     protected final IClientConfig getClientConfig() {
@@ -51,5 +50,5 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
         return name;
     }
     
-    public abstract <S> T newRequestTemplate(String name, Class<? extends S> classType);
+    public abstract <S> TemplateBuilder newTemplateBuilder(String name, Class<? extends S> classType);
 }

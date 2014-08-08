@@ -15,6 +15,18 @@
  */
 package com.netflix.ribbon.http;
 
+import com.netflix.client.netty.LoadBalancingRxClient;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandKey;
+import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixObservableCommand;
+import com.netflix.hystrix.HystrixObservableCommand.Setter;
+import com.netflix.ribbon.CacheProvider;
+import com.netflix.ribbon.RequestTemplate;
+import com.netflix.ribbon.ResourceGroup.TemplateBuilder;
+import com.netflix.ribbon.ResponseValidator;
+import com.netflix.ribbon.hystrix.FallbackHandler;
+import com.netflix.ribbon.template.ParsedTemplate;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -24,18 +36,6 @@ import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import com.netflix.client.netty.LoadBalancingRxClient;
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandKey;
-import com.netflix.hystrix.HystrixCommandProperties;
-import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.hystrix.HystrixObservableCommand.Setter;
-import com.netflix.ribbon.CacheProvider;
-import com.netflix.ribbon.RequestTemplate;
-import com.netflix.ribbon.ResponseValidator;
-import com.netflix.ribbon.hystrix.FallbackHandler;
-import com.netflix.ribbon.template.ParsedTemplate;
 
 /**
  * Provides API to construct a request template for HTTP resource. 
@@ -52,6 +52,80 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
 
     public static final String CACHE_HYSTRIX_COMMAND_SUFFIX = "_cache";
     public static final int DEFAULT_CACHE_TIMEOUT = 20;
+
+    public static class Builder<T> extends TemplateBuilder<HttpRequestTemplate<T>> {
+        private String name;
+        private HttpResourceGroup resourceGroup;
+        private Class<? extends T> classType;
+        private FallbackHandler<T> fallbackHandler;
+        private String method;
+        private ParsedTemplate parsedUriTemplate;
+        private String cacheKeyTemplate;
+        private CacheProviderWithKeyTemplate<T> cacheProvider;
+        private HttpHeaders headers;
+        private Setter setter;
+        private Map<String, ParsedTemplate> parsedTemplates;
+
+        private Builder(String name, HttpResourceGroup resourceGroup, Class<? extends T> classType) {
+            this.name = name;
+            this.resourceGroup = resourceGroup;
+            this.classType = classType;
+        }
+
+        private ParsedTemplate createParsedTemplate(String template) {
+            ParsedTemplate parsedTemplate = parsedTemplates.get(template);
+            if (parsedTemplate == null) {
+                parsedTemplate = ParsedTemplate.create(template);
+                parsedTemplates.put(template, parsedTemplate);
+            }
+            return parsedTemplate;
+        }
+
+        public static <T> Builder<T> newBuilder(String templateName, HttpResourceGroup group, Class<? extends T> classType) {
+            return new Builder(templateName, group, classType);
+        }
+
+        public Builder<T> withFallbackProvider(FallbackHandler<T> fallbackHandler) {
+            this.fallbackHandler = fallbackHandler;
+            return this;
+        }
+
+        public Builder<T>  withMethod(String method) {
+            this.method = method;
+            return this;
+        }
+
+        public Builder<T> withUriTemplate(String uriTemplate) {
+            this.parsedUriTemplate = createParsedTemplate(uriTemplate);
+            return this;
+        }
+
+        public Builder<T> withRequestCacheKey(String cacheKeyTemplate) {
+            this.cacheKeyTemplate = cacheKeyTemplate;
+            return this;
+        }
+
+        public Builder<T> withCacheProvider(String keyTemplate, CacheProvider<T> cacheProvider) {
+            ParsedTemplate template = createParsedTemplate(keyTemplate);
+            this.cacheProvider = new CacheProviderWithKeyTemplate<T>(template, cacheProvider);
+            return this;
+        }
+
+        public  Builder<T> withHeader(String name, String value) {
+            headers.add(name, value);
+            return this;
+        }
+
+        public Builder<T> withHystrixProperties(
+                Setter propertiesSetter) {
+            this.setter = setter;
+            return this;
+        }
+
+        public HttpRequestTemplate<T> build() {
+            return null;
+        }
+    }
 
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final String clientName;
@@ -87,12 +161,19 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         }
     }
 
+    HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType, HystrixObservableCommand.Setter setter,
+                        HttpMethod method, HttpHeaders headers, String uriTemplate,
+                        FallbackHandler<T> fallbackHandler, ResponseValidator<HttpClientResponse<ByteBuf>> validator, CacheProviderWithKeyTemplate<T> cacheProvider,
+                        String hystrixCacheKey) {
+
+    }
+
     public HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType) {
         this.client = group.getClient();
         this.classType = classType;
         clientName = client.name();
         if (client instanceof LoadBalancingRxClient) {
-            LoadBalancingRxClient<?, ? ,?> ribbonClient = (LoadBalancingRxClient<?, ? ,?>) client;
+            LoadBalancingRxClient ribbonClient = (LoadBalancingRxClient) client;
             maxResponseTime = ribbonClient.getResponseTimeOut();
             concurrentRequestLimit = ribbonClient.getMaxConcurrentRequests();
         } else {
@@ -141,14 +222,6 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         return this;
     }
 
-    private ParsedTemplate createParsedTemplate(String template) {
-        ParsedTemplate parsedTemplate = parsedTemplates.get(template);
-        if (parsedTemplate == null) {
-            parsedTemplate = ParsedTemplate.create(template);
-            parsedTemplates.put(template, parsedTemplate);
-        }
-        return parsedTemplate;
-    }
 
     public HttpRequestTemplate<T> withUriTemplate(String uri) {
         this.parsedUriTemplate = createParsedTemplate(uri);
