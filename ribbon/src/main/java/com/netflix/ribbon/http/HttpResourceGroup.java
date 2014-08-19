@@ -45,12 +45,14 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
             return new Builder(groupName, configFactory, transportFactory);
         }
 
-        public void withClientOptions(ClientOptions options) {
+        public Builder withClientOptions(ClientOptions options) {
             this.clientOptions = options;
+            return this;
         }
 
-        public void withHeader(String name, String value) {
+        public Builder withHeader(String name, String value) {
             httpHeaders.add(name, value);
+            return this;
         }
 
         public HttpResourceGroup build() {
@@ -58,7 +60,13 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
         }
     }
 
-    HttpResourceGroup(String groupName, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory, HttpHeaders headers) {
+    protected HttpResourceGroup(String groupName) {
+        super(groupName, ClientOptions.create(), ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+        client = transportFactory.newHttpClient(getClientConfig());
+        headers = HttpHeaders.EMPTY_HEADERS;
+    }
+
+    protected HttpResourceGroup(String groupName, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory, HttpHeaders headers) {
         super(groupName, options, configFactory, transportFactory);
         client = transportFactory.newHttpClient(getClientConfig());
         this.headers = headers;

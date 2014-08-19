@@ -15,12 +15,22 @@
  */
 package com.netflix.ribbon;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import com.google.mockwebserver.MockResponse;
+import com.google.mockwebserver.MockWebServer;
+import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.exception.HystrixBadRequestException;
+import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
+import com.netflix.ribbon.http.HttpRequestTemplate;
+import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.hystrix.FallbackHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+import org.junit.Test;
+import rx.Observable;
+import rx.functions.Action0;
+import rx.functions.Action1;
+import rx.functions.Func1;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -32,23 +42,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.junit.Test;
-
-import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func1;
-
-import com.google.mockwebserver.MockResponse;
-import com.google.mockwebserver.MockWebServer;
-import com.netflix.hystrix.HystrixExecutableInfo;
-import com.netflix.hystrix.exception.HystrixBadRequestException;
-import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
-import com.netflix.ribbon.http.HttpRequestTemplate;
-import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.hystrix.FallbackHandler;
+import static org.junit.Assert.*;
 
 public class RibbonTest {
     
@@ -75,15 +69,17 @@ public class RibbonTest {
         server.enqueue(response);       
         server.play();
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", 
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient",
                 ClientOptions.create()
                 .withMaxAutoRetriesNextServer(3)
                 .withReadTimeout(300000)
-                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
-        RibbonRequest<ByteBuf> request = template
+                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()))
+                .build();
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("/")
                 .withMethod("GET")
+                .build();
+        RibbonRequest<ByteBuf> request = template
                 .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
@@ -109,13 +105,14 @@ public class RibbonTest {
         server.enqueue(response);       
         server.play();
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
-        RibbonRequest<ByteBuf> request = template
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient").build();
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("http://localhost:" + server.getPort())
                 .withMethod("GET")
                 .withRequestCacheKey("xyz")
-                .requestBuilder().build(); 
+                .build();
+        RibbonRequest<ByteBuf> request = template
+                .requestBuilder().build();
         HystrixRequestContext context = HystrixRequestContext.initializeContext();
         try {
             RibbonResponse<ByteBuf> ribbonResponse = request.withMetadata().execute();
@@ -143,19 +140,21 @@ public class RibbonTest {
 
         server.play();
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:" + server.getPort())
-                .withMaxAutoRetriesNextServer(3));
+                .withMaxAutoRetriesNextServer(3))
+                .build();
         
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
-        RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test")
+                .withUriTemplate("/")
                 .withMethod("GET")
                 .withCacheProvider("somekey", new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
                         return Observable.error(new Exception("Cache miss"));
                     }
-                })
+                }).build();
+        RibbonRequest<ByteBuf> request = template
                 .requestBuilder().build();
         final AtomicBoolean success = new AtomicBoolean(false);
         RequestWithMetaData<ByteBuf> metaRequest = request.withMetadata();
@@ -197,20 +196,19 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
-                .withConfigurationBasedServerList("localhost:" + server.getPort()));
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
+                .withConfigurationBasedServerList("localhost:" + server.getPort())).build();
         
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
-
-                template.withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
+                .withUriTemplate("/")
+                .withMethod("GET")
+                .withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
                     @Override
                     public void validate(HttpClientResponse<ByteBuf> t1) throws UnsuccessfulResponseException {
                         throw new UnsuccessfulResponseException("error", new IllegalArgumentException());
                     }
-                });
-        RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
-                .withMethod("GET")
-                .requestBuilder().build();
+                }).build();
+        RibbonRequest<ByteBuf> request = template.requestBuilder().build();
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
         request.toObservable().subscribe(new Action1<ByteBuf>() {
@@ -237,12 +235,13 @@ public class RibbonTest {
 
     @Test
     public void testFallback() throws IOException {
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:12345")
-                .withMaxAutoRetriesNextServer(1));
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
+                .withMaxAutoRetriesNextServer(1))
+                .build();
         final String fallback = "fallback";
-        RibbonRequest<ByteBuf> request = template.withUriTemplate("/")
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
+                .withUriTemplate("/")
                 .withMethod("GET")
                 .withFallbackProvider(new FallbackHandler<ByteBuf>() {
                     @Override
@@ -255,7 +254,8 @@ public class RibbonTest {
                             return Observable.error(e);
                         }
                     }
-                })
+                }).build();
+        RibbonRequest<ByteBuf> request = template
                 .requestBuilder().build();
         final AtomicReference<HystrixExecutableInfo<?>> hystrixInfo = new AtomicReference<HystrixExecutableInfo<?>>();
         final AtomicBoolean failed = new AtomicBoolean(false);
@@ -282,29 +282,28 @@ public class RibbonTest {
     
     @Test
     public void testCacheHit() {
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:12345")
-                .withMaxAutoRetriesNextServer(1));
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
+                .withMaxAutoRetriesNextServer(1)).build();
         final String content = "from cache";
         final String cacheKey = "somekey";
-        RibbonRequest<ByteBuf> request = template
-                .withCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
-                    @Override
-                    public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
-                        if (key.equals(cacheKey)) {
-                            try {
-                                return Observable.just(Unpooled.buffer().writeBytes(content.getBytes("UTF-8")));
-                            } catch (UnsupportedEncodingException e) {
-                                return Observable.error(e);                            
-                            }
-                        } else {
-                            return Observable.error(new Exception("Cache miss"));
-                        }
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test")
+        .withCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
+            @Override
+            public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
+                if (key.equals(cacheKey)) {
+                    try {
+                        return Observable.just(Unpooled.buffer().writeBytes(content.getBytes("UTF-8")));
+                    } catch (UnsupportedEncodingException e) {
+                        return Observable.error(e);
                     }
-                })
-                .withUriTemplate("/")
-                .withMethod("GET")
+                } else {
+                    return Observable.error(new Exception("Cache miss"));
+                }
+            }
+        }).withUriTemplate("/")
+                .withMethod("GET").build();
+        RibbonRequest<ByteBuf> request = template
                 .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
@@ -319,15 +318,16 @@ public class RibbonTest {
         server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
                 .setBody(content));       
         server.play();
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", 
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient",
                 ClientOptions.create()
                 .withMaxAutoRetriesNextServer(3)
                 .withReadTimeout(300000)
-                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
-        RibbonRequest<ByteBuf> request = template
+                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()))
+                .build();
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("/")
-                .withMethod("GET")
+                .withMethod("GET").build();
+        RibbonRequest<ByteBuf> request = template
                 .requestBuilder().build();
         Observable<ByteBuf> result = request.observe();
         final CountDownLatch latch = new CountDownLatch(1);
@@ -377,13 +377,11 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
                 
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:" + server.getPort())
-                .withMaxAutoRetriesNextServer(1));
-
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test");
+                .withMaxAutoRetriesNextServer(1)).build();
         final String cacheKey = "somekey";
-        RibbonRequest<ByteBuf> request = template
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test")
                 .withCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){
                     @Override
                     public Observable<ByteBuf> get(String key, Map<String, Object> vars) {
@@ -391,7 +389,8 @@ public class RibbonTest {
                     }
                 })
                 .withMethod("GET")
-                .withUriTemplate("/")
+                .withUriTemplate("/").build();
+        RibbonRequest<ByteBuf> request = template
                 .requestBuilder().build();
         String result = toStringBlocking(request);
         assertEquals(content, result);

@@ -46,7 +46,7 @@ public abstract class RibbonResourceFactory {
         return RibbonDynamicProxy.newInstance(classType, this, clientConfigFactory, transportFactory);
     }
 
-    public Builder createHttpResourceGroup(String name, ClientOptions options) {
+    public Builder createHttpResourceGroupBuilder(String name, ClientOptions options) {
         Builder builder = Builder.newBuilder(name, clientConfigFactory, transportFactory);
         builder.withClientOptions(options);
         return builder;

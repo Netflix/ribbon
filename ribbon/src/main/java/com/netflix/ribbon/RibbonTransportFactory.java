@@ -15,6 +15,7 @@
  */
 package com.netflix.ribbon;
 
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.netty.RibbonTransport;
 import io.netty.buffer.ByteBuf;
@@ -22,14 +23,26 @@ import io.netty.channel.socket.DatagramPacket;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 
+import javax.inject.Inject;
+
 /**
  * Created by awang on 7/18/14.
  */
 public abstract class RibbonTransportFactory {
+    protected final ClientConfigFactory clientConfigFactory;
+
     public static class DefaultRibbonTransportFactory extends RibbonTransportFactory {
+        @Inject
+        public DefaultRibbonTransportFactory(ClientConfigFactory clientConfigFactory) {
+            super(clientConfigFactory);
+        }
     }
 
-    public static final RibbonTransportFactory DEFAULT = new DefaultRibbonTransportFactory();
+    protected RibbonTransportFactory(ClientConfigFactory clientConfigFactory) {
+        this.clientConfigFactory = clientConfigFactory;
+    }
+
+    public static final RibbonTransportFactory DEFAULT = new DefaultRibbonTransportFactory(ClientConfigFactory.DEFAULT);
 
     public HttpClient<ByteBuf, ByteBuf> newHttpClient(IClientConfig config) {
         return RibbonTransport.newHttpClient(config);
@@ -41,5 +54,23 @@ public abstract class RibbonTransportFactory {
 
     public RxClient<DatagramPacket, DatagramPacket> newUdpClient(IClientConfig config) {
         return RibbonTransport.newUdpClient(config);
+    }
+
+    public final HttpClient<ByteBuf, ByteBuf> newHttpClient(String name) {
+        IClientConfig config = clientConfigFactory.newConfig();
+        config.loadProperties(name);
+        return newHttpClient(config);
+    }
+
+    public final RxClient<ByteBuf, ByteBuf> newTcpClient(String name) {
+        IClientConfig config = clientConfigFactory.newConfig();
+        config.loadProperties(name);
+        return newTcpClient(config);
+    }
+
+    public RxClient<DatagramPacket, DatagramPacket> newUdpClient(String name) {
+        IClientConfig config = clientConfigFactory.newConfig();
+        config.loadProperties(name);
+        return newUdpClient(config);
     }
 }

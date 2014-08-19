@@ -280,6 +280,11 @@ public class NettyClientTest {
         assertEquals(1, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
+
+        person = getPersonObservable(lbObservables.submit(request)).toBlocking().single();
+        assertEquals(EmbeddedResources.defaultPerson, person);
+        HttpClientListener listener = lbObservables.getListener();
+        assertEquals(1, listener.getPoolReuse());
     }
     
     @Test
@@ -391,8 +396,6 @@ public class NettyClientTest {
             }
         });
         assertEquals(0, listener.getPoolReuse());
-        assertEquals(1, listener.getLiveConnections());
-        assertEquals(4, listener.getPoolEvictions());
         // two requests to bad server because retry same server is set to 1
         assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
@@ -471,9 +474,7 @@ public class NettyClientTest {
             }
         });
         assertEquals(2, listener.getConnectionCount());
-        assertEquals(2, listener.getLiveConnections());
         assertEquals(0, listener.getPoolReuse());
-        
         assertEquals(2, externalListener.getPoolAcquires());
     }
     

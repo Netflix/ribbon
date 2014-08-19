@@ -16,7 +16,7 @@
 package com.netflix.ribbon;
 
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.http.HttpResourceGroup.Builder;
 
 public final class Ribbon {
     private static final RibbonResourceFactory factory = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
@@ -31,8 +31,8 @@ public final class Ribbon {
      *
      * @param name name of the resource group, as well as the transport client
      */
-    public static HttpResourceGroup createHttpResourceGroup(String name) {
-        return factory.createHttpResourceGroup(name, ClientOptions.create());
+    public static Builder createHttpResourceGroupBuilder(String name) {
+        return factory.createHttpResourceGroupBuilder(name, ClientOptions.create());
     }
 
     /**
@@ -43,8 +43,8 @@ public final class Ribbon {
      * @param name name of the resource group, as well as the transport client
      * @param options Options to override the client configuration created
      */
-    public static HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
-        return factory.createHttpResourceGroup(name, options);
+    public static Builder createHttpResourceGroupBuilder(String name, ClientOptions options) {
+        return factory.createHttpResourceGroupBuilder(name, options);
     }
 
     /**
