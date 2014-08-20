@@ -15,6 +15,7 @@
  */
 package com.netflix.ribbon;
 
+import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
 import java.util.Map;
@@ -37,7 +38,18 @@ public final class ClientOptions {
     public static ClientOptions create() {
         return new ClientOptions();
     }
-        
+
+    public static ClientOptions from(IClientConfig config) {
+        ClientOptions options = new ClientOptions();
+        for (IClientConfigKey key: IClientConfigKey.Keys.keys()) {
+            Object value = config.get(key);
+            if (value != null) {
+                options.options.put(key, value);
+            }
+        }
+        return options;
+    }
+
     public ClientOptions withDiscoveryServiceIdentifier(String identifier) {
         options.put(IClientConfigKey.Keys.DeploymentContextBasedVipAddresses, identifier);
         return this;

@@ -16,9 +16,8 @@
 package com.netflix.ribbon;
 
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.client.config.IClientConfigKey;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.http.HttpResourceGroup.Builder;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 
 /**
@@ -38,26 +37,24 @@ public abstract class RibbonResourceFactory {
         this.transportFactory = transportFactory;
     }
 
-    public HttpResourceGroup createHttpResourceGroup(IClientConfig config) {
-        return new HttpResourceGroup(config.getClientName(), config, transportFactory);
+    public Builder createHttpResourceGroupBuilder(String name) {
+        Builder builder = HttpResourceGroup.Builder.newBuilder(name, clientConfigFactory, transportFactory);
+        return builder;
     }
-    
+
+    public HttpResourceGroup createHttpResourceGroup(String name) {
+        Builder builder = createHttpResourceGroupBuilder(name);
+        return builder.build();
+    }
+
+
     public <T> T from(Class<T> classType) {
         return RibbonDynamicProxy.newInstance(classType, this, clientConfigFactory, transportFactory);
     }
 
     public HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
-        return createHttpResourceGroup(getClientConfigFromOptions(name, options));
-    }
-
-    protected final IClientConfig getClientConfigFromOptions(String name, ClientOptions options) {
-        IClientConfig config = clientConfigFactory.newConfig();
-        config.loadProperties(name);
-        if (options != null) {
-            for (IClientConfigKey key: options.getOptions().keySet()) {
-                config.set(key, options.getOptions().get(key));
-            }
-        }
-        return config;
+        Builder builder = createHttpResourceGroupBuilder(name);
+        builder.withClientOptions(options);
+        return builder.build();
     }
 }

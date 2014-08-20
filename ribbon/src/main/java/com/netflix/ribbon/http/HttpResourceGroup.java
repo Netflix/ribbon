@@ -16,7 +16,6 @@
 package com.netflix.ribbon.http;
 
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.ResourceGroup;
 import com.netflix.ribbon.RibbonTransportFactory;
@@ -29,47 +28,64 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final HttpHeaders headers;
 
-    public HttpResourceGroup(String groupName) {
-        this(groupName, null);
-    }
-    
-    public HttpResourceGroup(String groupName, ClientOptions options) {
-        this(groupName, options, ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
-    }
-    
-    public HttpResourceGroup(String name, IClientConfig clientConfig,
-            RibbonTransportFactory transportFactory) {
-        super(name, clientConfig, transportFactory);
-        client = transportFactory.newHttpClient(getClientConfig());
-        headers = new DefaultHttpHeaders();
+    public static class Builder {
+        private ClientOptions clientOptions;
+        private HttpHeaders httpHeaders = new DefaultHttpHeaders();
+        private ClientConfigFactory clientConfigFactory;
+        private RibbonTransportFactory transportFactory;
+        private String name;
+
+        private Builder(String name, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+            this.name = name;
+            this.clientConfigFactory = configFactory;
+            this.transportFactory = transportFactory;
+        }
+
+        public static Builder newBuilder(String groupName, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+            return new Builder(groupName, configFactory, transportFactory);
+        }
+
+        public Builder withClientOptions(ClientOptions options) {
+            this.clientOptions = options;
+            return this;
+        }
+
+        public Builder withHeader(String name, String value) {
+            httpHeaders.add(name, value);
+            return this;
+        }
+
+        public HttpResourceGroup build() {
+            return new HttpResourceGroup(name, clientOptions, clientConfigFactory, transportFactory, httpHeaders);
+        }
     }
 
-    public HttpResourceGroup(String groupName, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+    protected HttpResourceGroup(String groupName) {
+        super(groupName, ClientOptions.create(), ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+        client = transportFactory.newHttpClient(getClientConfig());
+        headers = HttpHeaders.EMPTY_HEADERS;
+    }
+
+    protected HttpResourceGroup(String groupName, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory, HttpHeaders headers) {
         super(groupName, options, configFactory, transportFactory);
         client = transportFactory.newHttpClient(getClientConfig());
-        headers = new DefaultHttpHeaders();
-    }
-
-    public HttpResourceGroup withCommonHeader(String name, String value) {
-        headers.add(name, value);
-        return this;
+        this.headers = headers;
     }
 
     @Override
-    public <T> HttpRequestTemplate<T> newRequestTemplate(String name,
-            Class<? extends T> classType) {
-        return new HttpRequestTemplate<T>(name, this, classType);
+    public <T> HttpRequestTemplate.Builder newTemplateBuilder(String name, Class<? extends T> classType) {
+        return HttpRequestTemplate.Builder.newBuilder(name, this, classType);
     }
-    
-    public HttpRequestTemplate<ByteBuf> newRequestTemplate(String name) {
-        return newRequestTemplate(name, ByteBuf.class);
+
+    public HttpRequestTemplate.Builder<ByteBuf> newTemplateBuilder(String name) {
+        return HttpRequestTemplate.Builder.newBuilder(name, this, ByteBuf.class);
     }
-    
-    HttpHeaders getHeaders() {
+
+    public final HttpHeaders getHeaders() {
         return headers;
     }
     
-    public HttpClient<ByteBuf, ByteBuf> getClient() {
+    public final HttpClient<ByteBuf, ByteBuf> getClient() {
         return client;
     }
 }

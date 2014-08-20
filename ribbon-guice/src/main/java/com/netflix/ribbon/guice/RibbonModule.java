@@ -33,8 +33,8 @@ import com.netflix.ribbon.RibbonTransportFactory.DefaultRibbonTransportFactory;
 public class RibbonModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(RibbonResourceFactory.class).to(DefaultResourceFactory.class).in(Scopes.SINGLETON);
-        bind(RibbonTransportFactory.class).to(DefaultRibbonTransportFactory.class).in(Scopes.SINGLETON);
         bind(ClientConfigFactory.class).to(DefaultClientConfigFactory.class).in(Scopes.SINGLETON);
+        bind(RibbonTransportFactory.class).to(DefaultRibbonTransportFactory.class).in(Scopes.SINGLETON);
+        bind(RibbonResourceFactory.class).to(DefaultResourceFactory.class).in(Scopes.SINGLETON);
     }
 }

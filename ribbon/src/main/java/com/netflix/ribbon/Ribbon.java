@@ -17,7 +17,14 @@ package com.netflix.ribbon;
 
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.http.HttpResourceGroup.Builder;
 
+/**
+ * A class that can be used to create {@link com.netflix.ribbon.http.HttpResourceGroup}, {@link com.netflix.ribbon.http.HttpResourceGroup.Builder},
+ * and dynamic proxy of service interfaces. It delegates to a default {@link com.netflix.ribbon.RibbonResourceFactory} to do the work.
+ * For better configurability or in DI enabled application, it is recommended to use {@link com.netflix.ribbon.RibbonResourceFactory} directly.
+ *
+ */
 public final class Ribbon {
     private static final RibbonResourceFactory factory = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
     
@@ -25,20 +32,28 @@ public final class Ribbon {
     }
 
     /**
-     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name. The underlying transport client
-     * will be created from the client configuration created via
-     * {@link com.netflix.client.config.IClientConfig.Builder#newBuilder(String)}
+     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup.Builder} with a name, where further options can be set to
+     * build the {@link com.netflix.ribbon.http.HttpResourceGroup}.
      *
-     * @param name name of the resource group, as well as the transport client
+     * @param name name of the resource group, as well as the transport client that will be created once
+     *             the HttpResourceGroup is built
      */
-    public static HttpResourceGroup createHttpResourceGroup(String name) {
-        return factory.createHttpResourceGroup(name, ClientOptions.create());
+    public static Builder createHttpResourceGroupBuilder(String name) {
+        return factory.createHttpResourceGroupBuilder(name);
     }
 
     /**
-     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name. The underlying transport client
-     * will be created from the client configuration created via
-     * {@link com.netflix.client.config.IClientConfig.Builder#newBuilder(String)}
+     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name.
+     *
+     * @param name name of the resource group, as well as the transport client that will be created once
+     *             the HttpResourceGroup is built
+     */
+    public static HttpResourceGroup createHttpResourceGroup(String name) {
+        return factory.createHttpResourceGroup(name);
+    }
+
+    /**
+     * Create the {@link com.netflix.ribbon.http.HttpResourceGroup} with a name.
      *
      * @param name name of the resource group, as well as the transport client
      * @param options Options to override the client configuration created

@@ -17,46 +17,6 @@
  */
 package com.netflix.client.netty.http;
 
-import static com.netflix.ribbon.testutils.TestUtils.waitUntilTrueOrTimeout;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.Unpooled;
-import io.reactivex.netty.contexts.ContextsContainer;
-import io.reactivex.netty.contexts.ContextsContainerImpl;
-import io.reactivex.netty.contexts.MapBackedKeySupplier;
-import io.reactivex.netty.contexts.RxContexts;
-import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
-import io.reactivex.netty.protocol.http.client.HttpClientRequest;
-import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
-import io.reactivex.netty.servo.http.HttpClientListener;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func0;
-import rx.functions.Func1;
-
 import com.google.common.collect.Lists;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
@@ -82,6 +42,40 @@ import com.netflix.serialization.TypeDef;
 import com.sun.jersey.api.container.httpserver.HttpServerFactory;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.net.httpserver.HttpServer;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.Unpooled;
+import io.reactivex.netty.contexts.ContextsContainer;
+import io.reactivex.netty.contexts.ContextsContainerImpl;
+import io.reactivex.netty.contexts.MapBackedKeySupplier;
+import io.reactivex.netty.contexts.RxContexts;
+import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
+import io.reactivex.netty.protocol.http.client.HttpClientRequest;
+import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import io.reactivex.netty.servo.http.HttpClientListener;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+import rx.Observable;
+import rx.functions.Action0;
+import rx.functions.Action1;
+import rx.functions.Func0;
+import rx.functions.Func1;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static com.netflix.ribbon.testutils.TestUtils.waitUntilTrueOrTimeout;
+import static org.junit.Assert.*;
 
 public class NettyClientTest {
     
@@ -286,6 +280,11 @@ public class NettyClientTest {
         assertEquals(1, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(0, stats.getSuccessiveConnectionFailureCount());
+
+        person = getPersonObservable(lbObservables.submit(request)).toBlocking().single();
+        assertEquals(EmbeddedResources.defaultPerson, person);
+        HttpClientListener listener = lbObservables.getListener();
+        assertEquals(1, listener.getPoolReuse());
     }
     
     @Test
@@ -397,7 +396,6 @@ public class NettyClientTest {
             }
         });
         assertEquals(0, listener.getPoolReuse());
-
         // two requests to bad server because retry same server is set to 1
         assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
@@ -477,7 +475,6 @@ public class NettyClientTest {
         });
         assertEquals(2, listener.getConnectionCount());
         assertEquals(0, listener.getPoolReuse());
-        
         assertEquals(2, externalListener.getPoolAcquires());
     }
     

@@ -147,7 +147,7 @@ class MethodTemplate {
         return hystrixCacheKey;
     }
 
-    public FallbackHandler<?> getHystrixFallbackHandler() {
+    public FallbackHandler getHystrixFallbackHandler() {
         return hystrixFallbackHandler;
     }
 

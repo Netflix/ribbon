@@ -17,6 +17,7 @@ package com.netflix.ribbon.proxy;
 
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
@@ -52,7 +53,7 @@ class ProxyHttpResourceGroupFactory<T> {
                 name = classTemplate.getClientInterface().getSimpleName();
             }
             clientConfig.loadProperties(name);
-            return httpResourceGroupFactory.createHttpResourceGroup(clientConfig);
+            return httpResourceGroupFactory.createHttpResourceGroupBuilder(name).withClientOptions(ClientOptions.from(clientConfig)).build();
         }
     }
 }

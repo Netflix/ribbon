@@ -54,35 +54,35 @@ public class RibbonModuleTest {
                             .withMaxAutoRetriesNextServer(3)
                             .withConfigurationBasedServerList("localhost:" + PORT));
 
-            registerMovieTemplate = httpResourceGroup.newRequestTemplate("registerMovie", ByteBuf.class)
+            registerMovieTemplate = httpResourceGroup.newTemplateBuilder("registerMovie", ByteBuf.class)
                     .withMethod("POST")
                     .withUriTemplate("/movies")
                     .withHeader("X-Platform-Version", "xyz")
                     .withHeader("X-Auth-Token", "abc")
-                    .withResponseValidator(new RecommendationServiceResponseValidator());
+                    .withResponseValidator(new RecommendationServiceResponseValidator()).build();
 
-            updateRecommendationTemplate = httpResourceGroup.newRequestTemplate("updateRecommendation", ByteBuf.class)
+            updateRecommendationTemplate = httpResourceGroup.newTemplateBuilder("updateRecommendation", ByteBuf.class)
                     .withMethod("POST")
                     .withUriTemplate("/users/{userId}/recommendations")
                     .withHeader("X-Platform-Version", "xyz")
                     .withHeader("X-Auth-Token", "abc")
-                    .withResponseValidator(new RecommendationServiceResponseValidator());
+                    .withResponseValidator(new RecommendationServiceResponseValidator()).build();
 
-            recommendationsByUserIdTemplate = httpResourceGroup.newRequestTemplate("recommendationsByUserId", ByteBuf.class)
+            recommendationsByUserIdTemplate = httpResourceGroup.newTemplateBuilder("recommendationsByUserId", ByteBuf.class)
                     .withMethod("GET")
                     .withUriTemplate("/users/{userId}/recommendations")
                     .withHeader("X-Platform-Version", "xyz")
                     .withHeader("X-Auth-Token", "abc")
                     .withFallbackProvider(new RecommendationServiceFallbackHandler())
-                    .withResponseValidator(new RecommendationServiceResponseValidator());
+                    .withResponseValidator(new RecommendationServiceResponseValidator()).build();
 
-            recommendationsByTemplate = httpResourceGroup.newRequestTemplate("recommendationsBy", ByteBuf.class)
+            recommendationsByTemplate = httpResourceGroup.newTemplateBuilder("recommendationsBy", ByteBuf.class)
                     .withMethod("GET")
                     .withUriTemplate("/recommendations?category={category}&ageGroup={ageGroup}")
                     .withHeader("X-Platform-Version", "xyz")
                     .withHeader("X-Auth-Token", "abc")
                     .withFallbackProvider(new RecommendationServiceFallbackHandler())
-                    .withResponseValidator(new RecommendationServiceResponseValidator());
+                    .withResponseValidator(new RecommendationServiceResponseValidator()).build();
         }
 
         @SuppressWarnings("unchecked")

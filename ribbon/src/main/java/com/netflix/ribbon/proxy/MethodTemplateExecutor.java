@@ -20,20 +20,19 @@ import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.evache.EvCacheOptions;
 import com.netflix.ribbon.evache.EvCacheProvider;
 import com.netflix.ribbon.http.HttpRequestBuilder;
-import com.netflix.ribbon.http.HttpRequestTemplate;
+import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.reactivex.netty.channel.ContentTransformer;
 import io.reactivex.netty.channel.StringTransformer;
+import rx.Observable;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import rx.Observable;
 
 /**
  * @author Tomasz Bak
@@ -60,53 +59,53 @@ class MethodTemplateExecutor {
 
     private final HttpResourceGroup httpResourceGroup;
     private final MethodTemplate methodTemplate;
-    private final HttpRequestTemplate<?> httpRequestTemplate;
+    private final Builder<?> httpRequestTemplateBuilder;
     private final EvCacheProviderPool evCacheProviderPool;
 
     MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, EvCacheProviderPool evCacheProviderPool) {
         this.httpResourceGroup = httpResourceGroup;
         this.methodTemplate = methodTemplate;
         this.evCacheProviderPool = evCacheProviderPool;
-        httpRequestTemplate = createHttpRequestTemplate();
+        httpRequestTemplateBuilder = createHttpRequestTemplateBuilder();
     }
 
     @SuppressWarnings("unchecked")
     public <O> RibbonRequest<O> executeFromTemplate(Object[] args) {
-        HttpRequestBuilder<?> requestBuilder = httpRequestTemplate.requestBuilder();
+        HttpRequestBuilder<?> requestBuilder = httpRequestTemplateBuilder.build().requestBuilder();
         withParameters(requestBuilder, args);
         withContent(requestBuilder, args);
 
         return (RibbonRequest<O>) requestBuilder.build();
     }
 
-    private HttpRequestTemplate<?> createHttpRequestTemplate() {
-        HttpRequestTemplate<?> httpRequestTemplate = createBaseHttpRequestTemplate(httpResourceGroup);
-        withRequestUriBase(httpRequestTemplate);
-        withHttpHeaders(httpRequestTemplate);
-        withHystrixHandlers(httpRequestTemplate);
-        withCacheProviders(httpRequestTemplate);
-        return httpRequestTemplate;
+    private Builder<?> createHttpRequestTemplateBuilder() {
+        Builder<?> httpRequestTemplateBuilder = createBaseHttpRequestTemplate(httpResourceGroup);
+        withRequestUriBase(httpRequestTemplateBuilder);
+        withHttpHeaders(httpRequestTemplateBuilder);
+        withHystrixHandlers(httpRequestTemplateBuilder);
+        withCacheProviders(httpRequestTemplateBuilder);
+        return httpRequestTemplateBuilder;
     }
 
-    private HttpRequestTemplate<?> createBaseHttpRequestTemplate(HttpResourceGroup httpResourceGroup) {
-        HttpRequestTemplate<?> httpRequestTemplate;
+    private Builder<?> createBaseHttpRequestTemplate(HttpResourceGroup httpResourceGroup) {
+        Builder<?> httpRequestTemplate;
         if (ByteBuf.class.isAssignableFrom(methodTemplate.getResultType())) {
-            httpRequestTemplate = httpResourceGroup.newRequestTemplate(methodTemplate.getTemplateName());
+            httpRequestTemplate = httpResourceGroup.newTemplateBuilder(methodTemplate.getTemplateName());
         } else {
-            httpRequestTemplate = httpResourceGroup.newRequestTemplate(methodTemplate.getTemplateName(), methodTemplate.getResultType());
+            httpRequestTemplate = httpResourceGroup.newTemplateBuilder(methodTemplate.getTemplateName(), methodTemplate.getResultType());
 
         }
         return httpRequestTemplate;
     }
 
-    private void withRequestUriBase(HttpRequestTemplate<?> httpRequestTemplate) {
+    private void withRequestUriBase(Builder<?> httpRequestTemplate) {
         httpRequestTemplate.withMethod(methodTemplate.getHttpMethod().name());
         if (methodTemplate.getUriTemplate() != null) {
             httpRequestTemplate.withUriTemplate(methodTemplate.getUriTemplate());
         }
     }
 
-    private void withHttpHeaders(HttpRequestTemplate<?> httpRequestTemplate) {
+    private void withHttpHeaders(Builder<?> httpRequestTemplate) {
         for (Entry<String, List<String>> header : methodTemplate.getHeaders().entrySet()) {
             String key = header.getKey();
             for (String value : header.getValue()) {
@@ -116,7 +115,7 @@ class MethodTemplateExecutor {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void withHystrixHandlers(HttpRequestTemplate httpRequestTemplate) {
+    private void withHystrixHandlers(Builder<?> httpRequestTemplate) {
         if (methodTemplate.getHystrixFallbackHandler() != null) {
             httpRequestTemplate.withFallbackProvider(methodTemplate.getHystrixFallbackHandler());
         }
@@ -129,7 +128,7 @@ class MethodTemplateExecutor {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked", "OverlyStrongTypeCast"})
-    private void withCacheProviders(HttpRequestTemplate<?> httpRequestTemplate) {
+    private void withCacheProviders(Builder<?> httpRequestTemplate) {
         if (methodTemplate.getCacheProviders() != null) {
             for (MethodTemplate.CacheProviderEntry entry : methodTemplate.getCacheProviders()) {
                 httpRequestTemplate.withCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());

@@ -79,14 +79,14 @@ public class DiscoveryEnabledServerListTest extends MockedDiscoveryServerListTes
     public void testDynamicServers() {
         ConfigurationManager.getConfigInstance().setProperty("MyService.ribbon." + Keys.DeploymentContextBasedVipAddresses, getVipAddress());
         ConfigurationManager.getConfigInstance().setProperty("MyService.ribbon." + Keys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("MyService",
-                ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("MyService")
+                .withClientOptions(ClientOptions.create()
                         .withMaxAutoRetriesNextServer(3)
-                        .withReadTimeout(300000));
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("test", ByteBuf.class);
-        RibbonRequest<ByteBuf> request = template
+                        .withReadTimeout(300000)).build();
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("/")
-                .withMethod("GET")
+                .withMethod("GET").build();
+        RibbonRequest<ByteBuf> request = template
                 .requestBuilder().build();
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals("Hello world", result);

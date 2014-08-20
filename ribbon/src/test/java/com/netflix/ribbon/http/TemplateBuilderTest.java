@@ -15,27 +15,24 @@
  */
 package com.netflix.ribbon.http;
 
-import static org.junit.Assert.assertEquals;
-
-import com.netflix.ribbon.hystrix.HystrixObservableCommandChain;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.reactivex.netty.protocol.http.client.HttpClientRequest;
-import io.reactivex.netty.protocol.http.client.HttpRequestHeaders;
-
-import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Test;
-
-import rx.Observable;
-
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.ClientOptions;
 import com.netflix.ribbon.Ribbon;
 import com.netflix.ribbon.RibbonRequest;
+import com.netflix.ribbon.hystrix.HystrixObservableCommandChain;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.reactivex.netty.protocol.http.client.HttpClientRequest;
+import io.reactivex.netty.protocol.http.client.HttpRequestHeaders;
+import org.junit.Test;
+import rx.Observable;
+
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TemplateBuilderTest {
     
@@ -60,12 +57,12 @@ public class TemplateBuilderTest {
 
     @Test
     public void testVarReplacement() {
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("test").build();
         
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("testVarReplacement", ByteBuf.class);
-        template.withUriTemplate("/foo/{id}?name={name}");
-        HttpClientRequest<ByteBuf> request = template
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("testVarReplacement", ByteBuf.class)
                 .withMethod("GET")
+                .withUriTemplate("/foo/{id}?name={name}").build();
+        HttpClientRequest<ByteBuf> request = template
                 .requestBuilder()
                 .withRequestProperty("id", "3")
                 .withRequestProperty("name", "netflix")
@@ -75,12 +72,13 @@ public class TemplateBuilderTest {
     
     @Test
     public void testCacheKeyTemplates() {
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("test").build();
         
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("testCacheKeyTemplates", ByteBuf.class);
-        template.withUriTemplate("/foo/{id}")
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("testCacheKeyTemplates", ByteBuf.class)
+                .withUriTemplate("/foo/{id}")
                 .withMethod("GET")
-            .withCacheProvider("/cache/{id}", new FakeCacheProvider("/cache/5"));
+                .withCacheProvider("/cache/{id}", new FakeCacheProvider("/cache/5"))
+                .build();
         
         RibbonRequest<ByteBuf> request = template.requestBuilder().withRequestProperty("id", 5).build();
         ByteBuf result = request.execute();
@@ -89,14 +87,14 @@ public class TemplateBuilderTest {
     
     @Test
     public void testHttpHeaders() {
-        HttpResourceGroup group = Ribbon.createHttpResourceGroup("test");
-        group.withCommonHeader("header1", "group");
+        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("test")
+            .withHeader("header1", "group").build();
         
-        HttpRequestTemplate<String> template = group.newRequestTemplate("testHttpHeaders", String.class);
-        template.withUriTemplate("/foo/bar")
-                .withMethod("GET")
+        HttpRequestTemplate<String> template = group.newTemplateBuilder("testHttpHeaders", String.class)
+            .withUriTemplate("/foo/bar")
+            .withMethod("GET")
             .withHeader("header2", "template")
-            .withHeader("header1", "template");
+            .withHeader("header1", "template").build();
         
         HttpClientRequest<ByteBuf> request = template.requestBuilder().createClientRequest();
         HttpRequestHeaders headers = request.getHeaders();
@@ -118,10 +116,10 @@ public class TemplateBuilderTest {
                 .withMaxTotalConnections(400)
                 .withReadTimeout(2000);
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("test", clientOptions);
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("testHystrixProperties", ByteBuf.class);
-        HttpRequest<ByteBuf> request = (HttpRequest<ByteBuf>) template.withMethod("GET")
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("testHystrixProperties", ByteBuf.class)
                 .withMethod("GET")
-            .withUriTemplate("/foo/bar")
+                .withUriTemplate("/foo/bar").build();
+        HttpRequest<ByteBuf> request = (HttpRequest<ByteBuf>) template
             .requestBuilder().build();
         HystrixObservableCommandChain<ByteBuf> hystrixCommandChain = request.createHystrixCommandChain();
         HystrixCommandProperties props = hystrixCommandChain.getCommands().get(0).getProperties();
