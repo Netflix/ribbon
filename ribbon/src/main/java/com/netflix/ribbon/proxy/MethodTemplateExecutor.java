@@ -59,32 +59,32 @@ class MethodTemplateExecutor {
 
     private final HttpResourceGroup httpResourceGroup;
     private final MethodTemplate methodTemplate;
-    private final Builder<?> httpRequestTemplate;
+    private final Builder<?> httpRequestTemplateBuilder;
     private final EvCacheProviderPool evCacheProviderPool;
 
     MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, EvCacheProviderPool evCacheProviderPool) {
         this.httpResourceGroup = httpResourceGroup;
         this.methodTemplate = methodTemplate;
         this.evCacheProviderPool = evCacheProviderPool;
-        httpRequestTemplate = createHttpRequestTemplate();
+        httpRequestTemplateBuilder = createHttpRequestTemplateBuilder();
     }
 
     @SuppressWarnings("unchecked")
     public <O> RibbonRequest<O> executeFromTemplate(Object[] args) {
-        HttpRequestBuilder<?> requestBuilder = httpRequestTemplate.build().requestBuilder();
+        HttpRequestBuilder<?> requestBuilder = httpRequestTemplateBuilder.build().requestBuilder();
         withParameters(requestBuilder, args);
         withContent(requestBuilder, args);
 
         return (RibbonRequest<O>) requestBuilder.build();
     }
 
-    private Builder<?> createHttpRequestTemplate() {
-        Builder<?> httpRequestTemplate = createBaseHttpRequestTemplate(httpResourceGroup);
-        withRequestUriBase(httpRequestTemplate);
-        withHttpHeaders(httpRequestTemplate);
-        withHystrixHandlers(httpRequestTemplate);
-        withCacheProviders(httpRequestTemplate);
-        return httpRequestTemplate;
+    private Builder<?> createHttpRequestTemplateBuilder() {
+        Builder<?> httpRequestTemplateBuilder = createBaseHttpRequestTemplate(httpResourceGroup);
+        withRequestUriBase(httpRequestTemplateBuilder);
+        withHttpHeaders(httpRequestTemplateBuilder);
+        withHystrixHandlers(httpRequestTemplateBuilder);
+        withCacheProviders(httpRequestTemplateBuilder);
+        return httpRequestTemplateBuilder;
     }
 
     private Builder<?> createBaseHttpRequestTemplate(HttpResourceGroup httpResourceGroup) {
