@@ -157,9 +157,9 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
     private final HttpHeaders headers;
     private final HttpResourceGroup group;
 
-    static class CacheProviderWithKeyTemplate<T> {
-        private ParsedTemplate keyTemplate;
-        private CacheProvider<T> provider;
+    public static class CacheProviderWithKeyTemplate<T> {
+        private final ParsedTemplate keyTemplate;
+        private final CacheProvider<T> provider;
         public CacheProviderWithKeyTemplate(ParsedTemplate keyTemplate,
                 CacheProvider<T> provider) {
             this.keyTemplate = keyTemplate;
@@ -173,7 +173,7 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         }
     }
 
-    HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType, HystrixObservableCommand.Setter setter,
+    protected HttpRequestTemplate(String name, HttpResourceGroup group, Class<? extends T> classType, HystrixObservableCommand.Setter setter,
                         HttpMethod method, HttpHeaders headers, ParsedTemplate uriTemplate,
                         FallbackHandler<T> fallbackHandler, ResponseValidator<HttpClientResponse<ByteBuf>> validator, CacheProviderWithKeyTemplate<T> cacheProvider,
                         ParsedTemplate hystrixCacheKeyTemplate) {
@@ -223,35 +223,35 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         return new HttpRequestBuilder<T>(this);
     }
 
-    ParsedTemplate hystrixCacheKeyTemplate() {
+    protected final ParsedTemplate hystrixCacheKeyTemplate() {
         return hystrixCacheKeyTemplate;
     }
 
-    CacheProviderWithKeyTemplate<T> cacheProvider() {
+    protected final CacheProviderWithKeyTemplate<T> cacheProvider() {
         return cacheProvider;
     }
 
-    ResponseValidator<HttpClientResponse<ByteBuf>> responseValidator() {
+    protected final ResponseValidator<HttpClientResponse<ByteBuf>> responseValidator() {
         return validator;
     }
 
-    FallbackHandler<T> fallbackHandler() {
+    protected final FallbackHandler<T> fallbackHandler() {
         return fallbackHandler;
     }
 
-    ParsedTemplate uriTemplate() {
+    protected final ParsedTemplate uriTemplate() {
         return parsedUriTemplate;
     }
 
-    HttpMethod method() {
+    protected final HttpMethod method() {
         return method;
     }
 
-    Class<? extends T> getClassType() {
+    protected final Class<? extends T> getClassType() {
         return this.classType;
     }
 
-    HttpHeaders getHeaders() {
+    protected final HttpHeaders getHeaders() {
         return this.headers;
     }
 
@@ -266,15 +266,15 @@ public class HttpRequestTemplate<T> extends RequestTemplate<T, HttpClientRespons
         return newTemplate;
     }
 
-    Setter hystrixProperties() {
+    protected final Setter hystrixProperties() {
         return this.setter;
     }
 
-    Setter cacheHystrixProperties() {
+    protected final Setter cacheHystrixProperties() {
         return cacheSetter;
     }
 
-    HttpClient<ByteBuf, ByteBuf> getClient() {
+    protected final HttpClient<ByteBuf, ByteBuf> getClient() {
         return this.client;
     }
 }

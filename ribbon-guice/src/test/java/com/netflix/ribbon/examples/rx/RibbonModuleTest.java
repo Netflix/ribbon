@@ -49,10 +49,10 @@ public class RibbonModuleTest {
 
         @Inject
         public MyService(RibbonResourceFactory factory) {
-            httpResourceGroup = factory.createHttpResourceGroupBuilder("movieServiceClient",
+            httpResourceGroup = factory.createHttpResourceGroup("movieServiceClient",
                     ClientOptions.create()
                             .withMaxAutoRetriesNextServer(3)
-                            .withConfigurationBasedServerList("localhost:" + PORT)).build();
+                            .withConfigurationBasedServerList("localhost:" + PORT));
 
             registerMovieTemplate = httpResourceGroup.newTemplateBuilder("registerMovie", ByteBuf.class)
                     .withMethod("POST")

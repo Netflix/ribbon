@@ -69,12 +69,11 @@ public class RibbonTest {
         server.enqueue(response);       
         server.play();
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient",
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient",
                 ClientOptions.create()
                 .withMaxAutoRetriesNextServer(3)
                 .withReadTimeout(300000)
-                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()))
-                .build();
+                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("/")
                 .withMethod("GET")
@@ -140,11 +139,10 @@ public class RibbonTest {
 
         server.play();
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:" + server.getPort())
-                .withMaxAutoRetriesNextServer(3))
-                .build();
-        
+                .withMaxAutoRetriesNextServer(3));
+
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test")
                 .withUriTemplate("/")
                 .withMethod("GET")
@@ -196,8 +194,8 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
         
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
-                .withConfigurationBasedServerList("localhost:" + server.getPort())).build();
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
+                .withConfigurationBasedServerList("localhost:" + server.getPort()));
         
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("/")
@@ -235,10 +233,9 @@ public class RibbonTest {
 
     @Test
     public void testFallback() throws IOException {
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:12345")
-                .withMaxAutoRetriesNextServer(1))
-                .build();
+                .withMaxAutoRetriesNextServer(1));
         final String fallback = "fallback";
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("/")
@@ -282,9 +279,9 @@ public class RibbonTest {
     
     @Test
     public void testCacheHit() {
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:12345")
-                .withMaxAutoRetriesNextServer(1)).build();
+                .withMaxAutoRetriesNextServer(1));
         final String content = "from cache";
         final String cacheKey = "somekey";
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test")
@@ -318,12 +315,11 @@ public class RibbonTest {
         server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
                 .setBody(content));       
         server.play();
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient",
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient",
                 ClientOptions.create()
                 .withMaxAutoRetriesNextServer(3)
                 .withReadTimeout(300000)
-                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()))
-                .build();
+                .withConfigurationBasedServerList("localhost:12345, localhost:10092, localhost:" + server.getPort()));
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test", ByteBuf.class)
                 .withUriTemplate("/")
                 .withMethod("GET").build();
@@ -377,9 +373,9 @@ public class RibbonTest {
                 .setBody(content));       
         server.play();
                 
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("myclient", ClientOptions.create()
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
                 .withConfigurationBasedServerList("localhost:" + server.getPort())
-                .withMaxAutoRetriesNextServer(1)).build();
+                .withMaxAutoRetriesNextServer(1));
         final String cacheKey = "somekey";
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("test")
                 .withCacheProvider(cacheKey, new CacheProvider<ByteBuf>(){

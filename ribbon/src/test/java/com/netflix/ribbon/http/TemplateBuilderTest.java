@@ -115,7 +115,7 @@ public class TemplateBuilderTest {
                 .withConnectTimeout(1000)
                 .withMaxTotalConnections(400)
                 .withReadTimeout(2000);
-        HttpResourceGroup group = Ribbon.createHttpResourceGroupBuilder("test", clientOptions).build();
+        HttpResourceGroup group = Ribbon.createHttpResourceGroup("test", clientOptions);
         HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("testHystrixProperties", ByteBuf.class)
                 .withMethod("GET")
                 .withUriTemplate("/foo/bar").build();

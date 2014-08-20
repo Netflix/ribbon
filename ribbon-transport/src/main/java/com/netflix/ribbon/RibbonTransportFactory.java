@@ -26,6 +26,9 @@ import io.reactivex.netty.protocol.http.client.HttpClient;
 import javax.inject.Inject;
 
 /**
+ * A dependency injection friendly Ribbon transport client factory that can create clients based on IClientConfig or
+ * a name which is used to construct the necessary IClientConfig.
+ *
  * Created by awang on 7/18/14.
  */
 public abstract class RibbonTransportFactory {

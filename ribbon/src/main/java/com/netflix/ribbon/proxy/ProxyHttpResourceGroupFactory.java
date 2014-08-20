@@ -53,7 +53,7 @@ class ProxyHttpResourceGroupFactory<T> {
                 name = classTemplate.getClientInterface().getSimpleName();
             }
             clientConfig.loadProperties(name);
-            return httpResourceGroupFactory.createHttpResourceGroupBuilder(name, ClientOptions.from(clientConfig)).build();
+            return httpResourceGroupFactory.createHttpResourceGroupBuilder(name).withClientOptions(ClientOptions.from(clientConfig)).build();
         }
     }
 }

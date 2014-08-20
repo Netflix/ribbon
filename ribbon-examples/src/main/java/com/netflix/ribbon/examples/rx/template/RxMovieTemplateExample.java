@@ -44,10 +44,10 @@ public class RxMovieTemplateExample extends AbstractRxMovieClient {
     private final HttpRequestTemplate<ByteBuf> recommendationsByTemplate;
 
     public RxMovieTemplateExample(int port) {
-        httpResourceGroup = Ribbon.createHttpResourceGroupBuilder("movieServiceClient",
+        httpResourceGroup = Ribbon.createHttpResourceGroup("movieServiceClient",
                 ClientOptions.create()
                         .withMaxAutoRetriesNextServer(3)
-                        .withConfigurationBasedServerList("localhost:" + port)).build();
+                        .withConfigurationBasedServerList("localhost:" + port));
 
         registerMovieTemplate = httpResourceGroup.newTemplateBuilder("registerMovie", ByteBuf.class)
                 .withMethod("POST")

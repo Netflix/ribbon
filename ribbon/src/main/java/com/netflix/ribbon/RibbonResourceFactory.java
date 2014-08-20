@@ -41,14 +41,20 @@ public abstract class RibbonResourceFactory {
         Builder builder = HttpResourceGroup.Builder.newBuilder(name, clientConfigFactory, transportFactory);
         return builder;
     }
-    
+
+    public HttpResourceGroup createHttpResourceGroup(String name) {
+        Builder builder = createHttpResourceGroupBuilder(name);
+        return builder.build();
+    }
+
+
     public <T> T from(Class<T> classType) {
         return RibbonDynamicProxy.newInstance(classType, this, clientConfigFactory, transportFactory);
     }
 
-    public Builder createHttpResourceGroupBuilder(String name, ClientOptions options) {
-        Builder builder = Builder.newBuilder(name, clientConfigFactory, transportFactory);
+    public HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
+        Builder builder = createHttpResourceGroupBuilder(name);
         builder.withClientOptions(options);
-        return builder;
+        return builder.build();
     }
 }
