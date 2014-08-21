@@ -16,24 +16,9 @@
 
 package com.netflix.ribbon.proxy;
 
-import com.netflix.ribbon.CacheProvider;
-import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.evache.EvCacheProvider;
-import com.netflix.ribbon.proxy.EvCacheProviderPool;
-import com.netflix.ribbon.proxy.MethodTemplate;
-import com.netflix.ribbon.proxy.Utils;
-import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
-
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.easymock.annotation.Mock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-
-import static junit.framework.Assert.*;
-import static org.easymock.EasyMock.*;
-import static org.powermock.api.easymock.PowerMock.*;
 
 /**
  * @author Tomasz Bak
@@ -41,7 +26,7 @@ import static org.powermock.api.easymock.PowerMock.*;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({EvCacheProviderPool.class})
 public class EvCacheProviderPoolTest {
-
+/*
     @Mock
     private EvCacheProvider evCacheProviderMock;
 
@@ -60,4 +45,5 @@ public class EvCacheProviderPoolTest {
 
         assertEquals(evCacheProviderMock, cacheProvider);
     }
+    */
 }

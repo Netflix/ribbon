@@ -16,11 +16,12 @@
 package com.netflix.ribbon.proxy;
 
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessor;
+import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 
 /**
  * @author Tomasz Bak
@@ -28,18 +29,18 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 public class ProxyHttpResourceGroupFactory<T> {
     private final ClassTemplate<T> classTemplate;
     private final RibbonResourceFactory httpResourceGroupFactory;
-    private final IClientConfig clientConfig;
+    private final ProxyAnnotations annotations;
 
     ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate) {
         this(classTemplate, new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
-                ClientConfigFactory.DEFAULT.newConfig(), RibbonTransportFactory.DEFAULT);
+               ProxyAnnotations.getInstance());
     }
     
-    ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, RibbonResourceFactory httpResourceGroupFactory, IClientConfig clientConfig,
-            RibbonTransportFactory transportFactory) {
+    ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, RibbonResourceFactory httpResourceGroupFactory,
+            ProxyAnnotations annotations) {
         this.classTemplate = classTemplate;
         this.httpResourceGroupFactory = httpResourceGroupFactory;
-        this.clientConfig = clientConfig;
+        this.annotations = annotations;
     }
 
     public HttpResourceGroup createResourceGroup() {
@@ -51,8 +52,11 @@ public class ProxyHttpResourceGroupFactory<T> {
             if (name == null) {
                 name = classTemplate.getClientInterface().getSimpleName();
             }
-            clientConfig.loadProperties(name);
-            return httpResourceGroupFactory.createHttpResourceGroup(clientConfig);
+            HttpResourceGroup.Builder builder = httpResourceGroupFactory.createHttpResourceGroupBuilder(name);
+            for (AnnotationProcessor processor: annotations.getProcessors()) {
+                processor.process(builder, classTemplate.getClientInterface());
+            }
+            return builder.build();
         }
     }
 }

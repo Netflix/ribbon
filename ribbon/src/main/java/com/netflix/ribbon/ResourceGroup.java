@@ -18,16 +18,42 @@ package com.netflix.ribbon;
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
+import com.netflix.hystrix.HystrixObservableCommand;
+import com.netflix.ribbon.hystrix.FallbackHandler;
 
 public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
-    private String name;
-    private IClientConfig clientConfig;
+    protected final String name;
+    protected final IClientConfig clientConfig;
+    protected final ClientConfigFactory configFactory;
+    protected final RibbonTransportFactory transportFactory;
 
-    public ResourceGroup(String name) {
-        this(name, null, ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    public static abstract class TemplateBuilder<S, R, T extends RequestTemplate<S, R>> {
+        public abstract TemplateBuilder withFallbackProvider(FallbackHandler<S> fallbackProvider);
+
+        public abstract TemplateBuilder withResponseValidator(ResponseValidator<R> transformer);
+
+        /**
+         * Calling this method will enable both Hystrix request cache and supplied external cache providers
+         * on the supplied cache key. Caller can explicitly disable Hystrix request cache by calling
+         * {@link #withHystrixProperties(com.netflix.hystrix.HystrixObservableCommand.Setter)}
+         *
+         * @param cacheKeyTemplate
+         * @return
+         */
+        public abstract TemplateBuilder withRequestCacheKey(String cacheKeyTemplate);
+
+        public abstract TemplateBuilder withCacheProvider(String cacheKeyTemplate, CacheProvider<S> cacheProvider);
+
+        public abstract TemplateBuilder withHystrixProperties(HystrixObservableCommand.Setter setter);
+
+        public abstract T build();
     }
 
-    public ResourceGroup(String name, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+    protected ResourceGroup(String name) {
+        this(name, ClientOptions.create(), ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    }
+
+    protected ResourceGroup(String name, ClientOptions options, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         this.name = name;
         clientConfig = configFactory.newConfig();
         clientConfig.loadProperties(name);
@@ -36,11 +62,8 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
                 clientConfig.set(key, options.getOptions().get(key));
             }
         }
-    }
-    
-    public ResourceGroup(String name, IClientConfig clientConfig, RibbonTransportFactory transportFactory) {
-        this.name = name;
-        this.clientConfig = clientConfig;
+        this.configFactory = configFactory;
+        this.transportFactory = transportFactory;
     }
 
     protected final IClientConfig getClientConfig() {
@@ -51,5 +74,5 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
         return name;
     }
     
-    public abstract <S> T newRequestTemplate(String name, Class<? extends S> classType);
+    public abstract <S> TemplateBuilder<S, ?, ?> newTemplateBuilder(String name, Class<? extends S> classType);
 }

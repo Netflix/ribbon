@@ -1,6 +1,6 @@
 package com.netflix.ribbon.proxy.processor;
 
-import com.netflix.ribbon.http.HttpRequestTemplate;
+import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.ProxyAnnotationException;
 import com.netflix.ribbon.proxy.annotation.Http;
@@ -22,7 +22,7 @@ import static java.lang.String.format;
 public class HttpAnnotationProcessor implements AnnotationProcessor {
 
     @Override
-    public void process(HttpRequestTemplate template, Method method) {
+    public void process(Builder templateBuilder, Method method) {
         Http annotation = method.getAnnotation(Http.class);
         if (null == annotation) {
             throw new ProxyAnnotationException(format("Method %s misses @Http annotation", method.getName()));
@@ -39,11 +39,11 @@ public class HttpAnnotationProcessor implements AnnotationProcessor {
                 headers.get(h.name()).add(h.value());
             }
         }
-        template.withMethod(httpMethod.name());
+        templateBuilder.withMethod(httpMethod.name());
 
         // uri
         if (uriTemplate != null) {
-            template.withUriTemplate(uriTemplate);
+            templateBuilder.withUriTemplate(uriTemplate);
         }
 
         // headers
@@ -51,7 +51,7 @@ public class HttpAnnotationProcessor implements AnnotationProcessor {
             for (Entry<String, List<String>> header : headers.entrySet()) {
                 String key = header.getKey();
                 for (String value : header.getValue()) {
-                    template.withHeader(key, value);
+                    templateBuilder.withHeader(key, value);
                 }
             }
         }
@@ -59,6 +59,6 @@ public class HttpAnnotationProcessor implements AnnotationProcessor {
     }
 
     @Override
-    public void process(HttpResourceGroup group, Class interfaceClass) {
+    public void process(HttpResourceGroup.Builder groupBuilder, Class interfaceClass) {
     }
 }

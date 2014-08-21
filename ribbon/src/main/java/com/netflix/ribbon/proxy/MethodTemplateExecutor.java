@@ -15,10 +15,9 @@
  */
 package com.netflix.ribbon.proxy;
 
-import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.http.HttpRequestBuilder;
-import com.netflix.ribbon.http.HttpRequestTemplate;
+import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.processor.AnnotationProcessor;
 import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
@@ -30,9 +29,7 @@ import rx.Observable;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * @author Tomasz Bak
@@ -58,81 +55,41 @@ class MethodTemplateExecutor {
     private static final StringTransformer STRING_TRANSFORMER = new StringTransformer();
 
     private final HttpResourceGroup httpResourceGroup;
-    private final HttpRequestTemplate<?> httpRequestTemplate;
-    private final ProxyAnnotations proxyAnnotations;
     private final MethodTemplate methodTemplate;
+    private final Builder<?> httpRequestTemplateBuilder;
 
-    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, ProxyAnnotations proxyAnnotations) {
+    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, ProxyAnnotations annotations) {
         this.httpResourceGroup = httpResourceGroup;
-        this.proxyAnnotations = proxyAnnotations;
         this.methodTemplate = methodTemplate;
-        httpRequestTemplate = createHttpRequestTemplate();
+        httpRequestTemplateBuilder = createHttpRequestTemplateBuilder();
+        for (AnnotationProcessor processor: annotations.getProcessors()) {
+            processor.process(httpRequestTemplateBuilder, methodTemplate.getMethod());
+        }
     }
 
     @SuppressWarnings("unchecked")
     public <O> RibbonRequest<O> executeFromTemplate(Object[] args) {
-        HttpRequestBuilder<?> requestBuilder = httpRequestTemplate.requestBuilder();
+        HttpRequestBuilder<?> requestBuilder = httpRequestTemplateBuilder.build().requestBuilder();
         withParameters(requestBuilder, args);
         withContent(requestBuilder, args);
 
         return (RibbonRequest<O>) requestBuilder.build();
     }
 
-    private HttpRequestTemplate<?> createHttpRequestTemplate() {
-        HttpRequestTemplate<?> httpRequestTemplate = createBaseHttpRequestTemplate(httpResourceGroup);
-        for (AnnotationProcessor processor: proxyAnnotations.getProcessors()) {
-            processor.process(httpRequestTemplate, methodTemplate.getMethod());
-        }
-        return httpRequestTemplate;
+    private Builder<?> createHttpRequestTemplateBuilder() {
+        Builder<?> httpRequestTemplateBuilder = createBaseHttpRequestTemplate(httpResourceGroup);
+        return httpRequestTemplateBuilder;
     }
 
-    private HttpRequestTemplate<?> createBaseHttpRequestTemplate(HttpResourceGroup httpResourceGroup) {
-        HttpRequestTemplate<?> httpRequestTemplate;
+    private Builder<?> createBaseHttpRequestTemplate(HttpResourceGroup httpResourceGroup) {
+        Builder<?> httpRequestTemplate;
         if (ByteBuf.class.isAssignableFrom(methodTemplate.getResultType())) {
-            httpRequestTemplate = httpResourceGroup.newRequestTemplate(methodTemplate.getTemplateName());
+            httpRequestTemplate = httpResourceGroup.newTemplateBuilder(methodTemplate.getTemplateName());
         } else {
-            httpRequestTemplate = httpResourceGroup.newRequestTemplate(methodTemplate.getTemplateName(), methodTemplate.getResultType());
+            httpRequestTemplate = httpResourceGroup.newTemplateBuilder(methodTemplate.getTemplateName(), methodTemplate.getResultType());
 
         }
         return httpRequestTemplate;
-    }
-
-    private void withRequestUriBase(HttpRequestTemplate<?> httpRequestTemplate) {
-        httpRequestTemplate.withMethod(methodTemplate.getHttpMethod().name());
-        if (methodTemplate.getUriTemplate() != null) {
-            httpRequestTemplate.withUriTemplate(methodTemplate.getUriTemplate());
-        }
-    }
-
-    private void withHttpHeaders(HttpRequestTemplate<?> httpRequestTemplate) {
-        for (Entry<String, List<String>> header : methodTemplate.getHeaders().entrySet()) {
-            String key = header.getKey();
-            for (String value : header.getValue()) {
-                httpRequestTemplate.withHeader(key, value);
-            }
-        }
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private void withHystrixHandlers(HttpRequestTemplate httpRequestTemplate) {
-        if (methodTemplate.getHystrixFallbackHandler() != null) {
-            httpRequestTemplate.withFallbackProvider(methodTemplate.getHystrixFallbackHandler());
-        }
-        if (methodTemplate.getHystrixResponseValidator() != null) {
-            httpRequestTemplate.withResponseValidator(methodTemplate.getHystrixResponseValidator());
-        }
-        if (methodTemplate.getHystrixCacheKey() != null) {
-            httpRequestTemplate.withRequestCacheKey(methodTemplate.getHystrixCacheKey());
-        }
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked", "OverlyStrongTypeCast"})
-    private void withCacheProviders(HttpRequestTemplate<?> httpRequestTemplate) {
-        if (methodTemplate.getCacheProviders() != null) {
-            for (MethodTemplate.CacheProviderEntry entry : methodTemplate.getCacheProviders()) {
-                httpRequestTemplate.withCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
-            }
-        }
     }
 
     private void withParameters(HttpRequestBuilder<?> requestBuilder, Object[] args) {
@@ -169,12 +126,11 @@ class MethodTemplateExecutor {
         }
     }
 
-    public static Map<Method, MethodTemplateExecutor> from(HttpResourceGroup httpResourceGroup, Class<?> clientInterface) {
+    public static Map<Method, MethodTemplateExecutor> from(HttpResourceGroup httpResourceGroup, Class<?> clientInterface, ProxyAnnotations annotations) {
         MethodTemplate[] methodTemplates = MethodTemplate.from(clientInterface);
-        EvCacheProviderPool evCacheProviderPool = new EvCacheProviderPool(methodTemplates);
         Map<Method, MethodTemplateExecutor> tgm = new HashMap<Method, MethodTemplateExecutor>();
         for (MethodTemplate mt : methodTemplates) {
-            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt, ProxyAnnotations.getInstance()));
+            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt, annotations));
         }
         return tgm;
     }

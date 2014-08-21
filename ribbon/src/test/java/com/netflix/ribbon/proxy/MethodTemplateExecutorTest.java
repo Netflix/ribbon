@@ -1,12 +1,28 @@
+/*
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.ribbon.proxy;
 
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.evache.EvCacheOptions;
 import com.netflix.ribbon.evache.EvCacheProvider;
 import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate;
+import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
 import com.netflix.ribbon.proxy.sample.Movie;
@@ -18,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.annotation.Mock;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import rx.Observable;
@@ -25,10 +42,10 @@ import rx.Observable;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import static com.netflix.ribbon.proxy.Utils.*;
-import static junit.framework.Assert.*;
-import static org.easymock.EasyMock.*;
-import static org.powermock.api.easymock.PowerMock.createMock;
+import static com.netflix.ribbon.proxy.Utils.methodByName;
+import static junit.framework.Assert.assertEquals;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
 import static org.powermock.api.easymock.PowerMock.*;
 
 /**
@@ -36,6 +53,7 @@ import static org.powermock.api.easymock.PowerMock.*;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({MethodTemplateExecutor.class})
+@PowerMockIgnore("javax.management.*")
 public class MethodTemplateExecutorTest {
 
     @Mock
@@ -45,20 +63,18 @@ public class MethodTemplateExecutorTest {
     private HttpRequestBuilder requestBuilderMock = createMock(HttpRequestBuilder.class);
 
     @Mock
+    private Builder httpRequestTemplateBuilderMock = createMock(Builder.class);
+
+    @Mock
     private HttpRequestTemplate httpRequestTemplateMock = createMock(HttpRequestTemplate.class);
 
     @Mock
     private HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
 
-    @Mock
-    private EvCacheProviderPool evCacheProviderPoolMock = createMock(EvCacheProviderPool.class);
-
-    @Mock
-    private EvCacheProvider evCacheProviderMock = createMock(EvCacheProvider.class);
-
     @Before
     public void setUp() throws Exception {
         expect(requestBuilderMock.build()).andReturn(ribbonRequestMock);
+        expect(httpRequestTemplateBuilderMock.build()).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.requestBuilder()).andReturn(requestBuilderMock);
     }
 
@@ -67,17 +83,17 @@ public class MethodTemplateExecutorTest {
         expectUrlBase("GET", "/movies/{id}");
 
         expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
-        expect(httpResourceGroupMock.newRequestTemplate("findMovieById")).andReturn(httpRequestTemplateMock);
+        expect(httpResourceGroupMock.newTemplateBuilder("findMovieById")).andReturn(httpRequestTemplateBuilderMock);
 
-        expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1.1")).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withHeader("X-MyHeader1", "value1.2")).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withHeader("X-MyHeader2", "value2")).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withRequestCacheKey("findMovieById/{id}")).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateMock);
-        expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock);
+        expect(httpRequestTemplateBuilderMock.withHeader("X-MyHeader1", "value1.1")).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withHeader("X-MyHeader1", "value1.2")).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withHeader("X-MyHeader2", "value2")).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withRequestCacheKey("findMovieById/{id}")).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateBuilderMock);
+        // expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock);
 
         replayAll();
 
@@ -94,7 +110,7 @@ public class MethodTemplateExecutorTest {
         expectUrlBase("GET", "/rawMovies/{id}");
 
         expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
-        expect(httpResourceGroupMock.newRequestTemplate("findRawMovieById")).andReturn(httpRequestTemplateMock);
+        expect(httpResourceGroupMock.newTemplateBuilder("findRawMovieById")).andReturn(httpRequestTemplateBuilderMock);
 
         replayAll();
 
@@ -129,9 +145,9 @@ public class MethodTemplateExecutorTest {
     private void doTestPostWith(String uriTemplate, String methodName, Object contentObject) {
         expectUrlBase("POST", uriTemplate);
 
-        expect(httpResourceGroupMock.newRequestTemplate(methodName)).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withRequestCacheKey(methodName)).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateMock);
+        expect(httpResourceGroupMock.newTemplateBuilder(methodName)).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withRequestCacheKey(methodName)).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateBuilderMock);
         expect(requestBuilderMock.withRawContentSource(anyObject(Observable.class), anyObject(ContentTransformer.class))).andReturn(requestBuilderMock);
 
         replayAll();
@@ -146,27 +162,23 @@ public class MethodTemplateExecutorTest {
 
     @Test
     public void testFromFactory() throws Exception {
-        mockStatic(EvCacheProviderPool.class);
-        expectNew(EvCacheProviderPool.class, new Class[]{MethodTemplate[].class}, anyObject(MethodTemplate[].class)).andReturn(evCacheProviderPoolMock);
-        expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock).anyTimes();
-
-        expect(httpResourceGroupMock.newRequestTemplate(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
-        expect(httpRequestTemplateMock.withMethod(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
-        expect(httpRequestTemplateMock.withUriTemplate(anyObject(String.class))).andReturn(httpRequestTemplateMock).anyTimes();
+        expect(httpResourceGroupMock.newTemplateBuilder(anyObject(String.class))).andReturn(httpRequestTemplateBuilderMock).anyTimes();
+        expect(httpRequestTemplateBuilderMock.withMethod(anyObject(String.class))).andReturn(httpRequestTemplateBuilderMock).anyTimes();
+        expect(httpRequestTemplateBuilderMock.withUriTemplate(anyObject(String.class))).andReturn(httpRequestTemplateBuilderMock).anyTimes();
         replayAll();
 
-        Map<Method, MethodTemplateExecutor> executorMap = MethodTemplateExecutor.from(httpResourceGroupMock, ShortMovieService.class);
+        Map<Method, MethodTemplateExecutor> executorMap = MethodTemplateExecutor.from(httpResourceGroupMock, ShortMovieService.class, ProxyAnnotations.getInstance());
 
         assertEquals(ShortMovieService.class.getMethods().length, executorMap.size());
     }
 
     private void expectUrlBase(String method, String path) {
-        expect(httpRequestTemplateMock.withMethod(method)).andReturn(httpRequestTemplateMock);
-        expect(httpRequestTemplateMock.withUriTemplate(path)).andReturn(httpRequestTemplateMock);
+        expect(httpRequestTemplateBuilderMock.withMethod(method)).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withUriTemplate(path)).andReturn(httpRequestTemplateBuilderMock);
     }
 
     private MethodTemplateExecutor createExecutor(Class<?> clientInterface, String methodName) {
         MethodTemplate methodTemplate = new MethodTemplate(methodByName(clientInterface, methodName));
-        return new MethodTemplateExecutor(httpResourceGroupMock, methodTemplate, evCacheProviderPoolMock);
+        return new MethodTemplateExecutor(httpResourceGroupMock, methodTemplate, ProxyAnnotations.getInstance());
     }
 }

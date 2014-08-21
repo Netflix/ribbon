@@ -1,20 +1,26 @@
+/*
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.ribbon.proxy;
 
-import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.RibbonTransportFactory;
+import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.proxy.ClassTemplate;
-import com.netflix.ribbon.proxy.ProxyHttpResourceGroupFactory;
-import com.netflix.ribbon.proxy.MethodTemplateExecutor;
-import com.netflix.ribbon.proxy.ProxyLifeCycle;
-import com.netflix.ribbon.proxy.RibbonDynamicProxy;
-import com.netflix.ribbon.proxy.sample.Movie;
+import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupNameAnnotation;
-
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import org.junit.Before;
@@ -28,10 +34,9 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.netflix.ribbon.proxy.Utils.*;
-import static org.easymock.EasyMock.*;
-import static org.powermock.api.easymock.PowerMock.createMock;
-import static org.powermock.api.easymock.PowerMock.expectLastCall;
+import static com.netflix.ribbon.proxy.Utils.methodByName;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.expect;
 import static org.powermock.api.easymock.PowerMock.*;
 import static org.testng.Assert.*;
 
@@ -75,8 +80,8 @@ public class RibbonDynamicProxyTest {
     public void testSetupWithResourceGroupNameInAnnotation() throws Exception {
         mockStatic(ProxyHttpResourceGroupFactory.class);
         expectNew(ProxyHttpResourceGroupFactory.class, new Class[]{ClassTemplate.class, 
-            RibbonResourceFactory.class, IClientConfig.class, 
-            RibbonTransportFactory.class}, anyObject(), anyObject(), anyObject(), anyObject()).andReturn(httpResourceGroupFactoryMock);
+            RibbonResourceFactory.class, ProxyAnnotations.class
+            }, anyObject(), anyObject(), anyObject()).andReturn(httpResourceGroupFactoryMock);
 
         replayAll();
 
@@ -92,21 +97,6 @@ public class RibbonDynamicProxyTest {
         RibbonRequest<ByteBuf> ribbonMovie = service.findMovieById("123");
 
         assertNotNull(ribbonMovie);
-    }
-
-    @Test
-    public void testLifeCycleShutdown() throws Exception {
-        initializeSampleMovieServiceMocks();
-        expect(httpResourceGroupMock.getClient()).andReturn(httpClientMock);
-        httpClientMock.shutdown();
-        expectLastCall();
-        replayAll();
-
-        SampleMovieService service = RibbonDynamicProxy.newInstance(SampleMovieService.class, httpResourceGroupMock);
-        ProxyLifeCycle proxyLifeCycle = (ProxyLifeCycle) service;
-        proxyLifeCycle.shutdown();
-
-        assertTrue(proxyLifeCycle.isShutDown());
     }
 
     @Test
@@ -128,6 +118,6 @@ public class RibbonDynamicProxyTest {
         tgMap.put(methodByName(SampleMovieService.class, "findMovieById"), tgMock);
 
         mockStatic(MethodTemplateExecutor.class);
-        expect(MethodTemplateExecutor.from(httpResourceGroupMock, SampleMovieService.class)).andReturn(tgMap);
+        expect(MethodTemplateExecutor.from(httpResourceGroupMock, SampleMovieService.class, ProxyAnnotations.getInstance())).andReturn(tgMap);
     }
 }

@@ -75,6 +75,7 @@ project(':ribbon-transport') {
         compile "com.netflix.rxnetty:rx-netty:${rx_netty_version}"
         compile "com.netflix.rxnetty:rx-netty-contexts:${rx_netty_version}"
         compile "com.netflix.rxnetty:rx-netty-servo:${rx_netty_version}"
+        compile 'javax.inject:javax.inject:1'
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
         testCompile project(':ribbon-test')        
     }

@@ -16,22 +16,19 @@
 
 package com.netflix.ribbon.proxy;
 
-import com.netflix.ribbon.CacheProvider;
-import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.evache.EvCacheProvider;
-
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * @author Tomasz Bak
  */
 class EvCacheProviderPool {
-
+/*
     private final Map<CacheId, EvCacheProvider<?>> pool;
 
     EvCacheProviderPool(MethodTemplate[] methodTemplates) {
         pool = createEvCachePool(methodTemplates);
+    }
+
+    EvCacheProviderPool() {
+        pool = new HashMap<CacheId, EvCacheProvider<?>>();
     }
 
     public CacheProvider<?> getMatching(EvCacheOptions evCacheOptions) {
@@ -85,5 +82,5 @@ class EvCacheProviderPool {
             result = 31 * result + cacheName.hashCode();
             return result;
         }
-    }
+    } */
 }

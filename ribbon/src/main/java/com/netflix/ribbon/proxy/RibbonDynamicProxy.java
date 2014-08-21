@@ -21,6 +21,7 @@ import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -33,17 +34,17 @@ import java.util.Map;
 public class RibbonDynamicProxy<T> implements InvocationHandler {
     private final ProxyLifeCycle lifeCycle;
     private final Map<Method, MethodTemplateExecutor> templateExecutorMap;
+    private final ProxyAnnotations annotations = ProxyAnnotations.getInstance();
 
     RibbonDynamicProxy(Class<T> clientInterface, HttpResourceGroup httpResourceGroup) {
         lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
-        templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
+        templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface, annotations);
     }
 
     public RibbonDynamicProxy(Class<T> clientInterface, RibbonResourceFactory resourceGroupFactory, ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
         ClassTemplate<T> classTemplate = ClassTemplate.from(clientInterface);
-        IClientConfig config =  createClientConfig(classTemplate, configFactory);
-        HttpResourceGroup httpResourceGroup = new ProxyHttpResourceGroupFactory<T>(classTemplate, resourceGroupFactory, config, transportFactory).createResourceGroup();
-        templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface);
+        HttpResourceGroup httpResourceGroup = new ProxyHttpResourceGroupFactory<T>(classTemplate, resourceGroupFactory, annotations).createResourceGroup();
+        templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface, annotations);
         lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
     }
 

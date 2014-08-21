@@ -19,6 +19,7 @@ public class ProxyAnnotations {
         processors.add(new HttpAnnotationProcessor());
         processors.add(new HystrixAnnotationProcessor());
         processors.add(new CacheProviderAnnotationProcessor());
+        processors.add(new EVCacheAnnotationProcessor());
     }
 
     public void register(AnnotationProcessor processor) {

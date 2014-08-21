@@ -20,6 +20,7 @@ import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupClassAnnotation;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupNameAnnotation;
@@ -38,7 +39,7 @@ public class HttpResourceGroupFactoryTest {
     public void testResourceGroupAnnotationMissing() throws Exception {
         ClassTemplate<SampleMovieService> classTemplate = new ClassTemplate<SampleMovieService>(SampleMovieService.class);
         new ProxyHttpResourceGroupFactory<SampleMovieService>(classTemplate, new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
-                ClientConfigFactory.DEFAULT.newConfig(), RibbonTransportFactory.DEFAULT).createResourceGroup();
+                ProxyAnnotations.getInstance()).createResourceGroup();
     }
 
     @Test
