@@ -68,8 +68,8 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
     @Before
     public void setupMock(){
 
-        List<InstanceInfo> dummyII = getDummyInstanceInfo("dummy", "http://www.host.com", 8001);
-        List<InstanceInfo> secureDummyII = getDummyInstanceInfo("secureDummy", "http://www.host.com", 8002);
+        List<InstanceInfo> dummyII = getDummyInstanceInfo("dummy", "http://www.host.com", "1.1.1.1", 8001);
+        List<InstanceInfo> secureDummyII = getDummyInstanceInfo("secureDummy", "http://www.host.com", "1.1.1.1", 8002);
 
 
         PowerMock.mockStatic(DiscoveryManager.class);
@@ -264,12 +264,13 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
 
 
-    protected static List<InstanceInfo> getDummyInstanceInfo(String appName, String host, int port){
+    protected static List<InstanceInfo> getDummyInstanceInfo(String appName, String host, String ipAddr, int port){
 
         List<InstanceInfo> list = new ArrayList<InstanceInfo>();
 
         InstanceInfo info = InstanceInfo.Builder.newBuilder().setAppName(appName)
                 .setHostName(host)
+                .setIPAddr(ipAddr)
                 .setPort(port)
                 .build();
 
