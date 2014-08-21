@@ -87,11 +87,13 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = "com.netflix.loadbalancer.AvailabilityFilteringRule";
 
     public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = "com.netflix.loadbalancer.ZoneAwareLoadBalancer";
+    
+    public static final boolean DEFAULT_NIWS_SERVERLIST_DISCOVERY_USEIPADDRESS = Boolean.FALSE;
 
     public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
 
     public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = "com.netflix.client.SimpleVipAddressResolver";
-
+    
     public static final String DEFAULT_PRIME_CONNECTIONS_URI = "/";
 
     public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = 30000;
@@ -187,6 +189,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 	public String getDefaultNfloadbalancerClassname() {
 		return DEFAULT_NFLOADBALANCER_CLASSNAME;
+	}
+	
+	public boolean getDefaultNIWSServerListDiscoveryUseIpAddress() {
+		return DEFAULT_NIWS_SERVERLIST_DISCOVERY_USEIPADDRESS;
 	}
 
 	public String getDefaultClientClassname() {

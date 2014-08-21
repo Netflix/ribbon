@@ -71,7 +71,13 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
         targetRegion = (String) clientConfig.getProperty(CommonClientConfigKey.TargetRegion);
         
-        shouldUseIpAddr = ConfigurationManager.getConfigInstance().getBoolean("DiscoveryEnabledNIWSServerList.useIpAddr", false);
+        shouldUseIpAddr = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.NIWSServerListDiscoveryUseIpAddress, false);
+        if (!shouldUseIpAddr) {
+        	// TODO:  Why didn't the above call just work?  Other properties are looked up similarly where "ribbon.X" overrides "client.ribbon.X"
+        	// wondering if it would work in real app and it's just the Mock test case that isn't doing Archiaus layered config correctly
+        	// no other test cases in ribbon seem to test "ribbon.X" properties
+        	shouldUseIpAddr = ConfigurationManager.getConfigInstance().getBoolean("ribbon." + CommonClientConfigKey.NIWSServerListDiscoveryUseIpAddress.key(), false);
+        }
 
         // override client configuration and use client-defined port
         if(clientConfig.getPropertyAsBoolean(CommonClientConfigKey.ForceClientPortConfiguration, false)){

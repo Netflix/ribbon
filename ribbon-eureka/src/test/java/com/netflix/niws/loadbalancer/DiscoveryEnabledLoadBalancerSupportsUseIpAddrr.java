@@ -22,6 +22,7 @@ import static org.powermock.api.easymock.PowerMock.createMock;
 import static org.powermock.api.easymock.PowerMock.replay;
 import static org.powermock.api.easymock.PowerMock.verify;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.easymock.EasyMock;
@@ -40,6 +41,7 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
+import com.netflix.loadbalancer.Server;
 
 /**
  * Verify behavior of the override flag DiscoveryEnabledNIWSServerList.useIpAddr 
@@ -86,10 +88,24 @@ public class DiscoveryEnabledLoadBalancerSupportsUseIpAddrr {
         replay(mockedDiscoveryManager);
         replay(mockedDiscoveryClient);
     }
-    
-    @Test
-    public void testUsesIpAddrByWhenTrue() throws Exception{
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabledNIWSServerList.useIpAddr", "true");
+
+    /**
+     * Generic method to help with various tests
+     * @param globalspecified if false, will clear property DiscoveryEnabledNIWSServerList.useIpAddr
+     * @param global value of DiscoveryEnabledNIWSServerList.useIpAddr
+     * @param clientspecified if false, will not set property on client config
+     * @param client value of client.namespace.ribbon.UseIPAddrForServer
+     */
+    private List<Server> testUsesIpAddr(boolean globalSpecified, boolean global, boolean clientSpecified, boolean client) throws Exception{
+    	if (globalSpecified) {
+            ConfigurationManager.getConfigInstance().setProperty("ribbon.UseIPAddrForServer", global);
+    	}
+    	if (clientSpecified) {
+    		ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.UseIPAddrForServer", client);
+    	}
+    	System.out.println("r = " + ConfigurationManager.getConfigInstance().getProperty("ribbon.UseIPAddrForServer"));
+    	System.out.println("d = " + ConfigurationManager.getConfigInstance().getProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.UseIPAddrForServer"));
+    	
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.DeploymentContextBasedVipAddresses", "dummy");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.TargetRegion", "region");
@@ -103,48 +119,66 @@ public class DiscoveryEnabledLoadBalancerSupportsUseIpAddrr {
         List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
 
         Assert.assertEquals(2, serverList.size());
-        Assert.assertEquals(serverList.get(0).getHost(), IP1);
-        Assert.assertEquals(serverList.get(1).getHost(), IP2);
+        List<Server> servers = new ArrayList<Server>();
+        for (DiscoveryEnabledServer server : serverList) {
+        	servers.add((Server)server);
+        }
+        return servers;
+    }
+
+    /**
+     * Test the case where the property has been used specific to client with true
+     * @throws Exception
+     */
+    @Test
+    public void testUsesIpAddrByWhenClientTrueOnly() throws Exception{
+        List<Server> servers = testUsesIpAddr(false, false, true, true);
+        Assert.assertEquals(servers.get(0).getHost(), IP1);
+        Assert.assertEquals(servers.get(1).getHost(), IP2);
+    }
+    
+    /**
+     * Test the case where the property has been used specific to client with false
+     * @throws Exception
+     */
+    @Test
+    public void testUsesIpAddrByWhenClientFalseOnly() throws Exception{
+        List<Server> servers = testUsesIpAddr(false, false, true, false);
+        Assert.assertEquals(servers.get(0).getHost(), HOST1);
+        Assert.assertEquals(servers.get(1).getHost(), HOST2);
     }
     
     @Test
-    public void testUsesHostnameByWhenFalse() throws Exception{
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabledNIWSServerList.useIpAddr", "false");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.DeploymentContextBasedVipAddresses", "dummy");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.TargetRegion", "region");
-        
-        DiscoveryEnabledNIWSServerList deList = new DiscoveryEnabledNIWSServerList();
-
-        DefaultClientConfigImpl clientConfig = DefaultClientConfigImpl.class.newInstance();
-        clientConfig.loadProperties("DiscoveryEnabled.testUsesIpAddr");
-        deList.initWithNiwsConfig(clientConfig);
-
-        List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
-
-        Assert.assertEquals(2, serverList.size());
-        Assert.assertEquals(serverList.get(0).getHost(), HOST1);
-        Assert.assertEquals(serverList.get(1).getHost(), HOST2);
+    /**
+     * Test the case where the property has been used globally with true
+     * @throws Exception
+     */
+    public void testUsesIpAddrByWhenGlobalTrueOnly() throws Exception{
+        List<Server> servers = testUsesIpAddr(true, true, false, false);
+        Assert.assertEquals(servers.get(0).getHost(), IP1);
+        Assert.assertEquals(servers.get(1).getHost(), IP2);
     }
     
     @Test
+    /**
+     * Test the case where the property has been used globally with false
+     * @throws Exception
+     */
+    public void testUsesIpAddrByWhenGlobalFalseOnly() throws Exception{
+        List<Server> servers = testUsesIpAddr(true, false, false, false);
+        Assert.assertEquals(servers.get(0).getHost(), HOST1);
+        Assert.assertEquals(servers.get(1).getHost(), HOST2);
+    }
+    
+    @Test
+    /**
+     * Test the case where the property hasn't been used at the global or client level
+     * @throws Exception
+     */
     public void testUsesHostnameByDefault() throws Exception{
-    	ConfigurationManager.getConfigInstance().clearProperty("DiscoveryEnabledNIWSServerList.useIpAddr");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.DeploymentContextBasedVipAddresses", "dummy");
-        ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testUsesIpAddr.ribbon.TargetRegion", "region");
-        
-        DiscoveryEnabledNIWSServerList deList = new DiscoveryEnabledNIWSServerList();
-
-        DefaultClientConfigImpl clientConfig = DefaultClientConfigImpl.class.newInstance();
-        clientConfig.loadProperties("DiscoveryEnabled.testUsesIpAddr");
-        deList.initWithNiwsConfig(clientConfig);
-
-        List<DiscoveryEnabledServer> serverList = deList.getInitialListOfServers();
-
-        Assert.assertEquals(2, serverList.size());
-        Assert.assertEquals(serverList.get(0).getHost(), HOST1);
-        Assert.assertEquals(serverList.get(1).getHost(), HOST2);
+        List<Server> servers = testUsesIpAddr(false, false, false, false);
+        Assert.assertEquals(servers.get(0).getHost(), HOST1);
+        Assert.assertEquals(servers.get(1).getHost(), HOST2);
     }
     
     @After
