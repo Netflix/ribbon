@@ -23,8 +23,8 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
-import org.easymock.EasyMock;
 
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -62,6 +62,7 @@ import static org.powermock.api.easymock.PowerMock.verify;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest( {DiscoveryManager.class, DiscoveryClient.class} )
 @PowerMockIgnore("javax.management.*")
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
 
 

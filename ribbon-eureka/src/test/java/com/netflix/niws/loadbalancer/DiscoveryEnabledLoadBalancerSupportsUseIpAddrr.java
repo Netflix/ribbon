@@ -53,6 +53,7 @@ import com.netflix.discovery.DiscoveryManager;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest( {DiscoveryManager.class, DiscoveryClient.class} )
 @PowerMockIgnore("javax.management.*")
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 public class DiscoveryEnabledLoadBalancerSupportsUseIpAddrr {
 	static final String IP1 = "1.1.1.1";
 	static final String HOST1 = "server1.app.host.com";
