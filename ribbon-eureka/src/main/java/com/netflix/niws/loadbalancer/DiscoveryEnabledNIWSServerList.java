@@ -58,6 +58,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
 
     int overridePort = DefaultClientConfigImpl.DEFAULT_PORT;
     boolean shouldUseOverridePort = false;
+    boolean shouldUseIpAddr = false;
     
     /**
      * @deprecated use {@link #DiscoveryEnabledNIWSServerList(String)}
@@ -89,6 +90,8 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
         prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));        
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
         targetRegion = (String) clientConfig.getProperty(CommonClientConfigKey.TargetRegion);
+        
+        shouldUseIpAddr = ConfigurationManager.getConfigInstance().getBoolean("DiscoveryEnabledNIWSServerList.useIpAddr", false);
 
         // override client configuration and use client-defined port
         if(clientConfig.getPropertyAsBoolean(CommonClientConfigKey.ForceClientPortConfiguration, false)){
@@ -162,7 +165,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                             }
                         }
 
-                    	DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure);
+                    	DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure, shouldUseIpAddr);
                     	des.setZone(DiscoveryClient.getZone(ii));
                         serverList.add(des);
                     }
