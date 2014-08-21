@@ -1,6 +1,10 @@
 package com.netflix.ribbon.proxy.processor;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -13,13 +17,16 @@ public class ProxyAnnotations {
     private final List<AnnotationProcessor> processors = new CopyOnWriteArrayList<AnnotationProcessor>();
 
     private ProxyAnnotations() {
-        // We need direct handling for template name and result type
-        // to create http resource template from resource group
-
         processors.add(new HttpAnnotationProcessor());
         processors.add(new HystrixAnnotationProcessor());
         processors.add(new CacheProviderAnnotationProcessor());
-        processors.add(new EVCacheAnnotationProcessor());
+        ServiceLoader<AnnotationProcessor> loader = ServiceLoader.load(AnnotationProcessor.class);
+        Iterator<AnnotationProcessor> iterator = loader.iterator();
+        Set<AnnotationProcessor> externalProcessors = new HashSet<AnnotationProcessor>();
+        while (iterator.hasNext()) {
+            externalProcessors.add(iterator.next());
+        }
+        processors.addAll(externalProcessors);
     }
 
     public void register(AnnotationProcessor processor) {
@@ -33,6 +40,4 @@ public class ProxyAnnotations {
     public static final ProxyAnnotations getInstance() {
         return DEFAULT;
     }
-
-
 }

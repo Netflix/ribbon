@@ -17,6 +17,7 @@ package com.netflix.ribbon.proxy;
 
 import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RibbonRequest;
+import com.netflix.ribbon.evache.EvCacheProvider;
 import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
@@ -24,11 +25,7 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
-import com.netflix.ribbon.proxy.sample.Movie;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
-import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.ShortMovieService;
-import io.netty.buffer.ByteBuf;
-import io.reactivex.netty.channel.ContentTransformer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,10 +33,6 @@ import org.powermock.api.easymock.annotation.Mock;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import rx.Observable;
-
-import java.lang.reflect.Method;
-import java.util.Map;
 
 import static com.netflix.ribbon.proxy.Utils.methodByName;
 import static junit.framework.Assert.assertEquals;
@@ -53,7 +46,7 @@ import static org.powermock.api.easymock.PowerMock.*;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({MethodTemplateExecutor.class})
 @PowerMockIgnore("javax.management.*")
-public class MethodTemplateExecutorTest {
+public class EvCacheAnnotationTest {
 
     @Mock
     private RibbonRequest ribbonRequestMock = createMock(RibbonRequest.class);
@@ -77,6 +70,7 @@ public class MethodTemplateExecutorTest {
         expect(httpRequestTemplateMock.requestBuilder()).andReturn(requestBuilderMock);
     }
 
+
     @Test
     public void testGetQueryWithDomainObjectResult() throws Exception {
         expectUrlBase("GET", "/movies/{id}");
@@ -91,6 +85,8 @@ public class MethodTemplateExecutorTest {
         expect(httpRequestTemplateBuilderMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateBuilderMock);
         expect(httpRequestTemplateBuilderMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateBuilderMock);
         expect(httpRequestTemplateBuilderMock.withCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateBuilderMock);
+        expect(httpRequestTemplateBuilderMock.withCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateBuilderMock);
+        // expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock);
 
         replayAll();
 
@@ -100,72 +96,6 @@ public class MethodTemplateExecutorTest {
         verifyAll();
 
         assertEquals(ribbonRequestMock, ribbonRequest);
-    }
-    @Test
-    public void testGetQueryWithByteBufResult() throws Exception {
-        expectUrlBase("GET", "/rawMovies/{id}");
-
-        expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
-        expect(httpResourceGroupMock.newTemplateBuilder("findRawMovieById")).andReturn(httpRequestTemplateBuilderMock);
-
-        replayAll();
-
-        MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, "findRawMovieById");
-        RibbonRequest ribbonRequest = executor.executeFromTemplate(new Object[]{"id123"});
-
-        verifyAll();
-
-        assertEquals(ribbonRequestMock, ribbonRequest);
-    }
-
-    @Test
-    public void testPostWithDomainObjectAndTransformer() throws Exception {
-        doTestPostWith("/movies", "registerMovie", new Movie());
-    }
-
-    @Test
-    public void testPostWithString() throws Exception {
-        doTestPostWith("/titles", "registerTitle", "some title");
-    }
-
-    @Test
-    public void testPostWithByteBuf() throws Exception {
-        doTestPostWith("/binaries/byteBuf", "registerByteBufBinary", createMock(ByteBuf.class));
-    }
-
-    @Test
-    public void testPostWithByteArray() throws Exception {
-        doTestPostWith("/binaries/byteArray", "registerByteArrayBinary", new byte[]{1});
-    }
-
-    private void doTestPostWith(String uriTemplate, String methodName, Object contentObject) {
-        expectUrlBase("POST", uriTemplate);
-
-        expect(httpResourceGroupMock.newTemplateBuilder(methodName)).andReturn(httpRequestTemplateBuilderMock);
-        expect(httpRequestTemplateBuilderMock.withRequestCacheKey(methodName)).andReturn(httpRequestTemplateBuilderMock);
-        expect(httpRequestTemplateBuilderMock.withFallbackProvider(anyObject(MovieFallbackHandler.class))).andReturn(httpRequestTemplateBuilderMock);
-        expect(requestBuilderMock.withRawContentSource(anyObject(Observable.class), anyObject(ContentTransformer.class))).andReturn(requestBuilderMock);
-
-        replayAll();
-
-        MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, methodName);
-        RibbonRequest ribbonRequest = executor.executeFromTemplate(new Object[]{contentObject});
-
-        verifyAll();
-
-        assertEquals(ribbonRequestMock, ribbonRequest);
-    }
-
-    @Test
-    public void testFromFactory() throws Exception {
-        expect(httpResourceGroupMock.newTemplateBuilder(anyObject(String.class))).andReturn(httpRequestTemplateBuilderMock).anyTimes();
-        expect(httpRequestTemplateBuilderMock.withMethod(anyObject(String.class))).andReturn(httpRequestTemplateBuilderMock).anyTimes();
-        expect(httpRequestTemplateBuilderMock.withUriTemplate(anyObject(String.class))).andReturn(httpRequestTemplateBuilderMock).anyTimes();
-        replayAll();
-
-        Map<Method, MethodTemplateExecutor> executorMap = MethodTemplateExecutor.from(httpResourceGroupMock, ShortMovieService.class, ProxyAnnotations.getInstance());
-
-        assertEquals(ShortMovieService.class.getMethods().length, executorMap.size());
     }
 
     private void expectUrlBase(String method, String path) {
