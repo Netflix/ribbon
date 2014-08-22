@@ -19,6 +19,7 @@ import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.http.HttpResourceGroup.Builder;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 
 /**
  * Factory for creating an HttpResourceGroup.  For DI either bind DefaultHttpResourceGroupFactory
@@ -29,12 +30,15 @@ import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 public abstract class RibbonResourceFactory {
     protected final ClientConfigFactory clientConfigFactory;
     protected final RibbonTransportFactory transportFactory;
+    protected final AnnotationProcessorsProvider annotationProcessors;
 
-    public static final RibbonResourceFactory DEFAULT = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    public static final RibbonResourceFactory DEFAULT = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT,
+            AnnotationProcessorsProvider.DEFAULT);
 
-    public RibbonResourceFactory(ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+    public RibbonResourceFactory(ClientConfigFactory configFactory, RibbonTransportFactory transportFactory, AnnotationProcessorsProvider processors) {
         this.clientConfigFactory = configFactory;
         this.transportFactory = transportFactory;
+        this.annotationProcessors = processors;
     }
 
     public Builder createHttpResourceGroupBuilder(String name) {
@@ -49,7 +53,7 @@ public abstract class RibbonResourceFactory {
 
 
     public <T> T from(Class<T> classType) {
-        return RibbonDynamicProxy.newInstance(classType, this, clientConfigFactory, transportFactory);
+        return RibbonDynamicProxy.newInstance(classType, this, clientConfigFactory, transportFactory, annotationProcessors);
     }
 
     public HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {

@@ -18,7 +18,7 @@ package com.netflix.ribbon.proxy;
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieServiceWithResourceGroupNameAnnotation;
 import io.netty.buffer.ByteBuf;
@@ -80,7 +80,7 @@ public class RibbonDynamicProxyTest {
     public void testSetupWithResourceGroupNameInAnnotation() throws Exception {
         mockStatic(ProxyHttpResourceGroupFactory.class);
         expectNew(ProxyHttpResourceGroupFactory.class, new Class[]{ClassTemplate.class, 
-            RibbonResourceFactory.class, ProxyAnnotations.class
+            RibbonResourceFactory.class, AnnotationProcessorsProvider.class
             }, anyObject(), anyObject(), anyObject()).andReturn(httpResourceGroupFactoryMock);
 
         replayAll();
@@ -118,6 +118,6 @@ public class RibbonDynamicProxyTest {
         tgMap.put(methodByName(SampleMovieService.class, "findMovieById"), tgMock);
 
         mockStatic(MethodTemplateExecutor.class);
-        expect(MethodTemplateExecutor.from(httpResourceGroupMock, SampleMovieService.class, ProxyAnnotations.getInstance())).andReturn(tgMap);
+        expect(MethodTemplateExecutor.from(httpResourceGroupMock, SampleMovieService.class, AnnotationProcessorsProvider.DEFAULT)).andReturn(tgMap);
     }
 }

@@ -22,11 +22,12 @@ import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
-import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.annotation.Mock;
@@ -63,13 +64,17 @@ public class EvCacheAnnotationTest {
     @Mock
     private HttpResourceGroup httpResourceGroupMock = createMock(HttpResourceGroup.class);
 
+    @BeforeClass
+    public static void setup() {
+        RibbonDynamicProxy.registerAnnotationProcessors(AnnotationProcessorsProvider.DEFAULT);
+    }
+
     @Before
     public void setUp() throws Exception {
         expect(requestBuilderMock.build()).andReturn(ribbonRequestMock);
         expect(httpRequestTemplateBuilderMock.build()).andReturn(httpRequestTemplateMock);
         expect(httpRequestTemplateMock.requestBuilder()).andReturn(requestBuilderMock);
     }
-
 
     @Test
     public void testGetQueryWithDomainObjectResult() throws Exception {
@@ -105,6 +110,6 @@ public class EvCacheAnnotationTest {
 
     private MethodTemplateExecutor createExecutor(Class<?> clientInterface, String methodName) {
         MethodTemplate methodTemplate = new MethodTemplate(methodByName(clientInterface, methodName));
-        return new MethodTemplateExecutor(httpResourceGroupMock, methodTemplate, ProxyAnnotations.getInstance());
+        return new MethodTemplateExecutor(httpResourceGroupMock, methodTemplate, AnnotationProcessorsProvider.DEFAULT);
     }
 }

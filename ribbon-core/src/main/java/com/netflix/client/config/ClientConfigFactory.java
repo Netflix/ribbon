@@ -26,10 +26,8 @@ public interface ClientConfigFactory {
         @Override
         public IClientConfig newConfig() {
             IClientConfig config = new DefaultClientConfigImpl();
-            config.loadDefaultValues();
             return config;
-            
-        }        
+        }
     }
     
     public static final ClientConfigFactory DEFAULT = new DefaultClientConfigFactory();

@@ -17,4 +17,6 @@ public @interface ClientProperties {
     }
 
     Property[] properties() default {};
+
+    boolean exportToArchaius() default false;
 }

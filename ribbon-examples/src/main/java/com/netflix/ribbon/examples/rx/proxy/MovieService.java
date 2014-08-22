@@ -23,6 +23,8 @@ import com.netflix.ribbon.examples.rx.common.RecommendationServiceFallbackHandle
 import com.netflix.ribbon.examples.rx.common.RecommendationServiceResponseValidator;
 import com.netflix.ribbon.examples.rx.common.RxMovieTransformer;
 import com.netflix.ribbon.proxy.annotation.CacheProvider;
+import com.netflix.ribbon.proxy.annotation.ClientProperties;
+import com.netflix.ribbon.proxy.annotation.ClientProperties.Property;
 import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
 import com.netflix.ribbon.proxy.annotation.Http;
@@ -36,6 +38,11 @@ import io.netty.buffer.ByteBuf;
 /**
  * @author Tomasz Bak
  */
+@ClientProperties(properties = {
+        @Property(name="ReadTimeout", value="2000"),
+        @Property(name="ConnectTimeout", value="1000"),
+        @Property(name="MaxAutoRetryNextServer", value="2")
+}, exportToArchaius = true)
 public interface MovieService {
 
     @TemplateName("recommendationsByUserId")

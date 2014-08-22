@@ -20,7 +20,7 @@ import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.processor.AnnotationProcessor;
-import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.reactivex.netty.channel.ContentTransformer;
@@ -58,7 +58,7 @@ class MethodTemplateExecutor {
     private final MethodTemplate methodTemplate;
     private final Builder<?> httpRequestTemplateBuilder;
 
-    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, ProxyAnnotations annotations) {
+    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, AnnotationProcessorsProvider annotations) {
         this.httpResourceGroup = httpResourceGroup;
         this.methodTemplate = methodTemplate;
         httpRequestTemplateBuilder = createHttpRequestTemplateBuilder();
@@ -126,7 +126,7 @@ class MethodTemplateExecutor {
         }
     }
 
-    public static Map<Method, MethodTemplateExecutor> from(HttpResourceGroup httpResourceGroup, Class<?> clientInterface, ProxyAnnotations annotations) {
+    public static Map<Method, MethodTemplateExecutor> from(HttpResourceGroup httpResourceGroup, Class<?> clientInterface, AnnotationProcessorsProvider annotations) {
         MethodTemplate[] methodTemplates = MethodTemplate.from(clientInterface);
         Map<Method, MethodTemplateExecutor> tgm = new HashMap<Method, MethodTemplateExecutor>();
         for (MethodTemplate mt : methodTemplates) {

@@ -23,6 +23,8 @@ import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.RibbonTransportFactory.DefaultRibbonTransportFactory;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider.DefaultAnnotationProcessorsProvider;
 
 /**
  * Default bindings for Ribbon
@@ -35,6 +37,7 @@ public class RibbonModule extends AbstractModule {
     protected void configure() {
         bind(ClientConfigFactory.class).to(DefaultClientConfigFactory.class).in(Scopes.SINGLETON);
         bind(RibbonTransportFactory.class).to(DefaultRibbonTransportFactory.class).in(Scopes.SINGLETON);
+        bind(AnnotationProcessorsProvider.class).to(DefaultAnnotationProcessorsProvider.class).in(Scopes.SINGLETON);
         bind(RibbonResourceFactory.class).to(DefaultResourceFactory.class).in(Scopes.SINGLETON);
     }
 }

@@ -21,6 +21,7 @@ import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.PostsWithDifferent
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.TemplateNameDerivedFromMethodName;
 import com.netflix.ribbon.proxy.sample.MovieTransformer;
+import io.netty.buffer.ByteBuf;
 import org.junit.Test;
 
 import static com.netflix.ribbon.proxy.Utils.methodByName;
@@ -30,45 +31,24 @@ import static org.junit.Assert.*;
  * @author Tomasz Bak
  */
 public class MethodTemplateTest {
-/*
+
     @Test
     public void testGetWithOneParameter() throws Exception {
         MethodTemplate template = new MethodTemplate(methodByName(SampleMovieService.class, "findMovieById"));
 
         assertEquals("id", template.getParamName(0));
         assertEquals("findMovieById", template.getTemplateName());
-        assertEquals("/movies/{id}", template.getUriTemplate());
 
-        assertTrue("value1.1".equals(template.getHeaders().get("X-MyHeader1").get(0)));
-        assertTrue("value1.2".equals(template.getHeaders().get("X-MyHeader1").get(1)));
-        assertTrue("value2".equals(template.getHeaders().get("X-MyHeader2").get(0)));
 
         assertEquals(0, template.getParamPosition(0));
         assertEquals(template.getResultType(), ByteBuf.class);
-
-        assertEquals("findMovieById/{id}", template.getHystrixCacheKey());
-        assertNotNull(template.getHystrixFallbackHandler());
-        assertNotNull(template.getHystrixResponseValidator());
-
-        CacheProviderEntry cacheProviderEntry = template.getCacheProviders().get(0);
-        assertNotNull(cacheProviderEntry);
-        assertTrue(cacheProviderEntry.getCacheProvider() instanceof SampleCacheProvider);
-
-        EvCacheOptions evOpts = template.getEvCacheOptions();
-        assertNotNull(evOpts);
-        assertEquals("movie-cache", evOpts.getCacheName());
-        assertEquals("movieService", evOpts.getAppName());
-        assertEquals("movie-{id}", evOpts.getCacheKeyTemplate());
-        assertEquals(50, evOpts.getTimeToLive());
-        assertTrue(evOpts.getTranscoder() instanceof SampleEVCacheTranscoder);
     }
-*/
+
     @Test
     public void testGetWithTwoParameters() throws Exception {
         MethodTemplate template = new MethodTemplate(methodByName(SampleMovieService.class, "findMovie"));
 
         assertEquals("findMovie", template.getTemplateName());
-        // assertEquals("/movies?name={name}&author={author}", template.getUriTemplate());
         assertEquals("name", template.getParamName(0));
         assertEquals(0, template.getParamPosition(0));
         assertEquals("author", template.getParamName(1));
@@ -80,25 +60,7 @@ public class MethodTemplateTest {
         MethodTemplate template = new MethodTemplate(methodByName(TemplateNameDerivedFromMethodName.class, "myTemplateName"));
         assertEquals("myTemplateName", template.getTemplateName());
     }
-/*
-    @Test
-    public void testHystrixOptionalParameters() throws Exception {
-        MethodTemplate template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithCacheKeyOnly"));
-        assertNotNull(template.getHystrixCacheKey());
-        assertNull(template.getHystrixResponseValidator());
-        assertNull(template.getHystrixFallbackHandler());
 
-        template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithValidatorOnly"));
-        assertNull(template.getHystrixCacheKey());
-        assertNotNull(template.getHystrixResponseValidator());
-        assertNull(template.getHystrixFallbackHandler());
-
-        template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithFallbackHandlerOnly"));
-        assertNull(template.getHystrixCacheKey());
-        assertNull(template.getHystrixResponseValidator());
-        assertNotNull(template.getHystrixFallbackHandler());
-    }
-*/
     @Test
     public void testWithRawContentSourceContent() throws Exception {
         MethodTemplate methodTemplate = new MethodTemplate(methodByName(PostsWithDifferentContentTypes.class, "postwithRawContentSource"));

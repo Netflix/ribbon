@@ -29,8 +29,9 @@ public class MovieServiceInterfaces {
 
     @ClientProperties(properties = {
             @Property(name="ReadTimeout", value="2000"),
-            @Property(name="ConnectTimeout", value="1000")
-    })
+            @Property(name="ConnectTimeout", value="1000"),
+            @Property(name="MaxAutoRetriesNextServer", value="2")
+    }, exportToArchaius = true)
     public static interface SampleMovieService {
 
         @TemplateName("findMovieById")

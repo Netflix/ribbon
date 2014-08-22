@@ -16,13 +16,19 @@
 package com.netflix.ribbon;
 
 import com.netflix.client.config.ClientConfigFactory;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 
 import javax.inject.Inject;
 
 public class DefaultResourceFactory extends RibbonResourceFactory {
 
     @Inject
+    public DefaultResourceFactory(ClientConfigFactory clientConfigFactory, RibbonTransportFactory transportFactory,
+                                  AnnotationProcessorsProvider annotationProcessorsProvider) {
+        super(clientConfigFactory, transportFactory, annotationProcessorsProvider);
+    }
+
     public DefaultResourceFactory(ClientConfigFactory clientConfigFactory, RibbonTransportFactory transportFactory) {
-        super(clientConfigFactory, transportFactory);
+        super(clientConfigFactory, transportFactory, AnnotationProcessorsProvider.DEFAULT);
     }
 }

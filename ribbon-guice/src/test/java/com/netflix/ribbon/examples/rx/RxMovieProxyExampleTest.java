@@ -33,6 +33,8 @@ import com.netflix.ribbon.examples.rx.proxy.MovieService;
 import com.netflix.ribbon.examples.rx.proxy.RxMovieProxyExample;
 import com.netflix.ribbon.guice.RibbonModule;
 import com.netflix.ribbon.guice.RibbonResourceProvider;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider.DefaultAnnotationProcessorsProvider;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import org.junit.Test;
@@ -83,6 +85,7 @@ public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
                     protected void configure() {
                         bind(RibbonResourceFactory.class).to(DefaultResourceFactory.class).in(Scopes.SINGLETON);
                         bind(RibbonTransportFactory.class).to(DefaultRibbonTransportFactory.class).in(Scopes.SINGLETON);
+                        bind(AnnotationProcessorsProvider.class).to(DefaultAnnotationProcessorsProvider.class).in(Scopes.SINGLETON);
                         bind(ClientConfigFactory.class).to(MyClientConfigFactory.class).in(Scopes.SINGLETON);
                     }
                 },

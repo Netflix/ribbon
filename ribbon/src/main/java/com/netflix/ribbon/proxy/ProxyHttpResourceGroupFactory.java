@@ -21,7 +21,7 @@ import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.processor.AnnotationProcessor;
-import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 
 /**
  * @author Tomasz Bak
@@ -29,18 +29,18 @@ import com.netflix.ribbon.proxy.processor.ProxyAnnotations;
 public class ProxyHttpResourceGroupFactory<T> {
     private final ClassTemplate<T> classTemplate;
     private final RibbonResourceFactory httpResourceGroupFactory;
-    private final ProxyAnnotations annotations;
+    private final AnnotationProcessorsProvider processors;
 
     ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate) {
-        this(classTemplate, new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT),
-               ProxyAnnotations.getInstance());
+        this(classTemplate, new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT, AnnotationProcessorsProvider.DEFAULT),
+                AnnotationProcessorsProvider.DEFAULT);
     }
-    
+
     ProxyHttpResourceGroupFactory(ClassTemplate<T> classTemplate, RibbonResourceFactory httpResourceGroupFactory,
-            ProxyAnnotations annotations) {
+                                  AnnotationProcessorsProvider processors) {
         this.classTemplate = classTemplate;
         this.httpResourceGroupFactory = httpResourceGroupFactory;
-        this.annotations = annotations;
+        this.processors = processors;
     }
 
     public HttpResourceGroup createResourceGroup() {
@@ -53,7 +53,7 @@ public class ProxyHttpResourceGroupFactory<T> {
                 name = classTemplate.getClientInterface().getSimpleName();
             }
             HttpResourceGroup.Builder builder = httpResourceGroupFactory.createHttpResourceGroupBuilder(name);
-            for (AnnotationProcessor processor: annotations.getProcessors()) {
+            for (AnnotationProcessor processor: processors.getProcessors()) {
                 processor.process(name, builder, httpResourceGroupFactory, classTemplate.getClientInterface());
             }
             return builder.build();
