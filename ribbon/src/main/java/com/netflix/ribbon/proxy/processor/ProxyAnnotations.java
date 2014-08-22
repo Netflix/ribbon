@@ -20,6 +20,7 @@ public class ProxyAnnotations {
         processors.add(new HttpAnnotationProcessor());
         processors.add(new HystrixAnnotationProcessor());
         processors.add(new CacheProviderAnnotationProcessor());
+        processors.add(new ClientPropertiesProcessor());
         ServiceLoader<AnnotationProcessor> loader = ServiceLoader.load(AnnotationProcessor.class);
         Iterator<AnnotationProcessor> iterator = loader.iterator();
         Set<AnnotationProcessor> externalProcessors = new HashSet<AnnotationProcessor>();

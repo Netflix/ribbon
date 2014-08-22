@@ -16,7 +16,6 @@
 package com.netflix.ribbon.proxy;
 
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
@@ -46,10 +45,6 @@ public class RibbonDynamicProxy<T> implements InvocationHandler {
         HttpResourceGroup httpResourceGroup = new ProxyHttpResourceGroupFactory<T>(classTemplate, resourceGroupFactory, annotations).createResourceGroup();
         templateExecutorMap = MethodTemplateExecutor.from(httpResourceGroup, clientInterface, annotations);
         lifeCycle = new ProxyLifecycleImpl(httpResourceGroup);
-    }
-
-    private IClientConfig createClientConfig(ClassTemplate<T> classTemplate, ClientConfigFactory configFactory) {
-        return configFactory.newConfig();
     }
 
     @Override

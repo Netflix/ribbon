@@ -1,5 +1,6 @@
 package com.netflix.ribbon.proxy.processor;
 
+import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.ProxyAnnotationException;
@@ -19,10 +20,10 @@ import static java.lang.String.format;
 /**
  * Http annotation
  */
-public class HttpAnnotationProcessor implements AnnotationProcessor {
+public class HttpAnnotationProcessor implements AnnotationProcessor<HttpResourceGroup.Builder, Builder> {
 
     @Override
-    public void process(Builder templateBuilder, Method method) {
+    public void process(String templateName, Builder templateBuilder, Method method) {
         Http annotation = method.getAnnotation(Http.class);
         if (null == annotation) {
             throw new ProxyAnnotationException(format("Method %s misses @Http annotation", method.getName()));
@@ -59,6 +60,6 @@ public class HttpAnnotationProcessor implements AnnotationProcessor {
     }
 
     @Override
-    public void process(HttpResourceGroup.Builder groupBuilder, Class interfaceClass) {
+    public void process(String groupName, HttpResourceGroup.Builder groupBuilder, RibbonResourceFactory resourceFactory, Class<?> interfaceClass) {
     }
 }

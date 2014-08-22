@@ -27,6 +27,12 @@ public abstract class ResourceGroup<T extends RequestTemplate<?, ?>> {
     protected final ClientConfigFactory configFactory;
     protected final RibbonTransportFactory transportFactory;
 
+    public static abstract class GroupBuilder<T extends ResourceGroup> {
+        public abstract T build();
+
+        public abstract GroupBuilder withClientOptions(ClientOptions options);
+    }
+
     public static abstract class TemplateBuilder<S, R, T extends RequestTemplate<S, R>> {
         public abstract TemplateBuilder withFallbackProvider(FallbackHandler<S> fallbackProvider);
 

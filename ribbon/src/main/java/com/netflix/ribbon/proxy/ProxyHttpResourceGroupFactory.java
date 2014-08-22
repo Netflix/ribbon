@@ -54,7 +54,7 @@ public class ProxyHttpResourceGroupFactory<T> {
             }
             HttpResourceGroup.Builder builder = httpResourceGroupFactory.createHttpResourceGroupBuilder(name);
             for (AnnotationProcessor processor: annotations.getProcessors()) {
-                processor.process(builder, classTemplate.getClientInterface());
+                processor.process(name, builder, httpResourceGroupFactory, classTemplate.getClientInterface());
             }
             return builder.build();
         }

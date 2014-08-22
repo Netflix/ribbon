@@ -63,7 +63,7 @@ class MethodTemplateExecutor {
         this.methodTemplate = methodTemplate;
         httpRequestTemplateBuilder = createHttpRequestTemplateBuilder();
         for (AnnotationProcessor processor: annotations.getProcessors()) {
-            processor.process(httpRequestTemplateBuilder, methodTemplate.getMethod());
+            processor.process(methodTemplate.getTemplateName(), httpRequestTemplateBuilder, methodTemplate.getMethod());
         }
     }
 

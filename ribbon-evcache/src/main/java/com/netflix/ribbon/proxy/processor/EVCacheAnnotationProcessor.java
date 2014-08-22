@@ -1,10 +1,11 @@
 package com.netflix.ribbon.proxy.processor;
 
 import com.netflix.evcache.EVCacheTranscoder;
+import com.netflix.ribbon.ResourceGroup.GroupBuilder;
+import com.netflix.ribbon.ResourceGroup.TemplateBuilder;
+import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.evache.EvCacheOptions;
 import com.netflix.ribbon.evache.EvCacheProvider;
-import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
-import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.ProxyAnnotationException;
 import com.netflix.ribbon.proxy.Utils;
 import com.netflix.ribbon.proxy.annotation.EvCache;
@@ -16,7 +17,7 @@ import java.util.Map;
 /**
  * @author Allen Wang
  */
-public class EVCacheAnnotationProcessor implements AnnotationProcessor {
+public class EVCacheAnnotationProcessor implements AnnotationProcessor<GroupBuilder, TemplateBuilder> {
 
     private static final class CacheId {
         private final String appName;
@@ -55,7 +56,7 @@ public class EVCacheAnnotationProcessor implements AnnotationProcessor {
     private Map<CacheId, EvCacheProvider<?>> evCacheProviderPool = new HashMap<CacheId, EvCacheProvider<?>>();
 
     @Override
-    public void process(Builder templateBuilder, Method method) {
+    public void process(String templateName, TemplateBuilder templateBuilder, Method method) {
         EvCache annotation = method.getAnnotation(EvCache.class);
         if (annotation == null) {
             return;
@@ -91,7 +92,6 @@ public class EVCacheAnnotationProcessor implements AnnotationProcessor {
     }
 
     @Override
-    public void process(HttpResourceGroup.Builder groupBuilder, Class interfaceClass) {
-
+    public void process(String groupName, GroupBuilder groupBuilder, RibbonResourceFactory factory, Class<?> interfaceClass) {
     }
 }

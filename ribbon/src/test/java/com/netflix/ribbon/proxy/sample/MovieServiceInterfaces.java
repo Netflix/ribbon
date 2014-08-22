@@ -2,6 +2,8 @@ package com.netflix.ribbon.proxy.sample;
 
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.proxy.annotation.CacheProvider;
+import com.netflix.ribbon.proxy.annotation.ClientProperties;
+import com.netflix.ribbon.proxy.annotation.ClientProperties.Property;
 import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
 import com.netflix.ribbon.proxy.annotation.Http;
@@ -25,6 +27,10 @@ import static com.netflix.ribbon.proxy.sample.ResourceGroupClasses.SampleHttpRes
  */
 public class MovieServiceInterfaces {
 
+    @ClientProperties(properties = {
+            @Property(name="ReadTimeout", value="2000"),
+            @Property(name="ConnectTimeout", value="1000")
+    })
     public static interface SampleMovieService {
 
         @TemplateName("findMovieById")

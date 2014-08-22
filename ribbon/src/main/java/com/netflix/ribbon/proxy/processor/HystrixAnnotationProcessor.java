@@ -1,5 +1,6 @@
 package com.netflix.ribbon.proxy.processor;
 
+import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.http.HttpResponseValidator;
@@ -15,9 +16,9 @@ import static java.lang.String.format;
 /**
  * @author Allen Wang
  */
-public class HystrixAnnotationProcessor implements AnnotationProcessor {
+public class HystrixAnnotationProcessor implements AnnotationProcessor<HttpResourceGroup.Builder, Builder> {
     @Override
-    public void process(Builder templateBuilder, Method method) {
+    public void process(String templateName, Builder templateBuilder, Method method) {
         Hystrix annotation = method.getAnnotation(Hystrix.class);
         if (annotation == null) {
             return;
@@ -41,6 +42,6 @@ public class HystrixAnnotationProcessor implements AnnotationProcessor {
     }
 
     @Override
-    public void process(HttpResourceGroup.Builder groupBuilder, Class interfaceClass) {
+    public void process(String groupName, HttpResourceGroup.Builder groupBuilder, RibbonResourceFactory resourceFactory, Class<?> interfaceClass) {
     }
 }

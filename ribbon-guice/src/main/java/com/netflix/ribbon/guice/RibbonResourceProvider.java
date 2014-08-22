@@ -58,7 +58,7 @@ public class RibbonResourceProvider<T> implements ProviderWithExtensionVisitor<T
 
     @Inject
     @Toolable
-    void initialize(RibbonResourceFactory factory) {
+    protected void initialize(RibbonResourceFactory factory) {
         this.factory = factory;
     }
 }

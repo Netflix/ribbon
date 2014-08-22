@@ -57,4 +57,12 @@ public abstract class RibbonResourceFactory {
         builder.withClientOptions(options);
         return builder.build();
     }
+
+    public final RibbonTransportFactory getTransportFactory() {
+        return transportFactory;
+    }
+
+    public final ClientConfigFactory getClientConfigFactory() {
+        return clientConfigFactory;
+    }
 }

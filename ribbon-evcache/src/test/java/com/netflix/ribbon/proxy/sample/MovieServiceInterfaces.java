@@ -22,8 +22,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.netflix.ribbon.proxy.sample.ResourceGroupClasses.SampleHttpResourceGroup;
 
-// import com.netflix.ribbon.proxy.annotation.EvCache;
-
 /**
  * @author Tomasz Bak
  */
