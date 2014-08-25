@@ -28,7 +28,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
     private final HttpClient<ByteBuf, ByteBuf> client;
     private final HttpHeaders headers;
 
-    public static class Builder {
+    public static class Builder extends GroupBuilder<HttpResourceGroup> {
         private ClientOptions clientOptions;
         private HttpHeaders httpHeaders = new DefaultHttpHeaders();
         private ClientConfigFactory clientConfigFactory;
@@ -45,6 +45,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
             return new Builder(groupName, configFactory, transportFactory);
         }
 
+        @Override
         public Builder withClientOptions(ClientOptions options) {
             this.clientOptions = options;
             return this;
@@ -55,6 +56,7 @@ public class HttpResourceGroup extends ResourceGroup<HttpRequestTemplate<?>> {
             return this;
         }
 
+        @Override
         public HttpResourceGroup build() {
             return new HttpResourceGroup(name, clientOptions, clientConfigFactory, transportFactory, httpHeaders);
         }

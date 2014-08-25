@@ -15,20 +15,9 @@
  */
 package com.netflix.ribbon.proxy;
 
-import com.netflix.evcache.EVCacheTranscoder;
-import com.netflix.ribbon.CacheProviderFactory;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.http.HttpResponseValidator;
-import com.netflix.ribbon.hystrix.FallbackHandler;
-import com.netflix.ribbon.proxy.annotation.CacheProvider;
 import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
-import com.netflix.ribbon.proxy.annotation.EvCache;
-import com.netflix.ribbon.proxy.annotation.Http;
-import com.netflix.ribbon.proxy.annotation.Http.Header;
-import com.netflix.ribbon.proxy.annotation.Http.HttpMethod;
-import com.netflix.ribbon.proxy.annotation.Hystrix;
 import com.netflix.ribbon.proxy.annotation.TemplateName;
 import com.netflix.ribbon.proxy.annotation.Var;
 import io.netty.buffer.ByteBuf;
@@ -40,12 +29,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import static java.lang.String.*;
+import static java.lang.String.format;
 
 /**
  * Extracts information from Ribbon annotated method, to automatically populate the Ribbon request template.
@@ -60,43 +46,23 @@ class MethodTemplate {
 
     private final Method method;
     private final String templateName;
-    private final Http.HttpMethod httpMethod;
-    private final String uriTemplate;
-    private final Map<String, List<String>> headers;
     private final String[] paramNames;
     private final int[] valueIdxs;
     private final int contentArgPosition;
     private final Class<? extends ContentTransformer<?>> contentTansformerClass;
     private final Class<?> resultType;
     private final Class<?> genericContentType;
-    private final String hystrixCacheKey;
-    private final FallbackHandler<?> hystrixFallbackHandler;
-    private final HttpResponseValidator hystrixResponseValidator;
-    private final List<CacheProviderEntry> cacheProviders;
-    private final EvCacheOptions evCacheOptions;
 
     MethodTemplate(Method method) {
         this.method = method;
         MethodAnnotationValues values = new MethodAnnotationValues(method);
         templateName = values.templateName;
-        httpMethod = values.httpMethod;
-        uriTemplate = values.uriTemplate;
-        headers = Collections.unmodifiableMap(values.headers);
         paramNames = values.paramNames;
         valueIdxs = values.valueIdxs;
         contentArgPosition = values.contentArgPosition;
         contentTansformerClass = values.contentTansformerClass;
         resultType = values.resultType;
         genericContentType = values.genericContentType;
-        hystrixCacheKey = values.hystrixCacheKey;
-        hystrixFallbackHandler = values.hystrixFallbackHandler;
-        hystrixResponseValidator = values.hystrixResponseValidator;
-        cacheProviders = Collections.unmodifiableList(values.cacheProviders);
-        evCacheOptions = values.evCacheOptions;
-    }
-
-    public HttpMethod getHttpMethod() {
-        return httpMethod;
     }
 
     public String getTemplateName() {
@@ -105,14 +71,6 @@ class MethodTemplate {
 
     public Method getMethod() {
         return method;
-    }
-
-    public String getUriTemplate() {
-        return uriTemplate;
-    }
-
-    public Map<String, List<String>> getHeaders() {
-        return headers;
     }
 
     public String getParamName(int idx) {
@@ -141,26 +99,6 @@ class MethodTemplate {
 
     public Class<?> getGenericContentType() {
         return genericContentType;
-    }
-
-    public String getHystrixCacheKey() {
-        return hystrixCacheKey;
-    }
-
-    public FallbackHandler getHystrixFallbackHandler() {
-        return hystrixFallbackHandler;
-    }
-
-    public HttpResponseValidator getHystrixResponseValidator() {
-        return hystrixResponseValidator;
-    }
-
-    public List<CacheProviderEntry> getCacheProviders() {
-        return cacheProviders;
-    }
-
-    public EvCacheOptions getEvCacheOptions() {
-        return evCacheOptions;
     }
 
     public static <T> MethodTemplate[] from(Class<T> clientInterface) {
@@ -193,79 +131,20 @@ class MethodTemplate {
 
         private final Method method;
         private String templateName;
-        private Http.HttpMethod httpMethod;
-        private String uriTemplate;
         private String[] paramNames;
         private int[] valueIdxs;
         private int contentArgPosition;
         private Class<? extends ContentTransformer<?>> contentTansformerClass;
         private Class<?> resultType;
         private Class<?> genericContentType;
-        public String hystrixCacheKey;
-        private FallbackHandler<?> hystrixFallbackHandler;
-        private HttpResponseValidator hystrixResponseValidator;
-        public final Map<String, List<String>> headers = new HashMap<String, List<String>>();
-        private final List<CacheProviderEntry> cacheProviders = new ArrayList<CacheProviderEntry>();
-        private EvCacheOptions evCacheOptions;
 
         private MethodAnnotationValues(Method method) {
             this.method = method;
             extractTemplateName();
-            extractHttpAnnotation();
             extractParamNamesWithIndexes();
             extractContentArgPosition();
             extractContentTransformerClass();
             extractResultType();
-            extractHystrixHandlers();
-            extractCacheProvider();
-            extractEvCacheOptions();
-        }
-
-        private void extractCacheProvider() {
-            CacheProvider annotation = method.getAnnotation(CacheProvider.class);
-            if (annotation != null) {
-                CacheProviderFactory<?> factory = Utils.newInstance(annotation.provider());
-                cacheProviders.add(new CacheProviderEntry(annotation.key(), factory.createCacheProvider()));
-            }
-        }
-
-        private void extractHystrixHandlers() {
-            Hystrix annotation = method.getAnnotation(Hystrix.class);
-            if (annotation == null) {
-                return;
-            }
-            String cacheKey = annotation.cacheKey().trim();
-            if (!cacheKey.isEmpty()) {
-                hystrixCacheKey = cacheKey;
-            }
-            if (annotation.fallbackHandler().length == 1) {
-                hystrixFallbackHandler = Utils.newInstance(annotation.fallbackHandler()[0]);
-            } else if (annotation.fallbackHandler().length > 1) {
-                throw new ProxyAnnotationException(format("more than one fallback handler defined for method %s", methodName()));
-            }
-            if (annotation.validator().length == 1) {
-                hystrixResponseValidator = Utils.newInstance(annotation.validator()[0]);
-            } else if (annotation.validator().length > 1) {
-                throw new ProxyAnnotationException(format("more than one validator defined for method %s", methodName()));
-            }
-        }
-
-        private void extractHttpAnnotation() {
-            Http annotation = method.getAnnotation(Http.class);
-            if (null == annotation) {
-                throw new ProxyAnnotationException(format("Method %s misses @Http annotation", methodName()));
-            }
-            httpMethod = annotation.method();
-            uriTemplate = annotation.uri();
-            for (Header h : annotation.headers()) {
-                if (!headers.containsKey(h.name())) {
-                    ArrayList<String> values = new ArrayList<String>();
-                    values.add(h.value());
-                    headers.put(h.name(), values);
-                } else {
-                    headers.get(h.name()).add(h.value());
-                }
-            }
         }
 
         private void extractParamNamesWithIndexes() {
@@ -360,31 +239,6 @@ class MethodTemplate {
                 throw new ProxyAnnotationException(format("Method %s must return RibbonRequest<ByteBuf> type; instead %s type parameter found",
                         methodName(), resultType.getSimpleName()));
             }
-        }
-
-        private void extractEvCacheOptions() {
-            EvCache annotation = method.getAnnotation(EvCache.class);
-            if (annotation == null) {
-                return;
-            }
-
-            Class<? extends EVCacheTranscoder<?>>[] transcoderClasses = annotation.transcoder();
-            EVCacheTranscoder<?> transcoder;
-            if (transcoderClasses.length == 0) {
-                transcoder = null;
-            } else if (transcoderClasses.length > 1) {
-                throw new ProxyAnnotationException("Multiple transcoders defined on method " + methodName());
-            } else {
-                transcoder = Utils.newInstance(transcoderClasses[0]);
-            }
-
-            evCacheOptions = new EvCacheOptions(
-                    annotation.appName(),
-                    annotation.name(),
-                    annotation.enableZoneFallback(),
-                    annotation.ttl(),
-                    transcoder,
-                    annotation.key());
         }
 
         private String methodName() {

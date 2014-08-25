@@ -18,6 +18,7 @@ package com.netflix.ribbon;
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.http.HttpResourceGroup.Builder;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 
 /**
  * A class that can be used to create {@link com.netflix.ribbon.http.HttpResourceGroup}, {@link com.netflix.ribbon.http.HttpResourceGroup.Builder},
@@ -26,7 +27,7 @@ import com.netflix.ribbon.http.HttpResourceGroup.Builder;
  *
  */
 public final class Ribbon {
-    private static final RibbonResourceFactory factory = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    private static final RibbonResourceFactory factory = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT, AnnotationProcessorsProvider.DEFAULT);
     
     private Ribbon() {
     }

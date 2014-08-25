@@ -17,7 +17,7 @@
 */
 package com.netflix.client.config;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.reflect.TypeToken;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -26,7 +26,7 @@ import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.reflect.TypeToken;
+import static com.google.common.base.Preconditions.checkArgument;
 
 public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
 
@@ -213,6 +213,25 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
      */
     public static Set<IClientConfigKey> keys() {
         return keys;
+    }
+
+    public static IClientConfigKey valueOf(final String name) {
+        for (IClientConfigKey key: keys()) {
+            if (key.key().equals(name)) {
+                return key;
+            }
+        }
+        return new IClientConfigKey() {
+            @Override
+            public String key() {
+                return name;
+            }
+
+            @Override
+            public Class type() {
+                return String.class;
+            }
+        };
     }
     
     private final String configKey;

@@ -2,9 +2,10 @@ package com.netflix.ribbon.proxy.sample;
 
 import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.proxy.annotation.CacheProvider;
+import com.netflix.ribbon.proxy.annotation.ClientProperties;
+import com.netflix.ribbon.proxy.annotation.ClientProperties.Property;
 import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
-import com.netflix.ribbon.proxy.annotation.EvCache;
 import com.netflix.ribbon.proxy.annotation.Http;
 import com.netflix.ribbon.proxy.annotation.Http.Header;
 import com.netflix.ribbon.proxy.annotation.Http.HttpMethod;
@@ -12,7 +13,6 @@ import com.netflix.ribbon.proxy.annotation.Hystrix;
 import com.netflix.ribbon.proxy.annotation.ResourceGroup;
 import com.netflix.ribbon.proxy.annotation.TemplateName;
 import com.netflix.ribbon.proxy.annotation.Var;
-import com.netflix.ribbon.proxy.sample.EvCacheClasses.SampleEVCacheTranscoder;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
 import io.netty.buffer.ByteBuf;
@@ -20,13 +20,18 @@ import rx.Observable;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.netflix.ribbon.proxy.sample.ResourceGroupClasses.*;
+import static com.netflix.ribbon.proxy.sample.ResourceGroupClasses.SampleHttpResourceGroup;
 
 /**
  * @author Tomasz Bak
  */
 public class MovieServiceInterfaces {
 
+    @ClientProperties(properties = {
+            @Property(name="ReadTimeout", value="2000"),
+            @Property(name="ConnectTimeout", value="1000"),
+            @Property(name="MaxAutoRetriesNextServer", value="2")
+    }, exportToArchaius = true)
     public static interface SampleMovieService {
 
         @TemplateName("findMovieById")
@@ -43,8 +48,6 @@ public class MovieServiceInterfaces {
                 validator = SampleHttpResponseValidator.class,
                 fallbackHandler = MovieFallbackHandler.class)
         @CacheProvider(key = "findMovieById_{id}", provider = SampleCacheProviderFactory.class)
-        @EvCache(name = "movie-cache", appName = "movieService", key = "movie-{id}", ttl = 50,
-                enableZoneFallback = true, transcoder = SampleEVCacheTranscoder.class)
         RibbonRequest<ByteBuf> findMovieById(@Var("id") String id);
 
         @TemplateName("findRawMovieById")

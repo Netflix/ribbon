@@ -146,12 +146,20 @@ project(':ribbon') {
     
     dependencies {
         compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
-        compile 'com.netflix.evcache:evcache-client:1.0.5'
         compile 'javax.inject:javax.inject:1'
         compile project(':ribbon-transport')
         testCompile project(':ribbon-test')
         testCompile 'com.google.mockwebserver:mockwebserver:20130706'
             
+    }
+}
+
+project(':ribbon-evcache') {
+    dependencies {
+        compile project(':ribbon')
+        compile 'com.netflix.evcache:evcache-client:1.0.5'
+        testCompile project(':ribbon-test')
+        testCompile project(':ribbon').sourceSets.test.output
     }
 }
 

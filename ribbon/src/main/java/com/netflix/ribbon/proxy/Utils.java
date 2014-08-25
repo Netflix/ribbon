@@ -24,7 +24,7 @@ import static java.lang.String.*;
  *
  * @author Tomasz Bak
  */
-final class Utils {
+public final class Utils {
     private Utils() {
     }
 

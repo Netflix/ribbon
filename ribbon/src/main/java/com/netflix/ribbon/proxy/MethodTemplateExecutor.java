@@ -15,13 +15,12 @@
  */
 package com.netflix.ribbon.proxy;
 
-import com.netflix.ribbon.CacheProvider;
 import com.netflix.ribbon.RibbonRequest;
-import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.evache.EvCacheProvider;
 import com.netflix.ribbon.http.HttpRequestBuilder;
 import com.netflix.ribbon.http.HttpRequestTemplate.Builder;
 import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessor;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.reactivex.netty.channel.ContentTransformer;
@@ -30,9 +29,7 @@ import rx.Observable;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * @author Tomasz Bak
@@ -60,13 +57,14 @@ class MethodTemplateExecutor {
     private final HttpResourceGroup httpResourceGroup;
     private final MethodTemplate methodTemplate;
     private final Builder<?> httpRequestTemplateBuilder;
-    private final EvCacheProviderPool evCacheProviderPool;
 
-    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, EvCacheProviderPool evCacheProviderPool) {
+    MethodTemplateExecutor(HttpResourceGroup httpResourceGroup, MethodTemplate methodTemplate, AnnotationProcessorsProvider annotations) {
         this.httpResourceGroup = httpResourceGroup;
         this.methodTemplate = methodTemplate;
-        this.evCacheProviderPool = evCacheProviderPool;
         httpRequestTemplateBuilder = createHttpRequestTemplateBuilder();
+        for (AnnotationProcessor processor: annotations.getProcessors()) {
+            processor.process(methodTemplate.getTemplateName(), httpRequestTemplateBuilder, methodTemplate.getMethod());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -80,10 +78,6 @@ class MethodTemplateExecutor {
 
     private Builder<?> createHttpRequestTemplateBuilder() {
         Builder<?> httpRequestTemplateBuilder = createBaseHttpRequestTemplate(httpResourceGroup);
-        withRequestUriBase(httpRequestTemplateBuilder);
-        withHttpHeaders(httpRequestTemplateBuilder);
-        withHystrixHandlers(httpRequestTemplateBuilder);
-        withCacheProviders(httpRequestTemplateBuilder);
         return httpRequestTemplateBuilder;
     }
 
@@ -96,48 +90,6 @@ class MethodTemplateExecutor {
 
         }
         return httpRequestTemplate;
-    }
-
-    private void withRequestUriBase(Builder<?> httpRequestTemplate) {
-        httpRequestTemplate.withMethod(methodTemplate.getHttpMethod().name());
-        if (methodTemplate.getUriTemplate() != null) {
-            httpRequestTemplate.withUriTemplate(methodTemplate.getUriTemplate());
-        }
-    }
-
-    private void withHttpHeaders(Builder<?> httpRequestTemplate) {
-        for (Entry<String, List<String>> header : methodTemplate.getHeaders().entrySet()) {
-            String key = header.getKey();
-            for (String value : header.getValue()) {
-                httpRequestTemplate.withHeader(key, value);
-            }
-        }
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private void withHystrixHandlers(Builder<?> httpRequestTemplate) {
-        if (methodTemplate.getHystrixFallbackHandler() != null) {
-            httpRequestTemplate.withFallbackProvider(methodTemplate.getHystrixFallbackHandler());
-        }
-        if (methodTemplate.getHystrixResponseValidator() != null) {
-            httpRequestTemplate.withResponseValidator(methodTemplate.getHystrixResponseValidator());
-        }
-        if (methodTemplate.getHystrixCacheKey() != null) {
-            httpRequestTemplate.withRequestCacheKey(methodTemplate.getHystrixCacheKey());
-        }
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked", "OverlyStrongTypeCast"})
-    private void withCacheProviders(Builder<?> httpRequestTemplate) {
-        if (methodTemplate.getCacheProviders() != null) {
-            for (MethodTemplate.CacheProviderEntry entry : methodTemplate.getCacheProviders()) {
-                httpRequestTemplate.withCacheProvider(entry.getKey(), (CacheProvider) entry.getCacheProvider());
-            }
-        }
-        EvCacheOptions evCacheOptions = methodTemplate.getEvCacheOptions();
-        if (evCacheOptions != null) {
-            httpRequestTemplate.withCacheProvider(evCacheOptions.getCacheKeyTemplate(), (EvCacheProvider) evCacheProviderPool.getMatching(evCacheOptions));
-        }
     }
 
     private void withParameters(HttpRequestBuilder<?> requestBuilder, Object[] args) {
@@ -174,12 +126,11 @@ class MethodTemplateExecutor {
         }
     }
 
-    public static Map<Method, MethodTemplateExecutor> from(HttpResourceGroup httpResourceGroup, Class<?> clientInterface) {
+    public static Map<Method, MethodTemplateExecutor> from(HttpResourceGroup httpResourceGroup, Class<?> clientInterface, AnnotationProcessorsProvider annotations) {
         MethodTemplate[] methodTemplates = MethodTemplate.from(clientInterface);
-        EvCacheProviderPool evCacheProviderPool = new EvCacheProviderPool(methodTemplates);
         Map<Method, MethodTemplateExecutor> tgm = new HashMap<Method, MethodTemplateExecutor>();
         for (MethodTemplate mt : methodTemplates) {
-            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt, evCacheProviderPool));
+            tgm.put(mt.getMethod(), new MethodTemplateExecutor(httpResourceGroup, mt, annotations));
         }
         return tgm;
     }

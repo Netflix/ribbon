@@ -116,7 +116,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     public IClientConfig getClientConfig() {
         return clientConfig;
     }
-        
+
     public int getResponseTimeOut() {
         int maxRetryNextServer = 0;
         int maxRetrySameServer = 0;

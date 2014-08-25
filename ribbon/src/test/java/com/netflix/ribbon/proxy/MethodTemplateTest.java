@@ -15,21 +15,16 @@
  */
 package com.netflix.ribbon.proxy;
 
-import com.netflix.ribbon.evache.EvCacheOptions;
-import com.netflix.ribbon.proxy.MethodTemplate.CacheProviderEntry;
-import com.netflix.ribbon.proxy.sample.EvCacheClasses.SampleEVCacheTranscoder;
 import com.netflix.ribbon.proxy.sample.Movie;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.BrokenMovieService;
-import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.HystrixOptionalAnnotationValues;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.PostsWithDifferentContentTypes;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
 import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.TemplateNameDerivedFromMethodName;
 import com.netflix.ribbon.proxy.sample.MovieTransformer;
-import com.netflix.ribbon.proxy.sample.SampleCacheProviderFactory.SampleCacheProvider;
 import io.netty.buffer.ByteBuf;
 import org.junit.Test;
 
-import static com.netflix.ribbon.proxy.Utils.*;
+import static com.netflix.ribbon.proxy.Utils.methodByName;
 import static org.junit.Assert.*;
 
 /**
@@ -43,30 +38,10 @@ public class MethodTemplateTest {
 
         assertEquals("id", template.getParamName(0));
         assertEquals("findMovieById", template.getTemplateName());
-        assertEquals("/movies/{id}", template.getUriTemplate());
 
-        assertTrue("value1.1".equals(template.getHeaders().get("X-MyHeader1").get(0)));
-        assertTrue("value1.2".equals(template.getHeaders().get("X-MyHeader1").get(1)));
-        assertTrue("value2".equals(template.getHeaders().get("X-MyHeader2").get(0)));
 
         assertEquals(0, template.getParamPosition(0));
         assertEquals(template.getResultType(), ByteBuf.class);
-
-        assertEquals("findMovieById/{id}", template.getHystrixCacheKey());
-        assertNotNull(template.getHystrixFallbackHandler());
-        assertNotNull(template.getHystrixResponseValidator());
-
-        CacheProviderEntry cacheProviderEntry = template.getCacheProviders().get(0);
-        assertNotNull(cacheProviderEntry);
-        assertTrue(cacheProviderEntry.getCacheProvider() instanceof SampleCacheProvider);
-
-        EvCacheOptions evOpts = template.getEvCacheOptions();
-        assertNotNull(evOpts);
-        assertEquals("movie-cache", evOpts.getCacheName());
-        assertEquals("movieService", evOpts.getAppName());
-        assertEquals("movie-{id}", evOpts.getCacheKeyTemplate());
-        assertEquals(50, evOpts.getTimeToLive());
-        assertTrue(evOpts.getTranscoder() instanceof SampleEVCacheTranscoder);
     }
 
     @Test
@@ -74,7 +49,6 @@ public class MethodTemplateTest {
         MethodTemplate template = new MethodTemplate(methodByName(SampleMovieService.class, "findMovie"));
 
         assertEquals("findMovie", template.getTemplateName());
-        assertEquals("/movies?name={name}&author={author}", template.getUriTemplate());
         assertEquals("name", template.getParamName(0));
         assertEquals(0, template.getParamPosition(0));
         assertEquals("author", template.getParamName(1));
@@ -85,24 +59,6 @@ public class MethodTemplateTest {
     public void testTemplateNameCanBeDerivedFromMethodName() throws Exception {
         MethodTemplate template = new MethodTemplate(methodByName(TemplateNameDerivedFromMethodName.class, "myTemplateName"));
         assertEquals("myTemplateName", template.getTemplateName());
-    }
-
-    @Test
-    public void testHystrixOptionalParameters() throws Exception {
-        MethodTemplate template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithCacheKeyOnly"));
-        assertNotNull(template.getHystrixCacheKey());
-        assertNull(template.getHystrixResponseValidator());
-        assertNull(template.getHystrixFallbackHandler());
-
-        template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithValidatorOnly"));
-        assertNull(template.getHystrixCacheKey());
-        assertNotNull(template.getHystrixResponseValidator());
-        assertNull(template.getHystrixFallbackHandler());
-
-        template = new MethodTemplate(methodByName(HystrixOptionalAnnotationValues.class, "hystrixWithFallbackHandlerOnly"));
-        assertNull(template.getHystrixCacheKey());
-        assertNull(template.getHystrixResponseValidator());
-        assertNotNull(template.getHystrixFallbackHandler());
     }
 
     @Test

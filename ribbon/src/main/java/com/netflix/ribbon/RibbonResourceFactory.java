@@ -19,9 +19,11 @@ import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.http.HttpResourceGroup.Builder;
 import com.netflix.ribbon.proxy.RibbonDynamicProxy;
+import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 
 /**
- * Factory for creating an HttpResourceGroup.  For DI either bind DefaultHttpResourceGroupFactory
+ * Factory for creating an HttpResourceGroup or dynamic proxy from an annotated interface.
+ * For DI either bind DefaultHttpResourceGroupFactory
  * or implement your own to customize or override HttpResourceGroup.
  * 
  * @author elandau
@@ -29,12 +31,15 @@ import com.netflix.ribbon.proxy.RibbonDynamicProxy;
 public abstract class RibbonResourceFactory {
     protected final ClientConfigFactory clientConfigFactory;
     protected final RibbonTransportFactory transportFactory;
+    protected final AnnotationProcessorsProvider annotationProcessors;
 
-    public static final RibbonResourceFactory DEFAULT = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT);
+    public static final RibbonResourceFactory DEFAULT = new DefaultResourceFactory(ClientConfigFactory.DEFAULT, RibbonTransportFactory.DEFAULT,
+            AnnotationProcessorsProvider.DEFAULT);
 
-    public RibbonResourceFactory(ClientConfigFactory configFactory, RibbonTransportFactory transportFactory) {
+    public RibbonResourceFactory(ClientConfigFactory configFactory, RibbonTransportFactory transportFactory, AnnotationProcessorsProvider processors) {
         this.clientConfigFactory = configFactory;
         this.transportFactory = transportFactory;
+        this.annotationProcessors = processors;
     }
 
     public Builder createHttpResourceGroupBuilder(String name) {
@@ -49,12 +54,20 @@ public abstract class RibbonResourceFactory {
 
 
     public <T> T from(Class<T> classType) {
-        return RibbonDynamicProxy.newInstance(classType, this, clientConfigFactory, transportFactory);
+        return RibbonDynamicProxy.newInstance(classType, this, clientConfigFactory, transportFactory, annotationProcessors);
     }
 
     public HttpResourceGroup createHttpResourceGroup(String name, ClientOptions options) {
         Builder builder = createHttpResourceGroupBuilder(name);
         builder.withClientOptions(options);
         return builder.build();
+    }
+
+    public final RibbonTransportFactory getTransportFactory() {
+        return transportFactory;
+    }
+
+    public final ClientConfigFactory getClientConfigFactory() {
+        return clientConfigFactory;
     }
 }
