@@ -43,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
-import rx.functions.Func1;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -116,19 +115,6 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
       
     public IClientConfig getClientConfig() {
         return clientConfig;
-    }
-
-    public <T> Observable<T> connectWithAction(final Func1<ObservableConnection<O, I>, Observable<T>> action, RetryHandler retryHandler) {
-        return lbExecutor.create(new LoadBalancerObservableCommand<T>() {
-            @Override
-            public Observable<T> run(Server server) {
-                return getRxClient(server.getHost(), server.getPort()).connect().flatMap(action);
-            }
-        }, retryHandler == null ? this.retryHandler : retryHandler);
-    }
-
-    public <T> Observable<T> connectWithAction(final Func1<ObservableConnection<O, I>, Observable<T>> action) {
-        return connectWithAction(action, retryHandler);
     }
 
     public int getResponseTimeOut() {

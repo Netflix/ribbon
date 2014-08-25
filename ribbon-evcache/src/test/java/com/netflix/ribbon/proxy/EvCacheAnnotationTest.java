@@ -25,7 +25,7 @@ import com.netflix.ribbon.http.HttpResourceGroup;
 import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
-import com.netflix.ribbon.proxy.sample.MovieServiceInterfaces.SampleMovieService;
+import com.netflix.ribbon.proxy.sample.SampleMovieServiceWithEVCache;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -91,11 +91,10 @@ public class EvCacheAnnotationTest {
         expect(httpRequestTemplateBuilderMock.withResponseValidator(anyObject(SampleHttpResponseValidator.class))).andReturn(httpRequestTemplateBuilderMock);
         expect(httpRequestTemplateBuilderMock.withCacheProvider(anyObject(String.class), anyObject(CacheProvider.class))).andReturn(httpRequestTemplateBuilderMock);
         expect(httpRequestTemplateBuilderMock.withCacheProvider(anyObject(String.class), anyObject(EvCacheProvider.class))).andReturn(httpRequestTemplateBuilderMock);
-        // expect(evCacheProviderPoolMock.getMatching(anyObject(EvCacheOptions.class))).andReturn(evCacheProviderMock);
 
         replayAll();
 
-        MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, "findMovieById");
+        MethodTemplateExecutor executor = createExecutor(SampleMovieServiceWithEVCache.class, "findMovieById");
         RibbonRequest ribbonRequest = executor.executeFromTemplate(new Object[]{"id123"});
 
         verifyAll();

@@ -159,6 +159,7 @@ project(':ribbon-evcache') {
         compile project(':ribbon')
         compile 'com.netflix.evcache:evcache-client:1.0.5'
         testCompile project(':ribbon-test')
+        testCompile project(':ribbon').sourceSets.test.output
     }
 }
 
