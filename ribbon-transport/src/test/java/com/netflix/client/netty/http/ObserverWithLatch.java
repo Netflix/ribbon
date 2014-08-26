@@ -17,12 +17,13 @@
  */
 package com.netflix.client.netty.http;
 
+import rx.Observer;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import static org.junit.Assert.*;
 
-import rx.Observer;
+import static org.junit.Assert.fail;
 
 
 public class ObserverWithLatch<T> implements Observer<T> {
@@ -54,7 +55,7 @@ public class ObserverWithLatch<T> implements Observer<T> {
     public void await() {
         boolean completed = false;
         try {
-            completed = latch.await(600000, TimeUnit.SECONDS);
+            completed = latch.await(10, TimeUnit.SECONDS);
         } catch (Exception e) { // NOPMD
         }
         if (!completed) {

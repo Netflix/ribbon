@@ -383,6 +383,9 @@ public class NettyClientTest {
         ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
         observableWithRetries.subscribe(observer);
         observer.await();
+        if (observer.error != null) {
+            observer.error.printStackTrace();
+        }
         assertEquals("ribbon", observer.obj.name);
         assertEquals(2, observer.obj.age);
         ServerStats stats = lbObservables.getServerStats(badServer);
