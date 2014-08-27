@@ -17,17 +17,6 @@
 */
 package com.netflix.niws.client.http;
 
-import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.net.URI;
-import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.ws.rs.core.MultivaluedMap;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -38,6 +27,16 @@ import com.netflix.client.http.HttpHeaders;
 import com.netflix.client.http.HttpResponse;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.GenericType;
+
+import javax.ws.rs.core.MultivaluedMap;
+import java.io.InputStream;
+import java.lang.reflect.Type;
+import java.net.URI;
+import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * A NIWS   Client Response
@@ -112,6 +111,7 @@ class HttpClientResponse implements HttpResponse {
         return headers.asMap();
     }
 
+    @Override
     public int getStatus() {
         return bcr.getStatus();
     }
@@ -124,6 +124,7 @@ class HttpClientResponse implements HttpResponse {
         return isSuccess;
     }
 
+    @Override
     public boolean hasEntity() {
         return bcr.hasEntity();
     }
