@@ -179,7 +179,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                             logger.error("Unexpected error", ex);
                             t1.onError(ex);
                         }
-                        retryWithSameServer(server, clientObservableProvider.run(server), retryHandler).lift(RetryNextServerOperator.this).subscribe(t1);
+                        retryWithSameServer(server, clientObservableProvider.run(server), retryHandler).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
                     } else {
                         t1.onError(finalThrowable);
                     }
@@ -273,7 +273,7 @@ public class LoadBalancerExecutor extends LoadBalancerContext {
                     }
                     
                     if (shouldRetry) {
-                        singleHostObservable.lift(RetrySameServerOperator.this).subscribe(t1);
+                        singleHostObservable.lift(RetrySameServerOperator.this).unsafeSubscribe(t1);
                     } else {
                         t1.onError(finalThrowable);
                     }
