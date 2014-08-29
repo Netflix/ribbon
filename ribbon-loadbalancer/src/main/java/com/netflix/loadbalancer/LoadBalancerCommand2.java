@@ -2,44 +2,36 @@ package com.netflix.loadbalancer;
 
 import com.netflix.client.ClientException;
 import com.netflix.client.RetryHandler;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.servo.monitor.Stopwatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observer;
 import rx.Subscriber;
-import rx.observers.SafeSubscriber;
 import rx.subscriptions.SerialSubscription;
 
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Allen Wang
  */
-public abstract class LoadBalancerCommand2<T> extends LoadBalancerContext implements LoadBalancerObservableCommand<T> {
+public abstract class LoadBalancerCommand2<T> extends LoadBalancerRetrySameServerCommand<T> implements LoadBalancerObservableCommand<T> {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalancerCommand2.class);
 
     private final URI loadBalancerURI;
     private final Object loadBalancerKey;
 
-    public LoadBalancerCommand2(ILoadBalancer lb) {
-        this(lb, null, null, null, null);
+    public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext) {
+        this(loadBalancerContext, null, null, null);
     }
 
-    public LoadBalancerCommand2(ILoadBalancer lb, IClientConfig clientConfig) {
-        this(lb, clientConfig, null, null, null);
+    public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler) {
+        this(loadBalancerContext, retryHandler, null, null);
     }
 
-    public LoadBalancerCommand2(ILoadBalancer lb, IClientConfig clientConfig, RetryHandler defaultRetryHandler) {
-        this(lb, clientConfig, defaultRetryHandler, null, null);
-    }
-
-    public LoadBalancerCommand2(ILoadBalancer lb, IClientConfig clientConfig, RetryHandler defaultRetryHandler, URI loadBalancerURI, Object loadBalancerKey) {
-        super(lb, clientConfig, defaultRetryHandler);
+    public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler, URI loadBalancerURI, Object loadBalancerKey) {
+        super(loadBalancerContext, retryHandler);
         this.loadBalancerURI = loadBalancerURI;
         this.loadBalancerKey = loadBalancerKey;
     }
@@ -72,7 +64,7 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerContext implem
                                 "NUMBER_OF_RETRIES_NEXTSERVER_EXCEEDED :"
                                         + maxRetriesNextServer
                                         + " retries, while making a call with load balancer: "
-                                        +  getDeepestCause(e).getMessage(), e);
+                                        +  loadBalancerContext.getDeepestCause(e).getMessage(), e);
                         shouldRetry = false;
                     } else {
                         finalThrowable = e;
@@ -80,7 +72,7 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerContext implem
                     if (shouldRetry) {
                         Server server = null;
                         try {
-                            server = getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
+                            server = loadBalancerContext.getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
                         } catch (Exception ex) {
                             logger.error("Unexpected error", ex);
                             t1.onError(ex);
@@ -113,7 +105,7 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerContext implem
     public Observable<T> create() {
         Server server = null;
         try {
-            server = getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
+            server = loadBalancerContext.getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
         } catch (Exception e) {
             return Observable.error(e);
         }
@@ -124,86 +116,6 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerContext implem
         } else {
             return forSameServer.lift(new RetryNextServerOperator());
         }
-    }
-
-    private class RetrySameServerOperator implements Operator<T, T> {
-        private final Server server;
-        private final Observable<T> singleHostObservable;
-        private final RetryHandler errorHandler = getRetryHandler();
-        private final AtomicInteger counter = new AtomicInteger();
-
-        RetrySameServerOperator(final Server server, final Observable<T> singleHostObservable) {
-            this.server = server;
-            this.singleHostObservable = singleHostObservable;
-        }
-
-        @Override
-        public Subscriber<? super T> call(final Subscriber<? super T> t1) {
-            SerialSubscription serialSubscription = new SerialSubscription();
-            t1.add(serialSubscription);
-            final ServerStats serverStats = getServerStats(server);
-            noteOpenConnection(serverStats);
-            final Stopwatch tracer = getExecuteTracer().start();
-            Subscriber<T> subscriber = new Subscriber<T>() {
-                private volatile T entity;
-                @Override
-                public void onCompleted() {
-                    recordStats(entity, null);
-                    t1.onCompleted();
-                }
-
-                @Override
-                public void onError(Throwable e) {
-                    logger.debug("Got error {} when executed on server {}", e, server);
-                    recordStats(entity, e);
-                    int maxRetries = errorHandler.getMaxRetriesOnSameServer();
-                    boolean shouldRetry = maxRetries > 0 && errorHandler.isRetriableException(e, true);
-                    final Throwable finalThrowable;
-                    if (shouldRetry && !handleSameServerRetry(server, counter.incrementAndGet(), maxRetries, e)) {
-                        finalThrowable = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
-                                "Number of retries exceeded max " + maxRetries + " retries, while making a call for: " + server, e);
-                        shouldRetry = false;
-                    } else {
-                        finalThrowable = e;
-                    }
-
-                    if (shouldRetry) {
-                        singleHostObservable.lift(RetrySameServerOperator.this).unsafeSubscribe(t1);
-                    } else {
-                        t1.onError(finalThrowable);
-                    }
-                }
-
-                @Override
-                public void onNext(T obj) {
-                    entity = obj;
-                    t1.onNext(obj);
-                }
-
-                private void recordStats(Object entity, Throwable exception) {
-                    tracer.stop();
-                    long duration = tracer.getDuration(TimeUnit.MILLISECONDS);
-                    noteRequestCompletion(serverStats, entity, exception, duration, errorHandler);
-                }
-            };
-            Subscriber<T> safeSubscriber = new SafeSubscriber<T>(subscriber);
-            serialSubscription.set(safeSubscriber);
-            return safeSubscriber;
-        }
-
-    }
-
-    /**
-     * Gets the {@link Observable} that represents the result of executing on a server, after possible retries as dictated by
-     * {@link RetryHandler}. During retry, any errors that are retriable are consumed by the function and will not be observed
-     * by the external {@link Observer}. If number of retries exceeds the maximal retries allowed on one server, a final error will
-     * be emitted by the returned {@link Observable}.
-     *
-     * @param forServer A lazy Observable that does not start execution until it is subscribed to
-     */
-    public Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer) {
-        // return forServer;
-        return forServer.lift(new RetrySameServerOperator(server, forServer));
     }
 
 }

@@ -29,6 +29,7 @@ import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.LoadBalancerCommand2;
+import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListChangeListener;
 import io.reactivex.netty.channel.ObservableConnection;
@@ -62,7 +63,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     protected final AbstractSslContextFactory sslContextFactory;
     protected final MetricEventsListener<? extends ClientMetricsEvent<?>> listener;
     protected final MetricEventsSubject<ClientMetricsEvent<?>> eventSubject;
-    protected final ILoadBalancer lb;
+    protected final LoadBalancerContext lbContext;
 
     public LoadBalancingRxClient(IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
@@ -74,7 +75,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     
     public LoadBalancingRxClient(ILoadBalancer lb, IClientConfig config, RetryHandler retryHandler, PipelineConfigurator<O, I> pipelineConfigurator) {
         rxClientCache = new ConcurrentHashMap<Server, T>();
-        this.lb = lb;
+        this.lbContext = new LoadBalancerContext(lb, config, retryHandler);
         this.defaultRetryHandler = retryHandler;
         this.pipelineConfigurator = pipelineConfigurator;
         this.clientConfig = config;
@@ -183,10 +184,10 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
      * This is where we remove HttpClient and shutdown its connection pool if it is no longer available from load balancer.
      */
     private void addLoadBalancerListener() {
-        if (!(lb instanceof BaseLoadBalancer)) {
+        if (!(lbContext.getLoadBalancer() instanceof BaseLoadBalancer)) {
             return;
         }
-        ((BaseLoadBalancer) lb).addServerListChangeListener(new ServerListChangeListener() {
+        ((BaseLoadBalancer) lbContext.getLoadBalancer()).addServerListChangeListener(new ServerListChangeListener() {
             @Override
             public void serverListChanged(List<Server> oldList, List<Server> newList) {
                 Set<Server> removedServers = new HashSet<Server>(oldList);
@@ -229,8 +230,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     
     @Override
     public Observable<ObservableConnection<O, I>> connect() {
-        LoadBalancerCommand2<ObservableConnection<O, I>> command = new LoadBalancerCommand2<ObservableConnection<O, I>>(lb, this.getClientConfig(),
-                this.defaultRetryHandler) {
+        LoadBalancerCommand2<ObservableConnection<O, I>> command = new LoadBalancerCommand2<ObservableConnection<O, I>>(lbContext) {
             @Override
             public Observable<ObservableConnection<O, I>> run(Server server) {
                 return getRxClient(server.getHost(), server.getPort()).connect();            }
@@ -256,5 +256,9 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     public Subscription subscribe(
             MetricEventsListener<? extends ClientMetricsEvent<?>> listener) {
        return eventSubject.subscribe(listener);
+    }
+
+    public final LoadBalancerContext getLoadBalancerContext() {
+        return this.lbContext;
     }
 }

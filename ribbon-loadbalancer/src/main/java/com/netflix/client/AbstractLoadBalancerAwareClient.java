@@ -17,21 +17,22 @@
 */
 package com.netflix.client;
 
-import static com.netflix.loadbalancer.CommandToObservableConverter.toObsevableCommand;
-
-import java.net.URI;
-
-import rx.Observable;
-
 import com.google.common.base.Preconditions;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
-import com.netflix.loadbalancer.LoadBalancerCommand;
 import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.LoadBalancerExecutor;
+import com.netflix.loadbalancer.LoadBalancerCommand;
+import com.netflix.loadbalancer.LoadBalancerContext;
+import com.netflix.loadbalancer.LoadBalancerRetrySameServerCommand;
+import com.netflix.loadbalancer.LoadBalancerRunnableCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.utils.RxUtils;
+import rx.Observable;
+
+import java.net.URI;
+
+import static com.netflix.loadbalancer.CommandToObservableConverter.toObsevableCommand;
 
 /**
  * Abstract class that provides the integration of client with load balancers.
@@ -39,8 +40,7 @@ import com.netflix.utils.RxUtils;
  * @author awang
  *
  */
-public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> 
-extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {    
+public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T extends IResponse> extends LoadBalancerContext implements IClient<S, T>, IClientConfigAware {
     
     public AbstractLoadBalancerAwareClient(ILoadBalancer lb) {
         super(lb);
@@ -93,6 +93,7 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
         Preconditions.checkArgument(port > 0, "port is undefined");
         final Server server = new Server(host, port);
         RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
+        LoadBalancerRetrySameServerCommand command = new LoadBalancerRetrySameServerCommand(this, handler);
         LoadBalancerCommand<T> callableProvider = new LoadBalancerCommand<T>() {
             @Override
             public T run(Server server) throws Exception {
@@ -101,7 +102,7 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
         };
 
         try {
-            Observable<T> result = retryWithSameServer(server, toObsevableCommand(callableProvider).run(server), handler);
+            Observable<T> result = command.retryWithSameServer(server, toObsevableCommand(callableProvider).run(server));
             return RxUtils.getSingleValueWithRealErrorCause(result);
         } catch (Exception e) {
             if (e instanceof ClientException) {
@@ -126,19 +127,19 @@ extends LoadBalancerExecutor implements IClient<S, T>, IClientConfigAware {
      * URI which does not contain the host name or the protocol.
      */
     public T executeWithLoadBalancer(final S request, final IClientConfig requestConfig) throws ClientException {
-        LoadBalancerCommand<T> callableProvider = new LoadBalancerCommand<T>() {
+        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
+        LoadBalancerRunnableCommand<T> runnableCommand = new LoadBalancerRunnableCommand<T>(this, handler, request.getUri(), null) {
             @SuppressWarnings("unchecked")
             @Override
             public T run(Server server) throws Exception {
                 URI finalUri = reconstructURIWithServer(server, request.getUri());
                 S requestForServer = (S) request.replaceUri(finalUri);
-                return execute(requestForServer, requestConfig);
+                return AbstractLoadBalancerAwareClient.this.execute(requestForServer, requestConfig);
             }
         };
-        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
-        
+
         try {
-            return RxUtils.getSingleValueWithRealErrorCause(create(toObsevableCommand(callableProvider), request.getUri(), handler, request.getLoadBalancerKey()));
+            return runnableCommand.execute();
         } catch (Exception e) {
             if (e instanceof ClientException) {
                 throw (ClientException) e;

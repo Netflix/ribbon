@@ -64,7 +64,7 @@ public class MyUDPClient extends LoadBalancingUdpClient<DatagramPacket, Datagram
     }
 
     public Observable<DatagramPacket> submit(final String content) {
-        LoadBalancerCommand2<DatagramPacket> command = new LoadBalancerCommand2<DatagramPacket>(lb, getClientConfig(), defaultRetryHandler) {
+        LoadBalancerCommand2<DatagramPacket> command = new LoadBalancerCommand2<DatagramPacket>(lbContext) {
             @Override
             public Observable<DatagramPacket> run(Server server) {
                 RxClient<DatagramPacket, DatagramPacket> rxClient = getRxClient(server.getHost(), server.getPort());

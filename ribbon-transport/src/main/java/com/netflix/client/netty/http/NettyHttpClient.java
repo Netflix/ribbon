@@ -27,10 +27,10 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
 import com.netflix.client.ssl.ClientSslSocketFactoryException;
-import com.netflix.loadbalancer.AbstractLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.LoadBalancerCommand2;
+import com.netflix.loadbalancer.LoadBalancerRetrySameServerCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 import io.netty.channel.ChannelOption;
@@ -153,7 +153,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (result != null) {
             return result;
         }
-        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lb, getClientConfig(), retryHandler) {
+        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lbContext, retryHandler) {
             @Override
             public Observable<HttpClientResponse<O>> run(Server server) {
                 return submit(server.getHost(), server.getPort(), request, rxClientConfig);
@@ -164,7 +164,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     
     @VisibleForTesting
     ServerStats getServerStats(Server server) {
-        return ((AbstractLoadBalancer) lb).getLoadBalancerStats().getSingleServerStat(server);
+        return lbContext.getServerStats(server);
     }
 
     /**
@@ -190,7 +190,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (result != null) {
             return result;
         }
-        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lb, getClientConfig(), retryHandler) {
+        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lbContext, retryHandler) {
             @Override
             public Observable<HttpClientResponse<O>> run(Server server) {
                 return submit(server.getHost(), server.getPort(), request, config);
@@ -222,12 +222,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             return submit(host, port, request, config);
         }
         Server server = new Server(host, port);
-        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lb, this.getClientConfig(), errorHandler) {
-            @Override
-            public Observable<HttpClientResponse<O>> run(Server server) {
-                return null;
-            }
-        };
+        LoadBalancerRetrySameServerCommand<HttpClientResponse<O>> command = new LoadBalancerRetrySameServerCommand<HttpClientResponse<O>>(lbContext, errorHandler);
         return command.retryWithSameServer(server, submit(server.getHost(), server.getPort(), request, config));
     }
     

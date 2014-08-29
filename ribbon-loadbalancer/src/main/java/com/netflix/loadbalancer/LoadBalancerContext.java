@@ -100,7 +100,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         
         tracer = getExecuteTracer();
 
-        // Monitors.registerObject("Client_" + clientName, this);
+        Monitors.registerObject("Client_" + clientName, this);
     }
 
     protected Timer getExecuteTracer() {
