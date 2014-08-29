@@ -22,7 +22,7 @@ import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.netty.udp.LoadBalancingUdpClient;
 import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.LoadBalancerObservableCommand;
+import com.netflix.loadbalancer.LoadBalancerCommand2;
 import com.netflix.loadbalancer.Server;
 import io.netty.channel.socket.DatagramPacket;
 import io.reactivex.netty.channel.ObservableConnection;
@@ -64,7 +64,7 @@ public class MyUDPClient extends LoadBalancingUdpClient<DatagramPacket, Datagram
     }
 
     public Observable<DatagramPacket> submit(final String content) {
-        return this.lbExecutor.create(new LoadBalancerObservableCommand<DatagramPacket>() {
+        LoadBalancerCommand2<DatagramPacket> command = new LoadBalancerCommand2<DatagramPacket>(lb, getClientConfig(), defaultRetryHandler) {
             @Override
             public Observable<DatagramPacket> run(Server server) {
                 RxClient<DatagramPacket, DatagramPacket> rxClient = getRxClient(server.getHost(), server.getPort());
@@ -76,6 +76,7 @@ public class MyUDPClient extends LoadBalancingUdpClient<DatagramPacket, Datagram
                     }
                 });
             }
-        });
+        };
+        return command.create();
     }
 }
