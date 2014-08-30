@@ -1,6 +1,7 @@
 package com.netflix.loadbalancer;
 
 import com.netflix.client.ClientException;
+import com.netflix.client.ExecutionContextListenerInvoker;
 import com.netflix.client.RetryHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,15 +24,20 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerRetrySameServe
     private final Object loadBalancerKey;
 
     public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext) {
-        this(loadBalancerContext, null, null, null);
+        this(loadBalancerContext, null, null, null, null);
     }
 
     public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler) {
-        this(loadBalancerContext, retryHandler, null, null);
+        this(loadBalancerContext, retryHandler, null, null, null);
     }
 
-    public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler, URI loadBalancerURI, Object loadBalancerKey) {
-        super(loadBalancerContext, retryHandler);
+    public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler, ExecutionContextListenerInvoker<?, T> listenerInvoker) {
+        this(loadBalancerContext, retryHandler, null, null, listenerInvoker);
+    }
+
+
+    public LoadBalancerCommand2(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler, URI loadBalancerURI, Object loadBalancerKey, ExecutionContextListenerInvoker<?, T> listenerInvoker) {
+        super(loadBalancerContext, retryHandler, listenerInvoker);
         this.loadBalancerURI = loadBalancerURI;
         this.loadBalancerKey = loadBalancerKey;
     }
@@ -41,6 +47,9 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerRetrySameServe
 
         @Override
         public Subscriber<? super T> call(final Subscriber<? super T> t1) {
+            if (listenerInvoker != null) {
+                listenerInvoker.onExecutionStart();
+            }
             SerialSubscription serialSubscription = new SerialSubscription();
             t1.add(serialSubscription);
 
@@ -77,9 +86,13 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerRetrySameServe
                             logger.error("Unexpected error", ex);
                             t1.onError(ex);
                         }
-                        retryWithSameServer(server, run(server)).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
+                        retryWithSameServer(server, run(server), counter.get()).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
                     } else {
                         t1.onError(finalThrowable);
+                        if (listenerInvoker != null) {
+                            listenerInvoker.onExecutionFailed(finalThrowable, executionInfo.copy());
+                        }
+
                     }
                 }
 
@@ -109,12 +122,11 @@ public abstract class LoadBalancerCommand2<T> extends LoadBalancerRetrySameServe
         } catch (Exception e) {
             return Observable.error(e);
         }
-        Observable<T> forSameServer = retryWithSameServer(server, this.run(server));
-        // short cut: if no retry, return the same Observable
         if (getRetryHandler().getMaxRetriesOnNextServer() == 0) {
-            return forSameServer;
+            // short cut: if no retry, return the same Observable
+            return retryWithSameServer(server, this.run(server));
         } else {
-            return forSameServer.lift(new RetryNextServerOperator());
+            return retryWithSameServer(server, this.run(server), 0).lift(new RetryNextServerOperator());
         }
     }
 

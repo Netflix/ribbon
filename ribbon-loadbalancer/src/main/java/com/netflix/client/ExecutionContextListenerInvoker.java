@@ -1,6 +1,7 @@
 package com.netflix.client;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Allen Wang
@@ -8,6 +9,7 @@ import java.util.List;
 public class ExecutionContextListenerInvoker<I, O> {
     private final ExecutionContext<I> context;
     private final List<ExecutionListener<I, O>> listeners;
+    private final AtomicBoolean onStartInvoked = new AtomicBoolean();
 
     public ExecutionContextListenerInvoker(ExecutionContext<I> context, List<ExecutionListener<I, O>> listeners) {
         this.listeners = listeners;
@@ -15,10 +17,12 @@ public class ExecutionContextListenerInvoker<I, O> {
     }
 
     public void onExecutionStart() {
-        for (ExecutionListener<I, O> listener: listeners) {
-            try {
-                listener.onExecutionStart(context);
-            } catch (Throwable e) {
+        if (onStartInvoked.compareAndSet(false, true)) {
+            for (ExecutionListener<I, O> listener : listeners) {
+                try {
+                    listener.onExecutionStart(context);
+                } catch (Throwable e) {
+                }
             }
         }
     }

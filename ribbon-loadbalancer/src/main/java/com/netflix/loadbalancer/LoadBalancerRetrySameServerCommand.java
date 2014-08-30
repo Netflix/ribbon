@@ -1,6 +1,8 @@
 package com.netflix.loadbalancer;
 
 import com.netflix.client.ClientException;
+import com.netflix.client.ExecutionContextListenerInvoker;
+import com.netflix.client.ExecutionInfo;
 import com.netflix.client.RetryHandler;
 import com.netflix.servo.monitor.Stopwatch;
 import org.slf4j.Logger;
@@ -23,14 +25,22 @@ public class LoadBalancerRetrySameServerCommand<T> {
 
     protected final LoadBalancerContext loadBalancerContext;
     private final RetryHandler retryHandler;
+    protected final ExecutionContextListenerInvoker<?, T> listenerInvoker;
+    protected volatile ExecutionInfo executionInfo;
+
 
     public LoadBalancerRetrySameServerCommand(LoadBalancerContext loadBalancerContext) {
         this(loadBalancerContext, null);
     }
 
     public LoadBalancerRetrySameServerCommand(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler) {
+        this(loadBalancerContext, retryHandler, null);
+    }
+
+    public LoadBalancerRetrySameServerCommand(LoadBalancerContext loadBalancerContext, RetryHandler retryHandler, ExecutionContextListenerInvoker<?, T> listenerInvoker) {
         this.loadBalancerContext = loadBalancerContext;
         this.retryHandler = retryHandler;
+        this.listenerInvoker = listenerInvoker;
     }
 
     protected final RetryHandler getRetryHandler() {
@@ -42,14 +52,32 @@ public class LoadBalancerRetrySameServerCommand<T> {
         private final Observable<T> singleHostObservable;
         private final RetryHandler errorHandler = getRetryHandler();
         private final AtomicInteger counter = new AtomicInteger();
+        private final int numberServersAttempted;
+        private final boolean invokeOnStartAndEnd;
+
+        RetrySameServerOperator(final Server server, final Observable<T> singleHostObservable, int numberServersAttempted) {
+            this.server = server;
+            this.singleHostObservable = singleHostObservable;
+            this.numberServersAttempted = numberServersAttempted;
+            invokeOnStartAndEnd = false;
+        }
 
         RetrySameServerOperator(final Server server, final Observable<T> singleHostObservable) {
             this.server = server;
             this.singleHostObservable = singleHostObservable;
+            this.numberServersAttempted = 0;
+            invokeOnStartAndEnd = true;
         }
 
         @Override
         public Subscriber<? super T> call(final Subscriber<? super T> t1) {
+            if (listenerInvoker != null) {
+                executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
+                if (invokeOnStartAndEnd) {
+                    listenerInvoker.onExecutionStart();
+                }
+                listenerInvoker.onStartWithServer(executionInfo.copy());
+            }
             SerialSubscription serialSubscription = new SerialSubscription();
             t1.add(serialSubscription);
             final ServerStats serverStats = loadBalancerContext.getServerStats(server);
@@ -62,11 +90,19 @@ public class LoadBalancerRetrySameServerCommand<T> {
                 public void onCompleted() {
                     recordStats(entity, null);
                     t1.onCompleted();
+                    if (listenerInvoker != null) {
+                        executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
+                        listenerInvoker.onExecutionSuccess(entity, executionInfo.copy());
+                    }
                 }
 
                 @Override
                 public void onError(Throwable e) {
                     logger.debug("Got error {} when executed on server {}", e, server);
+                    if (listenerInvoker != null) {
+                        executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
+                        listenerInvoker.onExceptionWithServer(e, executionInfo.copy());
+                    }
                     recordStats(entity, e);
                     int maxRetries = errorHandler.getMaxRetriesOnSameServer();
                     boolean shouldRetry = maxRetries > 0 && errorHandler.isRetriableException(e, true);
@@ -83,6 +119,9 @@ public class LoadBalancerRetrySameServerCommand<T> {
                         singleHostObservable.lift(RetrySameServerOperator.this).unsafeSubscribe(t1);
                     } else {
                         t1.onError(finalThrowable);
+                        if (listenerInvoker != null && invokeOnStartAndEnd) {
+                            listenerInvoker.onExecutionFailed(finalThrowable, executionInfo.copy());
+                        }
                     }
                 }
 
@@ -113,7 +152,10 @@ public class LoadBalancerRetrySameServerCommand<T> {
      * @param forServer A lazy Observable that does not start execution until it is subscribed to
      */
     public Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer) {
-        // return forServer;
         return forServer.lift(new RetrySameServerOperator(server, forServer));
+    }
+
+    Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer, int numberServersTried) {
+        return forServer.lift(new RetrySameServerOperator(server, forServer, numberServersTried));
     }
 }

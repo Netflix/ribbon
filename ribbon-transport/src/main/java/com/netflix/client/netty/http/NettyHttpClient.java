@@ -20,6 +20,10 @@ package com.netflix.client.netty.http;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.netflix.client.ExecutionContext;
+import com.netflix.client.ExecutionContextListenerInvoker;
+import com.netflix.client.ExecutionListener;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
@@ -54,6 +58,7 @@ import rx.Observable;
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +74,8 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     private String requestIdHeaderName;
     
     private HttpRequestIdProvider requestIdProvider;
-    
+    private List<ExecutionListener<HttpClientRequest, HttpClientResponse>> listeners = Lists.newArrayList();
+
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
@@ -96,6 +102,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (requestIdHeaderName != null) {
             requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
         }
+        listeners.add(new TestExecutionListener());
     }
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
@@ -153,7 +160,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (result != null) {
             return result;
         }
-        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lbContext, retryHandler) {
+        ExecutionContext<HttpClientRequest> context = new ExecutionContext<HttpClientRequest>(request, requestConfig);
+        ExecutionContextListenerInvoker invoker = new ExecutionContextListenerInvoker(context, listeners);
+        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lbContext, retryHandler, invoker) {
             @Override
             public Observable<HttpClientResponse<O>> run(Server server) {
                 return submit(server.getHost(), server.getPort(), request, rxClientConfig);

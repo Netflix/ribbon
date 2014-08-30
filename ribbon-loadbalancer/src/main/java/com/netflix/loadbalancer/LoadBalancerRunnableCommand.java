@@ -37,7 +37,7 @@ public abstract class LoadBalancerRunnableCommand<T> implements LoadBalancerComm
     }
 
     private LoadBalancerCommand2<T> createObservableCommand() {
-        return new LoadBalancerCommand2<T>(loadBalancerContext, retryHandler, loadBalancerURI, loadBalancerKey) {
+        return new LoadBalancerCommand2<T>(loadBalancerContext, retryHandler, loadBalancerURI, loadBalancerKey, null) {
             @Override
             public Observable<T> run(final Server server) {
                 return Observable.create(new OnSubscribe<T>() {

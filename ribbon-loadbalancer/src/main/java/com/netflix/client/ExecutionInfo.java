@@ -11,10 +11,14 @@ public class ExecutionInfo {
     private final int numberOfPastAttemptsOnServer;
     private final int numberOfPastServersAttempted;
 
-    public ExecutionInfo(Server server, int numberOfPastAttemptsOnServer, int numberOfPastServersAttempted) {
+    private ExecutionInfo(Server server, int numberOfPastAttemptsOnServer, int numberOfPastServersAttempted) {
         this.server = server;
         this.numberOfPastAttemptsOnServer = numberOfPastAttemptsOnServer;
         this.numberOfPastServersAttempted = numberOfPastServersAttempted;
+    }
+
+    public static ExecutionInfo create(Server server, int numberOfPastAttemptsOnServer, int numberOfPastServersAttempted) {
+        return new ExecutionInfo(server, numberOfPastAttemptsOnServer, numberOfPastServersAttempted);
     }
 
     public Server getServer() {
@@ -27,5 +31,18 @@ public class ExecutionInfo {
 
     public int getNumberOfPastServersAttempted() {
         return numberOfPastServersAttempted;
+    }
+
+    public ExecutionInfo copy() {
+        return new ExecutionInfo(server, numberOfPastAttemptsOnServer, numberOfPastServersAttempted);
+    }
+
+    @Override
+    public String toString() {
+        return "ExecutionInfo{" +
+                "server=" + server +
+                ", numberOfPastAttemptsOnServer=" + numberOfPastAttemptsOnServer +
+                ", numberOfPastServersAttempted=" + numberOfPastServersAttempted +
+                '}';
     }
 }
