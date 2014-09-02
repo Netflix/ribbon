@@ -103,7 +103,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         Monitors.registerObject("Client_" + clientName, this);
     }
 
-    protected Timer getExecuteTracer() {
+    public Timer getExecuteTracer() {
         if (tracer == null) {
             synchronized(this) {
                 if (tracer == null) {
@@ -259,7 +259,7 @@ public class LoadBalancerContext implements IClientConfigAware {
      * This is called after a response is received or an exception is thrown from the client
      * to update related stats.  
      */
-    protected void noteRequestCompletion(ServerStats stats, Object response, Throwable e, long responseTime, RetryHandler errorHandler) {
+    public void noteRequestCompletion(ServerStats stats, Object response, Throwable e, long responseTime, RetryHandler errorHandler) {
         try {
             recordStats(stats, responseTime);
             RetryHandler callErrorHandler = errorHandler == null ? getRetryHandler() : errorHandler;
@@ -318,7 +318,7 @@ public class LoadBalancerContext implements IClientConfigAware {
     /**
      * This is usually called just before client execute a request.
      */
-    protected void noteOpenConnection(ServerStats serverStats) {
+    public void noteOpenConnection(ServerStats serverStats) {
         if (serverStats == null) {
             return;
         }
@@ -444,7 +444,7 @@ public class LoadBalancerContext implements IClientConfigAware {
      *
      * @param original Original URI passed from caller
      */
-    protected Server getServerFromLoadBalancer(@Nullable URI original, @Nullable Object loadBalancerKey) throws ClientException {
+    public Server getServerFromLoadBalancer(@Nullable URI original, @Nullable Object loadBalancerKey) throws ClientException {
         String host = null;
         int port = -1;
         if (original != null) {
@@ -636,7 +636,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         return numRetries;
     }
 
-    protected boolean handleSameServerRetry(Server server, int currentRetryCount, int maxRetries, Throwable e) {
+    public boolean handleSameServerRetry(Server server, int currentRetryCount, int maxRetries, Throwable e) {
         if (currentRetryCount > maxRetries) {
             return false;
         }

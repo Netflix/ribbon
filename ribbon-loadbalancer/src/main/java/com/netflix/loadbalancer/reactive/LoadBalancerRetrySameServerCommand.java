@@ -1,9 +1,12 @@
-package com.netflix.loadbalancer;
+package com.netflix.loadbalancer.reactive;
 
 import com.netflix.client.ClientException;
 import com.netflix.client.ExecutionContextListenerInvoker;
 import com.netflix.client.ExecutionInfo;
 import com.netflix.client.RetryHandler;
+import com.netflix.loadbalancer.LoadBalancerContext;
+import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ServerStats;
 import com.netflix.servo.monitor.Stopwatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +19,14 @@ import rx.subscriptions.SerialSubscription;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.netflix.loadbalancer.reactive.CommandToObservableConverter.toObsevable;
+
 /**
  * @author Allen Wang
  */
 public class LoadBalancerRetrySameServerCommand<T> {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoadBalancerCommand2.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancerObservableCommand.class);
 
     protected final LoadBalancerContext loadBalancerContext;
     private final RetryHandler retryHandler;
@@ -153,6 +158,11 @@ public class LoadBalancerRetrySameServerCommand<T> {
      */
     public Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer) {
         return forServer.lift(new RetrySameServerOperator(server, forServer));
+    }
+
+    public T retryWithSameServer(final Server server, final LoadBalancerExecutable<T> executable) throws Exception {
+        Observable<T> result = retryWithSameServer(server, toObsevable(executable).run(server));
+        return RxUtils.getSingleValueWithRealErrorCause(result);
     }
 
     Observable<T> retryWithSameServer(final Server server, final Observable<T> forServer, int numberServersTried) {

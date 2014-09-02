@@ -1,17 +1,18 @@
-package com.netflix.loadbalancer;
+package com.netflix.loadbalancer.reactive;
 
+import com.netflix.loadbalancer.Server;
 import rx.Observable;
 import rx.Subscriber;
 import rx.Observable.OnSubscribe;
 
-public class CommandToObservableConverter<T> implements LoadBalancerObservableCommand<T> {
-    private final LoadBalancerCommand<T> command;
+class CommandToObservableConverter<T> implements LoadBalancerObservable<T> {
+    private final LoadBalancerExecutable<T> command;
     
-    public static <T> LoadBalancerObservableCommand<T> toObsevableCommand(LoadBalancerCommand<T> command) {
+    static <T> LoadBalancerObservable<T> toObsevable(LoadBalancerExecutable<T> command) {
         return new CommandToObservableConverter<T>(command);
     }
 
-    public CommandToObservableConverter(LoadBalancerCommand<T> command) {
+    CommandToObservableConverter(LoadBalancerExecutable<T> command) {
         this.command = command;
     }
     

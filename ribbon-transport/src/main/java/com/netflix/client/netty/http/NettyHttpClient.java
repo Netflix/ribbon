@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.netflix.client.ExecutionContext;
-import com.netflix.client.ExecutionContextListenerInvoker;
 import com.netflix.client.ExecutionListener;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
@@ -33,10 +32,12 @@ import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
 import com.netflix.client.ssl.ClientSslSocketFactoryException;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.LoadBalancerCommand2;
-import com.netflix.loadbalancer.LoadBalancerRetrySameServerCommand;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
+import com.netflix.loadbalancer.reactive.CommandBuilder;
+import com.netflix.loadbalancer.reactive.LoadBalancerObservable;
+import com.netflix.loadbalancer.reactive.LoadBalancerObservableCommand;
+import com.netflix.loadbalancer.reactive.LoadBalancerRetrySameServerCommand;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
@@ -71,15 +72,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
         implements HttpClient<I, O> {
+
     private String requestIdHeaderName;
-    
     private HttpRequestIdProvider requestIdProvider;
-    private List<ExecutionListener<HttpClientRequest, HttpClientResponse>> listeners = Lists.newArrayList();
+    private final List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners;
+    private final CommandBuilder<HttpClientResponse<O>> defaultCommandBuilder;
 
     public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
-                new NettyHttpLoadBalancerErrorHandler(), pipeLineConfigurator, poolCleanerScheduler);
+                new NettyHttpLoadBalancerErrorHandler(), pipeLineConfigurator, poolCleanerScheduler, null);
     }
     
     public NettyHttpClient(
@@ -88,7 +90,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
         this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
-                config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
+                config, retryHandler, pipelineConfigurator, poolCleanerScheduler, null);
     }
 
     public NettyHttpClient(
@@ -97,19 +99,33 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             RetryHandler retryHandler,
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ScheduledExecutorService poolCleanerScheduler) {
-        super(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
+        this(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler, null);
+    }
+
+    public NettyHttpClient(
+            ILoadBalancer lb,
+            IClientConfig config,
+            RetryHandler retryHandler,
+            PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
+            ScheduledExecutorService poolCleanerScheduler, List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners) {
+        super(lb, config, new RequestSpecificRetryHandler(true, true, retryHandler, null), pipelineConfigurator, poolCleanerScheduler);
         requestIdHeaderName = getProperty(IClientConfigKey.Keys.RequestIdHeaderName, null, null);
         if (requestIdHeaderName != null) {
             requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
         }
-        listeners.add(new TestExecutionListener());
+        this.listeners = Lists.newArrayList();
+        this.listeners.add(new TestExecutionListener());
+        defaultCommandBuilder = CommandBuilder.<HttpClientResponse<O>>newBuilder()
+                .withLoadBalancerContext(lbContext)
+                .withListeners((List) this.listeners)
+                .withRetryHandler(defaultRetryHandler);
     }
 
     private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
         boolean okToRetryOnAllErrors = request.getMethod().equals(HttpMethod.GET);
         return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, defaultRetryHandler, requestConfig);
     }
-        
+
     protected void setHost(HttpClientRequest<?> request, String host) {
         request.getHeaders().set(HttpHeaders.Names.HOST, host);
     }
@@ -144,7 +160,33 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         return submit(host, port, request, getRxClientConfig(requestConfig));
     }
 
-    
+    private Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig, final ClientConfig rxClientConfig) {
+        final RetryHandler retryHandler = (errorHandler == null) ? getRequestRetryHandler(request, requestConfig) : errorHandler;
+        Observable<HttpClientResponse<O>> result = submitToServerInURI(request, rxClientConfig, retryHandler);
+        if (result != null) {
+            return result;
+        }
+        IClientConfig config = requestConfig != null ? requestConfig : this.getClientConfig();
+        // TODO: merge requestConfig with the client's config and make a copy
+        final ExecutionContext<HttpClientRequest> context = new ExecutionContext<HttpClientRequest>(request, config);
+        CommandBuilder<HttpClientResponse<O>> builder = defaultCommandBuilder;
+        if (errorHandler != null || requestConfig != null || !request.getMethod().equals(HttpMethod.GET)) {
+            // need to create new builder instead of the default one
+            builder = CommandBuilder.<HttpClientResponse<O>>newBuilder()
+                    .withLoadBalancerContext(lbContext)
+                    .withRetryHandler(retryHandler);
+        }
+        LoadBalancerObservableCommand<HttpClientResponse<O>> command = builder.build(new LoadBalancerObservable<HttpClientResponse<O>>() {
+            @Override
+            public Observable<HttpClientResponse<O>> run(Server server) {
+                IClientConfig clientConfig1 = context.getClientConfig();
+                return submit(server.getHost(), server.getPort(), context.getRequest(), getRxClientConfig(clientConfig1));
+            }
+        }, context);
+        return command.toObservable();
+    }
+
+
     /**
      * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if 
      * there is no server available from load balancer.
@@ -154,21 +196,8 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
      * @return
      */
     public Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig) {
-        final RetryHandler retryHandler = (errorHandler == null) ? getRequestRetryHandler(request, requestConfig) : errorHandler;
         final ClientConfig rxClientConfig = getRxClientConfig(requestConfig);
-        Observable<HttpClientResponse<O>> result = submitToServerInURI(request, rxClientConfig, retryHandler);
-        if (result != null) {
-            return result;
-        }
-        ExecutionContext<HttpClientRequest> context = new ExecutionContext<HttpClientRequest>(request, requestConfig);
-        ExecutionContextListenerInvoker invoker = new ExecutionContextListenerInvoker(context, listeners);
-        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lbContext, retryHandler, invoker) {
-            @Override
-            public Observable<HttpClientResponse<O>> run(Server server) {
-                return submit(server.getHost(), server.getPort(), request, rxClientConfig);
-            }
-        };
-        return command.create();
+        return submit(request, errorHandler, requestConfig, rxClientConfig);
     }
     
     @VisibleForTesting
@@ -194,18 +223,15 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
      */
     @Override
     public Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final ClientConfig config) {
-        final RetryHandler retryHandler = getRequestRetryHandler(request, null);
-        Observable<HttpClientResponse<O>> result = submitToServerInURI(request, config, retryHandler);
-        if (result != null) {
-            return result;
+        IClientConfig ribbonClientConfig = getRibbonClientConfig(config);
+        return submit(request, null, ribbonClientConfig, config);
+    }
+
+    private IClientConfig getRibbonClientConfig(ClientConfig rxClientConfig) {
+        if (rxClientConfig != null && rxClientConfig.isReadTimeoutSet()) {
+            return IClientConfig.Builder.newBuilder().withReadTimeout((int) rxClientConfig.getReadTimeoutInMillis()).build();
         }
-        LoadBalancerCommand2<HttpClientResponse<O>> command = new LoadBalancerCommand2<HttpClientResponse<O>>(lbContext, retryHandler) {
-            @Override
-            public Observable<HttpClientResponse<O>> run(Server server) {
-                return submit(server.getHost(), server.getPort(), request, config);
-            }
-        };
-        return command.create();
+        return null;
     }
 
     private Observable<HttpClientResponse<O>> submitToServerInURI(HttpClientRequest<I> request, ClientConfig config, RetryHandler errorHandler)  {

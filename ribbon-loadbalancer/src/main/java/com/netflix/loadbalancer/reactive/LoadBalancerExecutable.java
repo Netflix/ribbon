@@ -15,16 +15,18 @@
  * limitations under the License.
  *
  */
-package com.netflix.loadbalancer;
+package com.netflix.loadbalancer.reactive;
 
+
+import com.netflix.loadbalancer.Server;
 
 /**
- * An interface that provides API to be used by {@link LoadBalancerExecutor} to execute a task on a server.
+ * An interface that provides API to be used by {@link com.netflix.loadbalancer.LoadBalancerExecutor} to execute a task on a server.
  *  
  * @author awang
  *
  */
-public interface LoadBalancerCommand<T> {
+public interface LoadBalancerExecutable<T> {
 
     public T run(Server server) throws Exception;
 }

@@ -1,5 +1,8 @@
 package com.netflix.client;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -7,6 +10,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Allen Wang
  */
 public class ExecutionContextListenerInvoker<I, O> {
+
+    private final static Logger logger = LoggerFactory.getLogger(ExecutionContextListenerInvoker.class);
     private final ExecutionContext<I> context;
     private final List<ExecutionListener<I, O>> listeners;
     private final AtomicBoolean onStartInvoked = new AtomicBoolean();
@@ -22,6 +27,7 @@ public class ExecutionContextListenerInvoker<I, O> {
                 try {
                     listener.onExecutionStart(context);
                 } catch (Throwable e) {
+                    logger.error("Error invoking listener " + listener, e);
                 }
             }
         }
@@ -36,6 +42,7 @@ public class ExecutionContextListenerInvoker<I, O> {
             try {
                 listener.onStartWithServer(context, info);
             } catch (Throwable e) {
+                logger.error("Error invoking listener " + listener, e);
             }
         }
     }
@@ -50,6 +57,7 @@ public class ExecutionContextListenerInvoker<I, O> {
             try {
                 listener.onExceptionWithServer(context, exception, info);
             } catch (Throwable e) {
+                logger.error("Error invoking listener " + listener, e);
             }
         }
     }
@@ -64,6 +72,7 @@ public class ExecutionContextListenerInvoker<I, O> {
             try {
                 listener.onExecutionSuccess(context, response, info);
             } catch (Throwable e) {
+                logger.error("Error invoking listener " + listener, e);
             }
         }
     }
@@ -71,16 +80,15 @@ public class ExecutionContextListenerInvoker<I, O> {
     /**
      * Called when the request is considered failed after all retries.
      *
-     * @param finalException Final exception received. This may be a wrapped exception indicating that the {@link com.netflix.loadbalancer.LoadBalancerExecutor}
-     *                           has exhausted all retries.
+     * @param finalException Final exception received.
      */
     public void onExecutionFailed(Throwable finalException, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
                 listener.onExecutionFailed(context, finalException, info);
             } catch (Throwable e) {
+                logger.error("Error invoking listener " + listener, e);
             }
         }
     }
-
 }

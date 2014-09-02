@@ -1,9 +1,9 @@
 package com.netflix.client;
 
-import com.google.common.collect.Maps;
 import com.netflix.client.config.IClientConfig;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A context object that is created at start of each load balancer execution
@@ -15,58 +15,80 @@ import java.util.Map;
  */
 public class ExecutionContext<T> {
 
-    private final Map<Object, Map<String, Object>> subContexts = Maps.newIdentityHashMap();
     private final Map<String, Object> context;
+    private final ConcurrentHashMap<Object, ChildContext<T>> subContexts;
     private final T request;
     private final IClientConfig config;
+
+    ExecutionContext() {
+        context = new ConcurrentHashMap<String, Object>();
+        request = null;
+        config = null;
+        subContexts = new ConcurrentHashMap<Object, ChildContext<T>>();
+    }
+
+    private class ChildContext<T> extends ExecutionContext<T> {
+        private final ExecutionContext<T> parent;
+
+        ChildContext(ExecutionContext<T> parent) {
+            super();
+            this.parent = parent;
+        }
+
+        @Override
+        public T getRequest() {
+            return parent.getRequest();
+        }
+
+        @Override
+        public IClientConfig getClientConfig() {
+            return parent.getClientConfig();
+        }
+
+        @Override
+        public Object get(String name) {
+            Object fromChild = context.get(name);
+            if (fromChild != null) {
+                return fromChild;
+            } else {
+                return parent.get(name);
+            }
+        }
+    }
 
     public ExecutionContext(T request, IClientConfig config) {
         this.request = request;
         this.config = config;
-        this.context = Maps.newConcurrentMap();
+        this.context = new ConcurrentHashMap<String, Object>();
+        this.subContexts = new ConcurrentHashMap<Object, ChildContext<T>>();
     }
 
-    private ExecutionContext(ExecutionContext<T> parent, Map<String, Object> context) {
-        this.request = parent.request;
-        this.config = parent.config;
-        this.context = context;
-    }
-
-    public static <T> ExecutionContext getSubContext(ExecutionContext<T> parent, Object obj) {
-        Map<String, Object> subContext = parent.subContexts.get(obj);
+    public ExecutionContext<T> getChildContext(Object obj) {
+        ChildContext<T> subContext = subContexts.get(obj);
         if (subContext == null) {
-            subContext = Maps.newConcurrentMap();
-            parent.subContexts.put(obj, subContext);
+            subContext = new ChildContext(this);
         }
-        return new ExecutionContext(parent, subContext);
+        ChildContext<T> old = subContexts.putIfAbsent(obj, subContext);
+        if (old != null) {
+            return old;
+        } else {
+            return subContext;
+        }
     }
 
     public T getRequest() {
-        return null;
+        return request;
     }
 
-    public IClientConfig getClientConfig() {return null;}
-
-    public String getClientAppName() {
-        return null;
-    }
-    
-    public String getTargetAppName() {
-        return null;
-    }
-    
-    public String getVipAddresses() {
-        return null;
-    }
-
-    public String getClientName() {
-        return null;
+    public IClientConfig getClientConfig() {
+        return config;
     }
 
     public Object get(String name) {
-        return null;
+        return context.get(name);
     }
     
-    public void put(String name, Object value) {        
+    public void put(String name, Object value) {
+        context.put(name, value);
     }
 }

@@ -1,7 +1,5 @@
 package com.netflix.client;
 
-import com.netflix.loadbalancer.LoadBalancerExecutor;
-
 public interface ExecutionListener<I, O> {
 
     /**
@@ -32,8 +30,8 @@ public interface ExecutionListener<I, O> {
     /**
      * Called when the request is considered failed after all retries.
      * 
-     * @param finalException Final exception received. This may be a wrapped exception indicating that the {@link LoadBalancerExecutor}
-     *                           has exhausted all retries.
+     * @param finalException Final exception received. This may be a wrapped exception indicating that all
+     *                       retries have been exhausted.
      */
     public void onExecutionFailed(ExecutionContext<I> context, Throwable finalException, ExecutionInfo info);
 }

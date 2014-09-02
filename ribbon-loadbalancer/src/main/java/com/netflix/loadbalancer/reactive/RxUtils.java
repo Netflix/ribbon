@@ -1,9 +1,9 @@
-package com.netflix.utils;
+package com.netflix.loadbalancer.reactive;
 
 import rx.Observable;
 import rx.functions.Func1;
 
-public class RxUtils {
+class RxUtils {
 
     public static <T> T getSingleValueWithRealErrorCause(Observable<T> observable) throws Exception {
         return observable.onErrorResumeNext(new Func1<Throwable, Observable<T>>(){

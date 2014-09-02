@@ -28,7 +28,7 @@ import com.netflix.client.ssl.URLSslContextFactory;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.LoadBalancerCommand2;
+import com.netflix.loadbalancer.reactive.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListChangeListener;
@@ -230,12 +230,12 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     
     @Override
     public Observable<ObservableConnection<O, I>> connect() {
-        LoadBalancerCommand2<ObservableConnection<O, I>> command = new LoadBalancerCommand2<ObservableConnection<O, I>>(lbContext) {
+        LoadBalancerObservableCommand<ObservableConnection<O, I>> command = new LoadBalancerObservableCommand<ObservableConnection<O, I>>(lbContext) {
             @Override
             public Observable<ObservableConnection<O, I>> run(Server server) {
                 return getRxClient(server.getHost(), server.getPort()).connect();            }
         };
-        return command.create();
+        return command.toObservable();
     }
 
     protected abstract MetricEventsListener<? extends ClientMetricsEvent<?>> createListener(String name);

@@ -22,17 +22,13 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.LoadBalancerCommand;
 import com.netflix.loadbalancer.LoadBalancerContext;
-import com.netflix.loadbalancer.LoadBalancerRetrySameServerCommand;
-import com.netflix.loadbalancer.LoadBalancerRunnableCommand;
 import com.netflix.loadbalancer.Server;
-import com.netflix.utils.RxUtils;
-import rx.Observable;
+import com.netflix.loadbalancer.reactive.LoadBalancerCommand;
+import com.netflix.loadbalancer.reactive.LoadBalancerExecutable;
+import com.netflix.loadbalancer.reactive.LoadBalancerRetrySameServerCommand;
 
 import java.net.URI;
-
-import static com.netflix.loadbalancer.CommandToObservableConverter.toObsevableCommand;
 
 /**
  * Abstract class that provides the integration of client with load balancers.
@@ -93,8 +89,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         Preconditions.checkArgument(port > 0, "port is undefined");
         final Server server = new Server(host, port);
         RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
-        LoadBalancerRetrySameServerCommand command = new LoadBalancerRetrySameServerCommand(this, handler);
-        LoadBalancerCommand<T> callableProvider = new LoadBalancerCommand<T>() {
+        LoadBalancerRetrySameServerCommand<T> command = new LoadBalancerRetrySameServerCommand<T>(this, handler);
+        LoadBalancerExecutable<T> executable = new LoadBalancerExecutable<T>() {
             @Override
             public T run(Server server) throws Exception {
                 return execute(request, requestConfig);
@@ -102,8 +98,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
         };
 
         try {
-            Observable<T> result = command.retryWithSameServer(server, toObsevableCommand(callableProvider).run(server));
-            return RxUtils.getSingleValueWithRealErrorCause(result);
+            return command.retryWithSameServer(server, executable);
         } catch (Exception e) {
             if (e instanceof ClientException) {
                 throw (ClientException) e;
@@ -128,7 +123,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      */
     public T executeWithLoadBalancer(final S request, final IClientConfig requestConfig) throws ClientException {
         RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
-        LoadBalancerRunnableCommand<T> runnableCommand = new LoadBalancerRunnableCommand<T>(this, handler, request.getUri(), null) {
+        LoadBalancerCommand<T> runnableCommand = new LoadBalancerCommand<T>(this, handler, request.getUri(), null) {
             @SuppressWarnings("unchecked")
             @Override
             public T run(Server server) throws Exception {
