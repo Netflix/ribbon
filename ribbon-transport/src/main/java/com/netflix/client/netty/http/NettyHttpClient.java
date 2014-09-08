@@ -166,8 +166,8 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         if (result != null) {
             return result;
         }
-        IClientConfig config = requestConfig != null ? requestConfig : this.getClientConfig();
         // TODO: merge requestConfig with the client's config and make a copy
+        final IClientConfig config = requestConfig != null ? requestConfig : this.getClientConfig();
         final ExecutionContext<HttpClientRequest> context = new ExecutionContext<HttpClientRequest>(request, config);
         CommandBuilder<HttpClientResponse<O>> builder = defaultCommandBuilder;
         if (errorHandler != null || requestConfig != null || !request.getMethod().equals(HttpMethod.GET)) {
@@ -179,8 +179,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         LoadBalancerObservableCommand<HttpClientResponse<O>> command = builder.build(new LoadBalancerObservable<HttpClientResponse<O>>() {
             @Override
             public Observable<HttpClientResponse<O>> run(Server server) {
-                IClientConfig clientConfig1 = context.getClientConfig();
-                return submit(server.getHost(), server.getPort(), context.getRequest(), getRxClientConfig(clientConfig1));
+                return submit(server.getHost(), server.getPort(), request, getRxClientConfig(config));
             }
         }, context);
         return command.toObservable();
