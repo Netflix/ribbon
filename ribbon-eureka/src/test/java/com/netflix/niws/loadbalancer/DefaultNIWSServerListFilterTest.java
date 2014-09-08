@@ -56,7 +56,7 @@ public class DefaultNIWSServerListFilterTest {
         .setHostName(host)
         .setPort(port)
         .build();
-        DiscoveryEnabledServer server = new DiscoveryEnabledServer(info, false);
+        DiscoveryEnabledServer server = new DiscoveryEnabledServer(info, false, false);
         server.setZone(zone);
         return server;
     }

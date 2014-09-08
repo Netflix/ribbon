@@ -94,6 +94,7 @@ public enum CommonClientConfigKey implements IClientConfigKey {
     VipAddressResolverClassName("VipAddressResolverClassName"),
     TargetRegion("TargetRegion"),
     RulePredicateClasses("RulePredicateClasses"),
+    UseIPAddrForServer("UseIPAddrForServer"),
     
     // serialization
     DefaultSerializationFactoryClassName("DefaultSerializationClassName");
