@@ -91,7 +91,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
         targetRegion = (String) clientConfig.getProperty(CommonClientConfigKey.TargetRegion);
         
-        shouldUseIpAddr = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.UseIPAddrForServer, false);
+        shouldUseIpAddr = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.UseIPAddrForServer, DefaultClientConfigImpl.DEFAULT_USEIPADDRESS_FOR_SERVER);
 
         // override client configuration and use client-defined port
         if(clientConfig.getPropertyAsBoolean(CommonClientConfigKey.ForceClientPortConfiguration, false)){
