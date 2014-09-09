@@ -3,6 +3,7 @@ package com.netflix.loadbalancer.reactive;
 import com.netflix.client.ClientException;
 import com.netflix.client.ExecutionContextListenerInvoker;
 import com.netflix.client.ExecutionInfo;
+import com.netflix.client.ExecutionListener.AbortExecutionException;
 import com.netflix.client.RetryHandler;
 import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.Server;
@@ -78,10 +79,14 @@ public class LoadBalancerRetrySameServerCommand<T> {
         public Subscriber<? super T> call(final Subscriber<? super T> t1) {
             if (listenerInvoker != null) {
                 executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
-                if (invokeOnStartAndEnd) {
-                    listenerInvoker.onExecutionStart();
+                try {
+                    if (invokeOnStartAndEnd) {
+                        listenerInvoker.onExecutionStart();
+                    }
+                    listenerInvoker.onStartWithServer(executionInfo);
+                } catch (AbortExecutionException e) {
+                    throw e;
                 }
-                listenerInvoker.onStartWithServer(executionInfo.copy());
             }
             SerialSubscription serialSubscription = new SerialSubscription();
             t1.add(serialSubscription);
@@ -94,11 +99,11 @@ public class LoadBalancerRetrySameServerCommand<T> {
                 @Override
                 public void onCompleted() {
                     recordStats(entity, null);
-                    t1.onCompleted();
                     if (listenerInvoker != null) {
                         executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
-                        listenerInvoker.onExecutionSuccess(entity, executionInfo.copy());
+                        listenerInvoker.onExecutionSuccess(entity, executionInfo);
                     }
+                    t1.onCompleted();
                 }
 
                 @Override
@@ -106,13 +111,14 @@ public class LoadBalancerRetrySameServerCommand<T> {
                     logger.debug("Got error {} when executed on server {}", e, server);
                     if (listenerInvoker != null) {
                         executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
-                        listenerInvoker.onExceptionWithServer(e, executionInfo.copy());
+                        listenerInvoker.onExceptionWithServer(e, executionInfo);
                     }
                     recordStats(entity, e);
                     int maxRetries = errorHandler.getMaxRetriesOnSameServer();
                     boolean shouldRetry = maxRetries > 0 && errorHandler.isRetriableException(e, true);
                     final Throwable finalThrowable;
                     if (shouldRetry && !loadBalancerContext.handleSameServerRetry(server, counter.incrementAndGet(), maxRetries, e)) {
+                        executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
                         finalThrowable = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
                                 "Number of retries exceeded max " + maxRetries + " retries, while making a call for: " + server, e);
                         shouldRetry = false;
@@ -125,7 +131,7 @@ public class LoadBalancerRetrySameServerCommand<T> {
                     } else {
                         t1.onError(finalThrowable);
                         if (listenerInvoker != null && invokeOnStartAndEnd) {
-                            listenerInvoker.onExecutionFailed(finalThrowable, executionInfo.copy());
+                            listenerInvoker.onExecutionFailed(finalThrowable, executionInfo);
                         }
                     }
                 }

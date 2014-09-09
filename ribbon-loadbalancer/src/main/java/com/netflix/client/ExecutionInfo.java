@@ -33,10 +33,6 @@ public class ExecutionInfo {
         return numberOfPastServersAttempted;
     }
 
-    public ExecutionInfo copy() {
-        return new ExecutionInfo(server, numberOfPastAttemptsOnServer, numberOfPastServersAttempted);
-    }
-
     @Override
     public String toString() {
         return "ExecutionInfo{" +

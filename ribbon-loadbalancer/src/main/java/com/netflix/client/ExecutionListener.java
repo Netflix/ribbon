@@ -2,16 +2,25 @@ package com.netflix.client;
 
 public interface ExecutionListener<I, O> {
 
+    class AbortExecutionException extends RuntimeException {
+        public AbortExecutionException(String message) {
+            super(message);
+        }
+
+        public AbortExecutionException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
     /**
      * Called when execution is about to start. 
      */
-    public void onExecutionStart(ExecutionContext<I> context);
+    public void onExecutionStart(ExecutionContext<I> context) throws AbortExecutionException;
     
     /**
      * Called when a server is chosen and the request is going to be executed on the server.
      * 
      */
-    public void onStartWithServer(ExecutionContext<I> context, ExecutionInfo info);
+    public void onStartWithServer(ExecutionContext<I> context, ExecutionInfo info) throws AbortExecutionException;
     
     /**
      * Called when an exception is received from executing the request on a server. 

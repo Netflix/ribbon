@@ -1,5 +1,6 @@
 package com.netflix.client;
 
+import com.netflix.client.ExecutionListener.AbortExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,9 @@ public class ExecutionContextListenerInvoker<I, O> {
                 try {
                     listener.onExecutionStart(context);
                 } catch (Throwable e) {
+                    if (e instanceof AbortExecutionException) {
+                        throw (AbortExecutionException) e;
+                    }
                     logger.error("Error invoking listener " + listener, e);
                 }
             }
@@ -42,6 +46,9 @@ public class ExecutionContextListenerInvoker<I, O> {
             try {
                 listener.onStartWithServer(context, info);
             } catch (Throwable e) {
+                if (e instanceof AbortExecutionException) {
+                    throw (AbortExecutionException) e;
+                }
                 logger.error("Error invoking listener " + listener, e);
             }
         }

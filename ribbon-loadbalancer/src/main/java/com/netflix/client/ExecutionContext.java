@@ -19,12 +19,14 @@ public class ExecutionContext<T> {
     private final ConcurrentHashMap<Object, ChildContext<T>> subContexts;
     private final T request;
     private final IClientConfig config;
+    private final RetryHandler retryHandler;
 
     ExecutionContext() {
         context = new ConcurrentHashMap<String, Object>();
         request = null;
         config = null;
         subContexts = new ConcurrentHashMap<Object, ChildContext<T>>();
+        retryHandler = null;
     }
 
     private class ChildContext<T> extends ExecutionContext<T> {
@@ -41,8 +43,13 @@ public class ExecutionContext<T> {
         }
 
         @Override
-        public IClientConfig getClientConfig() {
-            return parent.getClientConfig();
+        public IClientConfig getOverrideConfig() {
+            return parent.getOverrideConfig();
+        }
+
+        @Override
+        public RetryHandler getRetryHandler() {
+            return parent.getRetryHandler();
         }
 
         @Override
@@ -56,11 +63,12 @@ public class ExecutionContext<T> {
         }
     }
 
-    public ExecutionContext(T request, IClientConfig config) {
+    public ExecutionContext(T request, IClientConfig config, RetryHandler retryHandler) {
         this.request = request;
         this.config = config;
         this.context = new ConcurrentHashMap<String, Object>();
         this.subContexts = new ConcurrentHashMap<Object, ChildContext<T>>();
+        this.retryHandler = retryHandler;
     }
 
     public ExecutionContext<T> getChildContext(Object obj) {
@@ -80,7 +88,7 @@ public class ExecutionContext<T> {
         return request;
     }
 
-    public IClientConfig getClientConfig() {
+    public IClientConfig getOverrideConfig() {
         return config;
     }
 
@@ -90,5 +98,9 @@ public class ExecutionContext<T> {
     
     public void put(String name, Object value) {
         context.put(name, value);
+    }
+
+    public RetryHandler getRetryHandler() {
+        return retryHandler;
     }
 }

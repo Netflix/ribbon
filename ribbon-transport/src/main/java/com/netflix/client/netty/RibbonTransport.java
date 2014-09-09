@@ -17,11 +17,9 @@
  */
 package com.netflix.client.netty;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
+import com.netflix.client.ExecutionListener;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -33,7 +31,6 @@ import com.netflix.client.netty.udp.LoadBalancingUdpClient;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.socket.DatagramPacket;
 import io.reactivex.netty.client.RxClient;
@@ -42,6 +39,10 @@ import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 
 public final class RibbonTransport {
     
@@ -120,7 +121,13 @@ public final class RibbonTransport {
     public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler) {
         return new NettyHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
     }
- 
+
+    public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler,
+                                                                  List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners) {
+        return new NettyHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler, listeners);
+    }
+
+
     public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(IClientConfig config) {
         return new NettyHttpClient<ByteBuf, ByteBuf>(config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
     }
@@ -145,7 +152,13 @@ public final class RibbonTransport {
             IClientConfig config, RetryHandler retryHandler) {
         return new NettyHttpClient<I, O>(config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
     }
-    
+
+    public static <I, O> NettyHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
+                                                             ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler,
+                                                                  List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners) {
+        return new NettyHttpClient<I, O>(loadBalancer, config, retryHandler, pipelineConfigurator, poolCleanerScheduler, listeners);
+    }
+
     public static NettyHttpClient<ByteBuf, ServerSentEvent> newSSEClient(ILoadBalancer loadBalancer, IClientConfig config) {
         return new SSEClient<ByteBuf>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_SSE_PIPELINE_CONFIGURATOR);
     }

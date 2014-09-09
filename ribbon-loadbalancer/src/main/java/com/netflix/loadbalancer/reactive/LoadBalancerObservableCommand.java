@@ -2,6 +2,7 @@ package com.netflix.loadbalancer.reactive;
 
 import com.netflix.client.ClientException;
 import com.netflix.client.ExecutionContextListenerInvoker;
+import com.netflix.client.ExecutionListener.AbortExecutionException;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.Utils;
 import com.netflix.loadbalancer.LoadBalancerContext;
@@ -50,7 +51,11 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
         @Override
         public Subscriber<? super T> call(final Subscriber<? super T> t1) {
             if (listenerInvoker != null) {
-                listenerInvoker.onExecutionStart();
+                try {
+                    listenerInvoker.onExecutionStart();
+                } catch (AbortExecutionException e) {
+                    throw e;
+                }
             }
             SerialSubscription serialSubscription = new SerialSubscription();
             t1.add(serialSubscription);
@@ -63,7 +68,11 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
 
                 @Override
                 public void onError(Throwable e) {
-                    logger.debug("Get error during retry on next server", t1);
+                    logger.debug("Get error during retry on next server", e);
+                    if (e instanceof AbortExecutionException) {
+                        t1.onError(e);
+                        return;
+                    }
                     int maxRetriesNextServer = getRetryHandler().getMaxRetriesOnNextServer();
                     boolean sameServerRetryExceededLimit = (e instanceof ClientException) &&
                             ((ClientException) e).getErrorType().equals(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED);
@@ -92,7 +101,7 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
                     } else {
                         t1.onError(finalThrowable);
                         if (listenerInvoker != null) {
-                            listenerInvoker.onExecutionFailed(finalThrowable, executionInfo.copy());
+                            listenerInvoker.onExecutionFailed(finalThrowable, executionInfo);
                         }
 
                     }

@@ -22,7 +22,7 @@ public class CommandBuilder<T> {
     private ILoadBalancer loadBalancer;
     private IClientConfig config;
     private LoadBalancerContext loadBalancerContext;
-    private List<ExecutionListener<?, T>> listeners;
+    private List<? extends ExecutionListener<?, T>> listeners;
     private Object loadBalancerKey;
     private URI serviceLocator;
 
@@ -38,7 +38,7 @@ public class CommandBuilder<T> {
         return this;
     }
 
-    public CommandBuilder<T> withListeners(List<ExecutionListener<?, T>> listeners) {
+    public CommandBuilder<T> withListeners(List<? extends ExecutionListener<?, T>> listeners) {
         this.listeners = listeners;
         return this;
     }
