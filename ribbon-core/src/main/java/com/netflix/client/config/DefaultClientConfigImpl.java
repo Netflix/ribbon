@@ -88,6 +88,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = "com.netflix.loadbalancer.AvailabilityFilteringRule";
 
     public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = "com.netflix.loadbalancer.ZoneAwareLoadBalancer";
+    
+    public static final boolean DEFAULT_USEIPADDRESS_FOR_SERVER = Boolean.FALSE;
 
     public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
 
@@ -197,6 +199,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 	public String getDefaultNfloadbalancerClassname() {
 		return DEFAULT_NFLOADBALANCER_CLASSNAME;
+	}
+	
+	public boolean getDefaultUseIpAddressForServer() {
+		return DEFAULT_USEIPADDRESS_FOR_SERVER;
 	}
 
 	public String getDefaultClientClassname() {
@@ -426,6 +432,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultStringProperty(CommonClientConfigKey.VipAddressResolverClassName, getDefaultVipaddressResolverClassname());
         putDefaultBooleanProperty(CommonClientConfigKey.IsClientAuthRequired, getDefaultIsClientAuthRequired());
         // putDefaultStringProperty(CommonClientConfigKey.RequestIdHeaderName, getDefaultRequestIdHeaderName());
+        putDefaultBooleanProperty(CommonClientConfigKey.UseIPAddrForServer, getDefaultUseIpAddressForServer());
         putDefaultStringProperty(CommonClientConfigKey.ListOfServers, "");
     }
 
