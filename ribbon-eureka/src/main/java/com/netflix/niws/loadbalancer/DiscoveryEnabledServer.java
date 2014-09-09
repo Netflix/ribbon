@@ -33,8 +33,8 @@ public class DiscoveryEnabledServer extends Server{
 
     InstanceInfo instanceInfo;
     
-    public DiscoveryEnabledServer(InstanceInfo instanceInfo, boolean useSecurePort) {    
-    	super(instanceInfo.getHostName(), instanceInfo.getPort());
+    public DiscoveryEnabledServer(InstanceInfo instanceInfo, boolean useSecurePort, boolean useIpAddr) {
+    	super(useIpAddr ? instanceInfo.getIPAddr() : instanceInfo.getHostName(), instanceInfo.getPort());	
     	if(useSecurePort && instanceInfo.isPortEnabled(PortType.SECURE))
     		super.setPort(instanceInfo.getSecurePort());
         this.instanceInfo = instanceInfo;
