@@ -56,7 +56,7 @@ import com.netflix.loadbalancer.Server;
 @PrepareForTest( {DiscoveryManager.class, DiscoveryClient.class} )
 @PowerMockIgnore("javax.management.*")
 @SuppressWarnings("PMD.AvoidUsingHardCodedIP")
-public class DiscoveryEnabledLoadBalancerSupportsUseIpAddr {
+public class DiscoveryEnabledLoadBalancerSupportsUseIpAddrTest {
 	static final String IP1 = "1.1.1.1";
 	static final String HOST1 = "server1.app.host.com";
 	static final String IP2 = "1.1.1.2";
