@@ -182,6 +182,8 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<String> RequestIdHeaderName = new CommonClientConfigKey<String>("RequestIdHeaderName") {};
     
+    public static final IClientConfigKey<Boolean> UseIPAddrForServer = new CommonClientConfigKey<Boolean>("UseIPAddrForServer") {};
+    
     public static final IClientConfigKey<String> ListOfServers = new CommonClientConfigKey<String>("listOfServers") {};
 
     private static final Set<IClientConfigKey> keys = new HashSet<IClientConfigKey>();
