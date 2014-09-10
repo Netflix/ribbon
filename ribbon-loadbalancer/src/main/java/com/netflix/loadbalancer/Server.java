@@ -28,6 +28,21 @@ import com.netflix.util.Pair;
  */
 public class Server {
 
+    /**
+     * Additional meta information of a server, which contains
+     * information of the targeting application, as well as server identification
+     * specific for a deployment environment, for example, AWS.
+     */
+    public static interface MetaInfo {
+        public String getAppName();
+
+        public String getScalingGroup();
+
+        public String getVipAddresses();
+
+        public String getInstanceId();
+    }
+
     public static final String UNKNOWN_ZONE = "UNKNOWN";
     private String host;
     private int port = 80;
@@ -215,5 +230,4 @@ public class Server {
     public final void setReadyToServe(boolean readyToServe) {
         this.readyToServe = readyToServe;
     }
-
 }

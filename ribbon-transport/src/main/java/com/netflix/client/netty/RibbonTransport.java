@@ -19,7 +19,7 @@ package com.netflix.client.netty;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
-import com.netflix.client.ExecutionListener;
+import com.netflix.loadbalancer.reactive.ExecutionListener;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;

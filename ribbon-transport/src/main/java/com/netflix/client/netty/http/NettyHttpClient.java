@@ -20,8 +20,8 @@ package com.netflix.client.netty.http;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.netflix.client.ExecutionContext;
-import com.netflix.client.ExecutionListener;
+import com.netflix.loadbalancer.reactive.ExecutionContext;
+import com.netflix.loadbalancer.reactive.ExecutionListener;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;

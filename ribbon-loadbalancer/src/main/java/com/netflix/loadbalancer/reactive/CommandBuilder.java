@@ -1,8 +1,22 @@
+/*
+ *
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.loadbalancer.reactive;
 
-import com.netflix.client.ExecutionContext;
-import com.netflix.client.ExecutionContextListenerInvoker;
-import com.netflix.client.ExecutionListener;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.ILoadBalancer;
@@ -14,6 +28,9 @@ import java.net.URI;
 import java.util.List;
 
 /**
+ * A builder to build {@link com.netflix.loadbalancer.reactive.LoadBalancerCommand}, {@link com.netflix.loadbalancer.reactive.LoadBalancerObservableCommand} and
+ * {@link com.netflix.loadbalancer.reactive.LoadBalancerRetrySameServerCommand}.
+ *
  * @author Allen Wang
  */
 public class CommandBuilder<T> {
@@ -53,11 +70,19 @@ public class CommandBuilder<T> {
         return this;
     }
 
+    /**
+     * Pass in an optional URI to help the load balancer to determine which group of servers to choose from.
+     * Only the authority of the URI is used.
+     */
     public CommandBuilder<T> withServiceLocator(URI serviceLocator) {
         this.serviceLocator = serviceLocator;
         return this;
     }
 
+    /**
+     * Pass in an optional key object to help the load balancer to choose a specific server among its
+     * server list, depending on the load balancer implementation.
+     */
     public CommandBuilder<T> withServerLocator(Object key) {
         this.loadBalancerKey = key;
         return this;

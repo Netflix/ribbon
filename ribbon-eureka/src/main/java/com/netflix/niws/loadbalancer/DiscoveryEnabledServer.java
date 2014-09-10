@@ -20,7 +20,6 @@ package com.netflix.niws.loadbalancer;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.PortType;
-import com.netflix.loadbalancer.MetaInfo;
 import com.netflix.loadbalancer.Server;
 
 /**

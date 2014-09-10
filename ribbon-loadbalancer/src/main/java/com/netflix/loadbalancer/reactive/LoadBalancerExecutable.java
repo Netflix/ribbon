@@ -21,7 +21,8 @@ package com.netflix.loadbalancer.reactive;
 import com.netflix.loadbalancer.Server;
 
 /**
- * An interface that provides API to be used by {@link com.netflix.loadbalancer.LoadBalancerExecutor} to execute a task on a server.
+ * An interface that provides API to be used by {@link com.netflix.loadbalancer.reactive.LoadBalancerCommand} to execute a task on a server
+ * in blocking mode.
  *  
  * @author awang
  *

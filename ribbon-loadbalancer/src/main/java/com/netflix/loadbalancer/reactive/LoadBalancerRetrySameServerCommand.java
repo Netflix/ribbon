@@ -1,9 +1,24 @@
+/*
+ *
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.loadbalancer.reactive;
 
 import com.netflix.client.ClientException;
-import com.netflix.client.ExecutionContextListenerInvoker;
-import com.netflix.client.ExecutionInfo;
-import com.netflix.client.ExecutionListener.AbortExecutionException;
+import com.netflix.loadbalancer.reactive.ExecutionListener.AbortExecutionException;
 import com.netflix.client.RetryHandler;
 import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.Server;
@@ -23,6 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.netflix.loadbalancer.reactive.CommandToObservableConverter.toObsevable;
 
 /**
+ * A command that can be used to execute retry on a same server.
+ *
  * @author Allen Wang
  */
 public class LoadBalancerRetrySameServerCommand<T> {
@@ -166,6 +183,10 @@ public class LoadBalancerRetrySameServerCommand<T> {
         return forServer.lift(new RetrySameServerOperator(server, forServer));
     }
 
+    /**
+     * Take a server and {@link com.netflix.loadbalancer.reactive.LoadBalancerExecutable} to execute the task
+     * on the server with possible retries in blocking mode.
+     */
     public T retryWithSameServer(final Server server, final LoadBalancerExecutable<T> executable) throws Exception {
         Observable<T> result = retryWithSameServer(server, toObsevable(executable).run(server));
         return RxUtils.getSingleValueWithRealErrorCause(result);

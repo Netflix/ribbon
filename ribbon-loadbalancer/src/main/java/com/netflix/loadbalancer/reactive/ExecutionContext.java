@@ -1,5 +1,23 @@
-package com.netflix.client;
+/*
+ *
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+package com.netflix.loadbalancer.reactive;
 
+import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
@@ -9,7 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A context object that is created at start of each load balancer execution
  * and contains certain meta data of the load balancer and mutable state data of 
- * execution per listener per request.
+ * execution per listener per request. Each listener will get its own context
+ * to work with. But it can also call {@link ExecutionContext#getGlobalContext()} to
+ * get the shared context between all listeners.
  * 
  * @author Allen Wang
  *
@@ -62,7 +82,7 @@ public class ExecutionContext<T> {
         }
         ChildContext<T> subContext = subContexts.get(obj);
         if (subContext == null) {
-            subContext = new ChildContext(this);
+            subContext = new ChildContext<T>(this);
         }
         ChildContext<T> old = subContexts.putIfAbsent(obj, subContext);
         if (old != null) {
@@ -81,7 +101,7 @@ public class ExecutionContext<T> {
     }
 
     public <S> S getClientProperty(IClientConfigKey<S> key) {
-        S value = null;
+        S value;
         if (requestConfig != null) {
             value = requestConfig.get(key);
             if (value != null) {
@@ -96,10 +116,18 @@ public class ExecutionContext<T> {
         context.put(name, value);
     }
 
+    /**
+     * @return The IClientConfig object used to override the client's default configuration
+     * for this specific execution.
+     */
     public IClientConfig getRequestConfig() {
         return requestConfig;
     }
 
+    /**
+     *
+     * @return The shared context for all listeners.
+     */
     public ExecutionContext<T> getGlobalContext() {
         return this;
     }

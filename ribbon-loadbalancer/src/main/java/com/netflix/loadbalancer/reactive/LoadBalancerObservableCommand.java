@@ -1,8 +1,24 @@
+/*
+ *
+ * Copyright 2014 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.loadbalancer.reactive;
 
 import com.netflix.client.ClientException;
-import com.netflix.client.ExecutionContextListenerInvoker;
-import com.netflix.client.ExecutionListener.AbortExecutionException;
+import com.netflix.loadbalancer.reactive.ExecutionListener.AbortExecutionException;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.Utils;
 import com.netflix.loadbalancer.LoadBalancerContext;
@@ -19,6 +35,17 @@ import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * A command that is used to produce the Observable from the load balancer execution. The load balancer is responsible for
+ * the following:
+ *
+ * <ul>
+ * <li>Choose a server</li>
+ * <li>Invoke the {@link #run(com.netflix.loadbalancer.Server)} method</li>
+ * <li>Invoke the {@link ExecutionListener} if any</li>
+ * <li>Retry on exception, controlled by {@link com.netflix.client.RetryHandler}</li>
+ * <li>Provide feedback to the {@link com.netflix.loadbalancer.LoadBalancerStats}</li>
+ * </ul>
+ *
  * @author Allen Wang
  */
 public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetrySameServerCommand<T> implements LoadBalancerObservable<T> {
@@ -123,7 +150,6 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
      * function and will not be observed by the {@link Observer} subscribed to the returned {@link Observable}. If number of retries has
      * exceeds the maximal allowed, a final error will be emitted by the returned {@link Observable}. Otherwise, the first successful
      * result during execution and retries will be emitted.
-     *
      */
     public Observable<T> toObservable() {
         Server server = null;
