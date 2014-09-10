@@ -107,7 +107,7 @@ public class UdpClientTest {
             fail("Exception expected");
         } catch (Exception e) {
             assertTrue(e.getCause() instanceof TimeoutException);
-            // assertEquals(1, client.getServerStats(myServer).getSuccessiveConnectionFailureCount());
+            assertEquals(1, client.getLoadBalancerContext().getServerStats(myServer).getSuccessiveConnectionFailureCount());
         }
         finally {
             server.shutdown();
