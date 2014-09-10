@@ -46,7 +46,7 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
 
     private void checkContext(ExecutionContext<HttpClientRequest<I>> context) {
         try {
-            assertSame(requestConfig, context.getOverrideConfig());
+            assertSame(requestConfig, context.getRequestConfig());
             assertSame(expectedRequest, context.getRequest());
             assertEquals(MY_OBJECT, context.get("MyObject"));
         } catch (Throwable e) {

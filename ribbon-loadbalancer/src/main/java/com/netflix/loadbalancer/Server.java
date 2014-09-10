@@ -29,13 +29,34 @@ import com.netflix.util.Pair;
 public class Server {
 
     public static final String UNKNOWN_ZONE = "UNKNOWN";
-    String host;
-    int port = 80;
-    String id;
-    boolean isAliveFlag;
+    private String host;
+    private int port = 80;
+    private volatile String id;
+    private boolean isAliveFlag;
     private String zone = UNKNOWN_ZONE;
-
     private volatile boolean readyToServe = true;
+
+    private MetaInfo simpleMetaInfo = new MetaInfo() {
+        @Override
+        public String getAppName() {
+            return null;
+        }
+
+        @Override
+        public String getScalingGroup() {
+            return null;
+        }
+
+        @Override
+        public String getVipAddresses() {
+            return null;
+        }
+
+        @Override
+        public String getInstanceId() {
+            return id;
+        }
+    };
 
     public Server(String host, int port) {
         this.host = host;
@@ -63,6 +84,7 @@ public class Server {
         return isAliveFlag;
     }
 
+    @Deprecated
     public void setHostPort(String hostPort) {
         setId(hostPort);
     }
@@ -152,6 +174,10 @@ public class Server {
 
     public String getHostPort() {
         return host + ":" + port;
+    }
+
+    public MetaInfo getMetaInfo() {
+        return simpleMetaInfo;
     }
 
     public String toString() {

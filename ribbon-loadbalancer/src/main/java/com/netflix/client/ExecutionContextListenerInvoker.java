@@ -26,7 +26,7 @@ public class ExecutionContextListenerInvoker<I, O> {
         if (onStartInvoked.compareAndSet(false, true)) {
             for (ExecutionListener<I, O> listener : listeners) {
                 try {
-                    listener.onExecutionStart(context);
+                    listener.onExecutionStart(context.getChildContext(listener));
                 } catch (Throwable e) {
                     if (e instanceof AbortExecutionException) {
                         throw (AbortExecutionException) e;
@@ -44,7 +44,7 @@ public class ExecutionContextListenerInvoker<I, O> {
     public void onStartWithServer(ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
-                listener.onStartWithServer(context, info);
+                listener.onStartWithServer(context.getChildContext(listener), info);
             } catch (Throwable e) {
                 if (e instanceof AbortExecutionException) {
                     throw (AbortExecutionException) e;
@@ -62,7 +62,7 @@ public class ExecutionContextListenerInvoker<I, O> {
     public void onExceptionWithServer(Throwable exception, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
-                listener.onExceptionWithServer(context, exception, info);
+                listener.onExceptionWithServer(context.getChildContext(listener), exception, info);
             } catch (Throwable e) {
                 logger.error("Error invoking listener " + listener, e);
             }
@@ -77,7 +77,7 @@ public class ExecutionContextListenerInvoker<I, O> {
     public void onExecutionSuccess(O response, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
-                listener.onExecutionSuccess(context, response, info);
+                listener.onExecutionSuccess(context.getChildContext(listener), response, info);
             } catch (Throwable e) {
                 logger.error("Error invoking listener " + listener, e);
             }
@@ -92,7 +92,7 @@ public class ExecutionContextListenerInvoker<I, O> {
     public void onExecutionFailed(Throwable finalException, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
-                listener.onExecutionFailed(context, finalException, info);
+                listener.onExecutionFailed(context.getChildContext(listener), finalException, info);
             } catch (Throwable e) {
                 logger.error("Error invoking listener " + listener, e);
             }

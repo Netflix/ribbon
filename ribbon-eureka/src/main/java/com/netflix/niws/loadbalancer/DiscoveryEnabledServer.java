@@ -20,6 +20,7 @@ package com.netflix.niws.loadbalancer;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.PortType;
+import com.netflix.loadbalancer.MetaInfo;
 import com.netflix.loadbalancer.Server;
 
 /**
@@ -31,17 +32,43 @@ import com.netflix.loadbalancer.Server;
 @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS")
 public class DiscoveryEnabledServer extends Server{
 
-    InstanceInfo instanceInfo;
-    
-    public DiscoveryEnabledServer(InstanceInfo instanceInfo, boolean useSecurePort, boolean useIpAddr) {
+    private final InstanceInfo instanceInfo;
+    private final MetaInfo serviceInfo;
+
+    public DiscoveryEnabledServer(final InstanceInfo instanceInfo, boolean useSecurePort, boolean useIpAddr) {
         super(useIpAddr ? instanceInfo.getIPAddr() : instanceInfo.getHostName(), instanceInfo.getPort());
     	if(useSecurePort && instanceInfo.isPortEnabled(PortType.SECURE))
     		super.setPort(instanceInfo.getSecurePort());
         this.instanceInfo = instanceInfo;
+        this.serviceInfo = new MetaInfo() {
+            @Override
+            public String getAppName() {
+                return instanceInfo.getAppName();
+            }
+
+            @Override
+            public String getScalingGroup() {
+                return instanceInfo.getASGName();
+            }
+
+            @Override
+            public String getVipAddresses() {
+                return instanceInfo.getVIPAddress();
+            }
+
+            @Override
+            public String getInstanceId() {
+                return instanceInfo.getId();
+            }
+        };
     }
     
     public InstanceInfo getInstanceInfo() {
         return instanceInfo;
     }
-    
+
+    @Override
+    public MetaInfo getMetaInfo() {
+        return serviceInfo;
+    }
 }

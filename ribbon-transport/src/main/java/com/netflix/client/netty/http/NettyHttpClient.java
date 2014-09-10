@@ -217,7 +217,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
                     .withRetryHandler(retryHandler);
         }
         final IClientConfig config = requestConfig == null ? DefaultClientConfigImpl.getEmptyConfig() : requestConfig;
-        final ExecutionContext<HttpClientRequest> context = new ExecutionContext<HttpClientRequest>(request, config, retryHandler);
+        final ExecutionContext<HttpClientRequest> context = new ExecutionContext<HttpClientRequest>(request, requestConfig, config, retryHandler);
         LoadBalancerObservableCommand<HttpClientResponse<O>> command = builder.build(new LoadBalancerObservable<HttpClientResponse<O>>() {
                 @Override
                 public Observable<HttpClientResponse<O>> run(Server server) {
