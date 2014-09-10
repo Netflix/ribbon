@@ -68,6 +68,23 @@ public class CommandBuilder<T> {
         return this;
     }
 
+    public LoadBalancerRetrySameServerCommand<T> build() {
+        return build((ExecutionContext<?>) null);
+    }
+
+    public LoadBalancerRetrySameServerCommand<T> build(ExecutionContext<?> executionContext) {
+        if (loadBalancerContext == null && loadBalancer == null) {
+            throw new IllegalArgumentException("Either LoadBalancer or LoadBalancerContext needs to be set");
+        }
+        ExecutionContextListenerInvoker invoker = null;
+
+        if (listeners != null && listeners.size() > 0 && executionContext != null) {
+            invoker = new ExecutionContextListenerInvoker(executionContext, listeners);
+        }
+        LoadBalancerContext loadBalancerContext1 = loadBalancerContext == null ? new LoadBalancerContext(loadBalancer, config) : loadBalancerContext;
+        return new LoadBalancerRetrySameServerCommand<T>(loadBalancerContext1, retryHandler, invoker);
+    }
+
     public LoadBalancerObservableCommand<T> build(final LoadBalancerObservable<T> executable) {
         return build(executable, null);
     }

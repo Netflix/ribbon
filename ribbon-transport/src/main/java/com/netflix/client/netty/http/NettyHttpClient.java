@@ -204,7 +204,9 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
                 retryHandler = defaultRetryHandler;
             }
         }
-        Observable<HttpClientResponse<O>> result = submitToServerInURI(request, rxClientConfig, retryHandler);
+        final IClientConfig config = requestConfig == null ? DefaultClientConfigImpl.getEmptyConfig() : requestConfig;
+        final ExecutionContext<HttpClientRequest<I>> context = new ExecutionContext<HttpClientRequest<I>>(request, config, this.getClientConfig(), retryHandler);
+        Observable<HttpClientResponse<O>> result = submitToServerInURI(request, config, rxClientConfig, retryHandler, context);
         if (result != null) {
             return result;
         }
@@ -216,8 +218,6 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
                     .withListeners(listeners)
                     .withRetryHandler(retryHandler);
         }
-        final IClientConfig config = requestConfig == null ? DefaultClientConfigImpl.getEmptyConfig() : requestConfig;
-        final ExecutionContext<HttpClientRequest> context = new ExecutionContext<HttpClientRequest>(request, requestConfig, config, retryHandler);
         LoadBalancerObservableCommand<HttpClientResponse<O>> command = builder.build(new LoadBalancerObservable<HttpClientResponse<O>>() {
                 @Override
                 public Observable<HttpClientResponse<O>> run(Server server) {
@@ -273,7 +273,8 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         return null;
     }
 
-    private Observable<HttpClientResponse<O>> submitToServerInURI(HttpClientRequest<I> request, ClientConfig config, RetryHandler errorHandler)  {
+    private Observable<HttpClientResponse<O>> submitToServerInURI(HttpClientRequest<I> request, IClientConfig requestConfig, ClientConfig config,
+                                                                  RetryHandler errorHandler, ExecutionContext<HttpClientRequest<I>> context)  {
         URI uri;
         try {
             uri = new URI(request.getUri());
@@ -296,8 +297,12 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
             return submit(host, port, request, config);
         }
         Server server = new Server(host, port);
-        LoadBalancerRetrySameServerCommand<HttpClientResponse<O>> command = new LoadBalancerRetrySameServerCommand<HttpClientResponse<O>>(lbContext, errorHandler);
-        return command.retryWithSameServer(server, submit(server.getHost(), server.getPort(), request, config));
+        LoadBalancerRetrySameServerCommand<HttpClientResponse<O>> command = CommandBuilder.<HttpClientResponse<O>>newBuilder()
+                .withRetryHandler(errorHandler)
+                .withLoadBalancerContext(lbContext)
+                .withListeners(listeners)
+                .build(context);
+        return command.retryWithSameServer(server, submit(server.getHost(), server.getPort(), request, getRxClientConfig(requestConfig, config)));
     }
     
     @Override

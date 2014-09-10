@@ -38,6 +38,7 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
     private AtomicInteger numServers = new AtomicInteger();
     private volatile Server lastServer;
     private static final Integer MY_OBJECT = Integer.valueOf(9);
+    private volatile ExecutionContext<HttpClientRequest<I>> context;
 
     public TestExecutionListener(HttpClientRequest<ByteBuf> expectedRequest, IClientConfig requestConfig) {
         this.expectedRequest = expectedRequest;
@@ -49,6 +50,11 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
             assertSame(requestConfig, context.getRequestConfig());
             assertSame(expectedRequest, context.getRequest());
             assertEquals(MY_OBJECT, context.get("MyObject"));
+            if (this.context == null) {
+                this.context = context;
+            } else {
+                assertSame(this.context, context);
+            }
         } catch (Throwable e) {
             e.printStackTrace();
             checkContext = false;
@@ -125,5 +131,9 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
 
     public HttpClientResponse<O> getResponse() {
         return response;
+    }
+
+    public ExecutionContext<HttpClientRequest<I>> getContext() {
+        return this.context;
     }
 }

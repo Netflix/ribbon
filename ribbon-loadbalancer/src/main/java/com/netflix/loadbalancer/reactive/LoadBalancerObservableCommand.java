@@ -99,11 +99,10 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
                         }
                         retryWithSameServer(server, run(server), counter.get()).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
                     } else {
-                        t1.onError(finalThrowable);
                         if (listenerInvoker != null) {
                             listenerInvoker.onExecutionFailed(finalThrowable, executionInfo);
                         }
-
+                        t1.onError(finalThrowable);
                     }
                 }
 

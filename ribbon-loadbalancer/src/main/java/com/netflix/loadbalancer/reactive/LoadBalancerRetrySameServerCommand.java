@@ -129,10 +129,10 @@ public class LoadBalancerRetrySameServerCommand<T> {
                     if (shouldRetry) {
                         singleHostObservable.lift(RetrySameServerOperator.this).unsafeSubscribe(t1);
                     } else {
-                        t1.onError(finalThrowable);
                         if (listenerInvoker != null && invokeOnStartAndEnd) {
                             listenerInvoker.onExecutionFailed(finalThrowable, executionInfo);
                         }
+                        t1.onError(finalThrowable);
                     }
                 }
 
