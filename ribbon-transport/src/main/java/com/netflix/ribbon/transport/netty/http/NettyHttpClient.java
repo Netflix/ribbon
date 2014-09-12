@@ -16,7 +16,7 @@
  *
  */
 
-package com.netflix.client.netty.http;
+package com.netflix.ribbon.transport.netty.http;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -28,7 +28,7 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
+import com.netflix.ribbon.transport.netty.LoadBalancingRxClientWithPoolOptions;
 import com.netflix.client.ssl.ClientSslSocketFactoryException;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;

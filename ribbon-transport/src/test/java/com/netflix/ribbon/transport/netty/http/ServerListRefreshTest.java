@@ -15,13 +15,13 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty.http;
+package com.netflix.ribbon.transport.netty.http;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
-import com.netflix.client.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 import io.netty.buffer.ByteBuf;

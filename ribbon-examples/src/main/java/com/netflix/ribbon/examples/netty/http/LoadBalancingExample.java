@@ -10,8 +10,8 @@ import java.util.concurrent.CountDownLatch;
 import rx.Observer;
 
 import com.google.common.collect.Lists;
-import com.netflix.client.netty.RibbonTransport;
-import com.netflix.client.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.http.NettyHttpClient;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.Server;

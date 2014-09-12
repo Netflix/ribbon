@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.client.netty.http;
+package com.netflix.ribbon.transport.netty.http;
 
 import com.google.common.collect.Lists;
 import com.google.mockwebserver.MockResponse;
@@ -26,7 +26,7 @@ import com.netflix.loadbalancer.reactive.ExecutionListener.AbortExecutionExcepti
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
 import com.netflix.loadbalancer.AvailabilityFilteringRule;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.DummyPing;

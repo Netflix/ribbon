@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty;
+package com.netflix.ribbon.transport.netty;
 
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
@@ -24,10 +24,6 @@ import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 
 import java.util.concurrent.ScheduledExecutorService;
-
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Subscriber;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;

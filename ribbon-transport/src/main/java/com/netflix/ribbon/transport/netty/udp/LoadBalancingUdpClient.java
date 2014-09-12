@@ -15,11 +15,11 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty.udp;
+package com.netflix.ribbon.transport.netty.udp;
 
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.LoadBalancingRxClient;
+import com.netflix.ribbon.transport.netty.LoadBalancingRxClient;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.Server;
 import io.reactivex.netty.RxNetty;

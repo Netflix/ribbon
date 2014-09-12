@@ -1,7 +1,7 @@
 package com.netflix.ribbon.examples.netty.http;
 
-import com.netflix.client.netty.RibbonTransport;
-import com.netflix.client.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.http.NettyHttpClient;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;

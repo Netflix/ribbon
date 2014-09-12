@@ -16,12 +16,12 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty.udp;
+package com.netflix.ribbon.transport.netty.udp;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.netty.MyUDPClient;
-import com.netflix.client.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.MyUDPClient;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.Server;
 import io.netty.channel.socket.DatagramPacket;

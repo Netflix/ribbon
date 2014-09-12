@@ -18,8 +18,8 @@ package com.netflix.ribbon.examples.rx.transport;
 
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.RibbonTransport;
-import com.netflix.client.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.http.NettyHttpClient;
 import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
 import com.netflix.ribbon.examples.rx.RxMovieServer;
 import com.netflix.ribbon.examples.rx.common.Movie;

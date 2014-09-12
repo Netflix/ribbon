@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty.udp;
+package com.netflix.ribbon.transport.netty.udp;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.socket.DatagramPacket;

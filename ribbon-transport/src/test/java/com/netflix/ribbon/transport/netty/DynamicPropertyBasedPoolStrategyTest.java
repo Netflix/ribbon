@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty;
+package com.netflix.ribbon.transport.netty;
 
 import static org.junit.Assert.*;
 

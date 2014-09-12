@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.client.netty.http;
+package com.netflix.ribbon.transport.netty.http;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
 import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.Server;
 import com.netflix.niws.loadbalancer.DiscoveryEnabledNIWSServerList;

@@ -15,11 +15,9 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty.tcp;
+package com.netflix.ribbon.transport.netty.tcp;
 
 import java.util.concurrent.ScheduledExecutorService;
-
-import rx.Subscription;
 
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.RxNetty;
@@ -34,7 +32,7 @@ import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.netty.LoadBalancingRxClientWithPoolOptions;
+import com.netflix.ribbon.transport.netty.LoadBalancingRxClientWithPoolOptions;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.Server;
 

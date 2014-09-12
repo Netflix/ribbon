@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty;
+package com.netflix.ribbon.transport.netty;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
@@ -23,11 +23,11 @@ import com.netflix.loadbalancer.reactive.ExecutionListener;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.http.NettyHttpClient;
-import com.netflix.client.netty.http.NettyHttpLoadBalancerErrorHandler;
-import com.netflix.client.netty.http.SSEClient;
-import com.netflix.client.netty.tcp.LoadBalancingTcpClient;
-import com.netflix.client.netty.udp.LoadBalancingUdpClient;
+import com.netflix.ribbon.transport.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.http.NettyHttpLoadBalancerErrorHandler;
+import com.netflix.ribbon.transport.netty.http.SSEClient;
+import com.netflix.ribbon.transport.netty.tcp.LoadBalancingTcpClient;
+import com.netflix.ribbon.transport.netty.udp.LoadBalancingUdpClient;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;

@@ -1,4 +1,4 @@
-package com.netflix.client.netty.http;
+package com.netflix.ribbon.transport.netty.http;
 
 import com.netflix.loadbalancer.reactive.ExecutionContext;
 import com.netflix.loadbalancer.reactive.ExecutionInfo;

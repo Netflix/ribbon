@@ -15,7 +15,7 @@
  * limitations under the License.
  *
  */
-package com.netflix.client.netty.http;
+package com.netflix.ribbon.transport.netty.http;
 
 import rx.Observer;
 
