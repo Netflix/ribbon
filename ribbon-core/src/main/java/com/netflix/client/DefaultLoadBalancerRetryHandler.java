@@ -17,15 +17,15 @@
  */
 package com.netflix.client;
 
-import java.net.ConnectException;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.util.List;
-
 import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
+
+import java.net.ConnectException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.util.List;
 
 /**
  * A default {@link RetryHandler}. The implementation is limited to
@@ -69,7 +69,11 @@ public class DefaultLoadBalancerRetryHandler implements RetryHandler {
     @Override
     public boolean isRetriableException(Throwable e, boolean sameServer) {
         if (retryEnabled) {
-            return Utils.isPresentAsCause(e, getRetriableExceptions());
+            if (sameServer) {
+                return Utils.isPresentAsCause(e, getRetriableExceptions());
+            } else {
+                return true;
+            }
         }
         return false;
     }

@@ -46,12 +46,12 @@ public class DiscoveryEnabledServer extends Server{
             }
 
             @Override
-            public String getScalingGroup() {
+            public String getServerGroup() {
                 return instanceInfo.getASGName();
             }
 
             @Override
-            public String getVipAddresses() {
+            public String getServiceIdForDiscovery() {
                 return instanceInfo.getVIPAddress();
             }
 

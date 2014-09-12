@@ -34,12 +34,26 @@ public class Server {
      * specific for a deployment environment, for example, AWS.
      */
     public static interface MetaInfo {
+        /**
+         * @return the name of application that runs on this server, null if not available
+         */
         public String getAppName();
 
-        public String getScalingGroup();
+        /**
+         * @return the group of the server, for example, auto scaling group ID in AWS.
+         * Null if not available
+         */
+        public String getServerGroup();
 
-        public String getVipAddresses();
+        /**
+         * @return A virtual address used by the server to register with discovery service.
+         * Null if not available
+         */
+        public String getServiceIdForDiscovery();
 
+        /**
+         * @return ID of the server
+         */
         public String getInstanceId();
     }
 
@@ -58,12 +72,12 @@ public class Server {
         }
 
         @Override
-        public String getScalingGroup() {
+        public String getServerGroup() {
             return null;
         }
 
         @Override
-        public String getVipAddresses() {
+        public String getServiceIdForDiscovery() {
             return null;
         }
 
