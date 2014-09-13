@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Utility class to invoke the list of {@link ExecutionListener} with {@link ExecutionContext}
@@ -34,7 +33,6 @@ public class ExecutionContextListenerInvoker<I, O> {
     private final static Logger logger = LoggerFactory.getLogger(ExecutionContextListenerInvoker.class);
     private final ExecutionContext<I> context;
     private final List<ExecutionListener<I, O>> listeners;
-    private final AtomicBoolean onStartInvoked = new AtomicBoolean();
 
     public ExecutionContextListenerInvoker(ExecutionContext<I> context, List<ExecutionListener<I, O>> listeners) {
         this.listeners = listeners;
@@ -42,16 +40,14 @@ public class ExecutionContextListenerInvoker<I, O> {
     }
 
     public void onExecutionStart() {
-        if (onStartInvoked.compareAndSet(false, true)) {
-            for (ExecutionListener<I, O> listener : listeners) {
-                try {
-                    listener.onExecutionStart(context.getChildContext(listener));
-                } catch (Throwable e) {
-                    if (e instanceof AbortExecutionException) {
-                        throw (AbortExecutionException) e;
-                    }
-                    logger.error("Error invoking listener " + listener, e);
+        for (ExecutionListener<I, O> listener : listeners) {
+            try {
+                listener.onExecutionStart(context.getChildContext(listener));
+            } catch (Throwable e) {
+                if (e instanceof AbortExecutionException) {
+                    throw (AbortExecutionException) e;
                 }
+                logger.error("Error invoking listener " + listener, e);
             }
         }
     }

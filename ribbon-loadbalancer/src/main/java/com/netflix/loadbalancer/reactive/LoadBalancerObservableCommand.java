@@ -77,7 +77,7 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
 
         @Override
         public Subscriber<? super T> call(final Subscriber<? super T> t1) {
-            if (listenerInvoker != null) {
+            if (listenerInvoker != null && counter.get() == 0) {
                 try {
                     listenerInvoker.onExecutionStart();
                 } catch (AbortExecutionException e) {

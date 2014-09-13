@@ -25,6 +25,9 @@ import com.netflix.loadbalancer.Server;
 import rx.Observable;
 
 import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -56,7 +59,11 @@ public class CommandBuilder<T> {
     }
 
     public CommandBuilder<T> withListeners(List<? extends ExecutionListener<?, T>> listeners) {
-        this.listeners = listeners;
+        if (this.listeners == null) {
+            this.listeners = new LinkedList<ExecutionListener<?, T>>(listeners);
+        } else {
+            this.listeners.addAll((Collection) listeners);
+        }
         return this;
     }
 
@@ -104,7 +111,7 @@ public class CommandBuilder<T> {
         ExecutionContextListenerInvoker invoker = null;
 
         if (listeners != null && listeners.size() > 0 && executionContext != null) {
-            invoker = new ExecutionContextListenerInvoker(executionContext, listeners);
+            invoker = new ExecutionContextListenerInvoker(executionContext, Collections.unmodifiableList(listeners));
         }
         LoadBalancerContext loadBalancerContext1 = loadBalancerContext == null ? new LoadBalancerContext(loadBalancer, config) : loadBalancerContext;
         return new LoadBalancerRetrySameServerCommand<T>(loadBalancerContext1, retryHandler, invoker);
@@ -121,7 +128,7 @@ public class CommandBuilder<T> {
         ExecutionContextListenerInvoker invoker = null;
 
         if (listeners != null && listeners.size() > 0) {
-            invoker = new ExecutionContextListenerInvoker(executionContext, listeners);
+            invoker = new ExecutionContextListenerInvoker(executionContext, Collections.unmodifiableList(listeners));
         }
         LoadBalancerContext loadBalancerContext1 = loadBalancerContext == null ? new LoadBalancerContext(loadBalancer, config) : loadBalancerContext;
         return new LoadBalancerObservableCommand<T>(loadBalancerContext1, retryHandler, serviceLocator, loadBalancerKey, invoker) {

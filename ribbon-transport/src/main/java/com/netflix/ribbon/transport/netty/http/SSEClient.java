@@ -33,7 +33,7 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.loadbalancer.ILoadBalancer;
 
-public class SSEClient<I> extends NettyHttpClient<I, ServerSentEvent> {
+public class SSEClient<I> extends LoadBalancingHttpClient<I, ServerSentEvent> {
     
     public SSEClient(
             ILoadBalancer lb,

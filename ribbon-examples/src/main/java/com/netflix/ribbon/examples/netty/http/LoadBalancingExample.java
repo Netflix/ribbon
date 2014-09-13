@@ -11,7 +11,7 @@ import rx.Observer;
 
 import com.google.common.collect.Lists;
 import com.netflix.ribbon.transport.netty.RibbonTransport;
-import com.netflix.ribbon.transport.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.http.LoadBalancingHttpClient;
 import com.netflix.loadbalancer.BaseLoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.Server;
@@ -23,7 +23,7 @@ public class LoadBalancingExample {
         BaseLoadBalancer lb = LoadBalancerBuilder.newBuilder()
                 .buildFixedServerListLoadBalancer(servers);
             
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb);
         final CountDownLatch latch = new CountDownLatch(servers.size()); 
         Observer<HttpClientResponse<ByteBuf>> observer = new Observer<HttpClientResponse<ByteBuf>>() {
             @Override

@@ -83,13 +83,12 @@ public class ExecutionContext<T> {
         ChildContext<T> subContext = subContexts.get(obj);
         if (subContext == null) {
             subContext = new ChildContext<T>(this);
+            ChildContext<T> old = subContexts.putIfAbsent(obj, subContext);
+            if (old != null) {
+                subContext = old;
+            }
         }
-        ChildContext<T> old = subContexts.putIfAbsent(obj, subContext);
-        if (old != null) {
-            return old;
-        } else {
-            return subContext;
-        }
+        return subContext;
     }
 
     public T getRequest() {

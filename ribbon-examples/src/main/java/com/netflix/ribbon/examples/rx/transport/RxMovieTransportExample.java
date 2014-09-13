@@ -19,7 +19,7 @@ package com.netflix.ribbon.examples.rx.transport;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.transport.netty.RibbonTransport;
-import com.netflix.ribbon.transport.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.http.LoadBalancingHttpClient;
 import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
 import com.netflix.ribbon.examples.rx.RxMovieServer;
 import com.netflix.ribbon.examples.rx.common.Movie;
@@ -40,7 +40,7 @@ import static java.lang.String.*;
  */
 public class RxMovieTransportExample extends AbstractRxMovieClient {
 
-    private final NettyHttpClient<ByteBuf, ByteBuf> client;
+    private final LoadBalancingHttpClient<ByteBuf, ByteBuf> client;
 
     public RxMovieTransportExample(int port) {
         IClientConfig clientConfig = IClientConfig.Builder.newBuilder("movieServiceClient").build();

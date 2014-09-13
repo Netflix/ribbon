@@ -97,7 +97,7 @@ public class LoadBalancerRetrySameServerCommand<T> {
             if (listenerInvoker != null) {
                 executionInfo = ExecutionInfo.create(server, counter.get(), numberServersAttempted);
                 try {
-                    if (invokeOnStartAndEnd) {
+                    if (invokeOnStartAndEnd && counter.get() == 0) {
                         listenerInvoker.onExecutionStart();
                     }
                     listenerInvoker.onStartWithServer(executionInfo);

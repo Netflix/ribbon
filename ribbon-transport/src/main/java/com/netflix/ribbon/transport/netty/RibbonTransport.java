@@ -23,7 +23,7 @@ import com.netflix.loadbalancer.reactive.ExecutionListener;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.ribbon.transport.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.http.LoadBalancingHttpClient;
 import com.netflix.ribbon.transport.netty.http.NettyHttpLoadBalancerErrorHandler;
 import com.netflix.ribbon.transport.netty.http.SSEClient;
 import com.netflix.ribbon.transport.netty.tcp.LoadBalancingTcpClient;
@@ -109,75 +109,75 @@ public final class RibbonTransport {
         return new LoadBalancingUdpClient<I, O>(config, getDefaultRetryHandlerWithConfig(config), pipelineConfigurator);
     }
 
-    public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient() {
+    public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient() {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
         return newHttpClient(config);
     }
      
-    public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config) {
-        return new NettyHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
+    public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config) {
+        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
     }
     
-    public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler) {
-        return new NettyHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
+    public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler) {
+        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
     }
 
-    public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler,
+    public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler,
                                                                   List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners) {
-        return new NettyHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler, listeners);
+        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler, listeners);
     }
 
 
-    public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(IClientConfig config) {
-        return new NettyHttpClient<ByteBuf, ByteBuf>(config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
+    public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(IClientConfig config) {
+        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
     }
     
-    public static NettyHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer) {
+    public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer) {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
         return newHttpClient(loadBalancer, config);
     }
 
     
-    public static <I, O> NettyHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator, 
+    public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ILoadBalancer loadBalancer, IClientConfig config) {
-        return new NettyHttpClient<I, O>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator, poolCleanerScheduler);
+        return new LoadBalancingHttpClient<I, O>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator, poolCleanerScheduler);
     }
     
-    public static <I, O> NettyHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator, 
+    public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             IClientConfig config) {
-        return new NettyHttpClient<I, O>(config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator, poolCleanerScheduler);
+        return new LoadBalancingHttpClient<I, O>(config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator, poolCleanerScheduler);
     }
     
-    public static <I, O> NettyHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator, 
+    public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             IClientConfig config, RetryHandler retryHandler) {
-        return new NettyHttpClient<I, O>(config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
+        return new LoadBalancingHttpClient<I, O>(config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
     }
 
-    public static <I, O> NettyHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
+    public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
                                                              ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler,
                                                                   List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners) {
-        return new NettyHttpClient<I, O>(loadBalancer, config, retryHandler, pipelineConfigurator, poolCleanerScheduler, listeners);
+        return new LoadBalancingHttpClient<I, O>(loadBalancer, config, retryHandler, pipelineConfigurator, poolCleanerScheduler, listeners);
     }
 
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> newSSEClient(ILoadBalancer loadBalancer, IClientConfig config) {
+    public static LoadBalancingHttpClient<ByteBuf, ServerSentEvent> newSSEClient(ILoadBalancer loadBalancer, IClientConfig config) {
         return new SSEClient<ByteBuf>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_SSE_PIPELINE_CONFIGURATOR);
     }
  
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> newSSEClient(IClientConfig config) {
+    public static LoadBalancingHttpClient<ByteBuf, ServerSentEvent> newSSEClient(IClientConfig config) {
         return new SSEClient<ByteBuf>(config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_SSE_PIPELINE_CONFIGURATOR);
     }
     
-    public static <I> NettyHttpClient<I, ServerSentEvent> newSSEClient(PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator, 
+    public static <I> LoadBalancingHttpClient<I, ServerSentEvent> newSSEClient(PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator,
             ILoadBalancer loadBalancer, IClientConfig config) {
         return new SSEClient<I>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator);
     }
     
-    public static <I> NettyHttpClient<I, ServerSentEvent> newSSEClient(PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator, 
+    public static <I> LoadBalancingHttpClient<I, ServerSentEvent> newSSEClient(PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator,
             IClientConfig config) {
         return new SSEClient<I>(config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator);
     }
 
-    public static NettyHttpClient<ByteBuf, ServerSentEvent> newSSEClient() {
+    public static LoadBalancingHttpClient<ByteBuf, ServerSentEvent> newSSEClient() {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
         return newSSEClient(config);
     }

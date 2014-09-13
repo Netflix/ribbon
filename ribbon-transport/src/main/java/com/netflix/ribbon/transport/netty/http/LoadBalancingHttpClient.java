@@ -73,7 +73,7 @@ import java.util.concurrent.TimeUnit;
  *   
  * @author awang
  */
-public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
+public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
         implements HttpClient<I, O> {
 
     private String requestIdHeaderName;
@@ -82,14 +82,14 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
     private final CommandBuilder<HttpClientResponse<O>> defaultCommandBuilder;
     private static final HttpClientConfig DEFAULT_RX_CONFIG = HttpClientConfig.Builder.newDefaultConfig();
 
-    public NettyHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
-            ScheduledExecutorService poolCleanerScheduler) {
+    public LoadBalancingHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
+                                   ScheduledExecutorService poolCleanerScheduler) {
         this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
                 new NettyHttpLoadBalancerErrorHandler(), pipeLineConfigurator, poolCleanerScheduler,
                 Collections.<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>emptyList());
     }
     
-    public NettyHttpClient(
+    public LoadBalancingHttpClient(
             IClientConfig config,
             RetryHandler retryHandler,
             PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
@@ -98,7 +98,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
                 config, retryHandler, pipelineConfigurator, poolCleanerScheduler, Collections.<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>emptyList());
     }
 
-    public NettyHttpClient(
+    public LoadBalancingHttpClient(
             ILoadBalancer lb,
             IClientConfig config,
             RetryHandler retryHandler,
@@ -107,7 +107,7 @@ public class NettyHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<
         this(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler, Collections.<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>emptyList());
     }
 
-    public NettyHttpClient(
+    public LoadBalancingHttpClient(
             ILoadBalancer lb,
             IClientConfig config,
             RetryHandler retryHandler,

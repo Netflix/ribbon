@@ -47,7 +47,7 @@ public class DiscoveryLoadBalancerTest extends MockedDiscoveryServerListTest {
         IClientConfig config = IClientConfig.Builder.newBuilder().withDefaultValues()
                 .withDeploymentContextBasedVipAddresses(getVipAddress()).build()
                 .set(IClientConfigKey.Keys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(config);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(config);
         LoadBalancerContext lbContext = client.getLoadBalancerContext();
         List<Server> serverList = lbContext.getLoadBalancer().getServerList(false);
         assertEquals(getMockServerList(), serverList);

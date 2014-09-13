@@ -64,7 +64,7 @@ public class ServerListRefreshTest {
             BaseLoadBalancer lb = new BaseLoadBalancer();
             List<Server> initialList = Lists.newArrayList(new Server("localhost", server1.getPort()), new Server("localhost", server2.getPort()));
             lb.setServersList(initialList);
-            NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb);
+            LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb);
             HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/");
             client.submit(request).toBlocking().last();
             client.submit(request).toBlocking().last();

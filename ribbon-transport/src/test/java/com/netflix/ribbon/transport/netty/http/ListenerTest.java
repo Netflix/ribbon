@@ -68,7 +68,7 @@ public class ListenerTest {
         IClientConfig overrideConfig = DefaultClientConfigImpl.getEmptyConfig();
         TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<ByteBuf, ByteBuf>(request, overrideConfig);
         List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
         try {
             client.submit(request, null, overrideConfig).toBlocking().last();
             fail("Exception expected");
@@ -102,7 +102,7 @@ public class ListenerTest {
         IClientConfig overrideConfig = DefaultClientConfigImpl.getEmptyConfig();
         TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<ByteBuf, ByteBuf>(request, overrideConfig);
         List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
         try {
             client.submit(request, null, overrideConfig).toBlocking().last();
             fail("Exception expected");
@@ -141,7 +141,7 @@ public class ListenerTest {
         IClientConfig overrideConfig = DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.ConnectTimeout, 500);
         TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<ByteBuf, ByteBuf>(request, overrideConfig);
         List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
         HttpClientResponse<ByteBuf> response = client.submit(request, null, overrideConfig).toBlocking().last();
         assertEquals(200, response.getStatus().code());
         assertEquals(1, listener.executionStartCounter.get());
@@ -178,7 +178,7 @@ public class ListenerTest {
         IClientConfig overrideConfig = DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.ConnectTimeout, 500);
         TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<ByteBuf, ByteBuf>(request, overrideConfig);
         List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
         HttpClientResponse<ByteBuf> response = client.submit(request, null, overrideConfig).toBlocking().last();
         assertEquals(200, response.getStatus().code());
         assertEquals(1, listener.executionStartCounter.get());
@@ -214,7 +214,7 @@ public class ListenerTest {
             }
         };
         List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> ref = new AtomicReference<Throwable>();
         client.submit(request, null, overrideConfig).subscribe(new Action1<HttpClientResponse<ByteBuf>>() {
@@ -257,7 +257,7 @@ public class ListenerTest {
             }
         };
         List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
-        NettyHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> ref = new AtomicReference<Throwable>();
         client.submit(request, null, overrideConfig).subscribe(new Action1<HttpClientResponse<ByteBuf>>() {
