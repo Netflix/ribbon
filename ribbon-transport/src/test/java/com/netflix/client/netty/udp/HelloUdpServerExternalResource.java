@@ -27,12 +27,14 @@ public class HelloUdpServerExternalResource extends ExternalResource {
         this.timeout = timeout;
     }
 
-    protected void before() throws Throwable {
-        int port = choosePort();
-        server = new HelloUdpServer(port, timeout).createServer();
-    }
-
     public void start() {
+        int port;
+        try {
+            port = choosePort();
+        } catch (SocketException e) {
+            throw new RuntimeException("Error choosing point", e);
+        }
+        server = new HelloUdpServer(port, timeout).createServer();
         server.start();
     }
 
