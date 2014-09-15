@@ -188,7 +188,7 @@ public class LoadBalancerRetrySameServerCommand<T> {
      * on the server with possible retries in blocking mode.
      */
     public T retryWithSameServer(final Server server, final LoadBalancerExecutable<T> executable) throws Exception {
-        Observable<T> result = retryWithSameServer(server, toObsevable(executable).run(server));
+        Observable<T> result = retryWithSameServer(server, toObsevable(executable).call(server));
         return RxUtils.getSingleValueWithRealErrorCause(result);
     }
 

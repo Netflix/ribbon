@@ -52,7 +52,7 @@ public class LoadBalancerCommandTest {
         LoadBalancerObservable<String> observableProvider = new LoadBalancerObservable<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
-            public Observable<String> run(final Server server) {
+            public Observable<String> call(final Server server) {
                 return Observable.create(new OnSubscribe<String>(){
                     @Override
                     public void call(Subscriber<? super String> t1) {
@@ -67,7 +67,7 @@ public class LoadBalancerCommandTest {
                 });
             }
         };
-        String result = command.retryWithSameServer(server1, observableProvider.run(server1)).toBlocking().single();
+        String result = command.retryWithSameServer(server1, observableProvider.call(server1)).toBlocking().single();
         assertEquals(3, loadBalancer.getLoadBalancerStats().getSingleServerStat(server1).getTotalRequestsCount());
         assertEquals("1", result);
     }
@@ -96,7 +96,7 @@ public class LoadBalancerCommandTest {
         LoadBalancerObservable<String> observableProvider = new LoadBalancerObservable<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
-            public Observable<String> run(final Server server) {
+            public Observable<String> call(final Server server) {
                 return Observable.create(new OnSubscribe<String>(){
                     @Override
                     public void call(Subscriber<? super String> t1) {

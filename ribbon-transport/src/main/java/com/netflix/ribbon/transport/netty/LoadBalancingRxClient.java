@@ -232,7 +232,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     public Observable<ObservableConnection<O, I>> connect() {
         LoadBalancerObservableCommand<ObservableConnection<O, I>> command = new LoadBalancerObservableCommand<ObservableConnection<O, I>>(lbContext) {
             @Override
-            public Observable<ObservableConnection<O, I>> run(Server server) {
+            public Observable<ObservableConnection<O, I>> call(Server server) {
                 return getRxClient(server.getHost(), server.getPort()).connect();            }
         };
         return command.toObservable();

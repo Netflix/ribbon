@@ -220,7 +220,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         }
         LoadBalancerObservableCommand<HttpClientResponse<O>> command = builder.build(new LoadBalancerObservable<HttpClientResponse<O>>() {
                 @Override
-                public Observable<HttpClientResponse<O>> run(Server server) {
+                public Observable<HttpClientResponse<O>> call(Server server) {
                     return submit(server.getHost(), server.getPort(), request, getRxClientConfig(config, rxClientConfig));
                 }
             }, context);

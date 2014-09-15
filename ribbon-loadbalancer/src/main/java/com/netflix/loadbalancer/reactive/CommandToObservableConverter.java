@@ -17,7 +17,7 @@ class CommandToObservableConverter<T> implements LoadBalancerObservable<T> {
     }
     
     @Override
-    public Observable<T> run(final Server server) {
+    public Observable<T> call(final Server server) {
         return Observable.create(new OnSubscribe<T>() {
             @Override
             public void call(Subscriber<? super T> t1) {

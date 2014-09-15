@@ -19,16 +19,18 @@ package com.netflix.loadbalancer.reactive;
 
 import com.netflix.loadbalancer.Server;
 import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * Provide the {@link rx.Observable} for a specified server. Used by {@link com.netflix.loadbalancer.reactive.LoadBalancerObservableCommand}
  *
  * @param <T> Output type
  */
-public interface LoadBalancerObservable<T> {
+public interface LoadBalancerObservable<T> extends Func1<Server, Observable<T>> {
     /**
      * @return A lazy {@link Observable} for the server supplied. It is expected
      * that the actual execution is not started until the returned {@link Observable} is subscribed to.
      */
-    public Observable<T> run(Server server);
+    @Override
+    public Observable<T> call(Server server);
 }

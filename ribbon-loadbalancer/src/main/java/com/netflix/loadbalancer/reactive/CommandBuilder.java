@@ -133,8 +133,8 @@ public class CommandBuilder<T> {
         LoadBalancerContext loadBalancerContext1 = loadBalancerContext == null ? new LoadBalancerContext(loadBalancer, config) : loadBalancerContext;
         return new LoadBalancerObservableCommand<T>(loadBalancerContext1, retryHandler, serviceLocator, loadBalancerKey, invoker) {
             @Override
-            public Observable<T> run(Server server) {
-                return executable.run(server);
+            public Observable<T> call(Server server) {
+                return executable.call(server);
             }
         };
     }

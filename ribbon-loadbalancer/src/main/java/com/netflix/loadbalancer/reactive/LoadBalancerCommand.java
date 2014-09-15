@@ -57,8 +57,8 @@ public abstract class LoadBalancerCommand<T> implements LoadBalancerExecutable<T
     private LoadBalancerObservableCommand<T> createObservableCommand() {
         return new LoadBalancerObservableCommand<T>(loadBalancerContext, retryHandler, loadBalancerURI, loadBalancerKey, null) {
             @Override
-            public Observable<T> run(final Server server) {
-                return CommandToObservableConverter.toObsevable(LoadBalancerCommand.this).run(server);
+            public Observable<T> call(final Server server) {
+                return CommandToObservableConverter.toObsevable(LoadBalancerCommand.this).call(server);
             }
         };
     }

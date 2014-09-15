@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <ul>
  * <li>Choose a server</li>
- * <li>Invoke the {@link #run(com.netflix.loadbalancer.Server)} method</li>
+ * <li>Invoke the {@link #call(com.netflix.loadbalancer.Server)} method</li>
  * <li>Invoke the {@link ExecutionListener} if any</li>
  * <li>Retry on exception, controlled by {@link com.netflix.client.RetryHandler}</li>
  * <li>Provide feedback to the {@link com.netflix.loadbalancer.LoadBalancerStats}</li>
@@ -124,7 +124,7 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
                             logger.error("Unexpected error", ex);
                             t1.onError(ex);
                         }
-                        retryWithSameServer(server, run(server), counter.get()).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
+                        retryWithSameServer(server, LoadBalancerObservableCommand.this.call(server), counter.get()).lift(RetryNextServerOperator.this).unsafeSubscribe(t1);
                     } else {
                         if (listenerInvoker != null) {
                             listenerInvoker.onExecutionFailed(finalThrowable, executionInfo);
@@ -160,9 +160,9 @@ public abstract class LoadBalancerObservableCommand<T> extends LoadBalancerRetry
         }
         if (getRetryHandler().getMaxRetriesOnNextServer() == 0) {
             // short cut: if no retry, return the same Observable
-            return retryWithSameServer(server, this.run(server));
+            return retryWithSameServer(server, this.call(server));
         } else {
-            return retryWithSameServer(server, this.run(server), 0).lift(new RetryNextServerOperator());
+            return retryWithSameServer(server, this.call(server), 0).lift(new RetryNextServerOperator());
         }
     }
 
