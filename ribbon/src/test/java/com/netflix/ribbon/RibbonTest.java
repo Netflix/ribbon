@@ -26,6 +26,9 @@ import com.netflix.ribbon.hystrix.FallbackHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import rx.Observable;
 import rx.functions.Action0;
@@ -55,11 +58,14 @@ public class RibbonTest {
             
         }).toBlocking().single();
     }
-    
+
+    @BeforeClass
+    public static void init() {
+        LogManager.getRootLogger().setLevel(Level.DEBUG);
+    }
     
     @Test
     public void testCommand() throws IOException, InterruptedException, ExecutionException {
-        // LogManager.getRootLogger().setLevel(Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
         MockResponse response = new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
@@ -123,20 +129,15 @@ public class RibbonTest {
         }
     }
 
-    
-    
     @Test
     public void testCommandWithMetaData() throws IOException, InterruptedException, ExecutionException {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
-                .setBody(content));
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
-                .setBody(content));       
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
-                .setBody(content));       
-
+        for (int i = 0; i < 6; i++) {
+            server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+                    .setBody(content));
+        }
         server.play();
         
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient", ClientOptions.create()
