@@ -15,7 +15,7 @@
  */
 package com.netflix.ribbon.http;
 
-import com.netflix.client.netty.LoadBalancingRxClient;
+import com.netflix.ribbon.transport.netty.LoadBalancingRxClient;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.HystrixCommandProperties;

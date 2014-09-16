@@ -17,7 +17,7 @@ package com.netflix.ribbon;
 
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.RibbonTransport;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.socket.DatagramPacket;
 import io.reactivex.netty.client.RxClient;
