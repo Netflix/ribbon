@@ -26,7 +26,6 @@ import rx.Observable;
 
 import java.net.URI;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -111,7 +110,7 @@ public class CommandBuilder<T> {
         ExecutionContextListenerInvoker invoker = null;
 
         if (listeners != null && listeners.size() > 0 && executionContext != null) {
-            invoker = new ExecutionContextListenerInvoker(executionContext, Collections.unmodifiableList(listeners));
+            invoker = new ExecutionContextListenerInvoker(executionContext, listeners);
         }
         LoadBalancerContext loadBalancerContext1 = loadBalancerContext == null ? new LoadBalancerContext(loadBalancer, config) : loadBalancerContext;
         return new LoadBalancerRetrySameServerCommand<T>(loadBalancerContext1, retryHandler, invoker);
@@ -128,7 +127,7 @@ public class CommandBuilder<T> {
         ExecutionContextListenerInvoker invoker = null;
 
         if (listeners != null && listeners.size() > 0) {
-            invoker = new ExecutionContextListenerInvoker(executionContext, Collections.unmodifiableList(listeners));
+            invoker = new ExecutionContextListenerInvoker(executionContext, listeners);
         }
         LoadBalancerContext loadBalancerContext1 = loadBalancerContext == null ? new LoadBalancerContext(loadBalancer, config) : loadBalancerContext;
         return new LoadBalancerObservableCommand<T>(loadBalancerContext1, retryHandler, serviceLocator, loadBalancerKey, invoker) {

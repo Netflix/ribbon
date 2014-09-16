@@ -21,6 +21,7 @@ import com.netflix.loadbalancer.reactive.ExecutionListener.AbortExecutionExcepti
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -35,11 +36,19 @@ public class ExecutionContextListenerInvoker<I, O> {
     private final List<ExecutionListener<I, O>> listeners;
 
     public ExecutionContextListenerInvoker(ExecutionContext<I> context, List<ExecutionListener<I, O>> listeners) {
-        this.listeners = listeners;
+        this.listeners = Collections.unmodifiableList(listeners);
         this.context = context;
     }
 
+    public ExecutionContextListenerInvoker(List<ExecutionListener<I, O>> listeners) {
+        this(null, listeners);
+    }
+
     public void onExecutionStart() {
+        onExecutionStart(this.context);
+    }
+
+    public void onExecutionStart(ExecutionContext<I> context) {
         for (ExecutionListener<I, O> listener : listeners) {
             try {
                 listener.onExecutionStart(context.getChildContext(listener));
@@ -52,11 +61,15 @@ public class ExecutionContextListenerInvoker<I, O> {
         }
     }
 
+    public void onStartWithServer(ExecutionInfo info) {
+        onStartWithServer(this.context, info);
+    }
+
     /**
      * Called when a server is chosen and the request is going to be executed on the server.
      *
      */
-    public void onStartWithServer(ExecutionInfo info) {
+    public void onStartWithServer(ExecutionContext<I> context, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
                 listener.onStartWithServer(context.getChildContext(listener), info);
@@ -69,12 +82,16 @@ public class ExecutionContextListenerInvoker<I, O> {
         }
     }
 
+    public void onExceptionWithServer(Throwable exception, ExecutionInfo info) {
+        onExceptionWithServer(this.context, exception, info);
+    }
+
     /**
      * Called when an exception is received from executing the request on a server.
      *
      * @param exception Exception received
      */
-    public void onExceptionWithServer(Throwable exception, ExecutionInfo info) {
+    public void onExceptionWithServer(ExecutionContext<I> context, Throwable exception, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
                 listener.onExceptionWithServer(context.getChildContext(listener), exception, info);
@@ -84,12 +101,16 @@ public class ExecutionContextListenerInvoker<I, O> {
         }
     }
 
+    public void onExecutionSuccess(O response, ExecutionInfo info) {
+        onExecutionSuccess(this.context, response, info);
+    }
+
     /**
      * Called when the request is executed successfully on the server
      *
      * @param response Object received from the execution
      */
-    public void onExecutionSuccess(O response, ExecutionInfo info) {
+    public void onExecutionSuccess(ExecutionContext<I> context, O response, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
                 listener.onExecutionSuccess(context.getChildContext(listener), response, info);
@@ -99,12 +120,16 @@ public class ExecutionContextListenerInvoker<I, O> {
         }
     }
 
+    public void onExecutionFailed(Throwable finalException, ExecutionInfo info) {
+        onExecutionFailed(this.context, finalException, info);
+    }
+
     /**
      * Called when the request is considered failed after all retries.
      *
      * @param finalException Final exception received.
      */
-    public void onExecutionFailed(Throwable finalException, ExecutionInfo info) {
+    public void onExecutionFailed(ExecutionContext<I> context, Throwable finalException, ExecutionInfo info) {
         for (ExecutionListener<I, O> listener: listeners) {
             try {
                 listener.onExecutionFailed(context.getChildContext(listener), finalException, info);
