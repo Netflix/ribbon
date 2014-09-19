@@ -34,37 +34,33 @@ See https://github.com/Netflix/ribbon/releases
 
 ## Code example
 
-### Access HTTP resource using template
+### Access HTTP resource using template ([full example](https://github.com/Netflix/ribbon/blob/master/ribbon-examples/src/main/java/com/netflix/ribbon/examples/rx/template/RxMovieTemplateExample.java))
 
 ```java
 HttpResourceGroup httpResourceGroup = Ribbon.createHttpResourceGroup("movieServiceClient",
             ClientOptions.create()
                     .withMaxAutoRetriesNextServer(3)
                     .withConfigurationBasedServerList("localhost:8080,localhost:8088"));
-HttpRequestTemplate<ByteBuf> recommendationsByUserIdTemplate = httpResourceGroup.newRequestTemplate("recommendationsByUserId", ByteBuf.class)
+HttpRequestTemplate<ByteBuf> recommendationsByUserIdTemplate = httpResourceGroup.newTemplateBuilder("recommendationsByUserId", ByteBuf.class)
             .withMethod("GET")
             .withUriTemplate("/users/{userId}/recommendations")
             .withFallbackProvider(new RecommendationServiceFallbackHandler())
-            .withResponseValidator(new RecommendationServiceResponseValidator());
+            .withResponseValidator(new RecommendationServiceResponseValidator())
+            .build();
 Observable<ByteBuf> result = recommendationsByUserIdTemplate.requestBuilder()
                         .withRequestProperty("userId", “user1")
                         .build()
                         .observe();
 ```
 
-### Access HTTP resource using annotations
+### Access HTTP resource using annotations ([full example](https://github.com/Netflix/ribbon/blob/master/ribbon-examples/src/main/java/com/netflix/ribbon/examples/rx/proxy/RxMovieProxyExample.java))
 
 ```java
 public interface MovieService {
-    @TemplateName("recommendations")
     @Http(
             method = HttpMethod.GET,
             uriTemplate = "/users/{userId}/recommendations",
             )
-    @Hystrix(
-            validator = RecommendationServiceResponseValidator.class,
-            fallbackHandler = RecommendationServiceFallbackHandler.class)
-    @CacheProviders(@Provider(key = "{userId}", provider = InMemoryCacheProviderFactory.class))
     RibbonRequest<ByteBuf> recommendationsByUserId(@Var("userId") String userId);
 }
 
@@ -72,7 +68,7 @@ MovieService movieService = Ribbon.from(MovieService.class);
 Observable<ByteBuf> result = movieService.recommendationsByUserId("user1").observe();
 ```
 
-### Create a load balancer with Eureka dynamic server list and zone affinity enabled
+### Create an AWS-ready load balancer with [Eureka](https://github.com/Netflix/eureka) dynamic server list and zone affinity enabled
 
 ```java
         IRule rule = new AvailabilityFilteringRule();
@@ -86,24 +82,19 @@ Observable<ByteBuf> result = movieService.recommendationsByUserId("user1").obser
         DiscoveryEnabledServer server = lb.chooseServer();         
 ```
 
-### Use load balancing APIs with HttpURLConnection
+### Use LoadBalancerCommand to load balancing IPC calls made by HttpURLConnection ([full example](https://github.com/Netflix/ribbon/blob/master/ribbon-examples/src/main/java/com/netflix/ribbon/examples/loadbalancer/URLConnectionLoadBalancer.java))
 
 ```java
-LoadBalancerExecutor lbExecutor = LoadBalancerBuilder.newBuilder()
-	.buildFixedServerListLoadBalancerExecutor(
-		Lists.newArrayList(
-                new Server("www.google.com", 80),
-                new Server("www.linkedin.com", 80),
-                new Server("www.yahoo.com", 80))
-		);
-String statusLine = lbExecutor.execute(new LoadBalancerCommand<String>() {
+CommandBuilder.<String>newBuilder()
+        .withLoadBalancer(LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(serverList))
+        .build(new LoadBalancerExecutable<String>() {
             @Override
             public String run(Server server) throws Exception {
-                URL url = new URL("http://" + server.getHost() + ":" + server.getPort() + "/");
+                URL url = new URL("http://" + server.getHost() + ":" + server.getPort() + path);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 return conn.getResponseMessage();
             }
-        });
+        }).execute();
 ```
 
 ## Questions?
