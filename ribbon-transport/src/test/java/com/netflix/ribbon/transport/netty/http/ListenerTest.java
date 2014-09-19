@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
 import com.netflix.client.ClientException;
+import com.netflix.config.ConfigurationManager;
 import com.netflix.loadbalancer.reactive.ExecutionContext;
 import com.netflix.loadbalancer.reactive.ExecutionInfo;
 import com.netflix.loadbalancer.reactive.ExecutionListener;
@@ -279,4 +280,44 @@ public class ListenerTest {
         assertTrue(ref.get() instanceof AbortExecutionException);
     }
 
+    @Test
+    public void testDisabledListener() throws Exception {
+        ConfigurationManager.getConfigInstance().setProperty("myClient.ribbon.listener." + TestExecutionListener.class.getName() + ".disabled", "true");
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues("myClient").withProperty(CommonClientConfigKey.ConnectTimeout, "2000")
+                .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
+                .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
+        Server badServer = new Server("localhost:12345");
+        List<Server> servers = Lists.newArrayList(badServer);
+
+        BaseLoadBalancer lb = LoadBalancerBuilder.<Server>newBuilder()
+                .withRule(new AvailabilityFilteringRule())
+                .withPing(new DummyPing())
+                .buildFixedServerListLoadBalancer(servers);
+        IClientConfig overrideConfig = DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.ConnectTimeout, 500);
+        TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<ByteBuf, ByteBuf>(request, overrideConfig);
+        List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
+        LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
+        try {
+            client.submit(request, null, overrideConfig).toBlocking().last();
+        } catch (Exception e) {
+            assertNotNull(e);
+        }
+        assertEquals(0, listener.executionStartCounter.get());
+        assertEquals(0, listener.startWithServerCounter.get());
+        assertEquals(0, listener.exceptionWithServerCounter.get());
+        assertEquals(0, listener.executionFailedCounter.get());
+        assertEquals(0, listener.executionSuccessCounter.get());
+
+        try {
+            client.submit(request, null, overrideConfig).toBlocking().last();
+        } catch (Exception e) {
+            assertNotNull(e);
+        }
+        assertEquals(0, listener.executionStartCounter.get());
+        assertEquals(0, listener.startWithServerCounter.get());
+        assertEquals(0, listener.exceptionWithServerCounter.get());
+        assertEquals(0, listener.executionFailedCounter.get());
+        assertEquals(0, listener.executionSuccessCounter.get());
+    }
 }
