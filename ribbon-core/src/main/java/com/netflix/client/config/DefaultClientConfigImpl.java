@@ -699,12 +699,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     protected Object getProperty(String key) {
         if (enableDynamicProperties) {
-            String dynamicValue;
+            String dynamicValue = null;
             DynamicStringProperty dynamicProperty = dynamicProperties.get(key);
             if (dynamicProperty != null) {
                 dynamicValue = dynamicProperty.get();
-            } else {
-                dynamicValue = DynamicProperty.getInstance(getDefaultPropName(key)).getString();
+            }
+            if (dynamicValue == null) {
+                dynamicValue = DynamicProperty.getInstance(getConfigKey(key)).getString();
+                if (dynamicValue == null) {
+                    dynamicValue = DynamicProperty.getInstance(getDefaultPropName(key)).getString();
+                }
             }
             if (dynamicValue != null) {
                 return dynamicValue;
