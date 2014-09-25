@@ -38,6 +38,7 @@ import com.netflix.loadbalancer.reactive.CommandBuilder;
 import com.netflix.loadbalancer.reactive.LoadBalancerObservable;
 import com.netflix.loadbalancer.reactive.LoadBalancerObservableCommand;
 import com.netflix.loadbalancer.reactive.LoadBalancerRetrySameServerCommand;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
@@ -50,6 +51,7 @@ import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
 import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.ssl.DefaultFactories;
+import io.reactivex.netty.pipeline.ssl.SSLEngineFactory;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
@@ -59,6 +61,7 @@ import rx.Observable;
 
 import javax.annotation.Nullable;
 import java.net.URI;
+import javax.net.ssl.SSLEngine;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
@@ -337,7 +340,16 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         }
         if (sslContextFactory != null) {
             try {
-                clientBuilder.withSslEngineFactory(DefaultFactories.fromSSLContext(sslContextFactory.getSSLContext()));
+                SSLEngineFactory myFactory = new DefaultFactories.SSLContextBasedFactory(sslContextFactory.getSSLContext()) {
+                    @Override
+                    public SSLEngine createSSLEngine(ByteBufAllocator allocator) {
+                        SSLEngine myEngine = super.createSSLEngine(allocator);
+                        myEngine.setUseClientMode(true);
+                        return myEngine;
+                    }
+                };
+
+                clientBuilder.withSslEngineFactory(myFactory);
             } catch (ClientSslSocketFactoryException e) {
                 throw new RuntimeException(e);
             }
