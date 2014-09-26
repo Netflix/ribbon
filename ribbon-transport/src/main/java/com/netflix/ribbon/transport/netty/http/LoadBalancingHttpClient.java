@@ -125,10 +125,11 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         defaultCommandBuilder = CommandBuilder.<HttpClientResponse<O>>newBuilder()
                 .withLoadBalancerContext(lbContext)
                 .withListeners(this.listeners)
+                .withClientConfig(config)
                 .withRetryHandler(defaultRetryHandler);
     }
 
-    private RequestSpecificRetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
+    private RetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
         boolean okToRetryOnAllErrors = request.getMethod().equals(HttpMethod.GET);
         return new RequestSpecificRetryHandler(true, okToRetryOnAllErrors, defaultRetryHandler, requestConfig);
     }
@@ -219,6 +220,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
             builder = CommandBuilder.<HttpClientResponse<O>>newBuilder()
                     .withLoadBalancerContext(lbContext)
                     .withListeners(listeners)
+                    .withClientConfig(this.getClientConfig())
                     .withRetryHandler(retryHandler);
         }
         LoadBalancerObservableCommand<HttpClientResponse<O>> command = builder.build(new LoadBalancerObservable<HttpClientResponse<O>>() {

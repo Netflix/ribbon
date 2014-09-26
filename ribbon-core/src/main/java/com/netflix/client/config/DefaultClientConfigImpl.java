@@ -17,22 +17,22 @@
 */
 package com.netflix.client.config;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-
+import com.google.common.base.Strings;
+import com.netflix.client.VipAddressResolver;
+import com.netflix.config.ConfigurationManager;
+import com.netflix.config.DynamicProperty;
+import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.config.DynamicStringProperty;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Strings;
-import com.netflix.client.VipAddressResolver;
-import com.netflix.config.ConfigurationManager;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.config.DynamicStringProperty;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Default client configuration that loads properties from Archaius's ConfigurationManager.
@@ -698,9 +698,18 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     protected Object getProperty(String key) {
-        DynamicStringProperty dynamicProperty = dynamicProperties.get(key);
-        if (dynamicProperty != null) {
-            String dynamicValue = dynamicProperty.get();
+        if (enableDynamicProperties) {
+            String dynamicValue = null;
+            DynamicStringProperty dynamicProperty = dynamicProperties.get(key);
+            if (dynamicProperty != null) {
+                dynamicValue = dynamicProperty.get();
+            }
+            if (dynamicValue == null) {
+                dynamicValue = DynamicProperty.getInstance(getConfigKey(key)).getString();
+                if (dynamicValue == null) {
+                    dynamicValue = DynamicProperty.getInstance(getDefaultPropName(key)).getString();
+                }
+            }
             if (dynamicValue != null) {
                 return dynamicValue;
             }
