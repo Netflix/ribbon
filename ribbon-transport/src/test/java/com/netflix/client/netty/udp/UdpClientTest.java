@@ -74,12 +74,12 @@ public class UdpClientTest {
                 })
                 .toBlocking()
                 .first();
-        assertEquals(HelloUdpServer.WELCOME_MSG, response);
+        assertEquals(HelloUdpServerExternalResource.WELCOME_MSG, response);
     }
 
     @Test
     public void testUdpClientTimeout() throws Exception {
-        server.setTimeout(0);
+        server.setTimeout(5000);
         server.start();
         
         BaseLoadBalancer lb = new BaseLoadBalancer();
