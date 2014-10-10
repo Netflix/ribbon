@@ -1,18 +1,16 @@
 package com.netflix.loadbalancer;
 
-import java.util.List;
-
 import com.netflix.client.ClientFactory;
-import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
+import java.util.List;
+
 public class LoadBalancerBuilder<T extends Server> {
     
     private IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
-    private RetryHandler errorHandler = RetryHandler.DEFAULT;
     private ServerListFilter serverListFilter;
     private IRule rule;
     private IPing ping = new DummyPing();
@@ -28,11 +26,6 @@ public class LoadBalancerBuilder<T extends Server> {
     
     public LoadBalancerBuilder<T> withClientConfig(IClientConfig config) {
         this.config = config;
-        return this;
-    }
-    
-    public LoadBalancerBuilder<T> withLoadBalancerExecutorRetryHandler(RetryHandler errorHandler) {
-        this.errorHandler = errorHandler;
         return this;
     }
 
@@ -125,17 +118,5 @@ public class LoadBalancerBuilder<T extends Server> {
             throw new RuntimeException(e);
         }
         return lb;
-    }
-    
-    public LoadBalancerExecutor buildDynamicServerListLoadBalancerExecutor() {
-        ZoneAwareLoadBalancer<T> lb = buildDynamicServerListLoadBalancer();
-        LoadBalancerExecutor executor = new LoadBalancerExecutor(lb, config, errorHandler);
-        return executor;
-    }
-    
-    public LoadBalancerExecutor buildFixedServerListLoadBalancerExecutor(List<T> servers) {
-        BaseLoadBalancer lb = buildFixedServerListLoadBalancer(servers);
-        LoadBalancerExecutor executor = new LoadBalancerExecutor(lb, config, errorHandler);
-        return executor;        
     }
 }

@@ -18,4 +18,14 @@ public class Utils {
         return false;
     }
 
+    public static Throwable getDeepestCause(Throwable e) {
+        if(e != null) {
+            int infiniteLoopPreventionCounter = 10;
+            while (e.getCause() != null && infiniteLoopPreventionCounter > 0) {
+                infiniteLoopPreventionCounter--;
+                e = e.getCause();
+            }
+        }
+        return e;
+    }
 }

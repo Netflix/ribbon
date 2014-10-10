@@ -28,14 +28,64 @@ import com.netflix.util.Pair;
  */
 public class Server {
 
-    public static final String UNKNOWN_ZONE = "UNKNOWN";
-    String host;
-    int port = 80;
-    String id;
-    boolean isAliveFlag;
-    private String zone = UNKNOWN_ZONE;
+    /**
+     * Additional meta information of a server, which contains
+     * information of the targeting application, as well as server identification
+     * specific for a deployment environment, for example, AWS.
+     */
+    public static interface MetaInfo {
+        /**
+         * @return the name of application that runs on this server, null if not available
+         */
+        public String getAppName();
 
+        /**
+         * @return the group of the server, for example, auto scaling group ID in AWS.
+         * Null if not available
+         */
+        public String getServerGroup();
+
+        /**
+         * @return A virtual address used by the server to register with discovery service.
+         * Null if not available
+         */
+        public String getServiceIdForDiscovery();
+
+        /**
+         * @return ID of the server
+         */
+        public String getInstanceId();
+    }
+
+    public static final String UNKNOWN_ZONE = "UNKNOWN";
+    private String host;
+    private int port = 80;
+    private volatile String id;
+    private boolean isAliveFlag;
+    private String zone = UNKNOWN_ZONE;
     private volatile boolean readyToServe = true;
+
+    private MetaInfo simpleMetaInfo = new MetaInfo() {
+        @Override
+        public String getAppName() {
+            return null;
+        }
+
+        @Override
+        public String getServerGroup() {
+            return null;
+        }
+
+        @Override
+        public String getServiceIdForDiscovery() {
+            return null;
+        }
+
+        @Override
+        public String getInstanceId() {
+            return id;
+        }
+    };
 
     public Server(String host, int port) {
         this.host = host;
@@ -63,6 +113,7 @@ public class Server {
         return isAliveFlag;
     }
 
+    @Deprecated
     public void setHostPort(String hostPort) {
         setId(hostPort);
     }
@@ -154,6 +205,10 @@ public class Server {
         return host + ":" + port;
     }
 
+    public MetaInfo getMetaInfo() {
+        return simpleMetaInfo;
+    }
+
     public String toString() {
         return this.getId();
     }
@@ -189,5 +244,4 @@ public class Server {
     public final void setReadyToServe(boolean readyToServe) {
         this.readyToServe = readyToServe;
     }
-
 }

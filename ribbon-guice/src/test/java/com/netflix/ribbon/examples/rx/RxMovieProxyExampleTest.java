@@ -23,7 +23,7 @@ import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.ClientConfigFactory.DefaultClientConfigFactory;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.client.netty.http.NettyHttpClient;
+import com.netflix.ribbon.transport.netty.http.LoadBalancingHttpClient;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
@@ -115,7 +115,7 @@ public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
 
         RibbonTransportFactory transportFactory = injector.getInstance(RibbonTransportFactory.class);
         HttpClient<ByteBuf, ByteBuf> client = transportFactory.newHttpClient("myClient");
-        IClientConfig config = ((NettyHttpClient) client).getClientConfig();
+        IClientConfig config = ((LoadBalancingHttpClient) client).getClientConfig();
         assertEquals("MyConfig", config.getNameSpace());
     }
 }

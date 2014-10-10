@@ -1,49 +1,48 @@
 package com.netflix.ribbon.examples.loadbalancer;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.List;
-
 import com.google.common.collect.Lists;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.loadbalancer.BaseLoadBalancer;
+import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.LoadBalancerCommand;
-import com.netflix.loadbalancer.LoadBalancerExecutor;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.reactive.CommandBuilder;
+import com.netflix.loadbalancer.reactive.LoadBalancerExecutable;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.List;
 
 /**
- * An example to show using {@link LoadBalancerExecutor} to load balance calls made with {@link URLConnection}
- *  
+ *
  * @author Allen Wang
  *
  */
 public class URLConnectionLoadBalancer {
    
-    private final LoadBalancerExecutor lbExecutor;
+    private final ILoadBalancer loadBalancer;
     // retry handler that does not retry on same server, but on a different server
     private final RetryHandler retryHandler = new DefaultLoadBalancerRetryHandler(0, 1, true);
     
     public URLConnectionLoadBalancer(List<Server> serverList) {
-        lbExecutor = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancerExecutor(serverList);
+        loadBalancer = LoadBalancerBuilder.newBuilder().buildFixedServerListLoadBalancer(serverList);
     }
     
     public String call(final String path) throws Exception {
-        return lbExecutor.execute(new LoadBalancerCommand<String>() {
+        return CommandBuilder.<String>newBuilder().withLoadBalancer(loadBalancer).build(new LoadBalancerExecutable<String>() {
             @Override
             public String run(Server server) throws Exception {
                 URL url = new URL("http://" + server.getHost() + ":" + server.getPort() + path);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 return conn.getResponseMessage();
             }
-        }, retryHandler);
+        }).execute();
     }
     
     public LoadBalancerStats getLoadBalancerStats() {
-        return ((BaseLoadBalancer) lbExecutor.getLoadBalancer()).getLoadBalancerStats();
+        return ((BaseLoadBalancer) loadBalancer).getLoadBalancerStats();
     }
 
     public static void main(String[] args) throws Exception {
