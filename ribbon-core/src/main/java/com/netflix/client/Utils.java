@@ -19,7 +19,7 @@ public class Utils {
     }
 
     public static Throwable getDeepestCause(Throwable e) {
-        if(e != null) {
+        if (e != null) {
             int infiniteLoopPreventionCounter = 10;
             while (e.getCause() != null && infiniteLoopPreventionCounter > 0) {
                 infiniteLoopPreventionCounter--;
@@ -28,4 +28,19 @@ public class Utils {
         }
         return e;
     }
+    
+    public static ClientException getClientExceptionCause(Throwable e) {
+        if (e != null) {
+            int infiniteLoopPreventionCounter = 10;
+            while (e.getCause() != null && infiniteLoopPreventionCounter > 0) {
+                infiniteLoopPreventionCounter--;
+                e = e.getCause();
+                if (e instanceof ClientException) {
+                    return (ClientException)e;
+                }
+            }
+        }
+        return null;
+    }
+
 }

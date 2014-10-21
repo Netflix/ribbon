@@ -26,12 +26,12 @@ import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 
-
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.loadbalancer.ILoadBalancer;
+import com.netflix.loadbalancer.Server;
 
 public class SSEClient<I> extends LoadBalancingHttpClient<I, ServerSentEvent> {
     
@@ -57,9 +57,9 @@ public class SSEClient<I> extends LoadBalancingHttpClient<I, ServerSentEvent> {
     }
 
     @Override
-    protected HttpClient<I, ServerSentEvent> getRxClient(String host, int port) {
+    protected HttpClient<I, ServerSentEvent> getOrCreateRxClient(Server server) {
         HttpClientBuilder<I, ServerSentEvent> clientBuilder =
-                new HttpClientBuilder<I, ServerSentEvent>(host, port).pipelineConfigurator(pipelineConfigurator);
+                new HttpClientBuilder<I, ServerSentEvent>(server.getHost(), server.getPort()).pipelineConfigurator(pipelineConfigurator);
         int requestConnectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         RxClient.ClientConfig rxClientConfig = new HttpClientConfig.Builder().build();
         

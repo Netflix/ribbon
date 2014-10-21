@@ -1,5 +1,12 @@
 package com.netflix.ribbon.examples.loadbalancer;
 
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
+
+import rx.Observable;
+
 import com.google.common.collect.Lists;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.RetryHandler;
@@ -8,12 +15,8 @@ import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.LoadBalancerStats;
 import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.reactive.CommandBuilder;
-import com.netflix.loadbalancer.reactive.LoadBalancerExecutable;
-
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.List;
+import com.netflix.loadbalancer.reactive.LoadBalancerCommand;
+import com.netflix.loadbalancer.reactive.ServerOperation;
 
 /**
  *
@@ -31,14 +34,22 @@ public class URLConnectionLoadBalancer {
     }
     
     public String call(final String path) throws Exception {
-        return CommandBuilder.<String>newBuilder().withLoadBalancer(loadBalancer).build(new LoadBalancerExecutable<String>() {
+        return LoadBalancerCommand.<String>builder()
+                .withLoadBalancer(loadBalancer)
+                .build()
+                .submit(new ServerOperation<String>() {
             @Override
-            public String run(Server server) throws Exception {
-                URL url = new URL("http://" + server.getHost() + ":" + server.getPort() + path);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                return conn.getResponseMessage();
+            public Observable<String> call(Server server) {
+                URL url;
+                try {
+                    url = new URL("http://" + server.getHost() + ":" + server.getPort() + path);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    return Observable.just(conn.getResponseMessage());
+                } catch (Exception e) {
+                    return Observable.error(e);
+                }
             }
-        }).execute();
+        }).toBlocking().first();
     }
     
     public LoadBalancerStats getLoadBalancerStats() {

@@ -1,20 +1,20 @@
 package com.netflix.loadbalancer;
 
-import com.google.common.collect.Lists;
-import com.netflix.client.RetryHandler;
-import com.netflix.loadbalancer.reactive.CommandBuilder;
-import com.netflix.loadbalancer.reactive.LoadBalancerObservable;
-import com.netflix.loadbalancer.reactive.LoadBalancerObservableCommand;
-import com.netflix.loadbalancer.reactive.LoadBalancerRetrySameServerCommand;
-import org.junit.Test;
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Subscriber;
+import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+
+import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
+
+import com.google.common.collect.Lists;
+import com.netflix.client.RetryHandler;
+import com.netflix.loadbalancer.reactive.LoadBalancerCommand;
+import com.netflix.loadbalancer.reactive.ServerOperation;
 
 public class LoadBalancerCommandTest {
 
@@ -46,10 +46,13 @@ public class LoadBalancerCommandTest {
             }
         };
 
-        LoadBalancerRetrySameServerCommand<String> command = CommandBuilder.<String>newBuilder().withLoadBalancer(loadBalancer)
+        LoadBalancerCommand<String> command = LoadBalancerCommand.<String>builder()
+                .withLoadBalancer(loadBalancer)
                 .withRetryHandler(handler)
+                .withServer(server1)
                 .build();
-        LoadBalancerObservable<String> observableProvider = new LoadBalancerObservable<String>() {
+        
+        ServerOperation<String> operation = new ServerOperation<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
             public Observable<String> call(final Server server) {
@@ -63,11 +66,11 @@ public class LoadBalancerCommandTest {
                             t1.onCompleted();
                         }
                     }
-
                 });
             }
         };
-        String result = command.retryWithSameServer(server1, observableProvider.call(server1)).toBlocking().single();
+        
+        String result = command.submit(operation).toBlocking().single();
         assertEquals(3, loadBalancer.getLoadBalancerStats().getSingleServerStat(server1).getTotalRequestsCount());
         assertEquals("1", result);
     }
@@ -86,14 +89,14 @@ public class LoadBalancerCommandTest {
             }
             @Override
             public int getMaxRetriesOnSameServer() {
-                return 1;
+                return 0;
             }
             @Override
             public int getMaxRetriesOnNextServer() {
                 return 5;
             }
         };
-        LoadBalancerObservable<String> observableProvider = new LoadBalancerObservable<String>() {
+        ServerOperation<String> operation = new ServerOperation<String>() {
             AtomicInteger count = new AtomicInteger();
             @Override
             public Observable<String> call(final Server server) {
@@ -112,13 +115,15 @@ public class LoadBalancerCommandTest {
             }
         };
 
-        LoadBalancerObservableCommand<String> command = CommandBuilder.<String>newBuilder().withLoadBalancer(loadBalancer)
+        LoadBalancerCommand<String> command = LoadBalancerCommand.<String>builder()
+                .withLoadBalancer(loadBalancer)
                 .withRetryHandler(handler)
-                .build(observableProvider);
+                .build();
 
-        String result = command.toObservable().toBlocking().single();
-        assertEquals("3", result); // server2 is picked first
-        assertEquals(2, loadBalancer.getLoadBalancerStats().getSingleServerStat(server2).getTotalRequestsCount());
+        String result = command.submit(operation).toBlocking().single();
+        assertEquals("1", result); // server2 is picked first
+        assertEquals(1, loadBalancer.getLoadBalancerStats().getSingleServerStat(server1).getTotalRequestsCount());
+        assertEquals(1, loadBalancer.getLoadBalancerStats().getSingleServerStat(server2).getTotalRequestsCount());
         assertEquals(1, loadBalancer.getLoadBalancerStats().getSingleServerStat(server3).getTotalRequestsCount());
     }
 }

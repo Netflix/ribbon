@@ -10,6 +10,12 @@ import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 
+/**
+ * Implementation of RetryHandler created for each request which allows for request
+ * specific override
+ * @author elandau
+ *
+ */
 public class RequestSpecificRetryHandler implements RetryHandler {
 
     private final RetryHandler fallback;
@@ -28,7 +34,6 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors, RetryHandler baseRetryHandler, @Nullable IClientConfig requestConfig) {
         Preconditions.checkNotNull(baseRetryHandler);
         this.okToRetryOnConnectErrors = okToRetryOnConnectErrors;
-        this.okToRetryOnAllErrors = okToRetryOnAllErrors;
         this.fallback = baseRetryHandler;
         if (requestConfig != null) {
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetries)) {
@@ -37,7 +42,12 @@ public class RequestSpecificRetryHandler implements RetryHandler {
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetriesNextServer)) {
                 retryNextServer = requestConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer); 
             } 
+            if (requestConfig.containsProperty(CommonClientConfigKey.OkToRetryOnAllOperations)) {
+                okToRetryOnAllErrors = requestConfig.get(CommonClientConfigKey.OkToRetryOnAllOperations);
+            }
         }
+        
+        this.okToRetryOnAllErrors = okToRetryOnAllErrors;
     }
     
     public boolean isConnectionException(Throwable e) {
@@ -48,14 +58,16 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     public boolean isRetriableException(Throwable e, boolean sameServer) {
         if (okToRetryOnAllErrors) {
             return true;
-        } else if (e instanceof ClientException) {
+        } 
+        else if (e instanceof ClientException) {
             ClientException ce = (ClientException) e;
             if (ce.getErrorType() == ClientException.ErrorType.SERVER_THROTTLED) {
                 return !sameServer;
             } else {
                 return false;
             }
-        } else  {
+        } 
+        else  {
             return okToRetryOnConnectErrors && isConnectionException(e);
         }
     }
