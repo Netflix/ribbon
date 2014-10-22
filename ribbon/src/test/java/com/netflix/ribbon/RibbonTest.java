@@ -68,8 +68,11 @@ public class RibbonTest {
     public void testCommand() throws IOException, InterruptedException, ExecutionException {
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
-        MockResponse response = new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
-        .setBody(content);
+        MockResponse response = new MockResponse()
+            .setResponseCode(200)
+            .setHeader("Content-type", "text/plain")
+            .setBody(content);
+        
         server.enqueue(response);        
         server.enqueue(response);       
         server.enqueue(response);       
@@ -84,8 +87,9 @@ public class RibbonTest {
                 .withUriTemplate("/")
                 .withMethod("GET")
                 .build();
-        RibbonRequest<ByteBuf> request = template
-                .requestBuilder().build();
+        
+        RibbonRequest<ByteBuf> request = template.requestBuilder().build();
+        
         String result = request.execute().toString(Charset.defaultCharset());
         assertEquals(content, result);
         // repeat the same request
@@ -103,8 +107,10 @@ public class RibbonTest {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
-        MockResponse response = new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
-        .setBody(content);
+        MockResponse response = new MockResponse()
+            .setResponseCode(200)
+            .setHeader("Content-type", "text/plain")
+            .setBody(content);
         server.enqueue(response);
         
         server.enqueue(response);       
@@ -135,8 +141,10 @@ public class RibbonTest {
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
         for (int i = 0; i < 6; i++) {
-            server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
-                    .setBody(content));
+            server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-type", "text/plain")
+                .setBody(content));
         }
         server.play();
         
@@ -191,7 +199,9 @@ public class RibbonTest {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-type", "text/plain")
                 .setBody(content));       
         server.play();
         
@@ -311,9 +321,13 @@ public class RibbonTest {
     public void testObserve() throws IOException, InterruptedException {
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-type", "text/plain")
                 .setBody(content));       
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-type", "text/plain")
                 .setBody(content));       
         server.play();
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient",
@@ -370,7 +384,9 @@ public class RibbonTest {
     public void testCacheMiss() throws IOException, InterruptedException {
         MockWebServer server = new MockWebServer();
         String content = "Hello world";
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "text/plain")
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-type", "text/plain")
                 .setBody(content));       
         server.play();
                 

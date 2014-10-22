@@ -299,12 +299,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     private Observable<HttpClientResponse<O>> submit(final Server server, final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig, final ClientConfig rxClientConfig) {
         RetryHandler retryHandler = errorHandler;
         if (retryHandler == null) {
-            if (requestConfig != null || !request.getMethod().equals(HttpMethod.GET)) {
-                retryHandler = getRequestRetryHandler(request, requestConfig);
-            } 
-            else {
-                retryHandler = defaultRetryHandler;
-            }
+            retryHandler = getRequestRetryHandler(request, requestConfig);
         }
         
         final IClientConfig config = requestConfig == null ? DefaultClientConfigImpl.getEmptyConfig() : requestConfig;

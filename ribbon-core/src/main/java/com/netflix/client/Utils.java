@@ -17,30 +17,4 @@ public class Utils {
         }
         return false;
     }
-
-    public static Throwable getDeepestCause(Throwable e) {
-        if (e != null) {
-            int infiniteLoopPreventionCounter = 10;
-            while (e.getCause() != null && infiniteLoopPreventionCounter > 0) {
-                infiniteLoopPreventionCounter--;
-                e = e.getCause();
-            }
-        }
-        return e;
-    }
-    
-    public static ClientException getClientExceptionCause(Throwable e) {
-        if (e != null) {
-            int infiniteLoopPreventionCounter = 10;
-            while (e.getCause() != null && infiniteLoopPreventionCounter > 0) {
-                infiniteLoopPreventionCounter--;
-                e = e.getCause();
-                if (e instanceof ClientException) {
-                    return (ClientException)e;
-                }
-            }
-        }
-        return null;
-    }
-
 }
