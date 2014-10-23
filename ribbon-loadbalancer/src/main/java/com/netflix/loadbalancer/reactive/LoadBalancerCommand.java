@@ -67,7 +67,6 @@ public class LoadBalancerCommand<T> {
         private LoadBalancerContext loadBalancerContext;
         private List<? extends ExecutionListener<?, T>> listeners;
         private Object              loadBalancerKey;
-        private URI                 serviceLocator;
         private ExecutionContext<?> executionContext;
         private ExecutionContextListenerInvoker invoker;
         private URI                 loadBalancerURI;
@@ -101,15 +100,6 @@ public class LoadBalancerCommand<T> {
     
         public Builder<T> withClientConfig(IClientConfig config) {
             this.config = config;
-            return this;
-        }
-    
-        /**
-         * Pass in an optional URI to help the load balancer to determine which group of servers to choose from.
-         * Only the authority of the URI is used.
-         */
-        public Builder<T> withServiceLocator(URI serviceLocator) {
-            this.serviceLocator = serviceLocator;
             return this;
         }
     
@@ -203,17 +193,15 @@ public class LoadBalancerCommand<T> {
     
     class ExecutionInfoContext {
         Server      server;
-        ServerStats serverStats;
         Exception   exception;
         int         serverAttemptCount = 0;
         int         attemptCount = 0;
         
-        public Server setServer(Server server, ServerStats serverStats) {
+        public Server setServer(Server server) {
             this.attemptCount++;
             try {
                 if (this.server != server)
                     serverAttemptCount++;
-                this.serverStats = serverStats;
                 return this.server;
             }
             finally {
@@ -248,7 +236,7 @@ public class LoadBalancerCommand<T> {
             @Override
             public Observable<T> call(final Server server) {
                 final ServerStats stats = loadBalancerContext.getServerStats(server);
-                context.setServer(server, stats);
+                context.setServer(server);
                 loadBalancerContext.noteOpenConnection(stats);
                 
                 if (listenerInvoker != null) {
