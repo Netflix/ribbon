@@ -173,7 +173,7 @@ public class LoadBalancerCommand<T> {
 
     private final ExecutionContextListenerInvoker<?, T> listenerInvoker;
     
-    public LoadBalancerCommand(Builder<T> builder) {
+    private LoadBalancerCommand(Builder<T> builder) {
         this.loadBalancerURI     = builder.loadBalancerURI;
         this.loadBalancerKey     = builder.loadBalancerKey;
         this.loadBalancerContext = builder.loadBalancerContext;
@@ -294,14 +294,13 @@ public class LoadBalancerCommand<T> {
     
     private Func2<Integer, Throwable, Boolean> retryPolicy(final int maxRetrys, final boolean same) {
         return new Func2<Integer, Throwable, Boolean>() {
-            int count = 0;
             @Override
-            public Boolean call(Integer retryCount, Throwable e) {
+            public Boolean call(Integer tryCount, Throwable e) {
                 if (e instanceof AbortExecutionException) {
                     return false;
                 }
 
-                if (count++ >= maxRetrys) {
+                if (tryCount > maxRetrys) {
                     return false;
                 }
                 
@@ -335,15 +334,34 @@ public class LoadBalancerCommand<T> {
         // Use the load balancer
         Observable<T> o;
         if (server == null) {
-            o = selectServer()
-                .concatMap(wrap(context, operation))
-                .retry(retryPolicy(retryHandler.getMaxRetriesOnNextServer(), false));
+            if (retryHandler.getMaxRetriesOnSameServer() > 0) {
+                o = selectServer()
+                    .concatMap(new Func1<Server, Observable<T>>() {
+                        @Override
+                        public Observable<T> call(Server server) {
+                            return Observable
+                                    .just(server)
+                                    .concatMap(wrap(context, operation))
+                                    .retry(retryPolicy(retryHandler.getMaxRetriesOnSameServer(), true));
+                        }
+                    });
+                
+            }
+            else {
+                o = selectServer()
+                    .concatMap(wrap(context, operation));
+            }
+            
+            if (retryHandler.getMaxRetriesOnNextServer() > 0) {
+                o = o.retry(retryPolicy(retryHandler.getMaxRetriesOnNextServer(), false));
+            }
         }
         // Try running on a specific server
         else {
-            o = Observable.just(server)
+            o = Observable
+                .just(server)
                 .concatMap(wrap(context, operation))
-                .retry(retryPolicy(retryHandler.getMaxRetriesOnSameServer(), false));
+                .retry(retryPolicy(retryHandler.getMaxRetriesOnSameServer(), true));
         }
         
         return o.onErrorResumeNext(new Func1<Throwable, Observable<T>>() {

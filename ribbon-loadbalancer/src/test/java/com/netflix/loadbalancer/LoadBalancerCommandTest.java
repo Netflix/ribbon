@@ -89,7 +89,7 @@ public class LoadBalancerCommandTest {
             }
             @Override
             public int getMaxRetriesOnSameServer() {
-                return 0;
+                return 1;
             }
             @Override
             public int getMaxRetriesOnNextServer() {
@@ -121,9 +121,7 @@ public class LoadBalancerCommandTest {
                 .build();
 
         String result = command.submit(operation).toBlocking().single();
-        assertEquals("1", result); // server2 is picked first
-        assertEquals(1, loadBalancer.getLoadBalancerStats().getSingleServerStat(server1).getTotalRequestsCount());
-        assertEquals(1, loadBalancer.getLoadBalancerStats().getSingleServerStat(server2).getTotalRequestsCount());
+        assertEquals("3", result); // server2 is picked first
         assertEquals(1, loadBalancer.getLoadBalancerStats().getSingleServerStat(server3).getTotalRequestsCount());
     }
 }

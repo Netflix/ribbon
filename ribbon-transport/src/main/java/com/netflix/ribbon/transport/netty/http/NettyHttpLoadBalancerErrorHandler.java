@@ -51,8 +51,8 @@ public class NettyHttpLoadBalancerErrorHandler extends DefaultLoadBalancerRetryH
         super(clientConfig);
     }
     
-    public NettyHttpLoadBalancerErrorHandler(int retryCount, boolean retryEnabled) {
-        super(0, retryCount, retryEnabled);
+    public NettyHttpLoadBalancerErrorHandler(int retrySameServer, int retryNextServer, boolean retryEnabled) {
+        super(retrySameServer, retryNextServer, retryEnabled);
     }
     
     /**

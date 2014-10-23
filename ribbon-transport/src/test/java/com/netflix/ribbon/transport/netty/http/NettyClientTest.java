@@ -17,31 +17,12 @@
  */
 package com.netflix.ribbon.transport.netty.http;
 
-import com.google.common.collect.Lists;
-import com.google.mockwebserver.MockResponse;
-import com.google.mockwebserver.MockWebServer;
-import com.netflix.client.ClientException;
-import com.netflix.client.RequestSpecificRetryHandler;
-import com.netflix.client.RetryHandler;
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.client.config.IClientConfigKey;
-import com.netflix.ribbon.transport.netty.RibbonTransport;
-import com.netflix.loadbalancer.AvailabilityFilteringRule;
-import com.netflix.loadbalancer.BaseLoadBalancer;
-import com.netflix.loadbalancer.DummyPing;
-import com.netflix.loadbalancer.LoadBalancerBuilder;
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ServerStats;
-import com.netflix.ribbon.test.resources.EmbeddedResources;
-import com.netflix.ribbon.test.resources.EmbeddedResources.Person;
-import com.netflix.serialization.JacksonCodec;
-import com.netflix.serialization.SerializationUtils;
-import com.netflix.serialization.TypeDef;
-import com.sun.jersey.api.container.httpserver.HttpServerFactory;
-import com.sun.jersey.api.core.PackagesResourceConfig;
-import com.sun.net.httpserver.HttpServer;
+import static com.netflix.ribbon.testutils.TestUtils.waitUntilTrueOrTimeout;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
@@ -54,15 +35,6 @@ import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 import io.reactivex.netty.servo.http.HttpClientListener;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func0;
-import rx.functions.Func1;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -74,8 +46,41 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.netflix.ribbon.testutils.TestUtils.waitUntilTrueOrTimeout;
-import static org.junit.Assert.*;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import rx.Observable;
+import rx.functions.Action0;
+import rx.functions.Action1;
+import rx.functions.Func0;
+import rx.functions.Func1;
+
+import com.google.common.collect.Lists;
+import com.google.mockwebserver.MockResponse;
+import com.google.mockwebserver.MockWebServer;
+import com.netflix.client.ClientException;
+import com.netflix.client.RequestSpecificRetryHandler;
+import com.netflix.client.RetryHandler;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.loadbalancer.AvailabilityFilteringRule;
+import com.netflix.loadbalancer.BaseLoadBalancer;
+import com.netflix.loadbalancer.DummyPing;
+import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.Server;
+import com.netflix.loadbalancer.ServerStats;
+import com.netflix.ribbon.test.resources.EmbeddedResources;
+import com.netflix.ribbon.test.resources.EmbeddedResources.Person;
+import com.netflix.ribbon.transport.netty.RibbonTransport;
+import com.netflix.serialization.JacksonCodec;
+import com.netflix.serialization.SerializationUtils;
+import com.netflix.serialization.TypeDef;
+import com.sun.jersey.api.container.httpserver.HttpServerFactory;
+import com.sun.jersey.api.core.PackagesResourceConfig;
+import com.sun.net.httpserver.HttpServer;
 
 public class NettyClientTest {
     
@@ -269,14 +274,14 @@ public class NettyClientTest {
                 .buildFixedServerListLoadBalancer(servers);
         
         LoadBalancingHttpClient<ByteBuf, ByteBuf> lbObservables = RibbonTransport.newHttpClient(lb, config,
-                new NettyHttpLoadBalancerErrorHandler(4, true));
+                new NettyHttpLoadBalancerErrorHandler(1, 3, true));
         Person person = getPersonObservable(lbObservables.submit(request)).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
         ServerStats stats = lbObservables.getServerStats(badServer);
         // two requests to bad server because retry same server is set to 1
-        assertEquals(2, stats.getTotalRequestsCount());
+        assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(2, stats.getSuccessiveConnectionFailureCount());
+        assertEquals(4, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
         assertEquals(1, stats.getTotalRequestsCount());
@@ -303,15 +308,15 @@ public class NettyClientTest {
                 .buildFixedServerListLoadBalancer(servers);
         
         LoadBalancingHttpClient<ByteBuf, ByteBuf> lbObservables = RibbonTransport.newHttpClient(lb, config,
-                new NettyHttpLoadBalancerErrorHandler(4, true));
+                new NettyHttpLoadBalancerErrorHandler(1, 3, true));
         HttpClientConfig rxconfig = HttpClientConfig.Builder.newDefaultConfig();
         Person person = getPersonObservable(lbObservables.submit(request, rxconfig)).toBlocking().single();
         assertEquals(EmbeddedResources.defaultPerson, person);
         ServerStats stats = lbObservables.getServerStats(badServer);
         // two requests to bad server because retry same server is set to 1
-        assertEquals(2, stats.getTotalRequestsCount());
+        assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(2, stats.getSuccessiveConnectionFailureCount());
+        assertEquals(4, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
         assertEquals(1, stats.getTotalRequestsCount());
@@ -343,7 +348,7 @@ public class NettyClientTest {
                 .buildFixedServerListLoadBalancer(servers);
         
         LoadBalancingHttpClient<ByteBuf, ByteBuf> lbObservables = RibbonTransport.newHttpClient(lb, config,
-                new NettyHttpLoadBalancerErrorHandler(1, true));
+                new NettyHttpLoadBalancerErrorHandler(1, 0, true));
 
         Observable<Person> observableWithRetries = getPersonObservable(lbObservables.submit(request));
         ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
@@ -355,17 +360,17 @@ public class NettyClientTest {
         ServerStats stats = lbObservables.getServerStats(badServer);
         
         // two requests to bad server because retry same server is set to 1
-        assertEquals(1, stats.getTotalRequestsCount());
+        assertEquals(2, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         
         stats = lbObservables.getServerStats(goodServer);
-        assertEquals(1, stats.getTotalRequestsCount());
+        assertEquals(0, stats.getTotalRequestsCount());
     }
 
     
     @Test
     public void testLoadBalancingObservablesWithReadTimeout() throws Exception {
-        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(4, true);
+        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         MockWebServer server = new MockWebServer();
         String content = "{\"name\": \"ribbon\", \"age\": 2}";
         server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "application/json")
@@ -399,16 +404,16 @@ public class NettyClientTest {
         waitUntilTrueOrTimeout(1000, new Func0<Boolean>() {
             @Override
             public Boolean call() {
-                return listener.getPoolReleases() == 3;
+                return listener.getPoolReleases() == 5;
             }
         });
         assertEquals(0, listener.getPoolReuse());
         
         // two requests to bad server because retry same server is set to 1
         ServerStats stats = lbObservables.getServerStats(badServer);
-        assertEquals(2, stats.getTotalRequestsCount());
+        assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(2, stats.getSuccessiveConnectionFailureCount());
+        assertEquals(4, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
         assertEquals(1, stats.getTotalRequestsCount());
@@ -429,7 +434,7 @@ public class NettyClientTest {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createPost("/testAsync/person")
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), EmbeddedResources.defaultPerson, null))
                 .withHeader("Content-type", "application/json");
-        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(4, true);
+        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         LoadBalancingHttpClient<ByteBuf, ByteBuf> lbObservables = RibbonTransport.newHttpClient(lb, config, errorHandler);
         HttpClientListener externalListener = HttpClientListener.newHttpListener("external");
@@ -505,7 +510,7 @@ public class NettyClientTest {
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), EmbeddedResources.defaultPerson, null))
                 .withHeader("Content-type", "application/json");
         
-        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(4, true);
+        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         LoadBalancingHttpClient<ByteBuf, ByteBuf> lbObservables = RibbonTransport.newHttpClient(lb, config, errorHandler);
         Server goodServer = new Server("localhost:" + server.getPort());
@@ -529,9 +534,9 @@ public class NettyClientTest {
         assertEquals(2, observer.obj.age);
         ServerStats stats = lbObservables.getServerStats(badServer);
         server.shutdown();
-        assertEquals(2, stats.getTotalRequestsCount());
+        assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(2, stats.getSuccessiveConnectionFailureCount());
+        assertEquals(4, stats.getSuccessiveConnectionFailureCount());
         
         stats = lbObservables.getServerStats(goodServer);
         // two requests to bad server because retry same server is set to 1
@@ -553,7 +558,7 @@ public class NettyClientTest {
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createPost("/testAsync/postTimeout")
                 .withContent(SerializationUtils.serializeToBytes(JacksonCodec.getInstance(), EmbeddedResources.defaultPerson, null))
                 .withHeader("Content-type", "application/json");
-        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(3, true);
+        NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(0, 3, true);
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         LoadBalancingHttpClient<ByteBuf, ByteBuf> lbObservables = RibbonTransport.newHttpClient(lb, config, errorHandler);
         Server goodServer = new Server("localhost:" + server.getPort());
@@ -669,7 +674,7 @@ public class NettyClientTest {
     
     @Test
     public void testStreamWithLoadBalancer() throws Exception {
-        // NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(4, true);
+        // NettyHttpLoadBalancerErrorHandler errorHandler = new NettyHttpLoadBalancerErrorHandler(1, 3, true);
         // IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "1000");
         IClientConfig config = IClientConfig.Builder.newBuilder().withRetryOnAllOperations(true)
                 .withMaxAutoRetries(1)

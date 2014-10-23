@@ -17,10 +17,12 @@
  */
 package com.netflix.niws.client.http;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
-import java.util.Random;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -50,25 +52,37 @@ import com.sun.net.httpserver.HttpServer;
 
 public class RetryTest {
     private static HttpServer server = null;
-    private static String SERVICE_URI;
-    private static RestClient client;
-    private static BaseLoadBalancer lb;
-    private static int port = (new Random()).nextInt(1000) + 4000; 
-    private static Server localServer = new Server("localhost", port);
-    private static NFHttpClient httpClient; 
-    private static MonitoredConnectionManager connectionPoolManager; 
+    private static int port; 
+    private static Server localServer = new Server("localhost", 0);
+    
+    private RestClient client;
+    private BaseLoadBalancer lb;
+    private NFHttpClient httpClient; 
+    private MonitoredConnectionManager connectionPoolManager; 
+    
     @BeforeClass 
     public static void init() throws Exception {
         PackagesResourceConfig resourceConfig = new PackagesResourceConfig("com.netflix.niws.client.http");
-        SERVICE_URI = "http://localhost:" + port + "/";
         try{
-            server = HttpServerFactory.create(SERVICE_URI, resourceConfig);           
+            server = HttpServerFactory.create("http://localhost:0/", resourceConfig);           
             server.start();
+            port = server.getAddress().getPort();
+            localServer = new Server("localhost", port);
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
         }
         
+    }
+    
+    @AfterClass
+    public static void shutDown() {
+        if (server != null)
+            server.stop(0);
+    }
+    
+    @Before
+    public void beforeTest() {
         ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon.NFLoadBalancerClassName", BaseLoadBalancer.class.getName());
         ConfigurationManager.getConfigInstance().setProperty("RetryTest.ribbon.client.NFLoadBalancerPingClassName", DummyPing.class.getName());
 
@@ -83,16 +97,7 @@ public class RetryTest {
         
         httpClient = NFHttpClientFactory.getNamedNFHttpClient("RetryTest");
         connectionPoolManager = (MonitoredConnectionManager) httpClient.getConnectionManager(); 
-
-    }
-    
-    @AfterClass
-    public static void shutDown() {
-        server.stop(0);
-    }
-
-    @Before
-    public void setUp() {
+        
         client.setMaxAutoRetries(0);
         client.setMaxAutoRetriesNextServer(0);
         client.setOkToRetryOnAllOperations(false);
@@ -121,7 +126,9 @@ public class RetryTest {
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).build();
         try {
             client.executeWithLoadBalancer(request, 
-                    DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetries, 1)
+                    DefaultClientConfigImpl
+                    .getEmptyConfig()
+                    .set(CommonClientConfigKey.MaxAutoRetries, 1)
                     .set(CommonClientConfigKey.MaxAutoRetriesNextServer, 0));
             fail("Exception expected");
         } catch (ClientException e) { // NOPMD
