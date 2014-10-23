@@ -37,6 +37,7 @@ import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 import io.reactivex.netty.servo.http.HttpClientListener;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
@@ -354,8 +355,8 @@ public class NettyClientTest {
         ObserverWithLatch<Person> observer = new ObserverWithLatch<Person>();
         observableWithRetries.subscribe(observer);
         observer.await();
-//        assertNull(observer.obj);
-//        assertTrue(observer.error instanceof ClientException);
+        assertNull(observer.obj);
+        assertTrue(observer.error instanceof ClientException);
 
         ServerStats stats = lbObservables.getServerStats(badServer);
         
@@ -398,6 +399,7 @@ public class NettyClientTest {
         }
         assertEquals("ribbon", observer.obj.name);
         assertEquals(2, observer.obj.age);
+        ServerStats stats = lbObservables.getServerStats(badServer);
         server.shutdown();
         
         final HttpClientListener listener = lbObservables.getListener();
@@ -410,7 +412,6 @@ public class NettyClientTest {
         assertEquals(0, listener.getPoolReuse());
         
         // two requests to bad server because retry same server is set to 1
-        ServerStats stats = lbObservables.getServerStats(badServer);
         assertEquals(4, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
         assertEquals(4, stats.getSuccessiveConnectionFailureCount());
@@ -597,8 +598,8 @@ public class NettyClientTest {
         IClientConfig config = IClientConfig.Builder.newBuilder()
                 .withDefaultValues()
                 .withRetryOnAllOperations(true)
-                .withMaxAutoRetries(0)
-                .withMaxAutoRetriesNextServer(2)
+                .withMaxAutoRetries(1)
+                .withMaxAutoRetriesNextServer(3)
                 .withConnectTimeout(100)
                 .build();
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
@@ -616,26 +617,13 @@ public class NettyClientTest {
         observer.await();
         assertNull(observer.obj);
         observer.error.printStackTrace();
-//        assertTrue(observer.error instanceof ClientException);
+        assertTrue(observer.error instanceof ClientException);
         
         ServerStats stats = lbObservables.getServerStats(badServer);
         // two requests to bad server because retry same server is set to 1
-        assertEquals(1, stats.getTotalRequestsCount());
+        assertEquals(2, stats.getTotalRequestsCount());
         assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(1, stats.getSuccessiveConnectionFailureCount());
-        
-        stats = lbObservables.getServerStats(badServer1);
-        // two requests to bad server because retry same server is set to 1
-        assertEquals(1, stats.getTotalRequestsCount());
-        assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(1, stats.getSuccessiveConnectionFailureCount());
-
-        stats = lbObservables.getServerStats(badServer2);
-        // two requests to bad server because retry same server is set to 1
-        assertEquals(1, stats.getTotalRequestsCount());
-        assertEquals(0, stats.getActiveRequestsCount());
-        assertEquals(1, stats.getSuccessiveConnectionFailureCount());
-
+        assertEquals(2, stats.getSuccessiveConnectionFailureCount());
     }
     
     private static List<Person> getPersonListFromResponse(Observable<HttpClientResponse<ServerSentEvent>> response) {
@@ -767,8 +755,6 @@ public class NettyClientTest {
         latch.await();
         assertTrue(error.get() instanceof ClientException);
         ClientException ce = (ClientException) error.get();
-        System.out.println("**** : " + ce.getMessage());
-        ce.printStackTrace();
         assertTrue(ce.toString(), ce.getErrorType() == ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED);
         assertEquals(2, lbObservables.getServerStats(server).getSuccessiveConnectionFailureCount());
     }

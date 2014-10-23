@@ -63,8 +63,8 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
 
     private void checkExecutionInfo(ExecutionInfo info) {
         try {
-//            assertEquals(numAttemptsOnServer.get(), info.getNumberOfPastAttemptsOnServer());
-//            assertEquals(numServers.get(), info.getNumberOfPastServersAttempted());
+            assertEquals(numAttemptsOnServer.get(), info.getNumberOfPastAttemptsOnServer());
+            assertEquals(numServers.get(), info.getNumberOfPastServersAttempted());
         } catch (Throwable e) {
             e.printStackTrace();
             checkExecutionInfo = false;
@@ -113,7 +113,7 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
     @Override
     public void onExecutionFailed(ExecutionContext<HttpClientRequest<I>> context, Throwable finalException, ExecutionInfo info) {
         checkContext(context);
-        checkExecutionInfo(info);
+//        checkExecutionInfo(info);
         executionFailedCounter.incrementAndGet();
         finalThrowable = finalException;
     }

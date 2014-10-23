@@ -194,18 +194,17 @@ public class LoadBalancerCommand<T> {
     class ExecutionInfoContext {
         Server      server;
         Exception   exception;
-        int         serverAttemptCount = 0;
+        int         serverAttemptCount = -1;
         int         attemptCount = 0;
         
-        public Server setServer(Server server) {
-            this.attemptCount++;
-            try {
-                if (this.server != server)
-                    serverAttemptCount++;
-                return this.server;
-            }
-            finally {
+        public void setServer(Server server) {
+            if (this.server != server) {
                 this.server = server;
+                serverAttemptCount++;
+                this.attemptCount = 0;
+            }
+            else {
+                this.attemptCount++;
             }
         }
         
@@ -250,8 +249,10 @@ public class LoadBalancerCommand<T> {
                 final Stopwatch tracer = loadBalancerContext.getExecuteTracer().start();
                 
                 return operation.call(server).doOnEach(new Observer<T>() {
+                    private T entity;
                     @Override
                     public void onCompleted() {
+                        recordStats(tracer, stats, entity, null);
                     }
 
                     @Override
@@ -265,7 +266,7 @@ public class LoadBalancerCommand<T> {
 
                     @Override
                     public void onNext(T entity) {
-                        recordStats(tracer, stats, entity, null);
+                        this.entity = entity;
                         if (listenerInvoker != null) {
                             listenerInvoker.onExecutionSuccess(entity, context.toExecutionInfo());
                         }
@@ -340,28 +341,31 @@ public class LoadBalancerCommand<T> {
                     .concatMap(wrap(context, operation));
             }
             
-            if (retryHandler.getMaxRetriesOnNextServer() > 0) {
+            if (retryHandler.getMaxRetriesOnNextServer() > 0) 
                 o = o.retry(retryPolicy(retryHandler.getMaxRetriesOnNextServer(), false));
-            }
         }
         // Try running on a specific server
         else {
             o = Observable
                 .just(server)
-                .concatMap(wrap(context, operation))
-                .retry(retryPolicy(retryHandler.getMaxRetriesOnSameServer(), true));
+                .concatMap(wrap(context, operation));
+            
+            int maxRetrys = retryHandler.getMaxRetriesOnSameServer();
+            if (maxRetrys > 0) 
+                o = o.retry(retryPolicy(maxRetrys, true));
         }
+        
         
         return o.onErrorResumeNext(new Func1<Throwable, Observable<T>>() {
             @Override
             public Observable<T> call(Throwable e) {
-                if (context.getAttemptCount() > 1) {
-                    if (context.getAttemptCount() == retryHandler.getMaxRetriesOnNextServer() + 1) {
+                if (context.getAttemptCount() > 0) {
+                    if (context.getAttemptCount() == retryHandler.getMaxRetriesOnNextServer()) {
                         e = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
                                 "Number of retries exceeded max " + retryHandler.getMaxRetriesOnNextServer()
                                 + " retries, while making a call for: " + context.getServer(), e);
                     }
-                    else if (context.getAttemptCount() == retryHandler.getMaxRetriesOnSameServer() + 1) {
+                    else if (context.getAttemptCount() == retryHandler.getMaxRetriesOnSameServer()) {
                         e = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
                                 "Number of retries exceeded max " + retryHandler.getMaxRetriesOnSameServer()
                                 + " retries, while making a call for: " + context.getServer(), e);

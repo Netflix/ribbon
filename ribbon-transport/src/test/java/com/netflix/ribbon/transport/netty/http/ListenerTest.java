@@ -85,13 +85,15 @@ public class ListenerTest {
         assertTrue(listener.isCheckExecutionInfo());
         assertNotNull(listener.getFinalThrowable());
         listener.getFinalThrowable().printStackTrace();
-//        assertTrue(listener.getFinalThrowable() instanceof ClientException);
+        assertTrue(listener.getFinalThrowable() instanceof ClientException);
         assertEquals(100, listener.getContext().getClientProperty(CommonClientConfigKey.ConnectTimeout).intValue());
     }
 
     @Test
     public void testFailedExecutionForAbsoluteURI() {
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "100")
+        IClientConfig config = DefaultClientConfigImpl
+                .getClientConfigWithDefaultValues()
+                .withProperty(CommonClientConfigKey.ConnectTimeout, "100")
                 .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
                 .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("http://xyz.unknowhost.xyz/testAsync/person");
