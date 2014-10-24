@@ -115,21 +115,45 @@ public final class RibbonTransport {
     }
      
     public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config) {
-        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
+        return LoadBalancingHttpClient.<ByteBuf, ByteBuf>builder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(DEFAULT_HTTP_PIPELINE_CONFIGURATOR)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .build();
     }
     
     public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler) {
-        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
+        return LoadBalancingHttpClient.<ByteBuf, ByteBuf>builder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withRetryHandler(retryHandler)
+                .withPipelineConfigurator(DEFAULT_HTTP_PIPELINE_CONFIGURATOR)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .build();
     }
 
     public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler,
                                                                   List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners) {
-        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(loadBalancer, config, retryHandler, DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler, listeners);
+        return LoadBalancingHttpClient.<ByteBuf, ByteBuf>builder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withRetryHandler(retryHandler)
+                .withPipelineConfigurator(DEFAULT_HTTP_PIPELINE_CONFIGURATOR)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .withExecutorListeners(listeners)
+                .build();
     }
 
 
     public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(IClientConfig config) {
-        return new LoadBalancingHttpClient<ByteBuf, ByteBuf>(config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_HTTP_PIPELINE_CONFIGURATOR, poolCleanerScheduler);
+        return LoadBalancingHttpClient.<ByteBuf, ByteBuf>builder()
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(DEFAULT_HTTP_PIPELINE_CONFIGURATOR)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .build();
     }
     
     public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer) {
@@ -140,41 +164,82 @@ public final class RibbonTransport {
     
     public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ILoadBalancer loadBalancer, IClientConfig config) {
-        return new LoadBalancingHttpClient<I, O>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator, poolCleanerScheduler);
+        return LoadBalancingHttpClient.<I, O>builder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(pipelineConfigurator)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .build();
     }
     
     public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             IClientConfig config) {
-        return new LoadBalancingHttpClient<I, O>(config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator, poolCleanerScheduler);
+        return LoadBalancingHttpClient.<I, O>builder()
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(pipelineConfigurator)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .build();
     }
     
     public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             IClientConfig config, RetryHandler retryHandler) {
-        return new LoadBalancingHttpClient<I, O>(config, retryHandler, pipelineConfigurator, poolCleanerScheduler);
+        return LoadBalancingHttpClient.<I, O>builder()
+                .withClientConfig(config)
+                .withRetryHandler(retryHandler)
+                .withPipelineConfigurator(pipelineConfigurator)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .build();
     }
 
     public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
                                                              ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler,
                                                                   List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners) {
-        return new LoadBalancingHttpClient<I, O>(loadBalancer, config, retryHandler, pipelineConfigurator, poolCleanerScheduler, listeners);
+        return LoadBalancingHttpClient.<I, O>builder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withRetryHandler(retryHandler)
+                .withPipelineConfigurator(pipelineConfigurator)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .withExecutorListeners(listeners)
+                .build();
     }
 
     public static LoadBalancingHttpClient<ByteBuf, ServerSentEvent> newSSEClient(ILoadBalancer loadBalancer, IClientConfig config) {
-        return new SSEClient<ByteBuf>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_SSE_PIPELINE_CONFIGURATOR);
+        return SSEClient.<ByteBuf>sseClientBuilder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(DEFAULT_SSE_PIPELINE_CONFIGURATOR)
+                .build();
     }
  
     public static LoadBalancingHttpClient<ByteBuf, ServerSentEvent> newSSEClient(IClientConfig config) {
-        return new SSEClient<ByteBuf>(config, getDefaultHttpRetryHandlerWithConfig(config), DEFAULT_SSE_PIPELINE_CONFIGURATOR);
+        return SSEClient.<ByteBuf>sseClientBuilder()
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(DEFAULT_SSE_PIPELINE_CONFIGURATOR)
+                .build();
     }
     
     public static <I> LoadBalancingHttpClient<I, ServerSentEvent> newSSEClient(PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator,
             ILoadBalancer loadBalancer, IClientConfig config) {
-        return new SSEClient<I>(loadBalancer, config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator);
+        return SSEClient.<I>sseClientBuilder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(pipelineConfigurator)
+                .build();
     }
     
     public static <I> LoadBalancingHttpClient<I, ServerSentEvent> newSSEClient(PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator,
             IClientConfig config) {
-        return new SSEClient<I>(config, getDefaultHttpRetryHandlerWithConfig(config), pipelineConfigurator);
+        return SSEClient.<I>sseClientBuilder()
+                .withClientConfig(config)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(pipelineConfigurator)
+                .build();
     }
 
     public static LoadBalancingHttpClient<ByteBuf, ServerSentEvent> newSSEClient() {

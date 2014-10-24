@@ -26,7 +26,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
-import io.reactivex.netty.client.RxClient.ClientConfig.Builder;
 import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.contexts.http.HttpRequestIdProvider;
 import io.reactivex.netty.metrics.MetricEventsListener;
@@ -47,11 +46,13 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLEngine;
 
 import rx.Observable;
 import rx.functions.Func1;
+import rx.functions.Func2;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -82,55 +83,172 @@ import com.netflix.ribbon.transport.netty.LoadBalancingRxClientWithPoolOptions;
 public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
         implements HttpClient<I, O> {
 
-    private String requestIdHeaderName;
-    private HttpRequestIdProvider requestIdProvider;
+    private static final HttpClientConfig DEFAULT_RX_CONFIG = HttpClientConfig.Builder.newDefaultConfig();
+    
+    private final String requestIdHeaderName;
+    private final HttpRequestIdProvider requestIdProvider;
     private final List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners;
     private final LoadBalancerCommand<HttpClientResponse<O>> defaultCommandBuilder;
-    private static final HttpClientConfig DEFAULT_RX_CONFIG = HttpClientConfig.Builder.newDefaultConfig();
-
-    public LoadBalancingHttpClient(ILoadBalancer lb, PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipeLineConfigurator,
-                                   ScheduledExecutorService poolCleanerScheduler) {
-        this(lb, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), 
-                new NettyHttpLoadBalancerErrorHandler(), pipeLineConfigurator, poolCleanerScheduler,
-                Collections.<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>emptyList());
+    private final Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>> responseToErrorPolicy;
+    private final Func1<Integer, Integer> backoffStrategy;
+    
+    public static class Builder<I, O> {
+        ILoadBalancer lb;
+        IClientConfig config;
+        RetryHandler retryHandler;
+        PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator;
+        ScheduledExecutorService poolCleanerScheduler;
+        List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners;
+        Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>> responseToErrorPolicy;
+        Func1<Integer, Integer> backoffStrategy;
+        Func1<Builder<I, O>, LoadBalancingHttpClient<I, O>> build;
+        
+        protected Builder(Func1<Builder<I, O>, LoadBalancingHttpClient<I, O>> build) {
+            this.build = build;
+        }
+        
+        public Builder<I, O> withLoadBalancer(ILoadBalancer lb) {
+            this.lb = lb;
+            return this;
+        }
+        
+        public Builder<I, O> withClientConfig(IClientConfig config) {
+            this.config = config;
+            return this;
+        }
+        
+        public Builder<I, O> withRetryHandler(RetryHandler retryHandler) {
+            this.retryHandler = retryHandler;
+            return this;
+        }
+        
+        public Builder<I, O> withPipelineConfigurator(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator) {
+            this.pipelineConfigurator = pipelineConfigurator;
+            return this;
+        }
+        
+        public Builder<I, O> withPoolCleanerScheduler(ScheduledExecutorService poolCleanerScheduler) {
+            this.poolCleanerScheduler = poolCleanerScheduler;
+            return this;
+        }
+        
+        public Builder<I, O> withExecutorListeners(List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners) {
+            this.listeners = listeners;
+            return this;
+        }
+        
+        /**
+         * Policy for converting a response to an error if the status code indicates it as such.  This will only
+         * be called for responses with status code 4xx or 5xx
+         * 
+         * Parameters to the function are
+         * * HttpClientResponse<O> - The actual response
+         * * Integer - Backoff to apply if this is a retryable error.  The backoff amount is in milliseconds
+         *             and is based on the configured BackoffStrategy.  It is the responsibility of this function
+         *             to implement the actual backoff mechanism.  This can be done as Observable.error(e).delay(backoff, TimeUnit.MILLISECONDS)
+         * The return Observable will either contain the HttpClientResponse if is it not an error or an 
+         * Observable.error() with the translated exception.
+         * 
+         * @param responseToErrorPolicy
+         */
+        public Builder<I, O> withResponseToErrorPolicy(Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>> responseToErrorPolicy) {
+            this.responseToErrorPolicy = responseToErrorPolicy;
+            return this;
+        }
+        
+        /**
+         * Strategy for calculating the backoff based on the number of reties.  Input is the number
+         * of retries and output is the backoff amount in milliseconds.
+         * The default implementation is non random exponential backoff with time interval configurable
+         * via the property BackoffInterval (default 1000 msec)
+         * 
+         * @param BackoffStrategy
+         */
+        public Builder<I, O> withBackoffStrategy(Func1<Integer, Integer> backoffStrategy) {
+            this.backoffStrategy = backoffStrategy;
+            return this;
+        }
+        
+        public LoadBalancingHttpClient<I, O> build() {
+            if (retryHandler == null) {
+                retryHandler = new NettyHttpLoadBalancerErrorHandler();
+            }
+            if (config == null) {
+                config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+            }
+            if (lb == null) {
+                lb = LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection();
+            }
+            if (listeners == null) {
+                listeners = Collections.<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>emptyList();
+            }
+            if (backoffStrategy == null) {
+                backoffStrategy = new Func1<Integer, Integer>() {
+                    @Override
+                    public Integer call(Integer backoffCount) {
+                        int interval = config.getPropertyAsInteger(IClientConfigKey.Keys.BackoffInterval, DefaultClientConfigImpl.DEFAULT_BACKOFF_INTERVAL);
+                        if (backoffCount < 0) {
+                            backoffCount = 0;
+                        }
+                        else if (backoffCount > 10) {   // Reasonable upper bound
+                            backoffCount = 10;
+                        }
+                        return (int)Math.pow(2, backoffCount) * interval;
+                    }
+                };
+            }
+            if (responseToErrorPolicy == null) {
+                responseToErrorPolicy = new Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>>() {
+                    @Override
+                    public Observable<HttpClientResponse<O>> call(HttpClientResponse<O> t1, Integer backoff) {
+                        if (t1.getStatus().equals(HttpResponseStatus.SERVICE_UNAVAILABLE) ||
+                            t1.getStatus().equals(HttpResponseStatus.BAD_GATEWAY) ||
+                            t1.getStatus().equals(HttpResponseStatus.GATEWAY_TIMEOUT)) {
+                            if (backoff > 0) {
+                                return Observable.timer(backoff, TimeUnit.MILLISECONDS)
+                                            .concatMap(new Func1<Long, Observable<HttpClientResponse<O>>>() {
+                                                @Override
+                                                public Observable<HttpClientResponse<O>> call(Long t1) {
+                                                    return Observable.error(new ClientException(ClientException.ErrorType.SERVER_THROTTLED));
+                                                }
+                                            });
+                            }
+                            else {
+                                return Observable.error(new ClientException(ClientException.ErrorType.SERVER_THROTTLED));
+                            }
+                        }
+                        return Observable.empty();
+                    }
+                };
+            }
+            return new LoadBalancingHttpClient<I,O>(this);
+        }
     }
     
-    public LoadBalancingHttpClient(
-            IClientConfig config,
-            RetryHandler retryHandler,
-            PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
-            ScheduledExecutorService poolCleanerScheduler) {
-        this(LoadBalancerBuilder.newBuilder().withClientConfig(config).buildLoadBalancerFromConfigWithReflection(),
-                config, retryHandler, pipelineConfigurator, poolCleanerScheduler, Collections.<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>emptyList());
+    public static <I, O> Builder<I, O> builder() {
+        return new Builder<I, O>(new Func1<Builder<I, O>, LoadBalancingHttpClient<I, O>>() {
+            @Override
+            public LoadBalancingHttpClient<I, O> call(Builder<I, O> builder) {
+                return new LoadBalancingHttpClient<I, O>(builder);
+            }
+        });
     }
-
-    public LoadBalancingHttpClient(
-            ILoadBalancer lb,
-            IClientConfig config,
-            RetryHandler retryHandler,
-            PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
-            ScheduledExecutorService poolCleanerScheduler) {
-        this(lb, config, retryHandler, pipelineConfigurator, poolCleanerScheduler, Collections.<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>emptyList());
-    }
-
-    public LoadBalancingHttpClient(
-            ILoadBalancer lb,
-            IClientConfig config,
-            RetryHandler retryHandler,
-            PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
-            ScheduledExecutorService poolCleanerScheduler, List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners) {
-        super(lb, config, new RequestSpecificRetryHandler(true, true, retryHandler, null), pipelineConfigurator, poolCleanerScheduler);
+    
+    protected LoadBalancingHttpClient(Builder<I, O> builder) {
+        super(builder.lb, builder.config, new RequestSpecificRetryHandler(true, true, builder.retryHandler, null), builder.pipelineConfigurator, builder.poolCleanerScheduler);
         requestIdHeaderName = getProperty(IClientConfigKey.Keys.RequestIdHeaderName, null, null);
-        if (requestIdHeaderName != null) {
-            requestIdProvider = new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR);
-        }
-        this.listeners = new CopyOnWriteArrayList<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>(listeners);
+        requestIdProvider = (requestIdHeaderName != null) 
+                          ? new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR)
+                          : null;
+        this.listeners = new CopyOnWriteArrayList<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>(builder.listeners);
         defaultCommandBuilder = LoadBalancerCommand.<HttpClientResponse<O>>builder()
                 .withLoadBalancerContext(lbContext)
                 .withListeners(this.listeners)
-                .withClientConfig(config)
-                .withRetryHandler(retryHandler)
+                .withClientConfig(builder.config)
+                .withRetryHandler(builder.retryHandler)
                 .build();
+        this.responseToErrorPolicy = builder.responseToErrorPolicy;
+        this.backoffStrategy = builder.backoffStrategy;
     }
 
     private RetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
@@ -206,6 +324,8 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         Preconditions.checkNotNull(request);
         
         return new ServerOperation<HttpClientResponse<O>>() {
+            final AtomicInteger count = new AtomicInteger(0);
+            
             @Override
             public Observable<HttpClientResponse<O>> call(Server server) {
                 HttpClient<I,O> rxClient = getOrCreateRxClient(server);
@@ -222,10 +342,10 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 return o.concatMap(new Func1<HttpClientResponse<O>, Observable<HttpClientResponse<O>>>() {
                     @Override
                     public Observable<HttpClientResponse<O>> call(HttpClientResponse<O> t1) {
-                        if (t1.getStatus().equals(HttpResponseStatus.SERVICE_UNAVAILABLE)) {
-                            return Observable.error(new ClientException(ClientException.ErrorType.SERVER_THROTTLED));
-                        }
-                        return Observable.just(t1);
+                        if (t1.getStatus().code()/100 == 4 || t1.getStatus().code()/100 == 5)
+                            return responseToErrorPolicy.call(t1, backoffStrategy.call(count.getAndIncrement()));
+                        else
+                            return Observable.just(t1);
                     }
                 });
             }
@@ -272,7 +392,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
             return builder.build();
         } 
         else {
-            Builder builder = new Builder(rxClientConfig);
+            RxClient.ClientConfig.Builder builder = new RxClient.ClientConfig.Builder(rxClientConfig);
             if (readTimeoutFormRibbon >= 0) {
                 builder.readTimeout(readTimeoutFormRibbon, TimeUnit.MILLISECONDS);
             }

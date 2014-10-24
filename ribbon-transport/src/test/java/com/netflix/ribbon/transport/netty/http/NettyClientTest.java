@@ -381,7 +381,7 @@ public class NettyClientTest {
         IClientConfig config = DefaultClientConfigImpl
                 .getClientConfigWithDefaultValues()
                 .set(CommonClientConfigKey.ReadTimeout, 100);
-        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/readTimeout");//.withHeader("Content-length", "-1");
+        HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/readTimeout");
         
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         LoadBalancingHttpClient<ByteBuf, ByteBuf> lbObservables = RibbonTransport.newHttpClient(lb, config, errorHandler);
