@@ -20,7 +20,7 @@ This code snippet is taken from [ribbon-examples](../ribbon-examples) package an
 @ResourceGroup(resourceGroupClass = SampleHttpResourceGroup.class)
 public interface MovieService {
     @TemplateName("recommendations")
-    @Http(method = HttpMethod.GET, uriTemplate = "/users/{userId}/recommendations")
+    @Http(method = HttpMethod.GET, uri = "/users/{userId}/recommendations")
     @Hystrix( validator = RecommendationServiceResponseValidator.class,
               fallbackHandler = RecommendationServiceFallbackHandler.class)
     @CacheProviders(@Provider(key = "{userId}", provider = InMemoryCacheProviderFactory.class))

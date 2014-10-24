@@ -59,7 +59,7 @@ Observable<ByteBuf> result = recommendationsByUserIdTemplate.requestBuilder()
 public interface MovieService {
     @Http(
             method = HttpMethod.GET,
-            uriTemplate = "/users/{userId}/recommendations",
+            uri = "/users/{userId}/recommendations",
             )
     RibbonRequest<ByteBuf> recommendationsByUserId(@Var("userId") String userId);
 }
