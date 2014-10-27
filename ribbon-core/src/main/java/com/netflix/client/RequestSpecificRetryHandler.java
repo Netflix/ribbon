@@ -34,6 +34,7 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors, RetryHandler baseRetryHandler, @Nullable IClientConfig requestConfig) {
         Preconditions.checkNotNull(baseRetryHandler);
         this.okToRetryOnConnectErrors = okToRetryOnConnectErrors;
+        this.okToRetryOnAllErrors = okToRetryOnAllErrors;
         this.fallback = baseRetryHandler;
         if (requestConfig != null) {
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetries)) {
@@ -42,12 +43,7 @@ public class RequestSpecificRetryHandler implements RetryHandler {
             if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetriesNextServer)) {
                 retryNextServer = requestConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer); 
             } 
-            if (requestConfig.containsProperty(CommonClientConfigKey.OkToRetryOnAllOperations)) {
-                okToRetryOnAllErrors = requestConfig.get(CommonClientConfigKey.OkToRetryOnAllOperations);
-            }
         }
-        
-        this.okToRetryOnAllErrors = okToRetryOnAllErrors;
     }
     
     public boolean isConnectionException(Throwable e) {

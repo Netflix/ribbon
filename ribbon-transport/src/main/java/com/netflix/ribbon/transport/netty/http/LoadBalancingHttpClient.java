@@ -201,6 +201,9 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 responseToErrorPolicy = new Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>>() {
                     @Override
                     public Observable<HttpClientResponse<O>> call(HttpClientResponse<O> t1, Integer backoff) {
+                        if (t1.getStatus().equals(HttpResponseStatus.INTERNAL_SERVER_ERROR)) {
+                            return Observable.error(new ClientException(ClientException.ErrorType.GENERAL));
+                        }
                         if (t1.getStatus().equals(HttpResponseStatus.SERVICE_UNAVAILABLE) ||
                             t1.getStatus().equals(HttpResponseStatus.BAD_GATEWAY) ||
                             t1.getStatus().equals(HttpResponseStatus.GATEWAY_TIMEOUT)) {
@@ -221,7 +224,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                     }
                 };
             }
-            return new LoadBalancingHttpClient<I,O>(this);
+            return build.call(this);
         }
     }
     

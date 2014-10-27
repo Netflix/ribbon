@@ -194,31 +194,22 @@ public class LoadBalancerCommand<T> {
     class ExecutionInfoContext {
         Server      server;
         Exception   exception;
-        int         serverAttemptCount = -1;
+        int         serverAttemptCount = 0;
         int         attemptCount = 0;
         
         public void setServer(Server server) {
-            if (this.server != server) {
-                this.server = server;
-                serverAttemptCount++;
-                this.attemptCount = 0;
-            }
-            else {
-                this.attemptCount++;
-            }
+            this.server = server;
+            this.serverAttemptCount++;
+            
+            this.attemptCount = 0;
         }
         
-        public Exception setException(Exception exception) {
-            try {
-                return this.exception;
-            }
-            finally {
-                this.exception = exception;
-            }
+        public void setException(Exception exception) {
+            this.exception = exception;
         }
         
-        public ExecutionInfo toExecutionInfo() {
-            return ExecutionInfo.create(server, attemptCount, serverAttemptCount);
+        public void incAttemptCount() {
+            this.attemptCount++;
         }
 
         public int getAttemptCount() {
@@ -228,57 +219,19 @@ public class LoadBalancerCommand<T> {
         public Server getServer() {
             return server;
         }
-    }
-    
-    private Func1<Server, Observable<T>> wrap(final ExecutionInfoContext context, final Func1<Server, Observable<T>> operation) {
-        return new Func1<Server, Observable<T>>() {
-            @Override
-            public Observable<T> call(final Server server) {
-                final ServerStats stats = loadBalancerContext.getServerStats(server);
-                context.setServer(server);
-                loadBalancerContext.noteOpenConnection(stats);
-                
-                if (listenerInvoker != null) {
-                    try {
-                        listenerInvoker.onStartWithServer(context.toExecutionInfo());
-                    } catch (AbortExecutionException e) {
-                        return Observable.error(e);
-                    }
-                }
-                
-                final Stopwatch tracer = loadBalancerContext.getExecuteTracer().start();
-                
-                return operation.call(server).doOnEach(new Observer<T>() {
-                    private T entity;
-                    @Override
-                    public void onCompleted() {
-                        recordStats(tracer, stats, entity, null);
-                    }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        recordStats(tracer, stats, null, e);
-                        logger.debug("Got error {} when executed on server {}", e, server);
-                        if (listenerInvoker != null) {
-                            listenerInvoker.onExceptionWithServer(e, context.toExecutionInfo());
-                        }
-                    }
+        public int getServerAttemptCount() {
+            return this.serverAttemptCount;
+        }
 
-                    @Override
-                    public void onNext(T entity) {
-                        this.entity = entity;
-                        if (listenerInvoker != null) {
-                            listenerInvoker.onExecutionSuccess(entity, context.toExecutionInfo());
-                        }
-                    }                            
-                    
-                    private void recordStats(Stopwatch tracer, ServerStats stats, Object entity, Throwable exception) {
-                        tracer.stop();
-                        loadBalancerContext.noteRequestCompletion(stats, entity, exception, tracer.getDuration(TimeUnit.MILLISECONDS), retryHandler);
-                    }
-                });
-            }
-        };
+        public ExecutionInfo toExecutionInfo() {
+            return ExecutionInfo.create(server, attemptCount-1, serverAttemptCount-1);
+        }
+
+        public ExecutionInfo toFinalExecutionInfo() {
+            return ExecutionInfo.create(server, attemptCount, serverAttemptCount-1);
+        }
+
     }
     
     private Func2<Integer, Throwable, Boolean> retryPolicy(final int maxRetrys, final boolean same) {
@@ -320,59 +273,97 @@ public class LoadBalancerCommand<T> {
             }
         }
 
+        final int maxRetrysSame = retryHandler.getMaxRetriesOnSameServer();
+        final int maxRetrysNext = retryHandler.getMaxRetriesOnNextServer();
+
         // Use the load balancer
-        Observable<T> o;
-        if (server == null) {
-            if (retryHandler.getMaxRetriesOnSameServer() > 0) {
-                o = selectServer()
-                    .concatMap(new Func1<Server, Observable<T>>() {
-                        @Override
-                        public Observable<T> call(Server server) {
-                            return Observable
-                                    .just(server)
-                                    .concatMap(wrap(context, operation))
-                                    .retry(retryPolicy(retryHandler.getMaxRetriesOnSameServer(), true));
-                        }
-                    });
-                
-            }
-            else {
-                o = selectServer()
-                    .concatMap(wrap(context, operation));
-            }
+        Observable<T> o = 
+                (server == null ? selectServer() : Observable.just(server))
+                .concatMap(new Func1<Server, Observable<T>>() {
+                    @Override
+                    // Called for each server being selected
+                    public Observable<T> call(Server server) {
+                        context.setServer(server);
+                        final ServerStats stats = loadBalancerContext.getServerStats(server);
+                        
+                        // Called for each attempt and retry
+                        Observable<T> o = Observable
+                                .just(server)
+                                .concatMap(new Func1<Server, Observable<T>>() {
+                                    @Override
+                                    public Observable<T> call(final Server server) {
+                                        context.incAttemptCount();
+                                        loadBalancerContext.noteOpenConnection(stats);
+                                        
+                                        if (listenerInvoker != null) {
+                                            try {
+                                                listenerInvoker.onStartWithServer(context.toExecutionInfo());
+                                            } catch (AbortExecutionException e) {
+                                                return Observable.error(e);
+                                            }
+                                        }
+                                        
+                                        final Stopwatch tracer = loadBalancerContext.getExecuteTracer().start();
+                                        
+                                        return operation.call(server).doOnEach(new Observer<T>() {
+                                            private T entity;
+                                            @Override
+                                            public void onCompleted() {
+                                                recordStats(tracer, stats, entity, null);
+                                                // TODO: What to do if onNext or onError are never called?
+                                            }
+
+                                            @Override
+                                            public void onError(Throwable e) {
+                                                recordStats(tracer, stats, null, e);
+                                                logger.debug("Got error {} when executed on server {}", e, server);
+                                                if (listenerInvoker != null) {
+                                                    listenerInvoker.onExceptionWithServer(e, context.toExecutionInfo());
+                                                }
+                                            }
+
+                                            @Override
+                                            public void onNext(T entity) {
+                                                this.entity = entity;
+                                                if (listenerInvoker != null) {
+                                                    listenerInvoker.onExecutionSuccess(entity, context.toExecutionInfo());
+                                                }
+                                            }                            
+                                            
+                                            private void recordStats(Stopwatch tracer, ServerStats stats, Object entity, Throwable exception) {
+                                                tracer.stop();
+                                                loadBalancerContext.noteRequestCompletion(stats, entity, exception, tracer.getDuration(TimeUnit.MILLISECONDS), retryHandler);
+                                            }
+                                        });
+                                    }
+                                });
+                        
+                        if (maxRetrysSame > 0) 
+                            o = o.retry(retryPolicy(maxRetrysSame, true));
+                        return o;
+                    }
+                });
             
-            if (retryHandler.getMaxRetriesOnNextServer() > 0) 
-                o = o.retry(retryPolicy(retryHandler.getMaxRetriesOnNextServer(), false));
-        }
-        // Try running on a specific server
-        else {
-            o = Observable
-                .just(server)
-                .concatMap(wrap(context, operation));
-            
-            int maxRetrys = retryHandler.getMaxRetriesOnSameServer();
-            if (maxRetrys > 0) 
-                o = o.retry(retryPolicy(maxRetrys, true));
-        }
-        
+        if (maxRetrysNext > 0 && server == null) 
+            o = o.retry(retryPolicy(maxRetrysNext, false));
         
         return o.onErrorResumeNext(new Func1<Throwable, Observable<T>>() {
             @Override
             public Observable<T> call(Throwable e) {
                 if (context.getAttemptCount() > 0) {
-                    if (context.getAttemptCount() == retryHandler.getMaxRetriesOnNextServer()) {
+                    if (maxRetrysNext > 0 && context.getServerAttemptCount() == (maxRetrysNext + 1)) {
                         e = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_NEXTSERVER_EXCEEDED,
-                                "Number of retries exceeded max " + retryHandler.getMaxRetriesOnNextServer()
+                                "Number of retries on next server exceeded max " + maxRetrysNext
                                 + " retries, while making a call for: " + context.getServer(), e);
                     }
-                    else if (context.getAttemptCount() == retryHandler.getMaxRetriesOnSameServer()) {
+                    else if (maxRetrysSame > 0 && context.getAttemptCount() == (maxRetrysSame + 1)) {
                         e = new ClientException(ClientException.ErrorType.NUMBEROF_RETRIES_EXEEDED,
-                                "Number of retries exceeded max " + retryHandler.getMaxRetriesOnSameServer()
+                                "Number of retries exceeded max " + maxRetrysSame
                                 + " retries, while making a call for: " + context.getServer(), e);
                     }
                 }
                 if (listenerInvoker != null) {
-                    listenerInvoker.onExecutionFailed(e, context.toExecutionInfo());
+                    listenerInvoker.onExecutionFailed(e, context.toFinalExecutionInfo());
                 }
                 return Observable.error(e);
             }

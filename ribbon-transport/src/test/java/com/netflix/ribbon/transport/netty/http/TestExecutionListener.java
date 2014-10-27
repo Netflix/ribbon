@@ -113,7 +113,7 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
     @Override
     public void onExecutionFailed(ExecutionContext<HttpClientRequest<I>> context, Throwable finalException, ExecutionInfo info) {
         checkContext(context);
-//        checkExecutionInfo(info);
+        checkExecutionInfo(info);
         executionFailedCounter.incrementAndGet();
         finalThrowable = finalException;
     }

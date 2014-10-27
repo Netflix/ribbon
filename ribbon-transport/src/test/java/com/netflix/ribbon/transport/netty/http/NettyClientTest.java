@@ -37,7 +37,6 @@ import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
 import io.reactivex.netty.servo.http.HttpClientListener;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;

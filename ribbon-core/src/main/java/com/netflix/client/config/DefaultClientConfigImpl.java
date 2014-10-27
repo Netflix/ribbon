@@ -122,7 +122,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_MAX_AUTO_RETRIES = 0;
 
-    public static final int DEFAULT_BACKOFF_INTERVAL = 1000;
+    public static final int DEFAULT_BACKOFF_INTERVAL = 0;
     
     public static final int DEFAULT_READ_TIMEOUT = 5000;
 

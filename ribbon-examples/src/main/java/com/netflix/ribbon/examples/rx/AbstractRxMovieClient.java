@@ -83,7 +83,7 @@ public abstract class AbstractRxMovieClient {
     public boolean runExample() {
         boolean allGood = true;
         try {
-            System.out.print("Registering movies...");
+            System.out.println("Registering movies...");
 
             Notification<Void> result = executeServerCalls();
             allGood = !result.isOnError();
