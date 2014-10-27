@@ -193,7 +193,6 @@ public class LoadBalancerCommand<T> {
     
     class ExecutionInfoContext {
         Server      server;
-        Exception   exception;
         int         serverAttemptCount = 0;
         int         attemptCount = 0;
         
@@ -202,10 +201,6 @@ public class LoadBalancerCommand<T> {
             this.serverAttemptCount++;
             
             this.attemptCount = 0;
-        }
-        
-        public void setException(Exception exception) {
-            this.exception = exception;
         }
         
         public void incAttemptCount() {
