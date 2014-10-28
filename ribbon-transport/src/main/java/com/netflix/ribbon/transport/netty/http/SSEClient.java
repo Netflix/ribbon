@@ -19,47 +19,35 @@ package com.netflix.ribbon.transport.netty.http;
 
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.client.RxClient;
-import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
-import io.reactivex.netty.protocol.http.client.HttpClientRequest;
-import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import rx.functions.Func1;
 
-
-import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.loadbalancer.ILoadBalancer;
+import com.netflix.loadbalancer.Server;
 
 public class SSEClient<I> extends LoadBalancingHttpClient<I, ServerSentEvent> {
     
-    public SSEClient(
-            ILoadBalancer lb,
-            IClientConfig config,
-            RetryHandler retryHandler,
-            PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator) {
-        super(lb, config, retryHandler, pipelineConfigurator, null);
+    public static <I> Builder<I, ServerSentEvent> sseClientBuilder() {
+        return new Builder<I, ServerSentEvent>(new Func1<Builder<I, ServerSentEvent>, LoadBalancingHttpClient<I, ServerSentEvent>>() {
+            @Override
+            public LoadBalancingHttpClient<I, ServerSentEvent> call(Builder<I, ServerSentEvent> t1) {
+                return new SSEClient<I>(t1);
+            }
+        });
+    }
+    
+    private SSEClient(LoadBalancingHttpClient.Builder<I, ServerSentEvent> t1) {
+        super(t1);
     }
 
-    public SSEClient(
-            IClientConfig config,
-            RetryHandler retryHandler,
-            PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipelineConfigurator) {
-        super(config, retryHandler, pipelineConfigurator, null);
-    }
-
-    public SSEClient(
-            ILoadBalancer lb,
-            PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<I>> pipeLineConfigurator) {
-        super(lb, pipeLineConfigurator, null);
-    }
 
     @Override
-    protected HttpClient<I, ServerSentEvent> getRxClient(String host, int port) {
+    protected HttpClient<I, ServerSentEvent> getOrCreateRxClient(Server server) {
         HttpClientBuilder<I, ServerSentEvent> clientBuilder =
-                new HttpClientBuilder<I, ServerSentEvent>(host, port).pipelineConfigurator(pipelineConfigurator);
+                new HttpClientBuilder<I, ServerSentEvent>(server.getHost(), server.getPort()).pipelineConfigurator(pipelineConfigurator);
         int requestConnectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         RxClient.ClientConfig rxClientConfig = new HttpClientConfig.Builder().build();
         

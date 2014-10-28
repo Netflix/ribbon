@@ -22,8 +22,10 @@ import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.transport.netty.udp.LoadBalancingUdpClient;
 import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.reactive.LoadBalancerObservableCommand;
+import com.netflix.loadbalancer.reactive.LoadBalancerCommand;
+import com.netflix.loadbalancer.reactive.ServerOperation;
 import com.netflix.loadbalancer.Server;
+
 import io.netty.channel.socket.DatagramPacket;
 import io.reactivex.netty.channel.ObservableConnection;
 import io.reactivex.netty.client.RxClient;
@@ -64,19 +66,21 @@ public class MyUDPClient extends LoadBalancingUdpClient<DatagramPacket, Datagram
     }
 
     public Observable<DatagramPacket> submit(final String content) {
-        LoadBalancerObservableCommand<DatagramPacket> command = new LoadBalancerObservableCommand<DatagramPacket>(lbContext) {
-            @Override
-            public Observable<DatagramPacket> call(Server server) {
-                RxClient<DatagramPacket, DatagramPacket> rxClient = getRxClient(server.getHost(), server.getPort());
-                return rxClient.connect().flatMap(new Func1<ObservableConnection<DatagramPacket, DatagramPacket>, Observable<? extends DatagramPacket>>() {
+        return LoadBalancerCommand.<DatagramPacket>builder()
+                .withLoadBalancerContext(lbContext)
+                .build()
+                .submit(new ServerOperation<DatagramPacket>() {
                     @Override
-                    public Observable<? extends DatagramPacket> call(ObservableConnection<DatagramPacket, DatagramPacket> connection) {
-                        connection.writeStringAndFlush(content);
-                        return connection.getInput().timeout(10, TimeUnit.MILLISECONDS).take(1);
+                    public Observable<DatagramPacket> call(Server server) {
+                        RxClient<DatagramPacket, DatagramPacket> rxClient = getOrCreateRxClient(server);
+                        return rxClient.connect().flatMap(new Func1<ObservableConnection<DatagramPacket, DatagramPacket>, Observable<? extends DatagramPacket>>() {
+                            @Override
+                            public Observable<? extends DatagramPacket> call(ObservableConnection<DatagramPacket, DatagramPacket> connection) {
+                                connection.writeStringAndFlush(content);
+                                return connection.getInput().timeout(10, TimeUnit.MILLISECONDS).take(1);
+                            }
+                        });
                     }
                 });
-            }
-        };
-        return command.toObservable();
     }
 }

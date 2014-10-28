@@ -46,7 +46,7 @@ public class LoadBalancingUdpClient<I, O> extends LoadBalancingRxClient<I, O, Rx
     }
 
     @Override
-    protected RxClient<I, O> cacheLoadRxClient(Server server) {
+    protected RxClient<I, O> createRxClient(Server server) {
         UdpClientBuilder<I, O> builder = RxNetty.newUdpClientBuilder(server.getHost(), server.getPort());
         if (pipelineConfigurator != null) {
             builder.pipelineConfigurator(pipelineConfigurator);

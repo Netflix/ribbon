@@ -50,12 +50,12 @@ public interface RetryHandler {
     public boolean isCircuitTrippingException(Throwable e);
         
     /**
-     * Number of maximal retries to be done on one server
+     * @return Number of maximal retries to be done on one server
      */
     public int getMaxRetriesOnSameServer();
 
     /**
-     * Number of maximal different servers to retry
+     * @return Number of maximal different servers to retry
      */
     public int getMaxRetriesOnNextServer();
 }

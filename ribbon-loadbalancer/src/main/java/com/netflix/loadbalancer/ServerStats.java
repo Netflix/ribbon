@@ -180,9 +180,7 @@ public class ServerStats {
      * 
      */
     public long getFailureCount(){
-        long count = 0;
-        count = serverFailureCounts.getCurrentCount();
-        return count;
+        return serverFailureCounts.getCurrentCount();
     }
     
     /**

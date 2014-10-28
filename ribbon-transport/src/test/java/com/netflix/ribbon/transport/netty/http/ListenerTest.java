@@ -58,7 +58,7 @@ public class ListenerTest {
                                             .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
                                             .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
-        Server badServer = new Server("localhost:12345");
+        Server badServer  = new Server("localhost:12345");
         Server badServer2 = new Server("localhost:34567");
         List<Server> servers = Lists.newArrayList(badServer, badServer2);
 
@@ -66,6 +66,7 @@ public class ListenerTest {
                 .withRule(new AvailabilityFilteringRule())
                 .withPing(new DummyPing())
                 .buildFixedServerListLoadBalancer(servers);
+        
         IClientConfig overrideConfig = DefaultClientConfigImpl.getEmptyConfig();
         TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<ByteBuf, ByteBuf>(request, overrideConfig);
         List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
@@ -82,13 +83,17 @@ public class ListenerTest {
         assertEquals(1, listener.executionFailedCounter.get());
         assertTrue(listener.isContextChecked());
         assertTrue(listener.isCheckExecutionInfo());
+        assertNotNull(listener.getFinalThrowable());
+        listener.getFinalThrowable().printStackTrace();
         assertTrue(listener.getFinalThrowable() instanceof ClientException);
         assertEquals(100, listener.getContext().getClientProperty(CommonClientConfigKey.ConnectTimeout).intValue());
     }
 
     @Test
     public void testFailedExecutionForAbsoluteURI() {
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "100")
+        IClientConfig config = DefaultClientConfigImpl
+                .getClientConfigWithDefaultValues()
+                .withProperty(CommonClientConfigKey.ConnectTimeout, "100")
                 .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
                 .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("http://xyz.unknowhost.xyz/testAsync/person");
@@ -127,11 +132,14 @@ public class ListenerTest {
                 .setBody(content));
         server.play();
 
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "2000")
+        IClientConfig config = DefaultClientConfigImpl
+                .getClientConfigWithDefaultValues()
+                .withProperty(CommonClientConfigKey.ConnectTimeout, "2000")
                 .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
                 .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
+        
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
-        Server badServer = new Server("localhost:12345");
+        Server badServer  = new Server("localhost:12345");
         Server goodServer = new Server("localhost:" + server.getPort());
         List<Server> servers = Lists.newArrayList(goodServer, badServer);
 

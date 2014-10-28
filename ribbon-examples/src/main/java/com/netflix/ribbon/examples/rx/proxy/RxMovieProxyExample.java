@@ -27,7 +27,7 @@ import io.netty.buffer.ByteBuf;
 import rx.Observable;
 
 /**
- * Run {@link com.netflix.ribbon.examples.rx.RxMovieServer} prior to runnng this example!
+ * Run {@link com.netflix.ribbon.examples.rx.RxMovieServer} prior to running this example!
  *
  * @author Tomasz Bak
  */

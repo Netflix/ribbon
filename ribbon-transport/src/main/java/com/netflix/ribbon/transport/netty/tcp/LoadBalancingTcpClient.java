@@ -52,7 +52,7 @@ public class LoadBalancingTcpClient<I, O> extends LoadBalancingRxClientWithPoolO
     }
 
     @Override
-    protected RxClient<I, O> cacheLoadRxClient(Server server) {
+    protected RxClient<I, O> createRxClient(Server server) {
         ClientBuilder<I, O> builder = RxNetty.newTcpClientBuilder(server.getHost(), server.getPort());
         if (pipelineConfigurator != null) {
             builder.pipelineConfigurator(pipelineConfigurator);

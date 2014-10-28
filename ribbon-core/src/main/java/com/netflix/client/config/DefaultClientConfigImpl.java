@@ -23,6 +23,7 @@ import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
+
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
@@ -121,6 +122,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final int DEFAULT_MAX_AUTO_RETRIES = 0;
 
+    public static final int DEFAULT_BACKOFF_INTERVAL = 0;
+    
     public static final int DEFAULT_READ_TIMEOUT = 5000;
 
     public static final int DEFAULT_CONNECTION_MANAGER_TIMEOUT = 2000;
