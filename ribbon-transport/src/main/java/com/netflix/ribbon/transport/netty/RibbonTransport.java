@@ -46,15 +46,15 @@ import java.util.concurrent.ThreadFactory;
 
 public final class RibbonTransport {
     
-    protected static final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<ByteBuf>> DEFAULT_SSE_PIPELINE_CONFIGURATOR  = 
+    public static final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<ByteBuf>> DEFAULT_SSE_PIPELINE_CONFIGURATOR  = 
             PipelineConfigurators.sseClientConfigurator();
 
-    protected static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_HTTP_PIPELINE_CONFIGURATOR = 
+    public static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_HTTP_PIPELINE_CONFIGURATOR = 
             PipelineConfigurators.httpClientConfigurator();
     
-    private static final DynamicIntProperty POOL_CLEANER_CORE_SIZE = new DynamicIntProperty("rxNetty.poolCleaner.coreSize", 2);
+    public static final DynamicIntProperty POOL_CLEANER_CORE_SIZE = new DynamicIntProperty("rxNetty.poolCleaner.coreSize", 2);
 
-    private static final ScheduledExecutorService poolCleanerScheduler;
+    public static final ScheduledExecutorService poolCleanerScheduler;
 
     static {
         ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true)
