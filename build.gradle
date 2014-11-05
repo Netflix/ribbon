@@ -47,7 +47,7 @@ project(':ribbon-loadbalancer') {
     dependencies {
         compile project(':ribbon-core')
         compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
-        compile "com.netflix.rxjava:rxjava-core:${rx_java_version}"
+        compile "io.reactivex:rxjava:${rx_java_version}"
     }
 }
 
@@ -86,7 +86,7 @@ project(':ribbon-eureka') {
     dependencies {
         compile project(':ribbon-core')
         compile project(':ribbon-loadbalancer')
-        compile 'com.netflix.eureka:eureka-client:1.1.136'
+        compile 'com.netflix.eureka:eureka-client:1.1.142'
     }
 }
 
@@ -107,7 +107,7 @@ project(':ribbon-test') {
         compile project(':ribbon-eureka')
         compile 'org.powermock:powermock-easymock-release-full:1.5.4'
         compile 'org.easymock:easymock:3.2'
-        compile "com.netflix.rxjava:rxjava-core:${rx_java_version}"
+        compile "io.reactivex:rxjava:${rx_java_version}"
         compile 'com.sun.jersey:jersey-server:1.11'
         compile 'javax.ws.rs:jsr311-api:1.1.1' 
         compile 'com.sun.jersey:jersey-core:1.11'    
@@ -145,7 +145,7 @@ project(':ribbon') {
     tasks.build { dependsOn(examplesClasses) }
     
     dependencies {
-        compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC4'
+        compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC5'
         compile 'javax.inject:javax.inject:1'
         compile project(':ribbon-transport')
         testCompile project(':ribbon-test')

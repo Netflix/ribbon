@@ -64,7 +64,7 @@ public final class HelloUdpServer {
                             public Observable<Void> call(Long aLong) {
                                 InetSocketAddress sender = received.sender();
                                 System.out.println("Received datagram. Sender: " + sender);
-                                ByteBuf data = newConnection.getChannelHandlerContext().alloc().buffer(WELCOME_MSG_BYTES.length);
+                                ByteBuf data = newConnection.getChannel().alloc().buffer(WELCOME_MSG_BYTES.length);
                                 data.writeBytes(WELCOME_MSG_BYTES);
                                 return newConnection.writeAndFlush(new DatagramPacket(data, sender));
                             }
