@@ -61,23 +61,26 @@ public abstract class AbstractRxMovieClient {
         List<String> searches = new ArrayList<String>(2);
         Collections.addAll(searches, "findById", "findRawMovieById", "findMovie(name, category)");
 
-        return Observable.concat(Observable.from(triggerRecommendationsSearch())).flatMap(new Func1<ByteBuf, Observable<List<Movie>>>() {
-            @Override
-            public Observable<List<Movie>> call(ByteBuf byteBuf) {
-                List<Movie> movies = new ArrayList<Movie>();
-                String lines = byteBuf.toString(Charset.defaultCharset());
-                for (String line : NEW_LINE_SPLIT_RE.split(lines)) {
-                    movies.add(Movie.from(line));
+        return Observable
+            .concat(Observable.from(triggerRecommendationsSearch()))
+            .flatMap(new Func1<ByteBuf, Observable<List<Movie>>>() {
+                @Override
+                public Observable<List<Movie>> call(ByteBuf byteBuf) {
+                    List<Movie> movies = new ArrayList<Movie>();
+                    String lines = byteBuf.toString(Charset.defaultCharset());
+                    for (String line : NEW_LINE_SPLIT_RE.split(lines)) {
+                        movies.add(Movie.from(line));
+                    }
+                    return Observable.just(movies);
                 }
-                return Observable.just(movies);
-            }
-        }).zip(searches, new Func2<List<Movie>, String, Void>() {
-            @Override
-            public Void call(List<Movie> movies, String query) {
-                System.out.println(format("    %s=%s", query, movies));
-                return null;
-            }
-        });
+            })
+            .zipWith(searches, new Func2<List<Movie>, String, Void>() {
+                @Override
+                public Void call(List<Movie> movies, String query) {
+                    System.out.println(format("    %s=%s", query, movies));
+                    return null;
+                }
+            });
     }
 
     public boolean runExample() {
