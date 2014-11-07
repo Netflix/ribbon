@@ -181,6 +181,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
             // fallback to use round robin
             if (maxTotalWeight < 0.001d) {
                 server =  super.choose(getLoadBalancer(), key); 
+                return server;
             } else {
                 // generate a random weight between 0 (inclusive) to maxTotalWeight (exclusive)
                 double randomWeight = random.nextDouble() * maxTotalWeight;
