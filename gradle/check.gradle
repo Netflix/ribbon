@@ -8,7 +8,10 @@ checkstyle {
 
 // FindBugs
 apply plugin: 'findbugs'
-findbugs {
+tasks.withType(FindBugs) { 
+    findbugs.toolVersion JavaVersion.current().isJava6() ? "2.0.1" : "3.0.0"
+    reports.html.enabled true 
+    reports.xml.enabled false
     ignoreFailures = true
 }
 

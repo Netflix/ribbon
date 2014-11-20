@@ -25,6 +25,13 @@ apply plugin: 'idea'
 subprojects {
     group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
 
+    if (System.getProperty("java.version").startsWith("1.8.")) {
+        tasks.withType(Javadoc) {
+            // http://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
+    }
+
     dependencies {
         compile 'org.slf4j:slf4j-api:1.6.4'
         compile 'com.netflix.servo:servo-core:0.7.4'
