@@ -579,6 +579,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
             String key = keys.next();
             String prop = key;
             if (prop.startsWith(getNameSpace())){
+                if (prop.length() <= getNameSpace().length() + 1) {
+                    throw new RuntimeException(String.format("Property %s is invalid", prop));
+                }
                 prop = prop.substring(getNameSpace().length() + 1);
             }
             setPropertyInternal(prop, getStringValue(props, key));
