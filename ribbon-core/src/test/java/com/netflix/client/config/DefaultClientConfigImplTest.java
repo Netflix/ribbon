@@ -28,11 +28,17 @@ public class DefaultClientConfigImplTest {
         assertEquals(1000, config.get(CommonClientConfigKey.ConnectTimeout).intValue());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void shouldThrowExceptionForIncorrectProperties() {
-        ConfigurationManager.getConfigInstance().setProperty("myclient.ribbon.", "bar");
+        ConfigurationManager.getConfigInstance().setProperty("myclient.ribbon", "bar");
         DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-        config.loadProperties("myclient");
+        String message = "";
+        try {
+            config.loadProperties("myclient");
+        } catch (RuntimeException ex) {
+            message = ex.getMessage();
+        }
+        assertEquals("Property ribbon is invalid", message);
     }
     
     @Test
