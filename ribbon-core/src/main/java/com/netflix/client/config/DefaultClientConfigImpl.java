@@ -578,10 +578,14 @@ public class DefaultClientConfigImpl implements IClientConfig {
         for (Iterator<String> keys = props.getKeys(); keys.hasNext(); ){
             String key = keys.next();
             String prop = key;
-            if (prop.startsWith(getNameSpace())){
-                prop = prop.substring(getNameSpace().length() + 1);
+            try {
+                if (prop.startsWith(getNameSpace())){
+                    prop = prop.substring(getNameSpace().length() + 1);
+                }
+                setPropertyInternal(prop, getStringValue(props, key));
+            } catch (Exception ex) {
+                throw new RuntimeException(String.format("Property %s is invalid", prop));
             }
-            setPropertyInternal(prop, getStringValue(props, key));
         }
     }
     

@@ -27,6 +27,19 @@ public class DefaultClientConfigImplTest {
         // The archaius property should override code override
         assertEquals(1000, config.get(CommonClientConfigKey.ConnectTimeout).intValue());
     }
+
+    @Test
+    public void shouldThrowExceptionForIncorrectProperties() {
+        ConfigurationManager.getConfigInstance().setProperty("myclient.ribbon", "bar");
+        DefaultClientConfigImpl config = new DefaultClientConfigImpl();
+        String message = "";
+        try {
+            config.loadProperties("myclient");
+        } catch (RuntimeException ex) {
+            message = ex.getMessage();
+        }
+        assertEquals("Property ribbon is invalid", message);
+    }
     
     @Test
     public void testNewType() {
