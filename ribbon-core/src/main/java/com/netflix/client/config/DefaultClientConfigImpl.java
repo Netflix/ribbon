@@ -89,7 +89,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = "com.netflix.loadbalancer.AvailabilityFilteringRule";
 
     public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = "com.netflix.loadbalancer.ZoneAwareLoadBalancer";
-
+    
     public static final boolean DEFAULT_USEIPADDRESS_FOR_SERVER = Boolean.FALSE;
 
     public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
@@ -123,7 +123,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_MAX_AUTO_RETRIES = 0;
 
     public static final int DEFAULT_BACKOFF_INTERVAL = 0;
-
+    
     public static final int DEFAULT_READ_TIMEOUT = 5000;
 
     public static final int DEFAULT_CONNECTION_MANAGER_TIMEOUT = 2000;
@@ -131,7 +131,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_CONNECT_TIMEOUT = 2000;
 
     public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = Boolean.TRUE;
-
+    
     @Deprecated
     public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = 50;
 
@@ -151,9 +151,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
 
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
-
+    
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
-
+    
     protected Map<IClientConfigKey<?>, Object> typedProperties = new ConcurrentHashMap<IClientConfigKey<?>, Object>();
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
@@ -203,7 +203,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public String getDefaultNfloadbalancerClassname() {
 		return DEFAULT_NFLOADBALANCER_CLASSNAME;
 	}
-
+	
 	public boolean getDefaultUseIpAddressForServer() {
 		return DEFAULT_USEIPADDRESS_FOR_SERVER;
 	}
@@ -297,7 +297,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public int getDefaultMaxTotalConnections() {
 	    return DEFAULT_MAX_TOTAL_CONNECTIONS;
 	}
-
+	
 	public float getDefaultMinPrimeConnectionsRatio() {
 		return DEFAULT_MIN_PRIME_CONNECTIONS_RATIO;
 	}
@@ -317,7 +317,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public int getDefaultConnectionidleTimeInMsecs() {
 		return DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS;
 	}
-
+	
 	public VipAddressResolver getResolver() {
 		return resolver;
 	}
@@ -578,17 +578,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
         for (Iterator<String> keys = props.getKeys(); keys.hasNext(); ){
             String key = keys.next();
             String prop = key;
-            try {
-                if (prop.startsWith(getNameSpace())) {
-                    prop = prop.substring(getNameSpace().length() + 1);
+            if (prop.startsWith(getNameSpace())){
+                if (prop.length() <= getNameSpace().length() + 1) {
+                    throw new RuntimeException(String.format("Property %s is invalid", prop));
                 }
-                setPropertyInternal(prop, getStringValue(props, key));
-            } catch (Exception ex) {
-                throw new RuntimeException(String.format("Property %s is invalid", prop));
+                prop = prop.substring(getNameSpace().length() + 1);
             }
+            setPropertyInternal(prop, getStringValue(props, key));
         }
     }
-
+    
     /**
      * This is to workaround the issue that {@link AbstractConfiguration} by default
      * automatically convert comma delimited string to array
@@ -683,7 +682,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public void setProperty(IClientConfigKey key, Object value){
         setPropertyInternal(key.key(), value);
     }
-
+    
     public DefaultClientConfigImpl withProperty(IClientConfigKey key, Object value) {
         setProperty(key, value);
         return this;
@@ -820,11 +819,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public static DefaultClientConfigImpl getEmptyConfig() {
 	    return new DefaultClientConfigImpl();
 	}
-
+	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
 		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
 	}
-
+	
 	public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
         return getClientConfigWithDefaultValues("default", DEFAULT_PROPERTY_NAME_SPACE);
     }
@@ -847,7 +846,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
         }
         return defaultValue;
-
+        
     }
 
     @Override
