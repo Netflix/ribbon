@@ -240,7 +240,7 @@ public class ServerStats {
         return activeRequestsCount.get();
     }
     
-    @Monitor(name="CircuitBreakerTripped", type = DataSourceType.GAUGE)    
+    @Monitor(name="CircuitBreakerTripped", type = DataSourceType.INFORMATIONAL)    
     public boolean isCircuitBreakerTripped() {
         return isCircuitBreakerTripped(System.currentTimeMillis());
     }
