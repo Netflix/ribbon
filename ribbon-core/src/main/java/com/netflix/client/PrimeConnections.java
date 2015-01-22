@@ -64,10 +64,10 @@ public class PrimeConnections {
     }
     
     public static class PrimeConnectionEndStats {
-        public int total;
-        public int success;
-        public int failure;
-        public long totalTime;
+        public final int total;
+        public final int success;
+        public final int failure;
+        public final long totalTime;
 
         public PrimeConnectionEndStats(int total, int success, int failure, long totalTime) {
             this.total = total;
@@ -307,7 +307,7 @@ public class PrimeConnections {
                 catch (RejectedExecutionException ree) {
                     logger.error("executor submit failed", ree);
                 }
-                catch (Throwable e) {
+                catch (Exception e) {
                     logger.error("general error", e);
                     // It does not really matter if there was an exception,
                     // the goal here is to attempt "priming/opening" the route
