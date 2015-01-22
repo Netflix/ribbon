@@ -22,10 +22,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -63,17 +63,27 @@ public class PrimeConnections {
         public void primeCompleted(Server s, Throwable lastException);
     }
     
-    static class PrimeConnectionCounters {
-        final AtomicInteger numServersLeft;
-        final AtomicInteger numServers;
-        final AtomicInteger numServersSuccessful;    
-        public PrimeConnectionCounters(int initialSize) {
-            numServersLeft = new AtomicInteger(initialSize);
-            numServers = new AtomicInteger(initialSize);
-            numServersSuccessful = new AtomicInteger(0);
+    public static class PrimeConnectionEndStats {
+        public int total;
+        public int success;
+        public int failure;
+        public long totalTime;
+
+        public PrimeConnectionEndStats(int total, int success, int failure, long totalTime) {
+            this.total = total;
+            this.success = success;
+            this.failure = failure;
+            this.totalTime = totalTime;
+        }
+
+        @Override
+        public String toString() {
+            return "PrimeConnectionEndStats [total=" + total + ", success="
+                + success + ", failure=" + failure + ", totalTime="
+                + totalTime + "]";
         }
     }
-    
+
     private static final Logger logger = LoggerFactory.getLogger(PrimeConnections.class);
 
     // affordance to change the URI we connect to while "priming"
@@ -93,10 +103,7 @@ public class PrimeConnections {
 
     private String name = "default";
 
-    private int maxTasksPerExecutorQueue = 100;
-    
     private float primeRatio = 1.0f;
-
 
     int maxRetries = 9;
 
@@ -111,6 +118,8 @@ public class PrimeConnections {
     Timer initialPrimeTimer;
     
     private IPrimeConnection connector;
+
+    private PrimeConnectionEndStats stats;
 
     private PrimeConnections() {
     }
@@ -169,7 +178,7 @@ public class PrimeConnections {
                                        * timeout - same property as create
                                        * timeout
                                        */, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<Runnable>(maxTasksPerExecutorQueue)
+                new LinkedBlockingQueue<Runnable>()
                 /* Bounded queue with FIFO- bounded to max tasks */,
                 new ASyncPrimeConnectionsThreadFactory(name) /*
                                                               * So we can give
@@ -224,24 +233,32 @@ public class PrimeConnections {
         } finally {
             stopWatch.stop();
         }
-        printStats(totalCount, successCount.get(), failureCount.get(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+
+        stats = new PrimeConnectionEndStats(totalCount, successCount.get(), failureCount.get(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+
+        printStats(stats);
     }
-    
-    private void printStats(int total, int success, int failure, long totalTime) {
-        if (total != success) {
+
+    public PrimeConnectionEndStats getEndStats() {
+      return stats;
+    }
+
+    private void printStats(PrimeConnectionEndStats stats) {
+        if (stats.total != stats.success) {
             logger.info("Priming Connections not fully successful");
         } else {
             logger.info("Priming connections fully successful");
         }
         logger.debug("numServers left to be 'primed'="
-                + (total - success));
-        logger.debug("numServers successfully 'primed'=" + success);
+                + (stats.total - stats.success));
+        logger.debug("numServers successfully 'primed'=" + stats.success);
         logger
                 .debug("numServers whose attempts not complete exclusively due to max time allocated="
-                        + (total - (success + failure)));
-        logger.debug("Total Time Taken=" + totalTime
+                        + (stats.total - (stats.success + stats.failure)));
+        logger.debug("Total Time Taken=" + stats.totalTime
                 + " msecs, out of an allocated max of (msecs)="
                 + maxTotalTimeToPrimeConnections);
+        logger.debug("stats = " + stats);
     }
 
     /*
@@ -286,8 +303,12 @@ public class PrimeConnections {
                 try {
                     ftC = makeConnectionASync(s, listener);
                     ftList.add(ftC);
-
-                } catch (Throwable e) { // NOPMD
+                }
+                catch (RejectedExecutionException ree) {
+                    logger.error("executor submit failed", ree);
+                }
+                catch (Throwable e) {
+                    logger.error("general error", e);
                     // It does not really matter if there was an exception,
                     // the goal here is to attempt "priming/opening" the route
                     // in ec2 .. actual http results do not matter
@@ -300,7 +321,7 @@ public class PrimeConnections {
     }
     
     private Future<Boolean> makeConnectionASync(final Server s, 
-            final PrimeConnectionListener listener) throws InterruptedException, ExecutionException {
+            final PrimeConnectionListener listener) throws InterruptedException, RejectedExecutionException {
         Callable<Boolean> ftConn = new Callable<Boolean>() {
             public Boolean call() throws Exception {
                 logger.debug("calling primeconnections ...");
