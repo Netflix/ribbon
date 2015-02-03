@@ -1,18 +1,15 @@
 apply plugin: 'nebula-test-jar'
+apply plugin: 'nebula-facet'
 
-sourceSets {
-    examples { }
-}
-
-configurations {
-    examplesCompile.extendsFrom compile
-    examplesRuntime.extendsFrom runtime
+facets {
+    examples {
+        parentSourceSet = 'main'
+    }
 }
 
 build.dependsOn(examplesClasses)
 
 dependencies {
-    examplesCompile sourceSets.main.output
     compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC5'
     compile 'javax.inject:javax.inject:1'
     compile project(':ribbon-transport')
