@@ -1,0 +1,29 @@
+apply plugin: 'nebula-test-jar'
+
+sourceSets {
+    examples { }
+}
+
+configurations {
+    examplesCompile.extendsFrom compile
+    examplesRuntime.extendsFrom runtime
+}
+
+build.dependsOn(examplesClasses)
+
+dependencies {
+    examplesCompile sourceSets.main.output
+    compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC5'
+    compile 'javax.inject:javax.inject:1'
+    compile project(':ribbon-transport')
+    compile 'org.slf4j:slf4j-api:1.6.4'
+    compile 'com.netflix.servo:servo-core:0.7.4'
+    compile 'com.google.guava:guava:14.0.1'
+    compile 'com.netflix.archaius:archaius-core:0.5.12'
+    compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
+    testCompile 'org.powermock:powermock-easymock-release-full:1.5.4'
+    testCompile 'org.easymock:easymock:3.2'
+    testCompile 'org.slf4j:slf4j-log4j12:1.7.2'
+    testCompile project(':ribbon-test')
+    testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+}

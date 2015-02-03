@@ -1,184 +1,20 @@
+plugins {
+    id 'nebula.netflixoss' version '2.2.5'
+}
+
 // Establish version and status
 ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
 
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral() // maven { url 'http://jcenter.bintray.com' }
-    }
-    apply from: file('gradle/buildscript.gradle'), to: buildscript 
-}
-
-allprojects {
-    repositories { 
-        mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
-    }
-}
-
-apply from: file('gradle/convention.gradle')
-apply from: file('gradle/maven.gradle')
-apply from: file('gradle/check.gradle')
-apply from: file('gradle/license.gradle')
-apply from: file('gradle/release.gradle')
-apply plugin: 'idea'
-
 subprojects {
+    apply plugin: 'nebula.netflixoss'
+    apply plugin: 'java'
+
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+
     group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
 
-    if (System.getProperty("java.version").startsWith("1.8.")) {
-        tasks.withType(Javadoc) {
-            // http://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html
-            options.addStringOption('Xdoclint:none', '-quiet')
-        }
-    }
-
-    dependencies {
-        compile 'org.slf4j:slf4j-api:1.6.4'
-        compile 'com.netflix.servo:servo-core:0.7.4'
-        compile 'com.google.guava:guava:14.0.1'
-        compile 'com.netflix.archaius:archaius-core:0.5.12'
-        compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
-        testCompile 'org.powermock:powermock-easymock-release-full:1.5.4'
-        testCompile 'org.easymock:easymock:3.2'
-        testCompile 'org.slf4j:slf4j-log4j12:1.7.2'
-        
-    }   
-}
-
-project(':ribbon-core') {
-    dependencies {
-    }
-}
-
-project(':ribbon-loadbalancer') {
-    dependencies {
-        compile project(':ribbon-core')
-        compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
-        compile "io.reactivex:rxjava:${rx_java_version}"
-    }
-}
-
-project(':ribbon-httpclient') {
-    dependencies {
-        compile project(':ribbon-core')
-        compile project(':ribbon-loadbalancer')
-        compile 'commons-collections:commons-collections:3.2.1'        
-        compile 'org.apache.httpcomponents:httpclient:4.2.1' 
-        compile 'com.sun.jersey:jersey-client:1.11'
-        compile 'com.sun.jersey:jersey-core:1.11'
-        compile 'javax.ws.rs:jsr311-api:1.1.1' 
-        compile 'com.sun.jersey.contribs:jersey-apache-client4:1.11'
-        testCompile 'asm:asm-all:3.2'
-        testCompile 'commons-io:commons-io:2.0.1'
-        testCompile 'com.sun.jersey:jersey-server:1.11'
-        testCompile 'com.google.mockwebserver:mockwebserver:20130505'
-    }
-}
-
-project(':ribbon-transport') {
-    dependencies {
-        compile project(':ribbon-core')
-        compile project(':ribbon-loadbalancer')
-        compile "com.netflix.rxnetty:rx-netty:${rx_netty_version}"
-        compile "com.netflix.rxnetty:rx-netty-contexts:${rx_netty_version}"
-        compile "com.netflix.rxnetty:rx-netty-servo:${rx_netty_version}"
-        compile 'javax.inject:javax.inject:1'
-        testCompile 'com.google.mockwebserver:mockwebserver:20130706'
-        testCompile project(':ribbon-test')        
-    }
-}
-
-
-project(':ribbon-eureka') {
-    dependencies {
-        compile project(':ribbon-core')
-        compile project(':ribbon-loadbalancer')
-        compile 'com.netflix.eureka:eureka-client:1.1.142'
-    }
-}
-
-project(':ribbon-examples') {
-    dependencies {
-        compile project(':ribbon-httpclient')
-        compile project(':ribbon-transport')
-        compile project(':ribbon')
-        compile 'com.google.code.gson:gson:2.2.4'
-        compile 'com.thoughtworks.xstream:xstream:1.4.5'
-        compile 'com.sun.jersey:jersey-server:1.11'
-    }
-}
-
-project(':ribbon-test') {
-    dependencies {
-        compile project(':ribbon-core')
-        compile project(':ribbon-eureka')
-        compile 'org.powermock:powermock-easymock-release-full:1.5.4'
-        compile 'org.easymock:easymock:3.2'
-        compile "io.reactivex:rxjava:${rx_java_version}"
-        compile 'com.sun.jersey:jersey-server:1.11'
-        compile 'javax.ws.rs:jsr311-api:1.1.1' 
-        compile 'com.sun.jersey:jersey-core:1.11'    
-        compile 'junit:junit:4.10'
-    }
-}
-
-project(':ribbon') {
-    configurations {
-        // add new configuration
-        examples
-
-        //adding a configuration that extends existing configuration:
-        //(testCompile was added by the java plugin)
-        examples.extendsFrom(compile)
-        examplesCompile.extendsFrom(compile)
-        examplesRuntime.extendsFrom runtime
-    }
-
-    sourceSets.test.java.srcDir 'src/test/java'
-
-    tasks.withType(Javadoc).each {
-        it.classpath = sourceSets.main.compileClasspath
-    }
-    
-    //include /src/examples folder
-    sourceSets {
-        examples {
-            // no idea why this is needed
-            java.srcDirs = []
-        }
-    }
-    
-    //include 'examples' in build task
-    tasks.build { dependsOn(examplesClasses) }
-    
-    dependencies {
-        compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC5'
-        compile 'javax.inject:javax.inject:1'
-        compile project(':ribbon-transport')
-        testCompile project(':ribbon-test')
-        testCompile 'com.google.mockwebserver:mockwebserver:20130706'
-            
-    }
-}
-
-project(':ribbon-evcache') {
-    dependencies {
-        compile project(':ribbon')
-        compile 'com.netflix.evcache:evcache-client:1.0.5'
-        testCompile project(':ribbon-test')
-        testCompile project(':ribbon').sourceSets.test.output
-    }
-}
-
-project(':ribbon-guice') {
-    dependencies {
-        compile project(':ribbon')
-        compile 'com.google.inject:guice:3.0'
-        compile 'com.google.inject.extensions:guice-multibindings:3.0'
-        testCompile project(':ribbon-examples')
-    }
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.12'
+    repositories {
+        jcenter()
+    } 
 }
