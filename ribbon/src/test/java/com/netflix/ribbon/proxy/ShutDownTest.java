@@ -33,7 +33,7 @@ import rx.Subscription;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.testng.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Allen Wang
