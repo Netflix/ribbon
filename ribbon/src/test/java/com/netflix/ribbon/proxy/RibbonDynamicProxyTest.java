@@ -38,7 +38,7 @@ import static com.netflix.ribbon.proxy.Utils.methodByName;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.powermock.api.easymock.PowerMock.*;
-import static org.testng.Assert.*;
+import static org.junit.Assert.*;
 
 /**
  * @author Tomasz Bak
