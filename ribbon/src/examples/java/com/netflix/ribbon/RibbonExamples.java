@@ -1,4 +1,4 @@
-package com.netflix.ribbonclientextensions;
+package com.netflix.ribbon;
 
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
@@ -12,15 +12,15 @@ import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixExecutableInfo;
 import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.ribbonclientextensions.http.HttpRequestTemplate;
-import com.netflix.ribbonclientextensions.http.HttpResourceGroup;
-import com.netflix.ribbonclientextensions.hystrix.FallbackHandler;
+import com.netflix.ribbon.http.HttpRequestTemplate;
+import com.netflix.ribbon.http.HttpResourceGroup;
+import com.netflix.ribbon.hystrix.FallbackHandler;
 
 
 public class RibbonExamples {
     public static void main(String[] args) {
         HttpResourceGroup group = Ribbon.createHttpResourceGroup("myclient");
-        HttpRequestTemplate<ByteBuf> template = group.newRequestTemplate("GetUser")
+        HttpRequestTemplate<ByteBuf> template = group.newTemplateBuilder("GetUser")
         .withResponseValidator(new ResponseValidator<HttpClientResponse<ByteBuf>>() {
 
             @Override
@@ -39,12 +39,12 @@ public class RibbonExamples {
         })
         .withHystrixProperties((HystrixObservableCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("mygroup"))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationThreadTimeoutInMilliseconds(2000))))
-        .withUriTemplate("/{id}");
+        .withUriTemplate("/{id}").build();
         
         template.requestBuilder().withRequestProperty("id", 1).build().execute();
         
         // example showing the use case of getting the entity with Hystrix meta data
-        template.withUriTemplate("/{id}").requestBuilder().withRequestProperty("id", 3).build().withMetadata().observe()
+        template.requestBuilder().withRequestProperty("id", 3).build().withMetadata().observe()
             .flatMap(new Func1<RibbonResponse<Observable<ByteBuf>>, Observable<String>>() {
                 @Override
                 public Observable<String> call(RibbonResponse<Observable<ByteBuf>> t1) {
