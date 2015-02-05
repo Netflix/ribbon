@@ -333,8 +333,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
      */
     protected void updateAllServerList(List<T> ls) {
         // other threads might be doing this - in which case, we pass
-        if (!serverListUpdateInProgress.get()) {
-            serverListUpdateInProgress.set(true);
+        if (serverListUpdateInProgress.compareAndSet(false, true)) {
             for (T s : ls) {
                 s.setAlive(true); // set so that clients can start using these
                                   // servers right away instead
