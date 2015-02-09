@@ -17,6 +17,7 @@
 */
 package com.netflix.client;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -249,4 +250,32 @@ public class ClientFactory {
             return config;
         }
     }
+    
+    /**
+     * Retrieves an unmodifiable map of the named clients created by the
+     * {@link ClientFactory}
+     * 
+     */
+    public static Map<String, IClient<?, ?>> getNamedClients() {
+        return Collections.unmodifiableMap(simpleClientMap);
+    }
+
+    /**
+     * Retrieves an unmodifiable map of the named load balancers created by the
+     * {@link ClientFactory}
+     * 
+     */
+    public static Map<String, ILoadBalancer> getNamedLoadBalancers() {
+        return Collections.unmodifiableMap(namedLBMap);
+    }
+
+    /**
+     * Retrieves an unmodifiable map of the named configs created by the
+     * {@link ClientFactory}
+     * 
+     */
+    public static Map<String, IClientConfig> getNamedConfigs() {
+        return Collections.unmodifiableMap(namedConfig);
+    }
+
 }
