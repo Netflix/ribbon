@@ -31,8 +31,8 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-
-
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.servo.annotations.DataSourceType;
@@ -70,12 +70,20 @@ public class LoadBalancerStats {
         DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.expire.minutes", 30);
     
     private final LoadingCache<Server, ServerStats> serverStatsCache = 
-        CacheBuilder.newBuilder().expireAfterAccess(SERVERSTATS_EXPIRE_MINUTES.get(), TimeUnit.MINUTES).build(
-            new CacheLoader<Server, ServerStats>() {
-                public ServerStats load(Server server) {
-                    return createServerStats(server);
+        CacheBuilder.newBuilder()
+            .expireAfterAccess(SERVERSTATS_EXPIRE_MINUTES.get(), TimeUnit.MINUTES)
+            .removalListener(new RemovalListener<Server, ServerStats>() {
+                @Override
+                public void onRemoval(RemovalNotification<Server, ServerStats> notification) {
+                    notification.getValue().close();
                 }
-            });
+            })
+            .build(
+                new CacheLoader<Server, ServerStats>() {
+                    public ServerStats load(Server server) {
+                        return createServerStats(server);
+                    }
+                });
         
     private ServerStats createServerStats(Server server) {
         ServerStats ss = new ServerStats(this);

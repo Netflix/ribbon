@@ -108,6 +108,11 @@ public class ServerStats {
         this.server = server;
     }
     
+    public void close() {
+        if (publisher != null)
+            publisher.stop();
+    }
+
     private int getBufferSize() {
         return bufferSize;
     }
