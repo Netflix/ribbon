@@ -211,11 +211,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         this.serverListImpl = niwsServerList;
     }
 
-    @Override
-    public void setPing(IPing ping) {
-        this.ping = ping;
-    }
-
     public ServerListFilter<T> getFilter() {
         return filter;
     }
