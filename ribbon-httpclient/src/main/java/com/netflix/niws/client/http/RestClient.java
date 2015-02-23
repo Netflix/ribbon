@@ -280,16 +280,16 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         // send/receive - so let's take the bigger of the two values and use
         // it as buffer size
         int bufferSize = Integer.MIN_VALUE;
-        if (ncc.getProperty(CommonClientConfigKey.ReceiveBuffferSize) != null) {
+        if (ncc.getProperty(CommonClientConfigKey.ReceiveBufferSize) != null) {
             try {
                 bufferSize = Integer
                 .parseInt(""
                         + ncc
-                        .getProperty(CommonClientConfigKey.ReceiveBuffferSize));
+                        .getProperty(CommonClientConfigKey.ReceiveBufferSize));
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid value for property:"
-                        + CommonClientConfigKey.ReceiveBuffferSize,
+                        + CommonClientConfigKey.ReceiveBufferSize,
                         e);
             }
             if (ncc.getProperty(CommonClientConfigKey.SendBufferSize) != null) {
