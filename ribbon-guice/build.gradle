@@ -6,7 +6,7 @@ dependencies {
     compile 'com.google.inject.extensions:guice-multibindings:3.0'
     testCompile 'junit:junit:4.11'
     testCompile "io.reactivex:rxjava:${rx_java_version}"
-    testCompile "com.netflix.rxnetty:rx-netty:${rx_netty_version}"
+    testCompile "io.reactivex:rxnetty:${rx_netty_version}"
     testCompile (project(':ribbon-examples')) {transitive=false}
     testCompile 'com.netflix.archaius:archaius-core:0.5.12'
 }

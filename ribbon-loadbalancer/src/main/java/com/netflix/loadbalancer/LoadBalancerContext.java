@@ -474,7 +474,7 @@ public class LoadBalancerContext implements IClientConfigAware {
                     throw new ClientException(ClientException.ErrorType.GENERAL,
                             "Invalid Server for :" + svc);
                 }
-                logger.debug("{} using LB returned Server: {} for request {}", clientName, svc, original);
+                logger.debug("{} using LB returned Server: {} for request {}", new Object[]{clientName, svc, original});
                 return svc;
             } else {
                 // No Full URL - and we dont have a LoadBalancer registered to
