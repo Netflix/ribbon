@@ -12,13 +12,13 @@ build.dependsOn(examplesClasses)
 dependencies {
     compile project(':ribbon-core')
     compile project(':ribbon-transport')
-    compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC5'
+    compile "com.netflix.hystrix:hystrix-core:${hystrix_version}"
     compile 'javax.inject:javax.inject:1'
     compile "io.reactivex:rxjava:${rx_java_version}"
     compile "io.reactivex:rxnetty:${rx_netty_version}"
     compile 'commons-configuration:commons-configuration:1.8'
-    compile 'com.google.guava:guava:14.0.1'
-    compile 'com.netflix.archaius:archaius-core:0.5.12'
+    compile "com.google.guava:guava:${guava_version}"
+    compile "com.netflix.archaius:archaius-core:${archaius_version}"
     testCompile 'junit:junit:4.11'
     testCompile 'org.powermock:powermock-easymock-release-full:1.5.4'
     testCompile 'org.easymock:easymock:3.2'

@@ -4,7 +4,7 @@ dependencies {
     compile 'com.netflix.eureka:eureka-client:1.1.142'
     compile 'com.google.code.findbugs:annotations:2.0.0'
     compile 'org.slf4j:slf4j-api:1.6.4'
-    compile 'com.netflix.archaius:archaius-core:0.5.12'
+    compile "com.netflix.archaius:archaius-core:${archaius_version}"
     testCompile 'junit:junit:4.11'
     testCompile 'org.powermock:powermock-easymock-release-full:1.5.4'
     testCompile 'org.easymock:easymock:3.2'

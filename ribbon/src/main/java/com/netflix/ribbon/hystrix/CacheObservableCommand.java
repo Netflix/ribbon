@@ -1,10 +1,11 @@
 package com.netflix.ribbon.hystrix;
 
-import com.netflix.hystrix.HystrixObservableCommand;
-import com.netflix.ribbon.CacheProvider;
+import java.util.Map;
+
 import rx.Observable;
 
-import java.util.Map;
+import com.netflix.hystrix.HystrixObservableCommand;
+import com.netflix.ribbon.CacheProvider;
 
 /**
  * @author Tomasz Bak
@@ -39,7 +40,7 @@ public class CacheObservableCommand<T> extends HystrixObservableCommand<T> {
     }
 
     @Override
-    protected Observable<T> run() {
+    protected Observable<T> construct() {
         return cacheProvider.get(key, requestProperties);
     }
 }

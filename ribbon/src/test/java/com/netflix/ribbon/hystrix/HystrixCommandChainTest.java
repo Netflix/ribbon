@@ -1,15 +1,18 @@
 package com.netflix.ribbon.hystrix;
 
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixObservableCommand;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
+
 import rx.Notification;
 import rx.Observable;
 import rx.Observer;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
-import static org.junit.Assert.*;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixObservableCommand;
 
 /**
  * @author Tomasz Bak
@@ -77,12 +80,7 @@ public class HystrixCommandChainTest {
         }
 
         @Override
-        protected Observable<String> run() {
-            return null;
-        }
-
-        @Override
-        public Observable<String> toObservable() {
+        protected Observable<String> construct() {
             Subject<String, String> subject = ReplaySubject.create();
             fireEvents(subject);
             return subject;

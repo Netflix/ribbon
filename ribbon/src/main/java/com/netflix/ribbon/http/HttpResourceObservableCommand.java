@@ -67,16 +67,16 @@ public class HttpResourceObservableCommand<T> extends HystrixObservableCommand<T
     }
 
     @Override
-    protected Observable<T> getFallback() {
+    protected Observable<T> resumeWithFallback() {
         if (fallbackHandler == null) {
-            return super.getFallback();
+            return super.resumeWithFallback();
         } else {
             return fallbackHandler.getFallback(this, this.requestProperties);
         }
     }
 
     @Override
-    protected Observable<T> run() {
+    protected Observable<T> construct() {
         Observable<HttpClientResponse<ByteBuf>> httpResponseObservable = httpClient.submit(httpRequest);
         if (validator != null) {
             httpResponseObservable = httpResponseObservable.map(new Func1<HttpClientResponse<ByteBuf>, HttpClientResponse<ByteBuf>>() {

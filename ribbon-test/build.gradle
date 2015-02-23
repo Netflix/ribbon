@@ -9,5 +9,5 @@ dependencies {
     compile "io.reactivex:rxjava:${rx_java_version}"
     compile 'javax.ws.rs:jsr311-api:1.1.1'  
     compile 'junit:junit:4.11'
-    compile 'com.google.guava:guava:14.0.1'
+    compile "com.google.guava:guava:${guava_version}"
 }
