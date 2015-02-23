@@ -10,7 +10,7 @@ import rx.functions.Func1;
 
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandProperties;
-import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.HystrixInvokableInfo;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbon.http.HttpRequestTemplate;
 import com.netflix.ribbon.http.HttpResourceGroup;
@@ -33,7 +33,7 @@ public class RibbonExamples {
         })   
         .withFallbackProvider(new FallbackHandler<ByteBuf>() {
             @Override
-            public Observable<ByteBuf> getFallback(HystrixExecutableInfo<?> t1, Map<String, Object> vars) {
+            public Observable<ByteBuf> getFallback(HystrixInvokableInfo<?> t1, Map<String, Object> vars) {
                 return Observable.empty();
             }
         })

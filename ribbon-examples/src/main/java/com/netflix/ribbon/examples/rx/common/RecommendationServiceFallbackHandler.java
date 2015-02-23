@@ -16,7 +16,7 @@
 
 package com.netflix.ribbon.examples.rx.common;
 
-import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.HystrixInvokableInfo;
 import com.netflix.ribbon.hystrix.FallbackHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -30,7 +30,7 @@ import java.util.Map;
  */
 public class RecommendationServiceFallbackHandler implements FallbackHandler<ByteBuf> {
     @Override
-    public Observable<ByteBuf> getFallback(HystrixExecutableInfo<?> hystrixInfo, Map<String, Object> requestProperties) {
+    public Observable<ByteBuf> getFallback(HystrixInvokableInfo<?> hystrixInfo, Map<String, Object> requestProperties) {
         byte[] bytes = Movie.ORANGE_IS_THE_NEW_BLACK.toString().getBytes(Charset.defaultCharset());
         ByteBuf byteBuf = UnpooledByteBufAllocator.DEFAULT.buffer(bytes.length);
         byteBuf.writeBytes(bytes);

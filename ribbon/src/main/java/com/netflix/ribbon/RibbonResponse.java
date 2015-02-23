@@ -16,7 +16,7 @@
 package com.netflix.ribbon;
 
 
-import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.HystrixInvokableInfo;
 
 /**
  * Response object from {@link RequestWithMetaData} that contains the content
@@ -29,5 +29,5 @@ import com.netflix.hystrix.HystrixExecutableInfo;
 public abstract class RibbonResponse<T> {
     public abstract T content();
     
-    public abstract HystrixExecutableInfo<?> getHystrixInfo();   
+    public abstract HystrixInvokableInfo<?> getHystrixInfo();   
 }

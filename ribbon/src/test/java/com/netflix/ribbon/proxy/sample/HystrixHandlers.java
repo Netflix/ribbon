@@ -16,7 +16,7 @@
 
 package com.netflix.ribbon.proxy.sample;
 
-import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.HystrixInvokableInfo;
 import com.netflix.ribbon.ServerError;
 import com.netflix.ribbon.UnsuccessfulResponseException;
 import com.netflix.ribbon.http.HttpResponseValidator;
@@ -43,7 +43,7 @@ public class HystrixHandlers {
     public static class MovieFallbackHandler implements FallbackHandler<Movie> {
 
         @Override
-        public Observable<Movie> getFallback(HystrixExecutableInfo<?> hystrixInfo, Map<String, Object> requestProperties) {
+        public Observable<Movie> getFallback(HystrixInvokableInfo<?> hystrixInfo, Map<String, Object> requestProperties) {
             return null;
         }
     }

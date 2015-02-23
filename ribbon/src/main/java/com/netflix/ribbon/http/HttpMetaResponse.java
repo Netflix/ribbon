@@ -15,25 +15,26 @@
  */
 package com.netflix.ribbon.http;
 
-import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.HystrixInvokableInfo;
 import com.netflix.ribbon.RibbonResponse;
 
 class HttpMetaResponse<O> extends RibbonResponse<O> {
 
     private O content;
-    private HystrixExecutableInfo<?> hystrixInfo;
+    private HystrixInvokableInfo<?> hystrixInfo;
 
-    public HttpMetaResponse(O content, HystrixExecutableInfo<?> hystrixInfo) {
+    public HttpMetaResponse(O content, HystrixInvokableInfo<?> hystrixInfo) {
         this.content = content;
         this.hystrixInfo = hystrixInfo;
     }
+    
     @Override
     public O content() {
         return content;
     }
 
     @Override
-    public HystrixExecutableInfo<?> getHystrixInfo() {
+    public HystrixInvokableInfo<?> getHystrixInfo() {
         return hystrixInfo;
     }        
 }

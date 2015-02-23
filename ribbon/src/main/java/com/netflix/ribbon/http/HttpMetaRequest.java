@@ -15,7 +15,7 @@
  */
 package com.netflix.ribbon.http;
 
-import com.netflix.hystrix.HystrixExecutableInfo;
+import com.netflix.hystrix.HystrixInvokableInfo;
 import com.netflix.hystrix.HystrixObservableCommand;
 import com.netflix.ribbon.RequestWithMetaData;
 import com.netflix.ribbon.RibbonResponse;
@@ -41,10 +41,10 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
 
     private static class ResponseWithSubject<T> extends RibbonResponse<Observable<T>> {
         Subject<T, T> subject;
-        HystrixExecutableInfo<?> info;
+        HystrixInvokableInfo<?> info;
 
         public ResponseWithSubject(Subject<T, T> subject,
-                                   HystrixExecutableInfo<?> info) {
+                                   HystrixInvokableInfo<?> info) {
             this.subject = subject;
             this.info = info;
         }
@@ -55,7 +55,7 @@ class HttpMetaRequest<T> implements RequestWithMetaData<T> {
         }
 
         @Override
-        public HystrixExecutableInfo<?> getHystrixInfo() {
+        public HystrixInvokableInfo<?> getHystrixInfo() {
             return info;
         }
     }
