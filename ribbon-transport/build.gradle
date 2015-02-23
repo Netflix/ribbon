@@ -2,9 +2,9 @@ dependencies {
     compile project(':ribbon-core')
     compile project(':ribbon-loadbalancer')
     compile "io.reactivex:rxjava:${rx_java_version}"
-    compile "com.netflix.rxnetty:rx-netty:${rx_netty_version}"
-    compile "com.netflix.rxnetty:rx-netty-contexts:${rx_netty_version}"
-    compile "com.netflix.rxnetty:rx-netty-servo:${rx_netty_version}"
+    compile "io.reactivex:rxnetty:${rx_netty_version}"
+    compile "io.reactivex:rxnetty-contexts:${rx_netty_version}"
+    compile "io.reactivex:rxnetty-servo:${rx_netty_version}"
     compile 'javax.inject:javax.inject:1'
     compile 'org.slf4j:slf4j-api:1.6.4'
     compile 'com.google.guava:guava:14.0.1'
