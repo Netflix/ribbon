@@ -68,11 +68,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     protected IPing ping = null;
 
     @Monitor(name = PREFIX + "AllServerList", type = DataSourceType.INFORMATIONAL)
-    protected volatile List<Server> allServerList = Collections
-            .synchronizedList(new ArrayList<Server>());
+    protected volatile List<Server> allServerList = new ArrayList<Server>();
+    
     @Monitor(name = PREFIX + "UpServerList", type = DataSourceType.INFORMATIONAL)
-    protected volatile List<Server> upServerList = Collections
-            .synchronizedList(new ArrayList<Server>());
+    protected volatile List<Server> upServerList = new ArrayList<Server>();
 
     protected ReadWriteLock allServerLock = new ReentrantReadWriteLock();
     protected ReadWriteLock upServerLock = new ReentrantReadWriteLock();
@@ -421,7 +420,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if ((newServers != null) && (newServers.length > 0)) {
 
             try {
-                ArrayList<Server> newList = new ArrayList<Server>();
+                List<Server> newList = new ArrayList<Server>();
                 newList.addAll(allServerList);
 
                 for (Object server : newServers) {
@@ -450,10 +449,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  clearing server list (SET op)");
         }
-        ArrayList<Server> newServers = new ArrayList<Server>();
+        List<Server> newServers = new ArrayList<Server>();
         writeLock.lock();
         try {
-            ArrayList<Server> allServers = new ArrayList<Server>();
+            List<Server> allServers = new ArrayList<Server>();
             for (Object server : lsrv) {
                 if (server == null) {
                     continue;
@@ -525,7 +524,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
             try {
                 String[] serverArr = srvString.split(",");
-                ArrayList<Server> newList = new ArrayList<Server>();
+                List<Server> newList = new ArrayList<Server>();
 
                 for (String serverString : serverArr) {
                     if (serverString != null) {
@@ -572,9 +571,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         case STATUS_UP:
             return upServerList;
         case STATUS_NOT_UP:
-            ArrayList<Server> notAvailableServers = new ArrayList<Server>(
+            List<Server> notAvailableServers = new ArrayList<Server>(
                     allServerList);
-            ArrayList<Server> upServers = new ArrayList<Server>(upServerList);
+            List<Server> upServers = new ArrayList<Server>(upServerList);
             notAvailableServers.removeAll(upServers);
             return notAvailableServers;
         }
@@ -672,7 +671,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                     }
                 }
 
-                ArrayList<Server> newUpList = new ArrayList<Server>();
+                List<Server> newUpList = new ArrayList<Server>();
 
                 for (int i = 0; i < numCandidates; i++) {
                     boolean isAlive = results[i];
