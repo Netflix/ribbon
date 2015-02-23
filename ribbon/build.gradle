@@ -12,10 +12,10 @@ build.dependsOn(examplesClasses)
 dependencies {
     compile project(':ribbon-core')
     compile project(':ribbon-transport')
-    compile 'com.netflix.hystrix:hystrix-core:1.4.0-RC5'
+    compile 'com.netflix.hystrix:hystrix-core:1.4.0-rc.8'
     compile 'javax.inject:javax.inject:1'
     compile "io.reactivex:rxjava:${rx_java_version}"
-    compile "com.netflix.rxnetty:rx-netty:${rx_netty_version}"
+    compile "io.reactivex:rx-netty:${rx_netty_version}"
     compile 'commons-configuration:commons-configuration:1.8'
     compile 'com.google.guava:guava:14.0.1'
     compile 'com.netflix.archaius:archaius-core:0.5.12'

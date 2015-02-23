@@ -3,7 +3,7 @@ dependencies {
     compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
     compile "io.reactivex:rxjava:${rx_java_version}"
     compile 'org.slf4j:slf4j-api:1.6.4'
-    compile 'com.netflix.servo:servo-core:0.7.4'
+    compile 'com.netflix.servo:servo-core:0.7.5'
     compile 'com.google.guava:guava:14.0.1'
     compile 'com.netflix.archaius:archaius-core:0.5.12'
     compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
