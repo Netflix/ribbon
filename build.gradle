@@ -1,5 +1,5 @@
 plugins {
-    id 'nebula.netflixoss' version '2.2.5'
+    id 'nebula.netflixoss' version '2.2.9'
 }
 
 // Establish version and status
@@ -16,5 +16,6 @@ subprojects {
 
     repositories {
         jcenter()
-    } 
+        maven { url 'http://oss.jfrog.org/oss-snapshot-local' }
+    }
 }
