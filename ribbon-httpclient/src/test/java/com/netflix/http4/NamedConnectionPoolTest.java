@@ -17,23 +17,20 @@
  */
 package com.netflix.http4;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.util.EntityUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.junit.Test;
-
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.niws.client.http.RestClient;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.util.EntityUtils;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class NamedConnectionPoolTest {
     @Test
@@ -41,11 +38,11 @@ public class NamedConnectionPoolTest {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
         NFHttpClient client = NFHttpClientFactory.getNamedNFHttpClient("google-NamedConnectionPoolTest");
         assertTrue(client.getConnectionManager() instanceof MonitoredConnectionManager);
-        MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) client.getConnectionManager(); 
+        MonitoredConnectionManager connectionPoolManager = (MonitoredConnectionManager) client.getConnectionManager();
         connectionPoolManager.setDefaultMaxPerRoute(100);
         connectionPoolManager.setMaxTotal(200);
         assertTrue(connectionPoolManager.getConnectionPool() instanceof NamedConnectionPool);
-        NamedConnectionPool connectionPool = (NamedConnectionPool) connectionPoolManager.getConnectionPool(); 
+        NamedConnectionPool connectionPool = (NamedConnectionPool) connectionPoolManager.getConnectionPool();
         System.out.println("Entries created: " + connectionPool.getCreatedEntryCount());
         System.out.println("Requests count: " + connectionPool.getRequestsCount());
         System.out.println("Free entries: " + connectionPool.getFreeEntryCount());
@@ -55,7 +52,8 @@ public class NamedConnectionPoolTest {
             HttpUriRequest request = new HttpGet("http://www.google.com/");
             HttpResponse response = client.execute(request);
             EntityUtils.consume(response.getEntity());
-            assertEquals(200, response.getStatusLine().getStatusCode());
+            int statusCode = response.getStatusLine().getStatusCode();
+            assertTrue(statusCode == 200 || statusCode == 302);
             Thread.sleep(500);
         }
         System.out.println("Entries created: " + connectionPool.getCreatedEntryCount());
