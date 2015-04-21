@@ -15,6 +15,8 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.eureka2.Server;
+import com.netflix.eureka2.client.EurekaInterestClient;
+import com.netflix.eureka2.client.Eurekas;
 import com.netflix.eureka2.client.resolver.ServerResolver;
 import com.netflix.eureka2.client.resolver.ServerResolvers;
 import com.netflix.eureka2.eureka1.utils.ServerListReader;
@@ -109,31 +111,46 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
      */
     private List<DiscoveryEnabledServer> obtainServersViaEureka2() {
         logger.info("Resolving {} from Eureka2...", this.vipAddresses);
-        if (serverListReaderRef.get() == null) {
-            String writeClusterHost = clientConfig.getPropertyAsString(EUREKA2_WRITE_CLUSTER_HOST_KEY, null);
-            int interestPort = clientConfig.getPropertyAsInteger(EUREKA2_WRITE_CLUSTER_INTEREST_PORT_KEY, EurekaTransports.DEFAULT_DISCOVERY_PORT);
-            String readClusterVip = clientConfig.getPropertyAsString(EUREKA2_READ_CLUSTER_VIP_KEY, null);
-
-            ServerResolver writeClusterResolver;
-            if (writeClusterHost.indexOf('.') == -1) { // Simple host name
-                writeClusterResolver = ServerResolvers.from(new Server(writeClusterHost, interestPort));
-            } else {
-                writeClusterResolver = ServerResolvers.fromDnsName(writeClusterHost).withPort(interestPort);
-            }
-
-            ServerResolver readClusterResolver = ServerResolvers
-                    .fromEureka(writeClusterResolver)
-                    .forInterest(Interests.forVips(readClusterVip));
-
-            String[] vipAddresses = this.vipAddresses.split(",");
-            serverListReaderRef.compareAndSet(null, new ServerListReader(readClusterResolver, vipAddresses, isSecure));
-        }
-        List<InstanceInfo> instanceInfos = serverListReaderRef.get().getLatestServerListOrWait();
+        List<InstanceInfo> instanceInfos = getServerListReader().getLatestServerListOrWait();
         if (instanceInfos == null) {
             logger.warn("Server resolve for vip={},secure={} timed out", this.vipAddresses, isSecure);
             return Collections.emptyList();
         }
         return toServerList(instanceInfos);
+    }
+
+    private ServerListReader getServerListReader() {
+        if (serverListReaderRef.get() == null) {
+            EurekaInterestClient interestClient;
+            if (Eureka2Clients.getInterestClient() != null) {
+                logger.info("Initializing Eureka2EnabledNIWSServerList with EurekaInterestClient provided by EurekaClients singleton");
+                interestClient = Eureka2Clients.getInterestClient();
+            } else {
+                String writeClusterHost = clientConfig.getPropertyAsString(EUREKA2_WRITE_CLUSTER_HOST_KEY, null);
+                int interestPort = clientConfig.getPropertyAsInteger(EUREKA2_WRITE_CLUSTER_INTEREST_PORT_KEY, EurekaTransports.DEFAULT_DISCOVERY_PORT);
+                String readClusterVip = clientConfig.getPropertyAsString(EUREKA2_READ_CLUSTER_VIP_KEY, null);
+
+                logger.info("Initializing Eureka2EnabledNIWSServerList from IClientConfig (writeClusterHost={}, interestPort={}, readClusterVip={})",
+                        new Object[]{writeClusterHost, interestPort, readClusterVip});
+
+                ServerResolver writeClusterResolver;
+                if (writeClusterHost.indexOf('.') == -1) { // Simple host name
+                    writeClusterResolver = ServerResolvers.from(new Server(writeClusterHost, interestPort));
+                } else {
+                    writeClusterResolver = ServerResolvers.fromDnsName(writeClusterHost).withPort(interestPort);
+                }
+
+                ServerResolver readClusterResolver = ServerResolvers
+                        .fromEureka(writeClusterResolver)
+                        .forInterest(Interests.forVips(readClusterVip));
+
+                interestClient = Eurekas.newInterestClientBuilder().withServerResolver(readClusterResolver).build();
+            }
+
+            String[] vipAddresses = this.vipAddresses.split(",");
+            serverListReaderRef.compareAndSet(null, new ServerListReader(interestClient, vipAddresses, isSecure));
+        }
+        return serverListReaderRef.get();
     }
 
     private List<DiscoveryEnabledServer> toServerList(List<InstanceInfo> listOfinstanceInfo) {

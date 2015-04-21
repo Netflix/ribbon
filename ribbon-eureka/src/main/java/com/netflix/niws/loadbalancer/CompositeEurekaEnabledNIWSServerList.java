@@ -3,7 +3,6 @@ package com.netflix.niws.loadbalancer;
 import java.util.List;
 
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.ServerList;
 
@@ -12,18 +11,11 @@ import com.netflix.loadbalancer.ServerList;
  */
 public class CompositeEurekaEnabledNIWSServerList implements ServerList<DiscoveryEnabledServer>, IClientConfigAware {
 
-    public static final String EUREKA2_INTEREST_ENABLED = "eureka2.interest.enabled";
-    public static final CommonClientConfigKey<String> EUREKA2_INTEREST_ENABLED_KEY = new CommonClientConfigKey<String>(EUREKA2_INTEREST_ENABLED) {
-    };
-
     private DiscoveryEnabledNIWSServerList eureka1ServerList;
     private Eureka2EnabledNIWSServerList eureka2ServerList;
-    private IClientConfig clientConfig;
 
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
-        this.clientConfig = clientConfig;
-
         this.eureka1ServerList = new DiscoveryEnabledNIWSServerList();
         this.eureka1ServerList.initWithNiwsConfig(clientConfig);
 
@@ -42,9 +34,9 @@ public class CompositeEurekaEnabledNIWSServerList implements ServerList<Discover
     }
 
     private List<DiscoveryEnabledServer> loadListOfServers() {
-        if (clientConfig.getPropertyAsBoolean(EUREKA2_INTEREST_ENABLED_KEY, false)) {
-            return eureka1ServerList.getUpdatedListOfServers();
+        if (Eureka2Clients.isPreferEureka2()) {
+            return eureka2ServerList.getUpdatedListOfServers();
         }
-        return eureka2ServerList.getUpdatedListOfServers();
+        return eureka1ServerList.getUpdatedListOfServers();
     }
 }
