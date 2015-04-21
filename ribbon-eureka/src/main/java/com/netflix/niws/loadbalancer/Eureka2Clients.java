@@ -31,9 +31,6 @@ public final class Eureka2Clients {
     }
 
     public static EurekaInterestClient getInterestClient() {
-        if (interestClient == null) {
-            throw new IllegalStateException("Eureka2 client not set");
-        }
         return interestClient;
     }
 
