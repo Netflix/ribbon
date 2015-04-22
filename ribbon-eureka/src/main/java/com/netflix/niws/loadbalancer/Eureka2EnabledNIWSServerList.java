@@ -3,6 +3,7 @@ package com.netflix.niws.loadbalancer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.appinfo.AmazonInfo;
@@ -44,6 +45,11 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
     public static final String EUREKA2_READ_CLUSTER_VIP = "eureka2.readCluster.vip";
     public static final CommonClientConfigKey<String> EUREKA2_READ_CLUSTER_VIP_KEY = new CommonClientConfigKey<String>(EUREKA2_READ_CLUSTER_VIP) {
     };
+
+    public static final String EUREKA2_RESOLVE_TIMEOUT = "eureka2.resolveTimeout";
+    public static final CommonClientConfigKey<Integer> EUREKA2_RESOLVE_TIMEOUT_KEY = new CommonClientConfigKey<Integer>(EUREKA2_RESOLVE_TIMEOUT) {
+    };
+    public static final int DEFAULT_EUREKA2_RESOLVE_TIMEOUT = 30 * 1000;
 
     private IClientConfig clientConfig;
 
@@ -147,8 +153,13 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
                 interestClient = Eurekas.newInterestClientBuilder().withServerResolver(readClusterResolver).build();
             }
 
+            int resolveTimeout = clientConfig.getPropertyAsInteger(EUREKA2_RESOLVE_TIMEOUT_KEY, DEFAULT_EUREKA2_RESOLVE_TIMEOUT);
+
             String[] vipAddresses = this.vipAddresses.split(",");
-            serverListReaderRef.compareAndSet(null, new ServerListReader(interestClient, vipAddresses, isSecure));
+            ServerListReader serverListReader = new ServerListReader(interestClient, vipAddresses, isSecure, resolveTimeout, TimeUnit.MILLISECONDS);
+            if (!serverListReaderRef.compareAndSet(null, serverListReader)) {
+                serverListReader.shutdown();
+            }
         }
         return serverListReaderRef.get();
     }

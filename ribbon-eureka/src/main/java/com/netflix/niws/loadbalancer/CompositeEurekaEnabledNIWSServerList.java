@@ -34,7 +34,7 @@ public class CompositeEurekaEnabledNIWSServerList implements ServerList<Discover
     }
 
     private List<DiscoveryEnabledServer> loadListOfServers() {
-        if (Eureka2Clients.isPreferEureka2()) {
+        if (Eureka2Clients.isUseEureka2()) {
             return eureka2ServerList.getUpdatedListOfServers();
         }
         return eureka1ServerList.getUpdatedListOfServers();
