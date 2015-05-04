@@ -65,21 +65,22 @@ public class DynamicServerListLoadBalancerTest {
 
     @Test
     public void testDynamicServerListLoadBalancer() throws Exception {
-        DefaultClientConfigImpl config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+        final int refreshIntervalMillis = 50;
+        final DefaultClientConfigImpl config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
         config.setProperty(CommonClientConfigKey.NIWSServerListClassName, MyServerList.class.getName());
         config.setProperty(CommonClientConfigKey.NFLoadBalancerClassName, DynamicServerListLoadBalancer.class.getName());
-        config.setProperty(CommonClientConfigKey.ServerListRefreshInterval, "50");
+        config.setProperty(CommonClientConfigKey.ServerListRefreshInterval, refreshIntervalMillis);
         DynamicServerListLoadBalancer<Server> lb = new DynamicServerListLoadBalancer<Server>(config);
         try {
-            assertTrue(MyServerList.latch.await(2, TimeUnit.SECONDS));
+            assertTrue(MyServerList.latch.await(refreshIntervalMillis * (5 + 1), TimeUnit.MILLISECONDS));
         } catch (InterruptedException e) { // NOPMD
         }
         assertEquals(lb.getServerList(false), MyServerList.list);
         lb.stopServerListRefreshing();
-        Thread.sleep(1000);
+        Thread.sleep(refreshIntervalMillis * 2);
         int count = MyServerList.counter.get();
         assertTrue(count >= 5);
-        Thread.sleep(1000);
+        Thread.sleep(refreshIntervalMillis * 2);
         assertEquals(count, MyServerList.counter.get());
         
     }
