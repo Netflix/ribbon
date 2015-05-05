@@ -144,8 +144,8 @@ public class PrimeConnections {
         }
         primeConnectionsURI = String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.PrimeConnectionsURI, primeConnectionsURI));
         float primeRatio = Float.parseFloat(String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.MinPrimeConnectionsRatio)));
-        className = (String) niwsClientConfig.getProperty(CommonClientConfigKey.PrimeConnectionsClassName, 
-        		DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_CLASS);
+        className = niwsClientConfig.getPropertyAsString(CommonClientConfigKey.PrimeConnectionsClassName,
+                DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_CLASS);
         try {
             connector = (IPrimeConnection) Class.forName(className).newInstance();
             connector.initWithNiwsConfig(niwsClientConfig);
