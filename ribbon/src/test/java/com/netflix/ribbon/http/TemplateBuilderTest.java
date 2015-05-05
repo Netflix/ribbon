@@ -96,17 +96,23 @@ public class TemplateBuilderTest {
             .withHeader("header2", "template")
             .withHeader("header1", "template").build();
         
-        HttpClientRequest<ByteBuf> request = template.requestBuilder().createClientRequest();
+        HttpRequestBuilder<String> requestBuilder = template.requestBuilder();
+        requestBuilder.withHeader("header3", "builder").withHeader("header1", "builder");
+		HttpClientRequest<ByteBuf> request = requestBuilder.createClientRequest();
         HttpRequestHeaders headers = request.getHeaders();
         List<String> header1 = headers.getAll("header1");
-        assertEquals(2, header1.size());
+        assertEquals(3, header1.size());
         assertEquals("group", header1.get(0));
         assertEquals("template", header1.get(1));
+        assertEquals("builder", header1.get(2));
         List<String> header2 = headers.getAll("header2");
         assertEquals(1, header2.size());
         assertEquals("template", header2.get(0));
+        List<String> header3 = headers.getAll("header3");
+        assertEquals(1, header3.size());
+        assertEquals("builder", header3.get(0));
     }
-    
+
     @Test
     public void testHystrixProperties() {
         ClientOptions clientOptions = ClientOptions.create()
