@@ -18,8 +18,6 @@
 package com.netflix.http4;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -36,6 +34,9 @@ import com.netflix.config.ConfigurationManager;
 import com.netflix.niws.client.http.RestClient;
 
 public class NamedConnectionPoolTest {
+    
+    private static final String URL = "https://www.facebook.com/";
+
     @Test
     public void testConnectionPoolCounters() throws Exception {
         // LogManager.getRootLogger().setLevel((Level)Level.DEBUG);
@@ -52,7 +53,7 @@ public class NamedConnectionPoolTest {
         System.out.println("Deleted :" + connectionPool.getDeleteCount());
         System.out.println("Released: " + connectionPool.getReleaseCount());
         for (int i = 0; i < 10; i++) {
-            HttpUriRequest request = new HttpGet("http://www.google.com/");
+            HttpUriRequest request = new HttpGet(URL);
             HttpResponse response = client.execute(request);
             EntityUtils.consume(response.getEntity());
             assertEquals(200, response.getStatusLine().getStatusCode());
@@ -85,7 +86,7 @@ public class NamedConnectionPoolTest {
         assertNotNull(httpclient);
         com.netflix.client.http.HttpResponse response = null;
         try {
-            response = client.execute(HttpRequest.newBuilder().uri("http://www.google.com/").build());
+            response = client.execute(HttpRequest.newBuilder().uri(URL).build());
         } finally {
             if (response != null) {
                 response.close();
