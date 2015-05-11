@@ -1,8 +1,11 @@
+configurations {
+    testCompile.exclude module: "eureka2-client-shaded"
+}
+
 dependencies {
     compile project(':ribbon-core')
     compile project(':ribbon-loadbalancer')
-    compile "com.netflix.eureka:eureka-client:${eureka_version}"
-    compile "com.netflix.eureka:eureka2-eureka1-support:${eureka2_version}"
+    compile "com.netflix.eureka:eureka2-client-shaded:${eureka2_version}"
     compile 'com.google.code.findbugs:annotations:2.0.0'
     compile 'org.slf4j:slf4j-api:1.6.4'
     compile "com.netflix.archaius:archaius-core:${archaius_version}"
@@ -10,5 +13,5 @@ dependencies {
     testCompile "junit:junit:${junit_version}"
     testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
     testCompile "org.easymock:easymock:${easymock_version}"
-    testCompile "com.netflix.eureka:eureka2-testkit:${eureka2_version}"
+    testCompile ("com.netflix.eureka:eureka2-testkit:${eureka2_version}")
 }
