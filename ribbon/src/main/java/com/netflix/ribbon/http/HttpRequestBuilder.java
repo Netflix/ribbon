@@ -20,15 +20,15 @@ import io.netty.buffer.ByteBufAllocator;
 import io.reactivex.netty.channel.ContentTransformer;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import rx.Observable;
 
 import com.netflix.hystrix.exception.HystrixBadRequestException;
-import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.RequestTemplate.RequestBuilder;
+import com.netflix.ribbon.RibbonRequest;
 import com.netflix.ribbon.http.HttpRequestTemplate.CacheProviderWithKeyTemplate;
 import com.netflix.ribbon.template.ParsedTemplate;
 import com.netflix.ribbon.template.TemplateParser;
@@ -41,6 +41,7 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
     private final ParsedTemplate parsedUriTemplate;
     private Observable rawContentSource;
     private ContentTransformer contentTransformer;
+    private Map<String, String> extraHeaders = new HashMap<String, String>();
     
     private static final ContentTransformer<ByteBuf> passThroughContentTransformer = new ContentTransformer<ByteBuf>() {
         @Override
@@ -74,6 +75,11 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
         this.contentTransformer = passThroughContentTransformer;
         return this;
     }
+    
+    public HttpRequestBuilder<T> withHeader(String key, String value) {
+    	extraHeaders.put(key, value);
+    	return this;
+    }
 
 
     @Override
@@ -101,6 +107,9 @@ public class HttpRequestBuilder<T> extends RequestBuilder<T> {
         HttpClientRequest<ByteBuf> request =  HttpClientRequest.create(requestTemplate.method(), uri);
         for (Map.Entry<String, String> entry: requestTemplate.getHeaders().entries()) {
             request.withHeader(entry.getKey(), entry.getValue());
+        }
+        for (Map.Entry<String, String> entry: extraHeaders.entrySet()) {
+        	request.withHeader(entry.getKey(), entry.getValue());
         }
         if (rawContentSource != null) {
             request.withRawContentSource(rawContentSource, contentTransformer);

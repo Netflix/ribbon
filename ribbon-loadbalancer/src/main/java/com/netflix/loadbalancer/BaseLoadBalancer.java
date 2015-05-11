@@ -18,6 +18,7 @@
 package com.netflix.loadbalancer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -44,6 +45,8 @@ import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.util.concurrent.ShutdownEnabledTimer;
+
+import static java.util.Collections.singleton;
 
 /**
  * A basic implementation of the load balancer where an arbitrary list of
@@ -97,6 +100,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     private IClientConfig config;
     
     private List<ServerListChangeListener> changeListeners = new CopyOnWriteArrayList<ServerListChangeListener>();
+
+    private List<ServerStatusChangeListener> serverStatusListeners = new CopyOnWriteArrayList<ServerStatusChangeListener>();
 
     /**
      * Default constructor which sets name as "default", sets null ping, and
@@ -212,6 +217,14 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     
     public void removeServerListChangeListener(ServerListChangeListener listener) {
         changeListeners.remove(listener);
+    }
+
+    public void addServerStatusChangeListener(ServerStatusChangeListener listener) {
+        serverStatusListeners.add(listener);
+    }
+
+    public void removeServerStatusChangeListener(ServerStatusChangeListener listener) {
+        serverStatusListeners.remove(listener);
     }
 
     public IClientConfig getClientConfig() {
@@ -672,7 +685,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                     }
                 }
 
-                ArrayList<Server> newUpList = new ArrayList<Server>();
+                final List<Server> newUpList = new ArrayList<Server>();
+                final List<Server> changedServers = new ArrayList<Server>();
 
                 for (int i = 0; i < numCandidates; i++) {
                     boolean isAlive = results[i];
@@ -681,10 +695,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
                     svr.setAlive(isAlive);
 
-                    if (oldIsAlive != isAlive && logger.isDebugEnabled()) {
-                        logger.debug("LoadBalancer:  Server [" + svr.getId()
-                                + "] status changed to "
-                                + (isAlive ? "ALIVE" : "DEAD"));
+                    if (oldIsAlive != isAlive) {
+                        changedServers.add(svr);
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("LoadBalancer:  Server [" + svr.getId()
+                                    + "] status changed to "
+                                    + (isAlive ? "ALIVE" : "DEAD"));
+                        }
                     }
 
                     if (isAlive) {
@@ -696,11 +713,26 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 upLock.lock();
                 upServerList = newUpList;
                 upLock.unlock();
+
+                notifyServerStatusChangeListener(changedServers);
+
             } catch (Throwable t) {
                 logger.error("Throwable caught while running the Pinger-"
                         + name, t);
             } finally {
                 pingInProgress.set(false);
+            }
+        }
+    }
+
+    private void notifyServerStatusChangeListener(final Collection<Server> changedServers) {
+        if (changedServers != null && !changedServers.isEmpty() && !serverStatusListeners.isEmpty()) {
+            for (ServerStatusChangeListener listener : serverStatusListeners) {
+                try {
+                    listener.serverStatusChanged(changedServers);
+                } catch (Throwable e) {
+                    logger.error("Error invoking server status change listener", e);
+                }
             }
         }
     }
@@ -757,6 +789,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 + server.getId() + "]");
         server.setAlive(false);
         // forceQuickPing();
+
+        notifyServerStatusChangeListener(singleton(server));
     }
 
     public void markServerDown(String id) {
@@ -772,16 +806,20 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
         try {
 
+            final List<Server> changedServers = new ArrayList<Server>();
+
             for (Server svr : upServerList) {
                 if (svr.isAlive() && (svr.getId().equals(id))) {
                     triggered = true;
                     svr.setAlive(false);
+                    changedServers.add(svr);
                 }
             }
 
             if (triggered) {
                 logger.error("LoadBalancer:  markServerDown called on [" + id
                         + "]");
+                notifyServerStatusChangeListener(changedServers);
             }
 
         } finally {
