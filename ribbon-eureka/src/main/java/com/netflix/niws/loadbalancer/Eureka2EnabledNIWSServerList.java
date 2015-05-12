@@ -1,8 +1,11 @@
 package com.netflix.niws.loadbalancer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -18,14 +21,20 @@ import com.netflix.config.ConfigurationManager;
 import com.netflix.eureka2.Server;
 import com.netflix.eureka2.client.EurekaInterestClient;
 import com.netflix.eureka2.client.Eurekas;
+import com.netflix.eureka2.client.functions.InterestFunctions;
 import com.netflix.eureka2.client.resolver.ServerResolver;
 import com.netflix.eureka2.client.resolver.ServerResolvers;
-import com.netflix.eureka2.eureka1.utils.ServerListReader;
+import com.netflix.eureka2.interests.Interest;
 import com.netflix.eureka2.interests.Interests;
 import com.netflix.eureka2.transport.EurekaTransports;
 import com.netflix.loadbalancer.AbstractServerList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Subscription;
+import rx.functions.Action0;
+import rx.functions.Action1;
+
+import static com.netflix.eureka2.eureka1.utils.Eureka1ModelConverters.toEureka1xInstanceInfos;
 
 /**
  * @author Tomasz Bak
@@ -54,7 +63,7 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
     private IClientConfig clientConfig;
 
     private String clientName;
-    private String vipAddresses;
+    private String[] vipAddresses;
     private boolean isSecure;
 
     private boolean prioritizeVipAddressBasedServers = true;
@@ -71,11 +80,12 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         this.clientConfig = clientConfig;
         clientName = clientConfig.getClientName();
-        vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
-        if (vipAddresses == null &&
+        String vipAddressesValue = clientConfig.resolveDeploymentContextbasedVipAddresses();
+        if (vipAddressesValue == null &&
                 ConfigurationManager.getConfigInstance().getBoolean("DiscoveryEnabledNIWSServerList.failFastOnNullVip", true)) {
             throw new NullPointerException("VIP address for client " + clientName + " is null");
         }
+        vipAddresses = vipAddressesValue.split(",");
         isSecure = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.IsSecure, false);
         prioritizeVipAddressBasedServers = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers);
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
@@ -112,6 +122,13 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
         return obtainServersViaEureka2();
     }
 
+    public void shutdown() {
+        ServerListReader current = serverListReaderRef.getAndSet(null);
+        if (current != null) {
+            current.shutdown();
+        }
+    }
+
     /**
      * TODO prioritizeVipAddressBasedServers not supported yet; all vips are subscribed to eagerly
      */
@@ -126,37 +143,13 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
     }
 
     private ServerListReader getServerListReader() {
-        if (serverListReaderRef.get() == null) {
-            EurekaInterestClient interestClient;
-            if (Eureka2Clients.getInterestClient() != null) {
-                logger.info("Initializing Eureka2EnabledNIWSServerList with EurekaInterestClient provided by EurekaClients singleton");
-                interestClient = Eureka2Clients.getInterestClient();
-            } else {
-                String writeClusterHost = clientConfig.getPropertyAsString(EUREKA2_WRITE_CLUSTER_HOST_KEY, null);
-                int interestPort = clientConfig.getPropertyAsInteger(EUREKA2_WRITE_CLUSTER_INTEREST_PORT_KEY, EurekaTransports.DEFAULT_DISCOVERY_PORT);
-                String readClusterVip = clientConfig.getPropertyAsString(EUREKA2_READ_CLUSTER_VIP_KEY, null);
-
-                logger.info("Initializing Eureka2EnabledNIWSServerList from IClientConfig (writeClusterHost={}, interestPort={}, readClusterVip={})",
-                        new Object[]{writeClusterHost, interestPort, readClusterVip});
-
-                ServerResolver writeClusterResolver;
-                if (writeClusterHost.indexOf('.') == -1) { // Simple host name
-                    writeClusterResolver = ServerResolvers.from(new Server(writeClusterHost, interestPort));
-                } else {
-                    writeClusterResolver = ServerResolvers.fromDnsName(writeClusterHost).withPort(interestPort);
-                }
-
-                ServerResolver readClusterResolver = ServerResolvers
-                        .fromEureka(writeClusterResolver)
-                        .forInterest(Interests.forVips(readClusterVip));
-
-                interestClient = Eurekas.newInterestClientBuilder().withServerResolver(readClusterResolver).build();
-            }
-
-            int resolveTimeout = clientConfig.getPropertyAsInteger(EUREKA2_RESOLVE_TIMEOUT_KEY, DEFAULT_EUREKA2_RESOLVE_TIMEOUT);
-
-            String[] vipAddresses = this.vipAddresses.split(",");
-            ServerListReader serverListReader = new ServerListReader(interestClient, vipAddresses, isSecure, resolveTimeout, TimeUnit.MILLISECONDS);
+        ServerListReader current = serverListReaderRef.get();
+        if (current != null && current.isClosed()) {
+            serverListReaderRef.compareAndSet(current, null);
+            return getServerListReader();
+        }
+        if (current == null) {
+            ServerListReader serverListReader = new ServerListReader(clientConfig, isSecure, vipAddresses);
             if (!serverListReaderRef.compareAndSet(null, serverListReader)) {
                 serverListReader.shutdown();
             }
@@ -193,12 +186,8 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
         return serverList;
     }
 
-    public String getVipAddresses() {
-        return vipAddresses;
-    }
-
     public String toString() {
-        StringBuilder sb = new StringBuilder("DiscoveryEnabledNIWSServerList:");
+        StringBuilder sb = new StringBuilder("Eureka2EnabledNIWSServerList:");
         sb.append("; clientName:").append(clientName);
         sb.append("; Effective vipAddresses:").append(vipAddresses);
         sb.append("; isSecure:").append(isSecure);
@@ -218,5 +207,106 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
             }
         }
         return instanceZone;
+    }
+
+    static class ServerListReader {
+
+        private final EurekaInterestClient interestClient;
+        private final Subscription subscription;
+        private final boolean singletonEureka2Client;
+        private volatile boolean closed;
+
+        private final int resolveTimeout;
+
+        private final AtomicReference<List<com.netflix.appinfo.InstanceInfo>> latestServerList =
+                new AtomicReference<List<com.netflix.appinfo.InstanceInfo>>(Collections.<com.netflix.appinfo.InstanceInfo>emptyList());
+
+        private final CountDownLatch firstBatchLatch = new CountDownLatch(1);
+
+        ServerListReader(IClientConfig clientConfig, boolean isSecureVip, final String[] vipAddresses) {
+            this.singletonEureka2Client = Eureka2Clients.getInterestClient() != null;
+            if (singletonEureka2Client) {
+                logger.info("Initializing Eureka2EnabledNIWSServerList with EurekaInterestClient provided by EurekaClients singleton");
+                interestClient = Eureka2Clients.getInterestClient();
+            } else {
+                String writeClusterHost = clientConfig.getPropertyAsString(EUREKA2_WRITE_CLUSTER_HOST_KEY, null);
+                int interestPort = clientConfig.getPropertyAsInteger(EUREKA2_WRITE_CLUSTER_INTEREST_PORT_KEY, EurekaTransports.DEFAULT_DISCOVERY_PORT);
+                String readClusterVip = clientConfig.getPropertyAsString(EUREKA2_READ_CLUSTER_VIP_KEY, null);
+
+                logger.info("Initializing Eureka2EnabledNIWSServerList from IClientConfig (writeClusterHost={}, interestPort={}, readClusterVip={})",
+                        new Object[]{writeClusterHost, interestPort, readClusterVip});
+
+                if (writeClusterHost == null) {
+                    throw new IllegalArgumentException("Eureka2 write cluster address not configured");
+                }
+                if (readClusterVip == null) {
+                    throw new IllegalArgumentException("Eureka2 read cluster VIP address not configured");
+                }
+
+                ServerResolver writeClusterResolver;
+                if (writeClusterHost.indexOf('.') == -1) { // Simple host name
+                    writeClusterResolver = ServerResolvers.from(new Server(writeClusterHost, interestPort));
+                } else {
+                    writeClusterResolver = ServerResolvers.fromDnsName(writeClusterHost).withPort(interestPort);
+                }
+
+                ServerResolver readClusterResolver = ServerResolvers
+                        .fromEureka(writeClusterResolver)
+                        .forInterest(Interests.forVips(readClusterVip));
+
+                interestClient = Eurekas.newInterestClientBuilder().withServerResolver(readClusterResolver).build();
+            }
+
+            resolveTimeout = clientConfig.getPropertyAsInteger(EUREKA2_RESOLVE_TIMEOUT_KEY, DEFAULT_EUREKA2_RESOLVE_TIMEOUT);
+
+            Interest<com.netflix.eureka2.registry.instance.InstanceInfo> interest = isSecureVip ? Interests.forSecureVips(vipAddresses) : Interests.forVips(vipAddresses);
+            this.subscription = interestClient.forInterest(interest)
+                    .compose(InterestFunctions.buffers())
+                    .compose(InterestFunctions.snapshots())
+                    .doOnNext(new Action1<LinkedHashSet<com.netflix.eureka2.registry.instance.InstanceInfo>>() {
+                        @Override
+                        public void call(LinkedHashSet<com.netflix.eureka2.registry.instance.InstanceInfo> instanceInfos) {
+                            // Legacy code has little tolerance if we start with empty server list
+                            if (!instanceInfos.isEmpty()) {
+                                latestServerList.set(toEureka1xInstanceInfos(instanceInfos));
+                                firstBatchLatch.countDown();
+                            }
+                        }
+                    })
+                    .doOnError(new Action1<Throwable>() {
+                        @Override
+                        public void call(Throwable e) {
+                            logger.error("Cannot resolve servers for vip addresses " + Arrays.toString(vipAddresses), e);
+                        }
+                    })
+                    .doOnTerminate(new Action0() {
+                        @Override
+                        public void call() {
+                            shutdown();
+                        }
+                    })
+                    .subscribe();
+        }
+
+        boolean isClosed() {
+            return closed;
+        }
+
+        List<com.netflix.appinfo.InstanceInfo> getLatestServerListOrWait() {
+            try {
+                firstBatchLatch.await(resolveTimeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                // IGNORE
+            }
+            return latestServerList.get();
+        }
+
+        void shutdown() {
+            subscription.unsubscribe();
+            if (!singletonEureka2Client) {
+                interestClient.shutdown();
+            }
+            closed = true;
+        }
     }
 }

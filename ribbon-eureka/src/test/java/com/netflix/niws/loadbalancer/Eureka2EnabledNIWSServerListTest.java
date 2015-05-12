@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.netflix.client.SimpleVipAddressResolver;
 import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.eureka2.client.EurekaInterestClient;
 import com.netflix.eureka2.client.EurekaRegistrationClient;
 import com.netflix.eureka2.client.Eurekas;
 import com.netflix.eureka2.client.registration.RegistrationObservable;
@@ -24,6 +25,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class Eureka2EnabledNIWSServerListTest {
 
@@ -47,12 +49,6 @@ public class Eureka2EnabledNIWSServerListTest {
         registration.subscribe();
         registration.initialRegistrationResult().timeout(30, TimeUnit.SECONDS).toBlocking().firstOrDefault(null);
 
-        // Set embedded cluster configuration
-        clientConfig.set(Eureka2EnabledNIWSServerList.EUREKA2_WRITE_CLUSTER_HOST_KEY, "localhost");
-
-        int interestPort = eurekaDeploymentResource.getEurekaDeployment().getWriteCluster().getServer(0).getDiscoveryPort();
-        clientConfig.set(Eureka2EnabledNIWSServerList.EUREKA2_WRITE_CLUSTER_INTEREST_PORT_KEY, interestPort);
-
         String vipAddress = eurekaDeploymentResource.getEurekaDeployment().getReadCluster().getVip();
         clientConfig.set(Eureka2EnabledNIWSServerList.EUREKA2_READ_CLUSTER_VIP_KEY, vipAddress);
 
@@ -66,15 +62,69 @@ public class Eureka2EnabledNIWSServerListTest {
         if (registrationClient != null) {
             registrationClient.shutdown();
         }
+        Eureka2Clients.setUseEureka2(false);
+        EurekaInterestClient lastInterestClient = Eureka2Clients.setInterestClient(null);
+        if (lastInterestClient != null) {
+            lastInterestClient.shutdown();
+        }
     }
 
     @Test
     public void testResolveServerListFromEureka2Cluster() throws Exception {
-        Eureka2EnabledNIWSServerList eureka2EnabledNIWSServerList = new Eureka2EnabledNIWSServerList();
-        eureka2EnabledNIWSServerList.initWithNiwsConfig(clientConfig);
+        Eureka2EnabledNIWSServerList eureka2EnabledNIWSServerList = connectViaConfiguration();
 
         List<DiscoveryEnabledServer> resultServerList = eureka2EnabledNIWSServerList.getInitialListOfServers();
         assertThat(resultServerList.size(), is(equalTo(1)));
         assertThat(resultServerList.get(0).getInstanceInfo().getAppName(), is(equalToIgnoringCase(INSTANCE.getApp())));
+    }
+
+    @Test
+    public void testReconnectWithNewSingletonInterestClientIfPreviousWasShutDown() throws Exception {
+        Eureka2EnabledNIWSServerList eureka2EnabledNIWSServerList = connectViaSingleton();
+
+        List<DiscoveryEnabledServer> resultServerList = eureka2EnabledNIWSServerList.getInitialListOfServers();
+        assertThat(resultServerList.size(), is(equalTo(1)));
+
+        // Shutdown the singleton interest client
+        Eureka2Clients.setInterestClient(null).shutdown();
+
+        // Access without configured interest client results in an exception
+        try {
+            eureka2EnabledNIWSServerList.getUpdatedListOfServers();
+            fail("InterestClient has been shutdown; getUpdatedListOfServers should fail with IllegalArgumentException");
+        } catch (IllegalArgumentException ignore) {
+            // As expected
+        }
+
+        // Now enable singleton again
+        injectSingletonClient();
+
+        List<DiscoveryEnabledServer> updatedListOfServers = eureka2EnabledNIWSServerList.getUpdatedListOfServers();
+        assertThat(updatedListOfServers.size(), is(equalTo(1)));
+    }
+
+    private Eureka2EnabledNIWSServerList connectViaSingleton() {
+        injectSingletonClient();
+
+        Eureka2EnabledNIWSServerList eureka2EnabledNIWSServerList = new Eureka2EnabledNIWSServerList();
+        eureka2EnabledNIWSServerList.initWithNiwsConfig(clientConfig);
+        return eureka2EnabledNIWSServerList;
+    }
+
+    private void injectSingletonClient() {
+        Eureka2Clients.setUseEureka2(true);
+        Eureka2Clients.setInterestClient(eurekaDeploymentResource.interestClientToReadCluster());
+    }
+
+    private Eureka2EnabledNIWSServerList connectViaConfiguration() {
+        // Set embedded cluster configuration
+        clientConfig.set(Eureka2EnabledNIWSServerList.EUREKA2_WRITE_CLUSTER_HOST_KEY, "localhost");
+
+        int interestPort = eurekaDeploymentResource.getEurekaDeployment().getWriteCluster().getServer(0).getDiscoveryPort();
+        clientConfig.set(Eureka2EnabledNIWSServerList.EUREKA2_WRITE_CLUSTER_INTEREST_PORT_KEY, interestPort);
+
+        Eureka2EnabledNIWSServerList eureka2EnabledNIWSServerList = new Eureka2EnabledNIWSServerList();
+        eureka2EnabledNIWSServerList.initWithNiwsConfig(clientConfig);
+        return eureka2EnabledNIWSServerList;
     }
 }
