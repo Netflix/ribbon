@@ -16,6 +16,16 @@ subprojects {
 
     repositories {
         jcenter()
-        maven { url 'http://oss.jfrog.org/oss-snapshot-local' }
+    }
+
+    if (project.hasProperty('useMavenLocal')) {
+        repositories {
+            mavenLocal()
+        }
+    }
+    if (project.getProperty('status').equals("snapshot")) {
+        repositories {
+            maven { url 'http://oss.jfrog.org/oss-snapshot-local' }
+        }
     }
 }
