@@ -1,5 +1,8 @@
 package com.netflix.niws.loadbalancer;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.netflix.eureka2.client.EurekaInterestClient;
 
 /**
@@ -11,8 +14,8 @@ import com.netflix.eureka2.client.EurekaInterestClient;
  */
 public final class Eureka2Clients {
 
-    private static volatile EurekaInterestClient interestClient;
-    private static volatile boolean useEureka2;
+    private static final AtomicReference<EurekaInterestClient> interestClient = new AtomicReference<>();
+    private static final AtomicBoolean useEureka2 = new AtomicBoolean();
 
     private Eureka2Clients() {
     }
@@ -23,22 +26,18 @@ public final class Eureka2Clients {
      * the request.
      */
     public static boolean isUseEureka2() {
-        return useEureka2;
+        return useEureka2.get();
     }
 
     public static boolean setUseEureka2(boolean useEureka2) {
-        boolean lastValue = Eureka2Clients.useEureka2;
-        Eureka2Clients.useEureka2 = useEureka2;
-        return lastValue;
+        return Eureka2Clients.useEureka2.getAndSet(useEureka2);
     }
 
     public static EurekaInterestClient getInterestClient() {
-        return interestClient;
+        return interestClient.get();
     }
 
     public static EurekaInterestClient setInterestClient(EurekaInterestClient interestClient) {
-        EurekaInterestClient lastValue = Eureka2Clients.interestClient;
-        Eureka2Clients.interestClient = interestClient;
-        return lastValue;
+        return Eureka2Clients.interestClient.getAndSet(interestClient);
     }
 }
