@@ -5,7 +5,7 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.6.4'
     testCompile project(':ribbon-test')
     testCompile project(path: ':ribbon', configuration: 'test')
-    testCompile 'junit:junit:4.11'
-    testCompile 'org.powermock:powermock-easymock-release-full:1.5.4'
-    testCompile 'org.easymock:easymock:3.2'
+    testCompile "junit:junit:${junit_version}"
+    testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
+    testCompile "org.easymock:easymock:${easymock_version}"
 }

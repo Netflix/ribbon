@@ -44,9 +44,9 @@ public class RestClientTest {
         RestClient client = (RestClient) ClientFactory.getNamedClient("google");
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://www.google.com/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
         response = client.execute(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
     }
 
     @Test
@@ -64,7 +64,7 @@ public class RestClientTest {
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         for (int i = 0; i < 5; i++) {
             HttpResponse response = client.executeWithLoadBalancer(request);
-            assertEquals(200, response.getStatus());
+            assertStatusIsOk(response.getStatus());
             assertTrue(response.isSuccess());
             String content = response.getEntity(String.class);
             response.close();
@@ -85,7 +85,7 @@ public class RestClientTest {
         assertNull(client.getLoadBalancer());
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
         assertEquals("http://www.google.com:80/", response.getRequestedURI().toString());
     }
 
@@ -95,7 +95,7 @@ public class RestClientTest {
     	RestClient client = (RestClient) ClientFactory.getNamedClient("test2");
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("https://www.google.com/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
     }
 
     @Test
@@ -108,10 +108,12 @@ public class RestClientTest {
         client.setLoadBalancer(lb);
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
         assertEquals("https://www.google.com:443/", response.getRequestedURI().toString());
 
     }
 
-
+    private void assertStatusIsOk(int status) {
+        assertTrue(status == 200 || status == 302);
+    }
 }
