@@ -3,17 +3,16 @@ package com.netflix.niws.loadbalancer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.netflix.client.IClientConfigAware;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.ServerList;
+import com.netflix.loadbalancer.AbstractServerList;
 
 /**
  * @author Tomasz Bak
  */
-public class CompositeEurekaEnabledNIWSServerList implements ServerList<DiscoveryEnabledServer>, IClientConfigAware {
+public class CompositeEurekaEnabledNIWSServerList extends AbstractServerList<DiscoveryEnabledServer> {
 
     private DiscoveryEnabledNIWSServerList eureka1ServerList;
-    private AtomicReference<Eureka2EnabledNIWSServerList> eureka2ServerListRef = new AtomicReference<>();
+    private final AtomicReference<Eureka2EnabledNIWSServerList> eureka2ServerListRef = new AtomicReference<>();
     private IClientConfig clientConfig;
 
     @Override
