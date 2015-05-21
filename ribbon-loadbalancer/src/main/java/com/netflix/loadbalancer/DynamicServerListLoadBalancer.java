@@ -64,6 +64,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     protected AtomicBoolean serverListUpdateInProgress = new AtomicBoolean(
             false);
 
+    private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; // msecs;
     private static int LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 * 1000; // msecs;
                                                                          // //
                                                                          // every
@@ -244,7 +245,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     private void keepServerListUpdated() {
         scheduledFuture = _serverListRefreshExecutor.scheduleAtFixedRate(
                 new ServerListRefreshExecutorThread(),
-                refeshIntervalMills, refeshIntervalMills,
+                LISTOFSERVERS_CACHE_UPDATE_DELAY, refeshIntervalMills,
                 TimeUnit.MILLISECONDS);
     }
 
