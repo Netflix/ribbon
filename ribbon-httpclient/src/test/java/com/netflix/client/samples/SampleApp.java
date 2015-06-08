@@ -40,6 +40,7 @@ public class SampleApp {
         for (int i = 0; i < 20; i++)  {
         	HttpResponse response = client.executeWithLoadBalancer(request); // 4
         	System.out.println("Status code for " + response.getRequestedURI() + "  :" + response.getStatus());
+                response.close();
         }
         ZoneAwareLoadBalancer lb = (ZoneAwareLoadBalancer) client.getLoadBalancer();
         System.out.println(lb.getLoadBalancerStats());
@@ -50,8 +51,8 @@ public class SampleApp {
         for (int i = 0; i < 20; i++)  {
         	HttpResponse response = client.executeWithLoadBalancer(request);
         	System.out.println("Status code for " + response.getRequestedURI() + "  : " + response.getStatus());
+                response.close();
         }
         System.out.println(lb.getLoadBalancerStats()); // 7
 	}
-
 }
