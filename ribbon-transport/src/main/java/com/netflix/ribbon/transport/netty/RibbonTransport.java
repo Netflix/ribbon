@@ -39,6 +39,8 @@ import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import rx.Observable;
+import rx.functions.Func2;
 
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -123,6 +125,18 @@ public final class RibbonTransport {
                 .withPoolCleanerScheduler(poolCleanerScheduler)
                 .build();
     }
+
+    public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config,
+                                                                          Func2<HttpClientResponse<ByteBuf>, Integer, Observable<HttpClientResponse<ByteBuf>>> responseToErrorPolicy) {
+        return LoadBalancingHttpClient.<ByteBuf, ByteBuf>builder()
+                .withLoadBalancer(loadBalancer)
+                .withClientConfig(config)
+                .withResponseToErrorPolicy(responseToErrorPolicy)
+                .withRetryHandler(getDefaultHttpRetryHandlerWithConfig(config))
+                .withPipelineConfigurator(DEFAULT_HTTP_PIPELINE_CONFIGURATOR)
+                .withPoolCleanerScheduler(poolCleanerScheduler)
+                .build();
+    }
     
     public static LoadBalancingHttpClient<ByteBuf, ByteBuf> newHttpClient(ILoadBalancer loadBalancer, IClientConfig config, RetryHandler retryHandler) {
         return LoadBalancingHttpClient.<ByteBuf, ByteBuf>builder()
@@ -161,7 +175,6 @@ public final class RibbonTransport {
         return newHttpClient(loadBalancer, config);
     }
 
-    
     public static <I, O> LoadBalancingHttpClient<I, O> newHttpClient(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator,
             ILoadBalancer loadBalancer, IClientConfig config) {
         return LoadBalancingHttpClient.<I, O>builder()
