@@ -44,14 +44,15 @@ public class RestClientTest {
         RestClient client = (RestClient) ClientFactory.getNamedClient("google");
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://www.google.com/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
         response = client.execute(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
     }
 
     @Test
     public void testExecuteWithLB() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("allservices.ribbon." + CommonClientConfigKey.ReadTimeout, "10000");
+        ConfigurationManager.getConfigInstance().setProperty("allservices.ribbon." + CommonClientConfigKey.FollowRedirects, "true");
         RestClient client = (RestClient) ClientFactory.getNamedClient("allservices");
         BaseLoadBalancer lb = new BaseLoadBalancer();
         Server[] servers = new Server[]{new Server("www.google.com", 80)};
@@ -63,7 +64,7 @@ public class RestClientTest {
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         for (int i = 0; i < 5; i++) {
             HttpResponse response = client.executeWithLoadBalancer(request);
-            assertEquals(200, response.getStatus());
+            assertStatusIsOk(response.getStatus());
             assertTrue(response.isSuccess());
             String content = response.getEntity(String.class);
             response.close();
@@ -78,14 +79,14 @@ public class RestClientTest {
 
     @Test
     public void testVipAsURI()  throws Exception {
-    	ConfigurationManager.getConfigInstance().setProperty("test1.ribbon.DeploymentContextBasedVipAddresses", "google.com:80");
+    	ConfigurationManager.getConfigInstance().setProperty("test1.ribbon.DeploymentContextBasedVipAddresses", "www.google.com:80");
     	ConfigurationManager.getConfigInstance().setProperty("test1.ribbon.InitializeNFLoadBalancer", "false");
         RestClient client = (RestClient) ClientFactory.getNamedClient("test1");
         assertNull(client.getLoadBalancer());
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
-        assertEquals("http://google.com:80/", response.getRequestedURI().toString());
+        assertStatusIsOk(response.getStatus());
+        assertEquals("http://www.google.com:80/", response.getRequestedURI().toString());
     }
 
     @Test
@@ -94,7 +95,7 @@ public class RestClientTest {
     	RestClient client = (RestClient) ClientFactory.getNamedClient("test2");
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("https://www.google.com/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
     }
 
     @Test
@@ -107,10 +108,12 @@ public class RestClientTest {
         client.setLoadBalancer(lb);
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("/")).build();
         HttpResponse response = client.executeWithLoadBalancer(request);
-        assertEquals(200, response.getStatus());
+        assertStatusIsOk(response.getStatus());
         assertEquals("https://www.google.com:443/", response.getRequestedURI().toString());
 
     }
 
-
+    private void assertStatusIsOk(int status) {
+        assertTrue(status == 200 || status == 302);
+    }
 }

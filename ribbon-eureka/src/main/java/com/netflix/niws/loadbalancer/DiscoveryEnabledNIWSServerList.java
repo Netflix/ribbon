@@ -25,8 +25,8 @@ import com.netflix.appinfo.InstanceInfo.InstanceStatus;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.config.ConfigurationManager;
-import com.netflix.config.DynamicProperty;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
 import com.netflix.loadbalancer.AbstractServerList;
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The server list class that fetches the server information from Eureka client. ServerList is used by
  * {@link DynamicServerListLoadBalancer} to get server list dynamically. 
- * 
+ *
  * @author stonse
  *
  */
@@ -48,27 +48,48 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     String clientName;
     String vipAddresses;
     boolean isSecure = false;
-    
+
     boolean prioritizeVipAddressBasedServers = true;
-  
+
     String datacenter;
     String targetRegion;
 
     int overridePort = DefaultClientConfigImpl.DEFAULT_PORT;
     boolean shouldUseOverridePort = false;
-    
+    boolean shouldUseIpAddr = false;
+
+    /**
+     * @deprecated use {@link #DiscoveryEnabledNIWSServerList(String)}
+     * or {@link #DiscoveryEnabledNIWSServerList(IClientConfig)}
+     */
+    @Deprecated
+    public DiscoveryEnabledNIWSServerList() {
+    }
+
+    public DiscoveryEnabledNIWSServerList(String vipAddresses) {
+        IClientConfig clientConfig = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+        clientConfig.set(Keys.DeploymentContextBasedVipAddresses, vipAddresses);
+        initWithNiwsConfig(clientConfig);
+    }
+
+    public DiscoveryEnabledNIWSServerList(IClientConfig clientConfig) {
+        initWithNiwsConfig(clientConfig);
+    }
+
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         clientName = clientConfig.getClientName();
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
-        if (vipAddresses == null && 
+        if (vipAddresses == null &&
                 ConfigurationManager.getConfigInstance().getBoolean("DiscoveryEnabledNIWSServerList.failFastOnNullVip", true)) {
             throw new NullPointerException("VIP address for client " + clientName + " is null");
         }
         isSecure = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.IsSecure, "false"));
-        prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));        
+        prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
         targetRegion = (String) clientConfig.getProperty(CommonClientConfigKey.TargetRegion);
+
+        shouldUseIpAddr = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.UseIPAddrForServer, DefaultClientConfigImpl.DEFAULT_USEIPADDRESS_FOR_SERVER);
 
         // override client configuration and use client-defined port
         if(clientConfig.getPropertyAsBoolean(CommonClientConfigKey.ForceClientPortConfiguration, false)){
@@ -98,8 +119,8 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
 
 
     }
-    
-    
+
+
     @Override
     public List<DiscoveryEnabledServer> getInitialListOfServers(){
         return obtainServersViaDiscovery();
@@ -109,10 +130,10 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     public List<DiscoveryEnabledServer> getUpdatedListOfServers(){
         return obtainServersViaDiscovery();
     }
-      
+
     private List<DiscoveryEnabledServer> obtainServersViaDiscovery() {
         List<DiscoveryEnabledServer> serverList = new ArrayList<DiscoveryEnabledServer>();
-       
+
         DiscoveryClient discoveryClient = DiscoveryManager.getInstance()
                 .getDiscoveryClient();
         if (discoveryClient == null) {
@@ -121,7 +142,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
         if (vipAddresses!=null){
             for (String vipAddress : vipAddresses.split(",")) {
                 // if targetRegion is null, it will be interpreted as the same region of client
-                List<InstanceInfo> listOfinstanceInfo = discoveryClient.getInstancesByVipAddress(vipAddress, isSecure, targetRegion); 
+                List<InstanceInfo> listOfinstanceInfo = discoveryClient.getInstancesByVipAddress(vipAddress, isSecure, targetRegion);
                 for (InstanceInfo ii : listOfinstanceInfo) {
                     if (ii.getStatus().equals(InstanceStatus.UP)) {
 
@@ -142,8 +163,8 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                             }
                         }
 
-                    	DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure);
-                    	des.setZone(DiscoveryClient.getZone(ii));
+                        DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure, shouldUseIpAddr);
+                        des.setZone(DiscoveryClient.getZone(ii));
                         serverList.add(des);
                     }
                 }
@@ -162,15 +183,15 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     public void setVipAddresses(String vipAddresses) {
         this.vipAddresses = vipAddresses;
     }
-        
+
     public String toString(){
         StringBuilder sb = new StringBuilder("DiscoveryEnabledNIWSServerList:");
         sb.append("; clientName:").append(clientName);
         sb.append("; Effective vipAddresses:").append(vipAddresses);
         sb.append("; isSecure:").append(isSecure);
-        sb.append("; datacenter:").append(datacenter);        
+        sb.append("; datacenter:").append(datacenter);
         return sb.toString();
     }
 
-      
+
 }

@@ -1,0 +1,17 @@
+dependencies {
+    compile project(':ribbon-core')
+    compile project(':ribbon-loadbalancer')
+    compile "io.reactivex:rxjava:${rx_java_version}"
+    compile "io.reactivex:rxnetty:${rx_netty_version}"
+    compile "io.reactivex:rxnetty-contexts:${rx_netty_version}"
+    compile "io.reactivex:rxnetty-servo:${rx_netty_version}"
+    compile 'javax.inject:javax.inject:1'
+    compile 'org.slf4j:slf4j-api:1.6.4'
+    compile "com.google.guava:guava:${guava_version}"
+    compile "com.netflix.archaius:archaius-core:${archaius_version}"
+    testCompile 'junit:junit:4.11'
+    testCompile 'com.sun.jersey:jersey-server:1.11'
+    testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+    testCompile project(':ribbon-eureka')
+    testCompile project(':ribbon-test')
+}

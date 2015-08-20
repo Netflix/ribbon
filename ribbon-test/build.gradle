@@ -1,0 +1,13 @@
+dependencies {
+    compile project(':ribbon-core')
+    compile project(':ribbon-loadbalancer')
+    compile project(':ribbon-eureka')
+    compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.11'
+    compile 'com.netflix.eureka:eureka-client:1.1.142'
+    compile "io.reactivex:rxjava:${rx_java_version}"
+    compile 'javax.ws.rs:jsr311-api:1.1.1'  
+    compile "com.google.guava:guava:${guava_version}"
+    compile "junit:junit:${junit_version}"
+    compile "org.powermock:powermock-easymock-release-full:${powermock_version}"
+    compile "org.easymock:easymock:${easymock_version}"
+}

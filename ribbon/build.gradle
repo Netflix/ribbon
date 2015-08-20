@@ -1,0 +1,29 @@
+apply plugin: 'nebula-test-jar'
+apply plugin: 'nebula-facet'
+
+facets {
+    examples {
+        parentSourceSet = 'main'
+    }
+}
+
+build.dependsOn(examplesClasses)
+
+dependencies {
+    compile project(':ribbon-core')
+    compile project(':ribbon-transport')
+    compile "com.netflix.hystrix:hystrix-core:${hystrix_version}"
+    compile 'javax.inject:javax.inject:1'
+    compile "io.reactivex:rxjava:${rx_java_version}"
+    compile "io.reactivex:rxnetty:${rx_netty_version}"
+    compile 'commons-configuration:commons-configuration:1.8'
+    compile "com.google.guava:guava:${guava_version}"
+    compile "com.netflix.archaius:archaius-core:${archaius_version}"
+    testCompile "junit:junit:${junit_version}"
+    testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
+    testCompile "org.easymock:easymock:${easymock_version}"
+    testCompile 'org.slf4j:slf4j-log4j12:1.7.2'
+    testCompile project(':ribbon-eureka')
+    testCompile project(':ribbon-test')
+    testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+}

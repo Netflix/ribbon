@@ -1,0 +1,18 @@
+dependencies {
+    compile project(':ribbon-core')
+    compile project(':ribbon-httpclient')
+    compile project(':ribbon-transport')
+    compile project(':ribbon-loadbalancer')
+    compile project(':ribbon')
+    compile "io.reactivex:rxjava:${rx_java_version}"
+    compile "io.reactivex:rxnetty:${rx_netty_version}"
+    compile "com.netflix.hystrix:hystrix-core:${hystrix_version}"
+    compile 'javax.ws.rs:jsr311-api:1.1.1'
+    compile 'com.google.code.findbugs:annotations:2.0.0'
+    compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.11'
+    compile 'com.thoughtworks.xstream:xstream:1.4.5'
+    compile 'com.sun.jersey:jersey-server:1.11'
+    compile "com.google.guava:guava:${guava_version}"
+    compile "com.netflix.archaius:archaius-core:${archaius_version}"
+    testCompile 'junit:junit:4.11'
+}

@@ -29,6 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 
 @Produces({"application/xml"})
@@ -42,7 +43,19 @@ public class TestResource {
 		obj.name = name;
 		return Response.ok(obj).build();
 	}
-	
+
+	@Path("/getJsonObject")
+	@Produces("application/json")
+	@GET
+	public Response getJsonObject(@QueryParam ("name") String name) throws Exception {
+	    TestObject obj = new TestObject();
+	    obj.name = name;
+	    ObjectMapper mapper = new ObjectMapper();
+	    String value = mapper.writeValueAsString(obj);
+	    return Response.ok(value).build();
+	}
+
+
 	@Path("/setObject")
 	@POST
 	@Consumes(MediaType.APPLICATION_XML)
@@ -50,6 +63,15 @@ public class TestResource {
 		return Response.ok(obj).build();
 	}
 	
+	@Path("/setJsonObject")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+	public Response setJsonObject(String obj) throws Exception {
+	    System.out.println("Get json string " + obj);
+	    return Response.ok(obj).build();
+	}
+
     @POST
     @Path("/postStream")
     @Consumes( { MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_XML})
