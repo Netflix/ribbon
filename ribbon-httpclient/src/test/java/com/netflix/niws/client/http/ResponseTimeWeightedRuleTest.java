@@ -57,7 +57,6 @@ public class ResponseTimeWeightedRuleTest {
             for (int i = 0; i < 50; i++) {
                 client.executeWithLoadBalancer(request);
             }
-            // expect google.com is hit more often than microsoft.com as it has a shorter response time
             System.out.println(((AbstractLoadBalancer) client.getLoadBalancer()).getLoadBalancerStats());
         }
         catch (Exception e){

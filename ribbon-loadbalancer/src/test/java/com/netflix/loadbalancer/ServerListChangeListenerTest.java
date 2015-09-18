@@ -17,7 +17,8 @@
  */
 package com.netflix.loadbalancer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -40,8 +41,8 @@ public class ServerListChangeListenerTest {
                 ServerListChangeListenerTest.this.newList = newList;
             }
         });
-        List<Server> list1 = Lists.newArrayList(new Server("www.google.com:80"), new Server("www.netflix.com:80"));
-        List<Server> list2 = Lists.newArrayList(new Server("www.microsoft.com:80"), new Server("www.facebook.com:80"));
+        List<Server> list1 = Lists.newArrayList(new Server("server1"), new Server("server2"));
+        List<Server> list2 = Lists.newArrayList(new Server("server3"), new Server("server4"));
         lb.setServersList(list1);
         assertTrue(oldList.isEmpty());
         assertEquals(list1, newList);

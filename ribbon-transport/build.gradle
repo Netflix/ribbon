@@ -10,7 +10,7 @@ dependencies {
     compile "com.google.guava:guava:${guava_version}"
     compile "com.netflix.archaius:archaius-core:${archaius_version}"
     testCompile 'junit:junit:4.11'
-    testCompile 'com.sun.jersey:jersey-server:1.11'
+    testCompile "com.sun.jersey:jersey-server:${jersey_version}"
     testCompile 'com.google.mockwebserver:mockwebserver:20130706'
     testCompile project(':ribbon-eureka')
     testCompile project(':ribbon-test')

@@ -39,7 +39,7 @@ public class ClientFactoryTest {
 	
 	@BeforeClass
 	public static void init() {
-		ConfigurationManager.getConfigInstance().setProperty("junit.ribbon.listOfServers", "www.microsoft.com:80,www.netflix.com:80,www.google.com:80");
+		ConfigurationManager.getConfigInstance().setProperty("junit.ribbon.listOfServers", "www.example1.come:80,www.example2.come:80,www.example3.come:80");
 		client = (RestClient) ClientFactory.getNamedClient("junit");
 	}
 	
@@ -49,9 +49,9 @@ public class ClientFactoryTest {
 		DynamicServerListLoadBalancer lb = (DynamicServerListLoadBalancer) client.getLoadBalancer();
 		assertTrue(lb.getServerListImpl() instanceof ConfigurationBasedServerList);
 		Set<Server> expected = new HashSet<Server>();
-		expected.add(new Server("www.microsoft.com:80"));
-		expected.add(new Server("www.netflix.com:80"));
-		expected.add(new Server("www.google.com:80"));
+		expected.add(new Server("www.example1.come:80"));
+		expected.add(new Server("www.example2.come:80"));
+		expected.add(new Server("www.example3.come:80"));
 		Set<Server> result = new HashSet<Server>();
 		for (int i = 0; i <= 10; i++) {
 			Server s = lb.chooseServer();
