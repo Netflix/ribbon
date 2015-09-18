@@ -4,8 +4,8 @@ dependencies {
     compile 'commons-collections:commons-collections:3.2.1'        
     compile 'org.apache.httpcomponents:httpclient:4.2.1'
     compile 'com.google.code.findbugs:annotations:2.0.0' 
-    compile 'com.sun.jersey:jersey-client:1.11'
-    compile 'com.sun.jersey.contribs:jersey-apache-client4:1.11'
+    compile "com.sun.jersey:jersey-client:${jersey_version}"
+    compile "com.sun.jersey.contribs:jersey-apache-client4:${jersey_version}"
     compile 'org.slf4j:slf4j-api:1.6.4'
     compile "com.netflix.servo:servo-core:${servo_version}"
     compile "com.google.guava:guava:${guava_version}"
@@ -14,6 +14,7 @@ dependencies {
     testCompile 'junit:junit:4.11'
     testCompile 'org.slf4j:slf4j-log4j12:1.7.2'
     testCompile 'commons-io:commons-io:2.0.1'
-    testCompile 'com.sun.jersey:jersey-server:1.11'
+    testCompile "com.sun.jersey:jersey-server:${jersey_version}"
     testCompile 'com.google.mockwebserver:mockwebserver:20130505'
+    testCompile project(":ribbon-loadbalancer").sourceSets.test.output
 }

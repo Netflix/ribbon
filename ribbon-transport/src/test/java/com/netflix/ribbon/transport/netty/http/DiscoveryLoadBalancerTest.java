@@ -34,7 +34,7 @@ public class DiscoveryLoadBalancerTest extends MockedDiscoveryServerListTest {
 
     @Override
     protected List<Server> getMockServerList() {
-        return Lists.newArrayList(new Server("www.google.com", 80), new Server("www.microsoft.com", 80));
+        return Lists.newArrayList(new Server("www.example1.com", 80), new Server("www.example2.com", 80));
     }
 
     @Override

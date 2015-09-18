@@ -30,15 +30,20 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.util.EntityUtils;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.netflix.client.testutil.MockHttpServer;
+
 public class NFHttpClientTest {
-    
+    @ClassRule
+    public static MockHttpServer server = new MockHttpServer();
+
     @Test
     public void testDefaultClient() throws Exception {
     	NFHttpClient client = NFHttpClientFactory.getDefaultClient();
-    	HttpGet get = new HttpGet("http://www.google.com"); // uri
+    	HttpGet get = new HttpGet(server.getServerURI()); // uri
     	// this is not the overridable method
     	HttpResponse response = client.execute(get);
     	HttpEntity entity = response.getEntity();
@@ -48,10 +53,10 @@ public class NFHttpClientTest {
     
     @Test
     public void testNFHttpClient() throws Exception {
-        NFHttpClient client = NFHttpClientFactory.getNFHttpClient("www.google.com", 80);
+        NFHttpClient client = NFHttpClientFactory.getNFHttpClient("localhost", server.getServerPort());
         ThreadSafeClientConnManager cm = (ThreadSafeClientConnManager) client.getConnectionManager();
     	cm.setDefaultMaxPerRoute(10);
-        HttpGet get = new HttpGet("www.google.com");
+        HttpGet get = new HttpGet(server.getServerURI());
         ResponseHandler<Integer> respHandler = new ResponseHandler<Integer>(){
         		public Integer handleResponse(HttpResponse response)
                  throws ClientProtocolException, IOException {

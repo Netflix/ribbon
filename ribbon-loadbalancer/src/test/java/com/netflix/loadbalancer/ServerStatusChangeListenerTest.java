@@ -15,14 +15,6 @@
  */
 package com.netflix.loadbalancer;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -30,11 +22,18 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.junit.Assert.assertThat;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.junit.Before;
+import org.junit.Test;
+
 public class ServerStatusChangeListenerTest {
-
-    private final Server server1 = new Server("www.google.com:80");
-    private final Server server2 = new Server("www.netflix.com:80");
-
+    private final Server server1 = new Server("server1");
+    private final Server server2 = new Server("server2");
+    
     private BaseLoadBalancer lb;
     private AtomicReference<List<Server>> serversReceivedByListener;
 

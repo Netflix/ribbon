@@ -24,20 +24,25 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
+import com.netflix.client.testutil.MockHttpServer;
 
 public class DynamicServerListLoadBalancerTest {
+    @ClassRule
+    public static MockHttpServer server = new MockHttpServer();
+    
     public static class MyServerList extends AbstractServerList<Server> {
 
         public final static CountDownLatch latch = new CountDownLatch(5);
         public final static AtomicInteger counter = new AtomicInteger(0);
         
-        public static final List<Server> list = Lists.newArrayList(new Server("www.google.com:80"));
+        public static final List<Server> list = Lists.newArrayList(new Server(server.getServerUrl()));
         
         public MyServerList() {
         }
