@@ -39,6 +39,7 @@ public class HttpResourceObservableCommand<T> extends HystrixObservableCommand<T
     private final FallbackHandler<T> fallbackHandler;
     private final Class<? extends T> classType;
     private final ResponseValidator<HttpClientResponse<ByteBuf>> validator;
+    private final boolean observeOnlyContent;
 
     public HttpResourceObservableCommand(HttpClient<ByteBuf, ByteBuf> httpClient,
                                          HttpClientRequest<ByteBuf> httpRequest, String hystrixCacheKey,
@@ -47,6 +48,18 @@ public class HttpResourceObservableCommand<T> extends HystrixObservableCommand<T
                                          ResponseValidator<HttpClientResponse<ByteBuf>> validator,
                                          Class<? extends T> classType,
                                          HystrixObservableCommand.Setter setter) {
+        this(httpClient, httpRequest, hystrixCacheKey, requestProperties,
+                fallbackHandler, validator, classType, setter, true);
+    }
+
+    public HttpResourceObservableCommand(HttpClient<ByteBuf, ByteBuf> httpClient,
+                                         HttpClientRequest<ByteBuf> httpRequest, String hystrixCacheKey,
+                                         Map<String, Object> requestProperties,
+                                         FallbackHandler<T> fallbackHandler,
+                                         ResponseValidator<HttpClientResponse<ByteBuf>> validator,
+                                         Class<? extends T> classType,
+                                         HystrixObservableCommand.Setter setter,
+                                         boolean observeOnlyContent) {
         super(setter);
         this.httpClient = httpClient;
         this.fallbackHandler = fallbackHandler;
@@ -54,6 +67,7 @@ public class HttpResourceObservableCommand<T> extends HystrixObservableCommand<T
         this.httpRequest = httpRequest;
         this.hystrixCacheKey = hystrixCacheKey;
         this.classType = classType;
+        this.observeOnlyContent = observeOnlyContent;
         this.requestProperties = requestProperties;
     }
 
@@ -93,17 +107,26 @@ public class HttpResourceObservableCommand<T> extends HystrixObservableCommand<T
                 }
             });
         }
-        return httpResponseObservable.flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<T>>() {
-            @Override
-            public Observable<T> call(HttpClientResponse<ByteBuf> t1) {
-                return t1.getContent().map(new Func1<ByteBuf, T>() {
-                    @Override
-                    public T call(ByteBuf t1) {
-                        return classType.cast(t1);
-                    }
+        if (observeOnlyContent) {
+            return httpResponseObservable.flatMap(new Func1<HttpClientResponse<ByteBuf>, Observable<T>>() {
+                @Override
+                public Observable<T> call(HttpClientResponse<ByteBuf> t1) {
+                    return t1.getContent().map(new Func1<ByteBuf, T>() {
+                        @Override
+                        public T call(ByteBuf t1) {
+                            return classType.cast(t1);
+                        }
 
-                });
-            }
-        });
+                    });
+                }
+            });
+        } else {
+            return httpResponseObservable.map(new Func1<HttpClientResponse<ByteBuf>, T>() {
+                @Override
+                public T call(HttpClientResponse<ByteBuf> byteBufHttpClientResponse) {
+                    return classType.cast(byteBufHttpClientResponse);
+                }
+            });
+        }
     }
 }
