@@ -18,3 +18,5 @@ dependencies {
     testCompile 'com.google.mockwebserver:mockwebserver:20130505'
     testCompile project(":ribbon-loadbalancer").sourceSets.test.output
 }
+
+version = "2.1.1-yourmd-patched"
