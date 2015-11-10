@@ -158,7 +158,7 @@ public class Eureka2EnabledNIWSServerList extends AbstractServerList<DiscoveryEn
     }
 
     private List<DiscoveryEnabledServer> toServerList(List<InstanceInfo> listOfinstanceInfo) {
-        List<DiscoveryEnabledServer> serverList = new ArrayList<>(listOfinstanceInfo.size());
+        List<DiscoveryEnabledServer> serverList = new ArrayList<DiscoveryEnabledServer>(listOfinstanceInfo.size());
         for (InstanceInfo ii : listOfinstanceInfo) {
             if (ii.getStatus() == InstanceStatus.UP) {
                 if (shouldUseOverridePort) {

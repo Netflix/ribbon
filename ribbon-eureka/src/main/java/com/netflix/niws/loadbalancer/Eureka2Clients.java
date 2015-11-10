@@ -14,7 +14,8 @@ import com.netflix.eureka2.client.EurekaInterestClient;
  */
 public final class Eureka2Clients {
 
-    private static final AtomicReference<EurekaInterestClient> interestClient = new AtomicReference<>();
+    private static final AtomicReference<EurekaInterestClient> interestClient =
+            new AtomicReference<EurekaInterestClient>();
     private static final AtomicBoolean useEureka2 = new AtomicBoolean();
 
     private Eureka2Clients() {
