@@ -5,7 +5,7 @@ dependencies {
     compile 'org.apache.httpcomponents:httpclient:4.2.1'
     compile 'com.google.code.findbugs:annotations:2.0.0' 
     compile "com.sun.jersey:jersey-client:${jersey_version}"
-    compile "com.sun.jersey.contribs:jersey-apache-client4:${jersey_version}"
+    compile "com.sun.jersey.contribs:jersey-apache-client4:1.19-yourmd-patched"
     compile 'org.slf4j:slf4j-api:1.6.4'
     compile "com.netflix.servo:servo-core:${servo_version}"
     compile "com.google.guava:guava:${guava_version}"

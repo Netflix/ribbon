@@ -16,6 +16,9 @@ subprojects {
 
     repositories {
         jcenter()
+        maven {
+            url 'https://yourmd.artifactoryonline.com/yourmd/libs-release-local'
+        }
     }
 
     if (project.hasProperty('useMavenLocal')) {
