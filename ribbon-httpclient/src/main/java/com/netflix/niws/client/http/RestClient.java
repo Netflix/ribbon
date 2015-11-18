@@ -58,7 +58,7 @@ import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.http.HttpRequest;
 import com.netflix.client.http.HttpResponse;
 import com.netflix.client.ssl.AbstractSslContextFactory;
-import com.netflix.client.ssl.ClientSslSocketFactoryException;
+import com.netflix.client.ssl.ClientSslContextFactoryException;
 import com.netflix.client.ssl.URLSslContextFactory;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicIntProperty;
@@ -380,7 +380,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                             keyStoreUrl,
                             (String) ncc.getProperty(CommonClientConfigKey.KeyStorePassword));
 
-                } catch (ClientSslSocketFactoryException e) {
+                } catch (ClientSslContextFactoryException e) {
                     throw new IllegalArgumentException("Unable to configure custom secure socket factory", e);
                 }
             }

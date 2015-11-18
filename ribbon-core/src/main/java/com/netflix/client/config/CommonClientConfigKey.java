@@ -134,8 +134,15 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     // if this is a secure rest client, must we use client auth too?    
     public static final IClientConfigKey<Boolean> IsClientAuthRequired = new CommonClientConfigKey<Boolean>("IsClientAuthRequired"){};
-    
+
+    /**
+     * Use {@link #TrustSelfSignedCertificate}
+     */
+    @Deprecated
     public static final IClientConfigKey<String> CustomSSLSocketFactoryClassName = new CommonClientConfigKey<String>("CustomSSLSocketFactoryClassName"){};
+
+    public static final IClientConfigKey<Boolean> TrustSelfSignedCertificate = new CommonClientConfigKey<Boolean>("TrustSelfSignedCertificate"){};
+
      // must host name match name in certificate?
     public static final IClientConfigKey<Boolean> IsHostnameValidationRequired = new CommonClientConfigKey<Boolean>("IsHostnameValidationRequired"){}; 
 

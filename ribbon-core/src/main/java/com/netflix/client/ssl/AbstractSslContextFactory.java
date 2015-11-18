@@ -17,20 +17,19 @@
 */
 package com.netflix.client.ssl;
 
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 
 /**
  * 
@@ -40,14 +39,11 @@ import org.slf4j.LoggerFactory;
  * @author jzarfoss
  *
  */
-public abstract class AbstractSslContextFactory {
+public abstract class AbstractSslContextFactory implements SslContext{
 
 	
     private final static Logger LOGGER = LoggerFactory.getLogger(AbstractSslContextFactory.class);
 	
-    /** The secure socket algorithm that is to be used. */
-    public static final String SOCKET_ALGORITHM = "SSL";
-
     /** The keystore resulting from loading keystore URL     */
     private KeyStore keyStore;
     
@@ -94,10 +90,10 @@ public abstract class AbstractSslContextFactory {
      * trust store parameters are optional. If they are null then the JRE defaults will be used.
      *
      * @return the newly created SSL context
-     * @throws ClientSslSocketFactoryException if an error is detected loading the specified key or
+     * @throws ClientSslContextFactoryException if an error is detected loading the specified key or
      *         trust stores
      */
-    private SSLContext createSSLContext() throws ClientSslSocketFactoryException {
+    private SSLContext createSSLContext() throws ClientSslContextFactoryException {
         final KeyManager[] keyManagers = this.keyStore != null ? createKeyManagers() : null;
         final TrustManager[] trustManagers = this.trustStore != null ? createTrustManagers() : null;
 
@@ -108,9 +104,9 @@ public abstract class AbstractSslContextFactory {
 
             return sslcontext;
         } catch (NoSuchAlgorithmException e) {
-            throw new ClientSslSocketFactoryException(String.format("Failed to create an SSL context that supports algorithm %s: %s", SOCKET_ALGORITHM, e.getMessage()), e);
+            throw new ClientSslContextFactoryException(String.format("Failed to create an SSL context that supports algorithm %s: %s", SOCKET_ALGORITHM, e.getMessage()), e);
         } catch (KeyManagementException e) {
-            throw new ClientSslSocketFactoryException(String.format("Failed to initialize an SSL context: %s", e.getMessage()), e);
+            throw new ClientSslContextFactoryException(String.format("Failed to initialize an SSL context: %s", e.getMessage()), e);
         }
     }
     
@@ -119,9 +115,9 @@ public abstract class AbstractSslContextFactory {
      * Creates the key managers to be used by the factory from the associated key store and password.
      *
      * @return the newly created array of key managers
-     * @throws ClientSslSocketFactoryException if an exception is detected in loading the key store
+     * @throws ClientSslContextFactoryException if an exception is detected in loading the key store
      */
-    private KeyManager[] createKeyManagers() throws ClientSslSocketFactoryException {
+    private KeyManager[] createKeyManagers() throws ClientSslContextFactoryException {
 
         final KeyManagerFactory factory;
 
@@ -129,13 +125,13 @@ public abstract class AbstractSslContextFactory {
             factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             factory.init(this.keyStore, this.keyStorePassword.toCharArray());
         } catch (NoSuchAlgorithmException e) {
-            throw new ClientSslSocketFactoryException(
+            throw new ClientSslContextFactoryException(
                     String.format("Failed to create the key store because the algorithm %s is not supported. ",
                             KeyManagerFactory.getDefaultAlgorithm()), e);
         } catch (UnrecoverableKeyException e) {
-        	throw new ClientSslSocketFactoryException("Unrecoverable Key Exception initializing key manager factory; this is probably fatal", e);
+        	throw new ClientSslContextFactoryException("Unrecoverable Key Exception initializing key manager factory; this is probably fatal", e);
 		} catch (KeyStoreException e) {
-			throw new ClientSslSocketFactoryException("KeyStore exception initializing key manager factory; this is probably fatal", e);
+			throw new ClientSslContextFactoryException("KeyStore exception initializing key manager factory; this is probably fatal", e);
 		}
 
         KeyManager[] managers = factory.getKeyManagers();
@@ -150,9 +146,9 @@ public abstract class AbstractSslContextFactory {
      * password.
      *
      * @return the newly created array of trust managers
-     * @throws ClientSslSocketFactoryException if an error is detected in loading the trust store
+     * @throws ClientSslContextFactoryException if an error is detected in loading the trust store
      */
-    private TrustManager[] createTrustManagers() throws ClientSslSocketFactoryException {
+    private TrustManager[] createTrustManagers() throws ClientSslContextFactoryException {
 
     	final TrustManagerFactory factory;
 
@@ -160,10 +156,10 @@ public abstract class AbstractSslContextFactory {
     		factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
     		factory.init(this.trustStore);
     	} catch (NoSuchAlgorithmException e) {
-    		throw new ClientSslSocketFactoryException(String.format("Failed to create the trust store because the algorithm %s is not supported. ",
+    		throw new ClientSslContextFactoryException(String.format("Failed to create the trust store because the algorithm %s is not supported. ",
     				KeyManagerFactory.getDefaultAlgorithm()), e);
     	} catch (KeyStoreException e) {
-    		throw new ClientSslSocketFactoryException("KeyStore exception initializing trust manager factory; this is probably fatal", e);
+    		throw new ClientSslContextFactoryException("KeyStore exception initializing trust manager factory; this is probably fatal", e);
     	}
 
     	final TrustManager[] managers = factory.getTrustManagers();
@@ -174,7 +170,8 @@ public abstract class AbstractSslContextFactory {
 
     }
 
-    public SSLContext getSSLContext() throws ClientSslSocketFactoryException{
+    @Override
+    public SSLContext getSSLContext() throws ClientSslContextFactoryException {
     	return createSSLContext(); 
     }
     

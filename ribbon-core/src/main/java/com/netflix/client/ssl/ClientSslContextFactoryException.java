@@ -18,16 +18,16 @@
 package com.netflix.client.ssl;
 
 /**
- * Reports problems detected by the ClientSslSocketFactory class.
+ * Reports problems detected by the SslContext interface.
  *
  * @author pstout@netflix.com (Peter D. Stout)
  */
-public class ClientSslSocketFactoryException extends Exception {
+public class ClientSslContextFactoryException extends Exception {
     /** Serial version identifier for this class. */
     private static final long serialVersionUID = 1L;
 
     /** Constructs a new instance with the specified message and cause. */
-    public ClientSslSocketFactoryException(final String message, final Throwable cause) {
+    public ClientSslContextFactoryException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

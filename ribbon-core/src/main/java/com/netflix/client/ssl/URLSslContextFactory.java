@@ -60,9 +60,9 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
      *        certificate and the client's private key. If non-null, this URL must be of JKS format.
      * @param keyStorePassword the password of the given key store file. If a key store is
      *        specified, then the password may not be empty.
-     * @throws ClientSslSocketFactoryException thrown if creating this instance fails.
+     * @throws ClientSslContextFactoryException thrown if creating this instance fails.
      */
-    public URLSslContextFactory(final URL trustStoreUrl, final String trustStorePassword, final URL keyStoreUrl, final String keyStorePassword) throws ClientSslSocketFactoryException {
+    public URLSslContextFactory(final URL trustStoreUrl, final String trustStorePassword, final URL keyStoreUrl, final String keyStorePassword) throws ClientSslContextFactoryException {
     	super(createKeyStore(trustStoreUrl, trustStorePassword), trustStorePassword, createKeyStore(keyStoreUrl, keyStorePassword), keyStorePassword);
 
     	this.keyStoreUrl = keyStoreUrl;
@@ -77,7 +77,7 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
     /**
      * Opens the specified key or trust store using the given password.
      *
-     * In case of failure {@link com.netflix.client.ssl.ClientSslSocketFactoryException} is thrown, and wrapps the
+     * In case of failure {@link ClientSslContextFactoryException} is thrown, and wrapps the
      * underlying cause exception. That could be:
      * <ul>
      *     <li>KeyStoreException if the JRE doesn't support the standard Java Keystore format, in other words: never</li>
@@ -93,9 +93,9 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
      * @param storeFile the location of the store to load
      * @param password the password protecting the store
      * @return the newly loaded key store
-     * @throws ClientSslSocketFactoryException a wrapper exception for any problems encountered during keystore creation.
+     * @throws ClientSslContextFactoryException a wrapper exception for any problems encountered during keystore creation.
      */
-    private static KeyStore createKeyStore(final URL storeFile, final String password) throws ClientSslSocketFactoryException {
+    private static KeyStore createKeyStore(final URL storeFile, final String password) throws ClientSslContextFactoryException {
     	
     	if(storeFile == null){
     		return null;
@@ -113,9 +113,9 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
     		try {
     			keyStore.load(is, password.toCharArray());
     		} catch (NoSuchAlgorithmException e) {
-    			throw new ClientSslSocketFactoryException(String.format("Failed to create a keystore that supports algorithm %s: %s", SOCKET_ALGORITHM, e.getMessage()), e);
+    			throw new ClientSslContextFactoryException(String.format("Failed to create a keystore that supports algorithm %s: %s", SOCKET_ALGORITHM, e.getMessage()), e);
 			} catch (CertificateException e) {
-				throw new ClientSslSocketFactoryException(String.format("Failed to create keystore with algorithm %s due to certificate exception: %s", SOCKET_ALGORITHM, e.getMessage()), e);
+				throw new ClientSslContextFactoryException(String.format("Failed to create keystore with algorithm %s due to certificate exception: %s", SOCKET_ALGORITHM, e.getMessage()), e);
 			} finally {
     			try {
     				is.close();
@@ -123,9 +123,9 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
     			}
     		}
     	}catch(KeyStoreException e){
-    		throw new ClientSslSocketFactoryException(String.format("KeyStore exception creating keystore: %s", e.getMessage()), e);
+    		throw new ClientSslContextFactoryException(String.format("KeyStore exception creating keystore: %s", e.getMessage()), e);
     	} catch (IOException e) {
-    		throw new ClientSslSocketFactoryException(String.format("IO exception creating keystore: %s", e.getMessage()), e);
+    		throw new ClientSslContextFactoryException(String.format("IO exception creating keystore: %s", e.getMessage()), e);
 		}
 
         return keyStore;

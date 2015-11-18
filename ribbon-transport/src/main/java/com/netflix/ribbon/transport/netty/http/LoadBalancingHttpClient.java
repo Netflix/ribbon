@@ -22,7 +22,6 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
@@ -56,14 +55,13 @@ import rx.functions.Func2;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.netflix.client.ClientException;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
-import com.netflix.client.ssl.ClientSslSocketFactoryException;
+import com.netflix.client.ssl.ClientSslContextFactoryException;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 import com.netflix.loadbalancer.Server;
@@ -517,7 +515,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 };
 
                 clientBuilder.withSslEngineFactory(myFactory);
-            } catch (ClientSslSocketFactoryException e) {
+            } catch (ClientSslContextFactoryException e) {
                 throw new RuntimeException(e);
             }
         }

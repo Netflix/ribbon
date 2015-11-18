@@ -28,7 +28,7 @@ import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 
 import com.netflix.client.ssl.AbstractSslContextFactory;
-import com.netflix.client.ssl.ClientSslSocketFactoryException;
+import com.netflix.client.ssl.ClientSslContextFactoryException;
 
 /**
  *
@@ -54,7 +54,7 @@ public class KeyStoreAwareSocketFactory extends SSLSocketFactory{
 
 
 
-	public KeyStoreAwareSocketFactory(final AbstractSslContextFactory abstractFactory) throws ClientSslSocketFactoryException, NoSuchAlgorithmException{
+	public KeyStoreAwareSocketFactory(final AbstractSslContextFactory abstractFactory) throws ClientSslContextFactoryException, NoSuchAlgorithmException{
 		super(abstractFactory == null ? SSLContext.getDefault() : abstractFactory.getSSLContext());
 
 		if(abstractFactory == null){
@@ -67,7 +67,7 @@ public class KeyStoreAwareSocketFactory extends SSLSocketFactory{
 	}
 
 
-	public KeyStoreAwareSocketFactory(final AbstractSslContextFactory abstractFactory, X509HostnameVerifier hostnameVerifier) throws ClientSslSocketFactoryException, NoSuchAlgorithmException{
+	public KeyStoreAwareSocketFactory(final AbstractSslContextFactory abstractFactory, X509HostnameVerifier hostnameVerifier) throws ClientSslContextFactoryException, NoSuchAlgorithmException{
 		super(abstractFactory == null ? SSLContext.getDefault() : abstractFactory.getSSLContext(), hostnameVerifier);
 
 		if(abstractFactory == null){
