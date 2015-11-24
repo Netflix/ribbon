@@ -120,7 +120,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             if (t instanceof ClientException) {
                 throw (ClientException) t;
             } else {
-                throw new ClientException(t);
+                throw new ClientException(e);
             }
         }
         
