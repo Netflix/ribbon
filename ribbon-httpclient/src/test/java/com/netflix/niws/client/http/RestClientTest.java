@@ -125,6 +125,18 @@ public class RestClientTest {
         
     }
 
+    @Test
+    public void testDelete() throws Exception {
+        RestClient client = (RestClient) ClientFactory.getNamedClient("google");
+        HttpRequest request = HttpRequest.newBuilder().uri(server.getServerURI()).verb(HttpRequest.Verb.DELETE).build();
+        HttpResponse response = client.execute(request);
+        assertStatusIsOk(response.getStatus());
+        
+        request = HttpRequest.newBuilder().uri(server.getServerURI()).verb(HttpRequest.Verb.DELETE).entity("").build();
+        response = client.execute(request);
+        assertStatusIsOk(response.getStatus());
+    }
+
     private void assertStatusIsOk(int status) {
         assertTrue(status == 200 || status == 302);
     }
