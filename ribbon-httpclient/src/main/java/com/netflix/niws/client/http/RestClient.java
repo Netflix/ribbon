@@ -624,7 +624,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
             jerseyResponse = b.put(ClientResponse.class, entity);
             break;
         case DELETE:
-            jerseyResponse = b.delete(ClientResponse.class, entity);
+            jerseyResponse = b.delete(ClientResponse.class);
             break;
         case HEAD:
             jerseyResponse = b.head();
