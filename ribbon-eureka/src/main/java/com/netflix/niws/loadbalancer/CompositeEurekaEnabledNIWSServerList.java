@@ -12,7 +12,8 @@ import com.netflix.loadbalancer.AbstractServerList;
 public class CompositeEurekaEnabledNIWSServerList extends AbstractServerList<DiscoveryEnabledServer> {
 
     private DiscoveryEnabledNIWSServerList eureka1ServerList;
-    private final AtomicReference<Eureka2EnabledNIWSServerList> eureka2ServerListRef = new AtomicReference<>();
+    private final AtomicReference<Eureka2EnabledNIWSServerList> eureka2ServerListRef =
+            new AtomicReference<Eureka2EnabledNIWSServerList>();
     private IClientConfig clientConfig;
 
     @Override

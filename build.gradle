@@ -9,8 +9,8 @@ subprojects {
     apply plugin: 'nebula.netflixoss'
     apply plugin: 'java'
 
-    sourceCompatibility = 1.7
-    targetCompatibility = 1.7
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
 
     group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
 
