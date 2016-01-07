@@ -18,7 +18,7 @@
 package com.netflix.loadbalancer;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,12 +32,13 @@ import com.netflix.client.config.IClientConfig;
  * 
  */
 public class RoundRobinRule extends AbstractLoadBalancerRule {
-    AtomicInteger nextIndexAI;
+    /** We use a long to never run into wraparound issues when this runs for a long time. */
+    private AtomicLong nextIndexAI;
 
     private static Logger log = LoggerFactory.getLogger(RoundRobinRule.class);
 
     public RoundRobinRule() {
-        nextIndexAI = new AtomicInteger(0);
+        nextIndexAI = new AtomicLong(0);
     }
 
     public RoundRobinRule(ILoadBalancer lb) {
@@ -70,7 +71,7 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
                 return null;
             }
 
-            index = nextIndexAI.incrementAndGet() % serverCount;
+            index = (int) (nextIndexAI.incrementAndGet() % serverCount);
             server = allList.get(index);
 
             if (server == null) {
