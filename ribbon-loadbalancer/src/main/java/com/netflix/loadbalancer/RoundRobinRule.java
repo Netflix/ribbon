@@ -17,52 +17,48 @@
  */
 package com.netflix.loadbalancer;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
+import com.netflix.client.config.IClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.client.config.IClientConfig;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * The most well known and basic loadbalacing strategy, i.e. Round Robin Rule.
- * 
+ * The most well known and basic load balancing strategy, i.e. Round Robin Rule.
+ *
  * @author stonse
- * 
+ * @author Nikos Michalakis <nikos@netflix.com>
+ *
  */
 public class RoundRobinRule extends AbstractLoadBalancerRule {
-    /** We use a long to never run into wraparound issues when this runs for a long time. */
-    private AtomicLong nextIndexAI;
+
+    private AtomicInteger nextServerCyclicCounter;
+    private static final boolean AVAILABLE_ONLY_SERVERS = true;
+    private static final boolean ALL_SERVERS = false;
 
     private static Logger log = LoggerFactory.getLogger(RoundRobinRule.class);
 
     public RoundRobinRule() {
-        nextIndexAI = new AtomicLong(0);
+        nextServerCyclicCounter = new AtomicInteger(0);
     }
 
     public RoundRobinRule(ILoadBalancer lb) {
-    	this();
-    	setLoadBalancer(lb);
+        this();
+        setLoadBalancer(lb);
     }
-
-    /*
-     * Rotate over all known servers.
-     */
-    final static boolean availableOnly = false;
 
     public Server choose(ILoadBalancer lb, Object key) {
         if (lb == null) {
             log.warn("no load balancer");
             return null;
         }
-        Server server = null;
-        int index = 0;
 
+        Server server = null;
         int count = 0;
         while (server == null && count++ < 10) {
-            List<Server> upList = lb.getServerList(true);
-            List<Server> allList = lb.getServerList(false);
+            List<Server> upList = lb.getServerList(AVAILABLE_ONLY_SERVERS);
+            List<Server> allList = lb.getServerList(ALL_SERVERS);
             int upCount = upList.size();
             int serverCount = allList.size();
 
@@ -71,8 +67,8 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
                 return null;
             }
 
-            index = (int) (nextIndexAI.incrementAndGet() % serverCount);
-            server = allList.get(index);
+            int nextServerIndex = incrementAndGetModulo(serverCount);
+            server = allList.get(nextServerIndex);
 
             if (server == null) {
                 /* Transient. */
@@ -95,12 +91,26 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         return server;
     }
 
-	@Override
-	public Server choose(Object key) {
-		return choose(getLoadBalancer(), key);
-	}
+    /**
+     * Inspired by the implementation of {@link AtomicInteger#incrementAndGet()}.
+     *
+     * @param modulo The modulo to bound the value of the counter.
+     * @return The next value.
+     */
+    private int incrementAndGetModulo(int modulo) {
+        for (;;) {
+            int current = nextServerCyclicCounter.get();
+            int next = (current + 1) % modulo;
+            if (nextServerCyclicCounter.compareAndSet(current, next))
+                return next;
+            }
+        }
+    @Override
+    public Server choose(Object key) {
+        return choose(getLoadBalancer(), key);
+    }
 
-	@Override
-	public void initWithNiwsConfig(IClientConfig clientConfig) {
-	}
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+    }
 }
