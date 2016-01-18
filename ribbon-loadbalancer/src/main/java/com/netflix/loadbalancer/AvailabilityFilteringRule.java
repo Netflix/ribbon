@@ -65,7 +65,7 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
     @Monitor(name="AvailableServersCount", type = DataSourceType.GAUGE)
     public int getAvailableServersCount() {
     	ILoadBalancer lb = getLoadBalancer();
-    	List<Server> servers = lb.getServerList(false);
+    	List<Server> servers = lb.getAllServers();
     	if (servers == null) {
     		return 0;
     	}

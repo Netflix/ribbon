@@ -101,7 +101,7 @@ public class LBBuilderTest {
                 .withServerListFilter(filter)
                 .buildDynamicServerListLoadBalancer();
         assertNotNull(lb);
-        assertEquals(Lists.newArrayList(expected), lb.getServerList(false));
+        assertEquals(Lists.newArrayList(expected), lb.getAllServers());
         assertSame(filter, lb.getFilter());
         assertSame(list, lb.getServerListImpl());
         Server server = lb.chooseServer();
@@ -126,7 +126,7 @@ public class LBBuilderTest {
         assertTrue(dynamicLB.getFilter() instanceof ZoneAffinityServerListFilter);
         assertTrue(dynamicLB.getRule() instanceof RoundRobinRule);
         assertTrue(dynamicLB.getPing() instanceof DummyPing);
-        assertEquals(Lists.newArrayList(expected), lb.getServerList(false));
+        assertEquals(Lists.newArrayList(expected), lb.getAllServers());
     }
 
     @Test
@@ -141,7 +141,7 @@ public class LBBuilderTest {
         BaseLoadBalancer lb = LoadBalancerBuilder.newBuilder()
                 .withRule(rule)
                 .buildFixedServerListLoadBalancer(list);
-        assertEquals(list, lb.getServerList(false));
+        assertEquals(list, lb.getAllServers());
         assertSame(rule, lb.getRule());
     }
 }

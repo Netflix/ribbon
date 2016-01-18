@@ -79,7 +79,7 @@ public class DynamicServerListLoadBalancerTest {
             assertTrue(MyServerList.latch.await(2, TimeUnit.SECONDS));
         } catch (InterruptedException e) { // NOPMD
         }
-        assertEquals(lb.getServerList(false), MyServerList.list);
+        assertEquals(lb.getAllServers(), MyServerList.list);
         lb.stopServerListRefreshing();
         Thread.sleep(1000);
         int count = MyServerList.counter.get();

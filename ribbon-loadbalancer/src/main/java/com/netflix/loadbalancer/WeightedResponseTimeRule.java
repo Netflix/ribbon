@@ -165,7 +165,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
             if (Thread.interrupted()) {
                 return null;
             }
-            List<Server> allList = lb.getServerList(false);
+            List<Server> allList = lb.getAllServers();
 
             int serverCount = allList.size();
 
@@ -252,7 +252,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                 }
                 double totalResponseTime = 0;
                 // find maximal 95% response time
-                for (Server server : nlb.getServerList(false)) {
+                for (Server server : nlb.getAllServers()) {
                     // this will automatically load the stats if not in cache
                     ServerStats ss = stats.getSingleServerStat(server);
                     totalResponseTime += ss.getResponseTimeAvg();
@@ -263,7 +263,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                 
                 // create new list and hot swap the reference
                 List<Double> finalWeights = new ArrayList<Double>();
-                for (Server server : nlb.getServerList(false)) {
+                for (Server server : nlb.getAllServers()) {
                     ServerStats ss = stats.getSingleServerStat(server);
                     double weight = totalResponseTime - ss.getResponseTimeAvg();
                     weightSoFar += weight;

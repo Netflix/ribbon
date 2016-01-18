@@ -174,7 +174,7 @@ public class SubsetFilterTest {
             e.printStackTrace();
         }
         lb.updateListOfServers();
-        List<Server> filtered = lb.getServerList(false);
+        List<Server> filtered = lb.getAllServers();
         // first filtering, should get 5 servers 
         assertEquals(filtered.size(), 5);
         
@@ -203,7 +203,7 @@ public class SubsetFilterTest {
         // filter again, this time some servers will be eliminated
         serverList.setServerList(list);
         lb.updateListOfServers();
-        filtered = lb.getServerList(false);
+        filtered = lb.getAllServers();
         
         assertEquals(5, filtered.size());
         assertTrue(!filtered.contains(s1));
@@ -215,7 +215,7 @@ public class SubsetFilterTest {
         // Not enough healthy servers, just get whatever is available
         serverList.setServerList(Lists.newArrayList(filtered));
         lb.updateListOfServers();
-        List<Server> lastFiltered = lb.getServerList(false);
+        List<Server> lastFiltered = lb.getAllServers();
         assertEquals(5, lastFiltered.size());
 
     }

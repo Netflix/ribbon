@@ -279,7 +279,7 @@ public class ZoneAwareLoadBalancerTest {
         servers.add(createServer(1, "b"));
         servers.add(createServer(2, "b"));
         balancer.setServersList(servers);
-        assertTrue(balancer.getLoadBalancer("us-east-1c").getServerList(false).isEmpty());
+        assertTrue(balancer.getLoadBalancer("us-east-1c").getAllServers().isEmpty());
         AvailabilityFilteringRule rule = (AvailabilityFilteringRule) balancer.getLoadBalancer("us-east-1c").getRule();
         assertEquals(0, rule.getAvailableServersCount());
     }

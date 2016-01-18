@@ -57,10 +57,10 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         Server server = null;
         int count = 0;
         while (server == null && count++ < 10) {
-            List<Server> upList = lb.getServerList(AVAILABLE_ONLY_SERVERS);
-            List<Server> allList = lb.getServerList(ALL_SERVERS);
-            int upCount = upList.size();
-            int serverCount = allList.size();
+            List<Server> reachableServers = lb.getReachableServers();
+            List<Server> allServers = lb.getAllServers();
+            int upCount = reachableServers.size();
+            int serverCount = allServers.size();
 
             if ((upCount == 0) || (serverCount == 0)) {
                 log.warn("No up servers available from load balancer: " + lb);
@@ -68,7 +68,7 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
             }
 
             int nextServerIndex = incrementAndGetModulo(serverCount);
-            server = allList.get(nextServerIndex);
+            server = allServers.get(nextServerIndex);
 
             if (server == null) {
                 /* Transient. */
@@ -103,8 +103,9 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
             int next = (current + 1) % modulo;
             if (nextServerCyclicCounter.compareAndSet(current, next))
                 return next;
-            }
         }
+    }
+
     @Override
     public Server choose(Object key) {
         return choose(getLoadBalancer(), key);

@@ -65,5 +65,16 @@ public class NoOpLoadBalancer extends AbstractLoadBalancer {
 	public List<Server> getServerList(boolean availableOnly) {
 		// TODO Auto-generated method stub
 		return null;
-	}    
+	}
+
+    @Override
+    public List<Server> getReachableServers() {
+        return null;
+
+    }
+
+    @Override
+    public List<Server> getAllServers() {
+        return null;
+    }
 }

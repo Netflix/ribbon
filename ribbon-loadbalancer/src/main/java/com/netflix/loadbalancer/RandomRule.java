@@ -50,8 +50,8 @@ public class RandomRule extends AbstractLoadBalancerRule {
             if (Thread.interrupted()) {
                 return null;
             }
-            List<Server> upList = lb.getServerList(true);
-            List<Server> allList = lb.getServerList(false);
+            List<Server> upList = lb.getReachableServers();
+            List<Server> allList = lb.getAllServers();
 
             int serverCount = allList.size();
             if (serverCount == 0) {

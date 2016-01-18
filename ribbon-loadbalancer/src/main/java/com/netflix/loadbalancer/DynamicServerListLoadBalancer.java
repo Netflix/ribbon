@@ -167,7 +167,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         updateListOfServers();
         if (primeConnection && this.getPrimeConnections() != null) {
             this.getPrimeConnections()
-                    .primeConnections(getServerList(true));
+                    .primeConnections(getReachableServers());
         }
         this.setEnablePrimingConnections(primeConnection);
         LOGGER.info("DynamicServerListLoadBalancer for client {} initialized: {}", clientConfig.getClientName(), this.toString());

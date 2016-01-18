@@ -59,9 +59,24 @@ public interface ILoadBalancer {
 	public void markServerDown(Server server);
 	
 	/**
+	 * @deprecated 2016-01-20 This method is deprecated in favor of the
+	 * cleaner {@link #getReachableServers} (equivalent to availableOnly=true)
+	 * and {@link #getAllServers} API (equivalent to availableOnly=false).
+	 *
 	 * Get the current list of servers.
-	 * 
+	 *
 	 * @param availableOnly if true, only live and available servers should be returned
 	 */
+	@Deprecated
 	public List<Server> getServerList(boolean availableOnly);
+
+	/**
+	 * @return Only the servers that are up and reachable.
+     */
+    public List<Server> getReachableServers();
+
+    /**
+     * @return All known servers, both reachable and unreachable.
+     */
+	public List<Server> getAllServers();
 }
