@@ -234,7 +234,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         }
     }
 
-    private void setupPingTask() {
+    void setupPingTask() {
         if (canSkipPing()) {
             return;
         }
@@ -630,13 +630,11 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     class Pinger {
 
         public void runPinger() {
-
             if (pingInProgress.get()) {
                 return; // Ping in progress - nothing to do
             } else {
                 pingInProgress.set(true);
             }
-
             // we are "in" - we get to Ping
 
             Object[] allServers = null;
@@ -710,7 +708,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                         newUpList.add(svr);
                     }
                 }
-                // System.out.println(count + " servers alive");
                 upLock = upServerLock.writeLock();
                 upLock.lock();
                 upServerList = newUpList;
