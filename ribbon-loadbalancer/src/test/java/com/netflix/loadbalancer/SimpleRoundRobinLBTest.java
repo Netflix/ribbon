@@ -63,7 +63,6 @@ public class SimpleRoundRobinLBTest {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 		}
-		System.out.println(lb.getServerList(true));
 	}
 	
 	@AfterClass

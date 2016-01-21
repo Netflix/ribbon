@@ -49,7 +49,7 @@ public class DiscoveryLoadBalancerTest extends MockedDiscoveryServerListTest {
                 .set(IClientConfigKey.Keys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
         LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(config);
         LoadBalancerContext lbContext = client.getLoadBalancerContext();
-        List<Server> serverList = lbContext.getLoadBalancer().getServerList(false);
+        List<Server> serverList = lbContext.getLoadBalancer().getAllServers();
         assertEquals(getMockServerList(), serverList);
     }
 }

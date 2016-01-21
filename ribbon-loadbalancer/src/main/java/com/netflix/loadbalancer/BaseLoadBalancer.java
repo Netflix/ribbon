@@ -17,22 +17,6 @@
  */
 package com.netflix.loadbalancer;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
@@ -45,6 +29,15 @@ import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.util.concurrent.ShutdownEnabledTimer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.util.Collections.singleton;
 
@@ -241,7 +234,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         }
     }
 
-    private void setupPingTask() {
+    void setupPingTask() {
         if (canSkipPing()) {
             return;
         }
@@ -573,8 +566,17 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
     @Override
     public List<Server> getServerList(boolean availableOnly) {
-        return (availableOnly ? Collections.unmodifiableList(upServerList) : 
-        	Collections.unmodifiableList(allServerList));
+        return (availableOnly ? getReachableServers() : getAllServers());
+    }
+
+    @Override
+    public List<Server> getReachableServers() {
+        return Collections.unmodifiableList(upServerList);
+    }
+
+    @Override
+    public List<Server> getAllServers() {
+        return Collections.unmodifiableList(allServerList);
     }
 
     @Override
@@ -628,13 +630,11 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     class Pinger {
 
         public void runPinger() {
-
             if (pingInProgress.get()) {
                 return; // Ping in progress - nothing to do
             } else {
                 pingInProgress.set(true);
             }
-
             // we are "in" - we get to Ping
 
             Object[] allServers = null;
@@ -708,7 +708,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                         newUpList.add(svr);
                     }
                 }
-                // System.out.println(count + " servers alive");
                 upLock = upServerLock.writeLock();
                 upLock.lock();
                 upServerList = newUpList;
@@ -867,7 +866,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         // register the rule as it contains metric for available servers count
         Monitors.registerObject("Rule_" + name, this.getRule());
         if (enablePrimingConnections && primeConnections != null) {
-            primeConnections.primeConnections(getServerList(true));
+            primeConnections.primeConnections(getReachableServers());
         }
     }
 

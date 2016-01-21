@@ -41,7 +41,7 @@ public class BestAvailableRule extends ClientConfigEnabledRoundRobinRule {
         if (loadBalancerStats == null) {
             return super.choose(key);
         }
-        List<Server> serverList = getLoadBalancer().getServerList(false);
+        List<Server> serverList = getLoadBalancer().getAllServers();
         int minimalConcurrentConnections = Integer.MAX_VALUE;
         long currentTime = System.currentTimeMillis();
         Server chosen = null;
