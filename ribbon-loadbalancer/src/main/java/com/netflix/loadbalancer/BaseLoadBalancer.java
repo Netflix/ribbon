@@ -603,62 +603,21 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     }
 
     /**
-     * TimerTask that keeps runs every X seconds to check the status of each
-     * server/node in the Server List
-     * 
-     * @author stonse
-     * 
+     * Template method, which allows <c>BaseLoadBalancer</c> to use custom
+     * <c>IPingerStrategy</c>. Default implementation performs ping serially,
+     * which may not be applicable, if your <c>IPing</c> implementation is
+     * slow, or you have large number of servers.
      */
-    class PingTask extends TimerTask {
-        public void run() {
-            Pinger ping = new Pinger();
-            try {
-                ping.runPinger();
-            } catch (Throwable t) {
-                logger.error("Throwable caught while running extends for "
-                        + name, t);
-            }
-        }
-    }
-
-    /**
-     * Class that contains the mechanism to "ping" all the instances
-     * 
-     * @author stonse
-     *
-     */
-    class Pinger {
-
-        public void runPinger() {
-            if (pingInProgress.get()) {
-                return; // Ping in progress - nothing to do
-            } else {
-                pingInProgress.set(true);
-            }
-            // we are "in" - we get to Ping
-
-            Object[] allServers = null;
-            boolean[] results = null;
-
-            Lock allLock = null;
-            Lock upLock = null;
-
-            try {
-                /*
-                 * The readLock should be free unless an addServer operation is
-                 * going on...
-                 */
-                allLock = allServerLock.readLock();
-                allLock.lock();
-                allServers = allServerList.toArray();
-                allLock.unlock();
-
-                int numCandidates = allServers.length;
-                results = new boolean[numCandidates];
+    protected IPingerStrategy newPingerStrategy() {
+        return new IPingerStrategy() {
+            @Override
+            public boolean[] pingServers(Server[] servers) {
+                int numCandidates = servers.length;
+                boolean[] results = new boolean[numCandidates];
 
                 if (logger.isDebugEnabled()) {
                     logger.debug("LoadBalancer:  PingTask executing ["
-                            + numCandidates + "] servers configured");
+                                 + numCandidates + "] servers configured");
                 }
 
                 for (int i = 0; i < numCandidates; i++) {
@@ -677,20 +636,84 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                         // this
                         // serially
                         if (ping != null) {
-                            results[i] = ping.isAlive((Server) allServers[i]);
+                            results[i] = ping.isAlive(servers[i]);
                         }
                     } catch (Throwable t) {
                         logger.error("Exception while pinging Server:"
-                                + allServers[i], t);
+                                     + servers[i], t);
                     }
                 }
+                return results;
+            }
+        };
+    }
+
+    /**
+     * TimerTask that keeps runs every X seconds to check the status of each
+     * server/node in the Server List
+     * 
+     * @author stonse
+     * 
+     */
+    class PingTask extends TimerTask {
+        public void run() {
+            Pinger ping = new Pinger(newPingerStrategy());
+            try {
+                ping.runPinger();
+            } catch (Throwable t) {
+                logger.error("Throwable caught while running extends for "
+                        + name, t);
+            }
+        }
+    }
+
+    /**
+     * Class that contains the mechanism to "ping" all the instances
+     * 
+     * @author stonse
+     *
+     */
+    class Pinger {
+
+        private final IPingerStrategy pingerStrategy;
+
+        public Pinger(IPingerStrategy pingerStrategy) {
+            this.pingerStrategy = pingerStrategy;
+        }
+
+        public void runPinger() {
+            if (pingInProgress.get()) {
+                return; // Ping in progress - nothing to do
+            } else {
+                pingInProgress.set(true);
+            }
+            // we are "in" - we get to Ping
+
+            Server[] allServers = null;
+            boolean[] results = null;
+
+            Lock allLock = null;
+            Lock upLock = null;
+
+            try {
+                /*
+                 * The readLock should be free unless an addServer operation is
+                 * going on...
+                 */
+                allLock = allServerLock.readLock();
+                allLock.lock();
+                allServers = allServerList.toArray(new Server[allServerList.size()]);
+                allLock.unlock();
+
+                int numCandidates = allServers.length;
+                results = pingerStrategy.pingServers(allServers);
 
                 final List<Server> newUpList = new ArrayList<Server>();
                 final List<Server> changedServers = new ArrayList<Server>();
 
                 for (int i = 0; i < numCandidates; i++) {
                     boolean isAlive = results[i];
-                    Server svr = (Server) allServers[i];
+                    Server svr = allServers[i];
                     boolean oldIsAlive = svr.isAlive();
 
                     svr.setAlive(isAlive);
@@ -840,7 +863,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  forceQuickPing invoked");
         }
-        Pinger ping = new Pinger();
+        Pinger ping = new Pinger(newPingerStrategy());
         try {
             ping.runPinger();
         } catch (Throwable t) {
