@@ -11,7 +11,7 @@ package com.netflix.loadbalancer;
  * @see Server
  * @see IPing
  */
-public interface IPingerStrategy {
+public interface IPingStrategy {
 
-    boolean[] pingServers(Server[] servers);
+    boolean[] pingServers(IPing ping, Server[] servers);
 }

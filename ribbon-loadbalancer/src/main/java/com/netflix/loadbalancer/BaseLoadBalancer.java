@@ -56,10 +56,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     private static Logger logger = LoggerFactory
             .getLogger(BaseLoadBalancer.class);
     private final static IRule DEFAULT_RULE = new RoundRobinRule();
+    private final static SerialPingStrategy DEFAULT_PING_STRATEGY = new SerialPingStrategy();
     private static final String DEFAULT_NAME = "default";
     private static final String PREFIX = "LoadBalancer_";
 
     protected IRule rule = DEFAULT_RULE;
+
+    protected IPingStrategy pingStrategy = DEFAULT_PING_STRATEGY;
 
     protected IPing ping = null;
 
@@ -122,13 +125,23 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         this(DEFAULT_NAME, rule, new LoadBalancerStats(DEFAULT_NAME), ping);
     }
 
+    public BaseLoadBalancer(IPing ping, IRule rule, IPingStrategy pingStrategy) {
+        this(DEFAULT_NAME, rule, new LoadBalancerStats(DEFAULT_NAME), ping, pingStrategy);
+    }
+
     public BaseLoadBalancer(String name, IRule rule, LoadBalancerStats stats,
             IPing ping) {
+        this(name, rule, stats, ping, DEFAULT_PING_STRATEGY);
+    }
+    
+    public BaseLoadBalancer(String name, IRule rule, LoadBalancerStats stats,
+            IPing ping, IPingStrategy pingStrategy) {
         if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  initialized");
         }
         this.name = name;
         this.ping = ping;
+        this.pingStrategy = pingStrategy;
         setRule(rule);
         setupPingTask();
         lbStats = stats;
@@ -603,52 +616,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     }
 
     /**
-     * Template method, which allows <c>BaseLoadBalancer</c> to use custom
-     * <c>IPingerStrategy</c>. Default implementation performs ping serially,
-     * which may not be applicable, if your <c>IPing</c> implementation is
-     * slow, or you have large number of servers.
-     */
-    protected IPingerStrategy newPingerStrategy() {
-        return new IPingerStrategy() {
-            @Override
-            public boolean[] pingServers(Server[] servers) {
-                int numCandidates = servers.length;
-                boolean[] results = new boolean[numCandidates];
-
-                if (logger.isDebugEnabled()) {
-                    logger.debug("LoadBalancer:  PingTask executing ["
-                                 + numCandidates + "] servers configured");
-                }
-
-                for (int i = 0; i < numCandidates; i++) {
-                    results[i] = false; /* Default answer is DEAD. */
-                    try {
-                        // NOTE: IFF we were doing a real ping
-                        // assuming we had a large set of servers (say 15)
-                        // the logic below will run them serially
-                        // hence taking 15 times the amount of time it takes
-                        // to ping each server
-                        // A better method would be to put this in an executor
-                        // pool
-                        // But, at the time of this writing, we dont REALLY
-                        // use a Real Ping (its mostly in memory eureka call)
-                        // hence we can afford to simplify this design and run
-                        // this
-                        // serially
-                        if (ping != null) {
-                            results[i] = ping.isAlive(servers[i]);
-                        }
-                    } catch (Throwable t) {
-                        logger.error("Exception while pinging Server:"
-                                     + servers[i], t);
-                    }
-                }
-                return results;
-            }
-        };
-    }
-
-    /**
      * TimerTask that keeps runs every X seconds to check the status of each
      * server/node in the Server List
      * 
@@ -657,7 +624,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      */
     class PingTask extends TimerTask {
         public void run() {
-            Pinger ping = new Pinger(newPingerStrategy());
+            Pinger ping = new Pinger(pingStrategy);
             try {
                 ping.runPinger();
             } catch (Throwable t) {
@@ -675,9 +642,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      */
     class Pinger {
 
-        private final IPingerStrategy pingerStrategy;
+        private final IPingStrategy pingerStrategy;
 
-        public Pinger(IPingerStrategy pingerStrategy) {
+        public Pinger(IPingStrategy pingerStrategy) {
             this.pingerStrategy = pingerStrategy;
         }
 
@@ -706,7 +673,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 allLock.unlock();
 
                 int numCandidates = allServers.length;
-                results = pingerStrategy.pingServers(allServers);
+                results = pingerStrategy.pingServers(ping, allServers);
 
                 final List<Server> newUpList = new ArrayList<Server>();
                 final List<Server> changedServers = new ArrayList<Server>();
@@ -863,7 +830,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if (logger.isDebugEnabled()) {
             logger.debug("LoadBalancer:  forceQuickPing invoked");
         }
-        Pinger ping = new Pinger(newPingerStrategy());
+        Pinger ping = new Pinger(pingStrategy);
         try {
             ping.runPinger();
         } catch (Throwable t) {
@@ -922,5 +889,49 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         }
         Monitors.unregisterObject("LoadBalancer_" + name, this);
         Monitors.unregisterObject("Rule_" + name, this.getRule());
+    }
+
+    /**
+     * Default implementation for <c>IPingStrategy</c>, performs ping
+     * serially, which may not be desirable, if your <c>IPing</c>
+     * implementation is slow, or you have large number of servers.
+     */
+    private static class SerialPingStrategy implements IPingStrategy {
+
+        @Override
+        public boolean[] pingServers(IPing ping, Server[] servers) {
+            int numCandidates = servers.length;
+            boolean[] results = new boolean[numCandidates];
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("LoadBalancer:  PingTask executing ["
+                             + numCandidates + "] servers configured");
+            }
+
+            for (int i = 0; i < numCandidates; i++) {
+                results[i] = false; /* Default answer is DEAD. */
+                try {
+                    // NOTE: IFF we were doing a real ping
+                    // assuming we had a large set of servers (say 15)
+                    // the logic below will run them serially
+                    // hence taking 15 times the amount of time it takes
+                    // to ping each server
+                    // A better method would be to put this in an executor
+                    // pool
+                    // But, at the time of this writing, we dont REALLY
+                    // use a Real Ping (its mostly in memory eureka call)
+                    // hence we can afford to simplify this design and run
+                    // this
+                    // serially
+                    if (ping != null) {
+                        results[i] = ping.isAlive(servers[i]);
+                    }
+                } catch (Throwable t) {
+                    logger.error("Exception while pinging Server:"
+                                 + servers[i], t);
+                }
+            }
+            return results;
+        }
     }
 }
