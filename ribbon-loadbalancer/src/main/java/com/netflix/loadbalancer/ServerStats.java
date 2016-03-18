@@ -71,6 +71,9 @@ public class ServerStats {
     
     @VisibleForTesting
     AtomicInteger activeRequestsCount = new AtomicInteger(0);
+
+    @VisibleForTesting
+    AtomicInteger openConnectionsCount = new AtomicInteger(0);
     
     private volatile long lastConnectionFailedTimestamp;
     private volatile long lastActiveRequestsCountChangeTimestamp;
@@ -212,14 +215,24 @@ public class ServerStats {
         }
     }
 
+    public void incrementOpenConnectionsCount() {
+        openConnectionsCount.incrementAndGet();
+    }
+
     public void decrementActiveRequestsCount() {
         if (activeRequestsCount.decrementAndGet() < 0) {
             activeRequestsCount.set(0);
         }
         lastActiveRequestsCountChangeTimestamp = System.currentTimeMillis();
     }
+
+    public void decrementOpenConnectionsCount() {
+        if (openConnectionsCount.decrementAndGet() < 0) {
+            openConnectionsCount.set(0);
+        }
+    }
     
-    public int getActiveRequestsCount() {
+    public int  getActiveRequestsCount() {
         return getActiveRequestsCount(System.currentTimeMillis());
     }
 
@@ -233,6 +246,10 @@ public class ServerStats {
         } else {
             return count;
         }
+    }
+
+    public int getOpenConnectionsCount() {
+        return openConnectionsCount.get();
     }
 
     
