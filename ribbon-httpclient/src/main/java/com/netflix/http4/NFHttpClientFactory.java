@@ -17,11 +17,14 @@
  */
 package com.netflix.http4;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.collections.keyvalue.MultiKey;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Monitors;
@@ -32,14 +35,19 @@ import com.netflix.servo.monitor.Monitors;
  *
  */
 public class NFHttpClientFactory {
-
-	private static Map<MultiKey,NFHttpClient> clientMap = new ConcurrentHashMap<MultiKey,NFHttpClient>();
+   
+	private static final ConcurrentMap<MultiKey,NFHttpClient> clientMap = new ConcurrentHashMap<MultiKey,NFHttpClient>();
+	private static final ConcurrentMap<String,NFHttpClient> namedClientMap = new ConcurrentHashMap<String,NFHttpClient>();
+    private static final LoadingCache<String, Object> locks = CacheBuilder.newBuilder()
+            .weakValues()
+            .build(new CacheLoader<String, Object>() {
+                @Override
+                public Object load(String key) throws Exception {
+                   return new Object();
+                } 
+             });
 	
-	private static Map<String,NFHttpClient> namedClientMap = new ConcurrentHashMap<String,NFHttpClient>();
-	
-	private static NFHttpClient defaultClient = new NFHttpClient();	
-	
-	private static Object lock = new Object();
+	private static NFHttpClient defaultClient = new NFHttpClient();
 	
 	public static NFHttpClient getNFHttpClient(String host, int port){
 		MultiKey mk = new MultiKey(host,port);
@@ -67,7 +75,7 @@ public class NFHttpClientFactory {
 		NFHttpClient client = namedClientMap.get(name);		
 		//avoid creating multiple HttpClient instances 
 		if (client == null){
-		    synchronized (lock) {
+		    synchronized (locks.getUnchecked(name)) {
 		        client = namedClientMap.get(name);       
 		        if (client == null){
         			client = new NFHttpClient(name, config, registerMonitor);
