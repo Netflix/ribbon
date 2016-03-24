@@ -24,8 +24,8 @@ import java.util.concurrent.ExecutorService;
  * share the same configuration at {@link com.netflix.loadbalancer.ZoneAwareLoadBalancerConfig}
  * as they have equivalent semantic meaning.
  *
- * Why not re-use? The current interface structures and implementations makes is quite difficult to
- * decompose while maintaining good backwards compatibility.
+ * Why not re-use code? The current interface structures and implementations makes is quite difficult to
+ * decompose existing classes while maintaining good backwards compatibility.
  *
  * @author David Liu
  */
