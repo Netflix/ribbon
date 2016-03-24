@@ -17,7 +17,6 @@
  */
 package com.netflix.loadbalancer;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -29,17 +28,10 @@ import com.netflix.servo.annotations.Monitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A LoadBalancer that has the capabilities to obtain the candidate list of
@@ -51,36 +43,20 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author stonse
  * 
  */
-public class DynamicServerListLoadBalancer<T extends Server> extends
-        BaseLoadBalancer {
-    private static final Logger LOGGER = LoggerFactory
-            .getLogger(DynamicServerListLoadBalancer.class);
+public class DynamicServerListLoadBalancer<T extends Server> extends AbstractDynamicServerListLoadBalancer<T> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DynamicServerListLoadBalancer.class);
 
     boolean isSecure = false;
     boolean useTunnel = false;
     private static Thread _shutdownThread;
 
-    // to keep track of modification of server lists
-    protected AtomicBoolean serverListUpdateInProgress = new AtomicBoolean(
-            false);
-
     private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; // msecs;
     private static int LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 * 1000; // msecs;
-                                                                         // //
-                                                                         // every
-                                                                         // 30
-                                                                         // secs
 
     private static ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
 
     private long refeshIntervalMills = LISTOFSERVERS_CACHE_REPEAT_INTERVAL;
 
-    volatile ServerList<T> serverListImpl;
-
-    volatile ServerListFilter<T> filter;
-    
-    private AtomicLong lastUpdated = new AtomicLong(System.currentTimeMillis());
-    
     protected volatile boolean serverRefreshEnabled = false;
     private final static String CORE_THREAD = "DynamicServerListLoadBalancer.ThreadPoolSize";
     private final static DynamicIntProperty poolSizeProp = new DynamicIntProperty(CORE_THREAD, 2);
@@ -89,7 +65,10 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
     static {
         int coreSize = poolSizeProp.get();
-        ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true).build();
+        ThreadFactory factory = new ThreadFactoryBuilder()
+                .setNameFormat("DynamicServerListLoadBalancer-ServerListUpdate-%d")
+                .setDaemon(true)
+                .build();
         _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(coreSize, factory);
         poolSizeProp.addCallback(new Runnable() {
             @Override
@@ -173,57 +152,10 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         LOGGER.info("DynamicServerListLoadBalancer for client {} initialized: {}", clientConfig.getClientName(), this.toString());
     }
     
-    
-    @Override
-    public void setServersList(List lsrv) {
-        super.setServersList(lsrv);
-        List<T> serverList = (List<T>) lsrv;
-        Map<String, List<Server>> serversInZones = new HashMap<String, List<Server>>();
-        for (Server server : serverList) {
-            // make sure ServerStats is created to avoid creating them on hot
-            // path
-            getLoadBalancerStats().getSingleServerStat(server);
-            String zone = server.getZone();
-            if (zone != null) {
-                zone = zone.toLowerCase();
-                List<Server> servers = serversInZones.get(zone);
-                if (servers == null) {
-                    servers = new ArrayList<Server>();
-                    serversInZones.put(zone, servers);
-                }
-                servers.add(server);
-            }
-        }
-        setServerListForZones(serversInZones);
-    }
-
-    protected void setServerListForZones(
-            Map<String, List<Server>> zoneServersMap) {
-        LOGGER.debug("Setting server list for zones: {}", zoneServersMap);
-        getLoadBalancerStats().updateZoneServerMapping(zoneServersMap);
-    }
-
-    public ServerList<T> getServerListImpl() {
-        return serverListImpl;
-    }
-
-    public void setServerListImpl(ServerList<T> niwsServerList) {
-        this.serverListImpl = niwsServerList;
-    }
-
-    public ServerListFilter<T> getFilter() {
-        return filter;
-    }
-
-    public void setFilter(ServerListFilter<T> filter) {
-        this.filter = filter;
-    }
-
-    @Override
     /**
      * Makes no sense to ping an inmemory disc client
-     * 
      */
+    @Override
     public void forceQuickPing() {
         // no-op
     }
@@ -236,10 +168,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
     public void enableAndInitLearnNewServersFeature() {
         keepServerListUpdated();
         serverRefreshEnabled = true;
-    }
-
-    private String getIdentifier() {
-        return this.getClientConfig().getClientName();
     }
 
     private void keepServerListUpdated() {
@@ -266,6 +194,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         }
     }
 
+    @Override
     public void stopServerListRefreshing() {
         serverRefreshEnabled = false;
         if (scheduledFuture != null) {
@@ -303,43 +232,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
 
     }
 
-    @VisibleForTesting
-    public void updateListOfServers() {
-        List<T> servers = new ArrayList<T>();
-        if (serverListImpl != null) {
-            servers = serverListImpl.getUpdatedListOfServers();
-            LOGGER.debug("List of Servers for {} obtained from Discovery client: {}",
-                    getIdentifier(), servers);
-
-            if (filter != null) {
-                servers = filter.getFilteredListOfServers(servers);
-                LOGGER.debug("Filtered List of Servers for {} obtained from Discovery client: {}",
-                        getIdentifier(), servers);
-            }
-        }
-        lastUpdated.set(System.currentTimeMillis());
-        updateAllServerList(servers);
-    }
-
-    /**
-     * Update the AllServer list in the LoadBalancer if necessary and enabled
-     * 
-     * @param ls
-     */
-    protected void updateAllServerList(List<T> ls) {
-        // other threads might be doing this - in which case, we pass
-        if (serverListUpdateInProgress.compareAndSet(false, true)) {
-            for (T s : ls) {
-                s.setAlive(true); // set so that clients can start using these
-                                  // servers right away instead
-                // of having to wait out the ping cycle.
-            }
-            setServersList(ls);
-            super.forceQuickPing();
-            serverListUpdateInProgress.set(false);
-        }
-    }
-
     @Monitor(name="NumUpdateCyclesMissed", type=DataSourceType.GAUGE)
     public int getNumberMissedCycles() {
         if (!serverRefreshEnabled) {
@@ -348,12 +240,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         return (int) ((int) (System.currentTimeMillis() - lastUpdated.get()) / refeshIntervalMills);
     }
     
-    @Monitor(name="LastUpdated", type=DataSourceType.INFORMATIONAL)
-    public String getLastUpdate() {
-        return new Date(lastUpdated.get()).toString();
-    }
-    
-    @Monitor(name="NumThreads", type=DataSourceType.GAUGE) 
+    @Monitor(name="NumThreads", type=DataSourceType.GAUGE)
     public int getCoreThreads() {
         if (_serverListRefreshExecutor != null) {
             return _serverListRefreshExecutor.getCorePoolSize();
@@ -368,11 +255,5 @@ public class DynamicServerListLoadBalancer<T extends Server> extends
         sb.append(super.toString());
         sb.append("ServerList:" + String.valueOf(serverListImpl));
         return sb.toString();
-    }
-    
-    @Override 
-    public void shutdown() {
-        super.shutdown();
-        stopServerListRefreshing();
     }
 }
