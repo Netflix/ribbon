@@ -29,7 +29,7 @@ import java.util.concurrent.ExecutorService;
  *
  * @author David Liu
  */
-public class EurekaZoneAwareLoadBalancer extends EurekaDynamicNotificationLoadBalancer {
+public final class EurekaZoneAwareLoadBalancer extends EurekaDynamicNotificationLoadBalancer {
 
     private ConcurrentHashMap<String, BaseLoadBalancer> balancers = new ConcurrentHashMap<String, BaseLoadBalancer>();
 

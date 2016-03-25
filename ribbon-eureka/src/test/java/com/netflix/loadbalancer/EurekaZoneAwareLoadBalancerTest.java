@@ -2,8 +2,11 @@ package com.netflix.loadbalancer;
 
 import com.netflix.appinfo.AmazonInfo;
 import com.netflix.appinfo.InstanceInfo;
+import com.netflix.appinfo.MyDataCenterInstanceConfig;
 import com.netflix.client.ClientFactory;
 import com.netflix.config.ConfigurationManager;
+import com.netflix.discovery.DefaultEurekaClientConfig;
+import com.netflix.discovery.DiscoveryManager;
 import com.netflix.discovery.util.InstanceInfoGenerator;
 import com.netflix.niws.loadbalancer.DiscoveryEnabledServer;
 import org.junit.Test;
@@ -302,9 +305,12 @@ public class EurekaZoneAwareLoadBalancerTest {
         ConfigurationManager.getConfigInstance().setProperty("mylb.ribbon.DeploymentContextBasedVipAddresses", "dummy");
 
         try {
+            setUpLegacyDiscovery();
+
             EurekaZoneAwareLoadBalancer lb = (EurekaZoneAwareLoadBalancer) ClientFactory.getNamedLoadBalancer("mylb");
             assertTrue(lb.getLoadBalancer("myzone").getRule() instanceof RandomRule);
         } finally {
+            tearDownLegacyDiscovery();
             ConfigurationManager.getConfigInstance().clearProperty("mylb.ribbon.NFLoadBalancerRuleClassName");
             ConfigurationManager.getConfigInstance().clearProperty("mylb.ribbon.NFLoadBalancerClassName");
             ConfigurationManager.getConfigInstance().clearProperty("mylb.ribbon.DeploymentContextBasedVipAddresses");
@@ -320,6 +326,8 @@ public class EurekaZoneAwareLoadBalancerTest {
         ConfigurationManager.getConfigInstance().setProperty("testlb.ribbon.DeploymentContextBasedVipAddresses", vipAddress);
 
         try {
+            setUpLegacyDiscovery();
+
             EurekaZoneAwareLoadBalancer balancer = (EurekaZoneAwareLoadBalancer) ClientFactory.getNamedLoadBalancer("testlb");
             LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
             assertNotNull(loadBalancerStats);
@@ -376,9 +384,27 @@ public class EurekaZoneAwareLoadBalancerTest {
             }
             assertEquals(expected, result);
         } finally {
+            tearDownLegacyDiscovery();
             ConfigurationManager.getConfigInstance().clearProperty("testlb.ribbon.ActiveConnectionsLimit");
             ConfigurationManager.getConfigInstance().clearProperty("testlb.ribbon.NFLoadBalancerClassName");
             ConfigurationManager.getConfigInstance().clearProperty("testlb.ribbon.DeploymentContextBasedVipAddresses");
         }
+    }
+
+    private void setUpLegacyDiscovery() {
+        DiscoveryManager.getInstance().initComponent(new MyDataCenterInstanceConfig(), new DefaultEurekaClientConfig() {
+            @Override
+            public boolean shouldRegisterWithEureka() {
+                return false;
+            }
+            @Override
+            public boolean shouldFetchRegistry() {
+                return false;
+            }
+        });
+    }
+
+    private void tearDownLegacyDiscovery() {
+        DiscoveryManager.getInstance().shutdownComponent();
     }
 }

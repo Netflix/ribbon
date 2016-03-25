@@ -8,10 +8,10 @@ import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.EurekaEventListener;
 import com.netflix.discovery.util.InstanceInfoGenerator;
-import com.netflix.loadbalancer.EurekaDynamicNotificationLoadBalancer;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
@@ -35,22 +35,29 @@ public class EurekaDynamicNotificationLoadBalancerTest {
     private final int initialServerListSize = 4;
     private final int secondServerListSize = servers.size() - initialServerListSize;
 
+    private DefaultClientConfigImpl config;
+    private EurekaClient eurekaClientMock;
+
+    @Before
+    public void setUp() {
+        eurekaClientMock = setUpEurekaClientMock(servers);;
+
+        config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+        String vipAddress = servers.get(0).getVIPAddress();
+        config.setProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses, vipAddress);
+    }
+
     @Test
     public void testEurekaDynamicNotificationLoadBalancer() throws Exception {
         Assert.assertNotEquals("the two test server list counts shoult be different",
                 secondServerListSize, initialServerListSize);
 
         EurekaDynamicNotificationLoadBalancer lb = null;
-        final EurekaClient eurekaClientMock = setUpEurekaClientMock(servers);;
         try {
             // a whole lotta set up
             Capture<EurekaEventListener> eventListenerCapture = new Capture<EurekaEventListener>();
 
             eurekaClientMock.registerEventListener(EasyMock.capture(eventListenerCapture));
-
-            DefaultClientConfigImpl config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
-            String vipAddress = servers.get(0).getVIPAddress();
-            config.setProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses, vipAddress);
 
             PowerMock.replay(DiscoveryClient.class);
             PowerMock.replay(eurekaClientMock);
@@ -65,7 +72,7 @@ public class EurekaDynamicNotificationLoadBalancerTest {
                             return eurekaClientMock;
                         }
                     },
-                    EurekaDynamicNotificationLoadBalancer.DEFAULT_SERVER_LIST_UPDATE_EXECUTOR
+                    EurekaDynamicNotificationLoadBalancer.getDefaultServerListUpdateExecutor()
             );
 
             Assert.assertEquals(initialServerListSize, lb.getServerCount(false));
@@ -82,6 +89,59 @@ public class EurekaDynamicNotificationLoadBalancerTest {
                 PowerMock.verify(DiscoveryClient.class);
                 PowerMock.verify(eurekaClientMock);
             }
+        }
+    }
+
+    @Test
+    public void testShutdownMultiple() {
+        try {
+            eurekaClientMock.registerEventListener(EasyMock.anyObject(EurekaEventListener.class));
+            EasyMock.expectLastCall().anyTimes();
+
+            PowerMock.replay(DiscoveryClient.class);
+            PowerMock.replay(eurekaClientMock);
+
+            EurekaDynamicNotificationLoadBalancer lb1 = new EurekaDynamicNotificationLoadBalancer(
+                    config,
+                    new Provider<EurekaClient>() {
+                        @Override
+                        public EurekaClient get() {
+                            return eurekaClientMock;
+                        }
+                    },
+                    EurekaDynamicNotificationLoadBalancer.getDefaultServerListUpdateExecutor()
+            );
+
+            EurekaDynamicNotificationLoadBalancer lb2 = new EurekaDynamicNotificationLoadBalancer(
+                    config,
+                    new Provider<EurekaClient>() {
+                        @Override
+                        public EurekaClient get() {
+                            return eurekaClientMock;
+                        }
+                    },
+                    EurekaDynamicNotificationLoadBalancer.getDefaultServerListUpdateExecutor()
+            );
+
+            EurekaDynamicNotificationLoadBalancer lb3 = new EurekaDynamicNotificationLoadBalancer(
+                    config,
+                    new Provider<EurekaClient>() {
+                        @Override
+                        public EurekaClient get() {
+                            return eurekaClientMock;
+                        }
+                    },
+                    EurekaDynamicNotificationLoadBalancer.getDefaultServerListUpdateExecutor()
+            );
+
+            lb3.shutdown();
+            lb1.shutdown();
+            lb2.shutdown();
+
+            Assert.assertEquals(lb1.getDefaultServerListExecutorReferences(), 0);
+        } finally {
+            PowerMock.verify(DiscoveryClient.class);
+            PowerMock.verify(eurekaClientMock);
         }
     }
 
@@ -114,9 +174,13 @@ public class EurekaDynamicNotificationLoadBalancerTest {
                 .expect(eurekaClientMock.getInstancesByVipAddress(EasyMock.anyString(), EasyMock.anyBoolean(), EasyMock.anyString()))
                 .andReturn(servers.subList(0, initialServerListSize)).times(1)
                 .andReturn(servers.subList(initialServerListSize, servers.size())).anyTimes();
+
+        EasyMock
+                .expectLastCall();
+
         EasyMock
                 .expect(eurekaClientMock.unregisterEventListener(EasyMock.isA(EurekaEventListener.class)))
-                .andReturn(true);
+                .andReturn(true).anyTimes();
 
         return eurekaClientMock;
     }
