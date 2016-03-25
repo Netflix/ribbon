@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Provider;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A eureka specific dynamic loadbalancer that can update it's internal server list via notifications
@@ -37,12 +36,27 @@ public class EurekaDynamicNotificationLoadBalancer extends AbstractDynamicServer
                         .setDaemon(true)
                         .build()
         );
+
+        private static final Thread SHUTDOWN_THREAD = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                LOGGER.info("Shutting down the Executor for EurekaDynamicNotificationLoadBalancer");
+                try {
+                    DEFAULT_SERVER_LIST_UPDATE_EXECUTOR.shutdown();
+                    Runtime.getRuntime().removeShutdownHook(SHUTDOWN_THREAD);
+                } catch (Exception e) {
+                    // this can happen in the middle of a real shutdown, and that's ok.
+                }
+
+            }
+        });
+
+        static {
+            Runtime.getRuntime().addShutdownHook(SHUTDOWN_THREAD);
+        }
     }
 
-    private static final AtomicInteger DEFAULT_EXECUTOR_REFERENCES = new AtomicInteger(0);
-
     public static ExecutorService getDefaultServerListUpdateExecutor() {
-        DEFAULT_EXECUTOR_REFERENCES.incrementAndGet();
         return LazyHolder.DEFAULT_SERVER_LIST_UPDATE_EXECUTOR;
     }
 
@@ -64,7 +78,7 @@ public class EurekaDynamicNotificationLoadBalancer extends AbstractDynamicServer
     private final ExecutorService serverListUpdateService;
 
     // necessary for legacy use cases :(
-    @Deprecated
+    // callers of this must ensure initWithNiwsConfig is called also
     public EurekaDynamicNotificationLoadBalancer() {
         this(
                 null,
@@ -138,23 +152,6 @@ public class EurekaDynamicNotificationLoadBalancer extends AbstractDynamicServer
                 eurekaClient.unregisterEventListener(updateListener);
             }
         }
-
-        if (DEFAULT_EXECUTOR_REFERENCES.get() > 0) {  // a reference exist so can access the lazy holder
-            if (serverListUpdateService == LazyHolder.DEFAULT_SERVER_LIST_UPDATE_EXECUTOR) {  // is the default reference
-                if (DEFAULT_EXECUTOR_REFERENCES.decrementAndGet() <= 0) {
-                    LOGGER.info("Shutting down the default serverListUpdateExecutor as this is the last reference");
-                    serverListUpdateService.shutdown();
-                    return;
-                } else {
-                    LOGGER.info("Not shutting down the default serverListUpdateExecutor as there are {}" +
-                            " other references to it", DEFAULT_EXECUTOR_REFERENCES.get());
-                    return;
-                }
-            }
-        }
-
-        LOGGER.info("The current serverListUpdateExecutor is custom and is provided by a caller: {} " +
-                "Expecting the caller to shutdown the executor at the correct time.", serverListUpdateService);
     }
 
     @Override
@@ -168,11 +165,6 @@ public class EurekaDynamicNotificationLoadBalancer extends AbstractDynamicServer
     @Monitor(name="DurationSinceLastUpdateMs", type= DataSourceType.GAUGE)
     public long getDurationSinceLastUpdateMs() {
         return System.currentTimeMillis() - lastUpdated.get();
-    }
-
-    @Monitor(name="DefaultServerListExecutorReferences", type= DataSourceType.GAUGE)
-    public int getDefaultServerListExecutorReferences() {
-        return DEFAULT_EXECUTOR_REFERENCES.get();
     }
 
     // idempotent

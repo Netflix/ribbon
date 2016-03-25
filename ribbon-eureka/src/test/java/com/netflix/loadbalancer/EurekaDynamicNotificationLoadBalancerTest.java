@@ -21,6 +21,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import javax.inject.Provider;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,7 +50,7 @@ public class EurekaDynamicNotificationLoadBalancerTest {
 
     @Test
     public void testEurekaDynamicNotificationLoadBalancer() throws Exception {
-        Assert.assertNotEquals("the two test server list counts shoult be different",
+        Assert.assertNotEquals("the two test server list counts should be different",
                 secondServerListSize, initialServerListSize);
 
         EurekaDynamicNotificationLoadBalancer lb = null;
@@ -137,8 +138,39 @@ public class EurekaDynamicNotificationLoadBalancerTest {
             lb3.shutdown();
             lb1.shutdown();
             lb2.shutdown();
+        } finally {
+            PowerMock.verify(DiscoveryClient.class);
+            PowerMock.verify(eurekaClientMock);
+        }
+    }
 
-            Assert.assertEquals(lb1.getDefaultServerListExecutorReferences(), 0);
+    @Test
+    public void testShutdownIfNotUsingDefaultExecutor() {
+        try {
+            eurekaClientMock.registerEventListener(EasyMock.anyObject(EurekaEventListener.class));
+            EasyMock.expectLastCall().anyTimes();
+
+            ExecutorService mockExecutorService = PowerMock.createMock(ExecutorService.class);
+
+            PowerMock.replay(DiscoveryClient.class);
+            PowerMock.replay(eurekaClientMock);
+            PowerMock.replay(mockExecutorService);
+
+            EurekaDynamicNotificationLoadBalancer lb = new EurekaDynamicNotificationLoadBalancer(
+                    config,
+                    new Provider<EurekaClient>() {
+                        @Override
+                        public EurekaClient get() {
+                            return eurekaClientMock;
+                        }
+                    },
+                    mockExecutorService
+            );
+
+            lb.shutdown();
+
+            PowerMock.verify(mockExecutorService);
+
         } finally {
             PowerMock.verify(DiscoveryClient.class);
             PowerMock.verify(eurekaClientMock);
