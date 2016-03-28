@@ -136,6 +136,7 @@ public class Server {
                 id = id.substring(7);
             } else if (id.toLowerCase().startsWith("https://")) {
                 id = id.substring(8);
+                port = 443;
             }
 
             if (id.contains("/")) {
@@ -147,7 +148,6 @@ public class Server {
 
             if (colon_idx == -1) {
                 host = id; // default
-                port = 80;
             } else {
                 host = id.substring(0, colon_idx);
                 try {
