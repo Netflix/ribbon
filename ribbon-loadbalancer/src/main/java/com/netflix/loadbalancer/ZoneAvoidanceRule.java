@@ -53,8 +53,7 @@ public class ZoneAvoidanceRule extends PredicateBasedRule {
                              .build();
         
     }
-    
-    
+
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         ZoneAvoidancePredicate zonePredicate = new ZoneAvoidancePredicate(this, clientConfig);

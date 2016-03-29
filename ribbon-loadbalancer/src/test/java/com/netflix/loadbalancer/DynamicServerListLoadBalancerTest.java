@@ -36,20 +36,20 @@ import com.netflix.client.testutil.MockHttpServer;
 public class DynamicServerListLoadBalancerTest {
     @ClassRule
     public static MockHttpServer server = new MockHttpServer();
-    
+
     public static class MyServerList extends AbstractServerList<Server> {
 
         public final static CountDownLatch latch = new CountDownLatch(5);
         public final static AtomicInteger counter = new AtomicInteger(0);
-        
+
         public static final List<Server> list = Lists.newArrayList(new Server(server.getServerUrl()));
-        
+
         public MyServerList() {
         }
-        
+
         public MyServerList(IClientConfig clientConfig) {
         }
-        
+
         @Override
         public List<Server> getInitialListOfServers() {
             return list;
@@ -65,7 +65,7 @@ public class DynamicServerListLoadBalancerTest {
         @Override
         public void initWithNiwsConfig(IClientConfig clientConfig) {
         }
-        
+
     }
 
     @Test
