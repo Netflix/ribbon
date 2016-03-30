@@ -70,10 +70,16 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         super();
     }
 
-    
+    @Deprecated
     public ZoneAwareLoadBalancer(IClientConfig clientConfig, IRule rule,
             IPing ping, ServerList<T> serverList, ServerListFilter<T> filter) {
         super(clientConfig, rule, ping, serverList, filter);
+    }
+
+    public ZoneAwareLoadBalancer(IClientConfig clientConfig, IRule rule,
+                                 IPing ping, ServerList<T> serverList, ServerListFilter<T> filter,
+                                 ServerListUpdater serverListUpdater) {
+        super(clientConfig, rule, ping, serverList, filter, serverListUpdater);
     }
 
     public ZoneAwareLoadBalancer(IClientConfig niwsClientConfig) {

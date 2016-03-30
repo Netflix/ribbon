@@ -65,7 +65,6 @@ public class DynamicServerListLoadBalancerTest {
         @Override
         public void initWithNiwsConfig(IClientConfig clientConfig) {
         }
-        
     }
 
     @Test
