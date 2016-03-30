@@ -16,7 +16,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A server list updater for the {@link com.netflix.loadbalancer.DynamicServerListLoadBalancer} that
@@ -64,8 +63,10 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
     private final AtomicBoolean isActive = new AtomicBoolean(false);
     private final AtomicLong lastUpdated = new AtomicLong(System.currentTimeMillis());
     private final Provider<EurekaClient> eurekaClientProvider;
-    private final AtomicReference<EurekaEventListener> updateListenerRef = new AtomicReference<EurekaEventListener>();
     private final ExecutorService refreshExecutor;
+
+    private volatile EurekaEventListener updateListener;
+    private volatile EurekaClient eurekaClient;
 
     public EurekaNotificationServerListUpdater() {
         this(new LegacyEurekaClientProvider());
@@ -76,23 +77,14 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
     }
 
     public EurekaNotificationServerListUpdater(final Provider<EurekaClient> eurekaClientProvider, ExecutorService refreshExecutor) {
-        this.eurekaClientProvider = new Provider<EurekaClient>() {
-            private volatile EurekaClient eurekaClientInstance;
-            @Override
-            public synchronized EurekaClient get() {
-                if (eurekaClientInstance == null) {
-                    eurekaClientInstance = eurekaClientProvider.get();
-                }
-                return eurekaClientInstance;
-            }
-        };
+        this.eurekaClientProvider = eurekaClientProvider;
         this.refreshExecutor = refreshExecutor;
     }
 
     @Override
     public synchronized void start(final UpdateAction updateAction) {
         if (isActive.compareAndSet(false, true)) {
-            final EurekaEventListener updateListener = new EurekaEventListener() {
+            this.updateListener = new EurekaEventListener() {
                 @Override
                 public void onEvent(EurekaEvent event) {
                     if (event instanceof CacheRefreshedEvent) {
@@ -110,9 +102,11 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
                     }
                 }
             };
-            updateListenerRef.set(updateListener);
-            if (eurekaClientProvider.get() != null) {
-                eurekaClientProvider.get().registerEventListener(updateListener);
+            if (eurekaClient == null) {
+                eurekaClient = eurekaClientProvider.get();
+            }
+            if (eurekaClient != null) {
+                eurekaClient.registerEventListener(updateListener);
             }
         } else {
             logger.info("Update listener already registered, no-op");
@@ -122,8 +116,8 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
     @Override
     public synchronized void stop() {
         if (isActive.compareAndSet(true, false)) {
-            if (eurekaClientProvider.get() != null) {
-                eurekaClientProvider.get().unregisterEventListener(updateListenerRef.get());
+            if (eurekaClient != null) {
+                eurekaClient.unregisterEventListener(updateListener);
             }
         } else {
             logger.info("Not currently active, no-op");
