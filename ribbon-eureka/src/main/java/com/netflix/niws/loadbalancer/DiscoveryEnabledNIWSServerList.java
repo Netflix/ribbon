@@ -28,15 +28,17 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
-import com.netflix.discovery.DiscoveryManager;
+import com.netflix.discovery.EurekaClient;
 import com.netflix.loadbalancer.AbstractServerList;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Provider;
+
 /**
  * The server list class that fetches the server information from Eureka client. ServerList is used by
- * {@link DynamicServerListLoadBalancer} to get server list dynamically. 
+ * {@link DynamicServerListLoadBalancer} to get server list dynamically.
  *
  * @author stonse
  *
@@ -58,21 +60,43 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     boolean shouldUseOverridePort = false;
     boolean shouldUseIpAddr = false;
 
+    private final Provider<EurekaClient> eurekaClientProvider;
+
     /**
      * @deprecated use {@link #DiscoveryEnabledNIWSServerList(String)}
      * or {@link #DiscoveryEnabledNIWSServerList(IClientConfig)}
      */
     @Deprecated
     public DiscoveryEnabledNIWSServerList() {
+        this.eurekaClientProvider = new LegacyEurekaClientProvider();
     }
 
+    /**
+     * @deprecated
+     * use {@link #DiscoveryEnabledNIWSServerList(String, javax.inject.Provider)}
+     * @param vipAddresses
+     */
+    @Deprecated
     public DiscoveryEnabledNIWSServerList(String vipAddresses) {
-        IClientConfig clientConfig = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
-        clientConfig.set(Keys.DeploymentContextBasedVipAddresses, vipAddresses);
-        initWithNiwsConfig(clientConfig);
+        this(vipAddresses, new LegacyEurekaClientProvider());
     }
 
+    /**
+     * @deprecated
+     * use {@link #DiscoveryEnabledNIWSServerList(com.netflix.client.config.IClientConfig, javax.inject.Provider)}
+     * @param clientConfig
+     */
+    @Deprecated
     public DiscoveryEnabledNIWSServerList(IClientConfig clientConfig) {
+        this(clientConfig, new LegacyEurekaClientProvider());
+    }
+
+    public DiscoveryEnabledNIWSServerList(String vipAddresses, Provider<EurekaClient> eurekaClientProvider) {
+        this(createClientConfig(vipAddresses), eurekaClientProvider);
+    }
+
+    public DiscoveryEnabledNIWSServerList(IClientConfig clientConfig, Provider<EurekaClient> eurekaClientProvider) {
+        this.eurekaClientProvider = eurekaClientProvider;
         initWithNiwsConfig(clientConfig);
     }
 
@@ -116,10 +140,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                 }
             }
         }
-
-
     }
-
 
     @Override
     public List<DiscoveryEnabledServer> getInitialListOfServers(){
@@ -134,16 +155,17 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     private List<DiscoveryEnabledServer> obtainServersViaDiscovery() {
         List<DiscoveryEnabledServer> serverList = new ArrayList<DiscoveryEnabledServer>();
 
-        DiscoveryClient discoveryClient = DiscoveryManager.getInstance()
-                .getDiscoveryClient();
-        if (discoveryClient == null) {
+        if (eurekaClientProvider == null || eurekaClientProvider.get() == null) {
+            logger.warn("EurekaClient has not been initialized yet, returning an empty list");
             return new ArrayList<DiscoveryEnabledServer>();
         }
+
+        EurekaClient eurekaClient = eurekaClientProvider.get();
         if (vipAddresses!=null){
             for (String vipAddress : vipAddresses.split(",")) {
                 // if targetRegion is null, it will be interpreted as the same region of client
-                List<InstanceInfo> listOfinstanceInfo = discoveryClient.getInstancesByVipAddress(vipAddress, isSecure, targetRegion);
-                for (InstanceInfo ii : listOfinstanceInfo) {
+                List<InstanceInfo> listOfInstanceInfo = eurekaClient.getInstancesByVipAddress(vipAddress, isSecure, targetRegion);
+                for (InstanceInfo ii : listOfInstanceInfo) {
                     if (ii.getStatus().equals(InstanceStatus.UP)) {
 
                         if(shouldUseOverridePort){
@@ -194,4 +216,9 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     }
 
 
+    private static IClientConfig createClientConfig(String vipAddresses) {
+        IClientConfig clientConfig = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+        clientConfig.set(Keys.DeploymentContextBasedVipAddresses, vipAddresses);
+        return clientConfig;
+    }
 }

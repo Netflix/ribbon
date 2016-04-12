@@ -8,5 +8,7 @@ dependencies {
 
     testCompile "junit:junit:${junit_version}"
     testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
+    testCompile "org.powermock:powermock-mockito-release-full:${powermock_version}"
     testCompile "org.easymock:easymock:${easymock_version}"
+    testCompile "com.netflix.eureka:eureka-test-utils:${eureka_version}"
 }
