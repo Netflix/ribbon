@@ -56,7 +56,13 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
 
     volatile ServerListFilter<T> filter;
 
-    protected final ServerListUpdater.UpdateAction updateAction = new ServerListRefreshAction();
+    protected final ServerListUpdater.UpdateAction updateAction = new ServerListUpdater.UpdateAction() {
+        @Override
+        public void doUpdate() {
+            updateListOfServers();
+        }
+    };
+
     protected volatile ServerListUpdater serverListUpdater;
 
     public DynamicServerListLoadBalancer() {
@@ -214,13 +220,8 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     }
 
     public void stopServerListRefreshing() {
-        serverListUpdater.stop();
-    }
-
-    class ServerListRefreshAction implements ServerListUpdater.UpdateAction {
-        @Override
-        public void doUpdate() {
-            updateListOfServers();
+        if (serverListUpdater != null) {
+            serverListUpdater.stop();
         }
     }
 

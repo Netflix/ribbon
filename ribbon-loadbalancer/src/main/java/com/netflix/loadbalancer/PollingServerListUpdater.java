@@ -13,7 +13,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A default strategy for the dynamic server list updater to update.
@@ -81,8 +80,8 @@ public class PollingServerListUpdater implements ServerListUpdater {
     }
 
 
-    private final AtomicLong lastUpdated = new AtomicLong(System.currentTimeMillis());
     private final AtomicBoolean isActive = new AtomicBoolean(false);
+    private volatile long lastUpdated = System.currentTimeMillis();
     private final long initialDelayMs;
     private final long refreshIntervalMs;
 
@@ -115,7 +114,7 @@ public class PollingServerListUpdater implements ServerListUpdater {
                     }
                     try {
                         updateAction.doUpdate();
-                        lastUpdated.set(System.currentTimeMillis());
+                        lastUpdated = System.currentTimeMillis();
                     } catch (Exception e) {
                         logger.warn("Failed one update cycle", e);
                     }
@@ -146,12 +145,12 @@ public class PollingServerListUpdater implements ServerListUpdater {
 
     @Override
     public String getLastUpdate() {
-        return new Date(lastUpdated.get()).toString();
+        return new Date(lastUpdated).toString();
     }
 
     @Override
     public long getDurationSinceLastUpdateMs() {
-        return System.currentTimeMillis() - lastUpdated.get();
+        return System.currentTimeMillis() - lastUpdated;
     }
 
     @Override
@@ -159,7 +158,7 @@ public class PollingServerListUpdater implements ServerListUpdater {
         if (!isActive.get()) {
             return 0;
         }
-        return (int) ((int) (System.currentTimeMillis() - lastUpdated.get()) / refreshIntervalMs);
+        return (int) ((int) (System.currentTimeMillis() - lastUpdated) / refreshIntervalMs);
     }
 
     @Override
