@@ -28,6 +28,38 @@ To get ribbon binaries, go to [maven central](http://search.maven.org/#search%7C
 * ribbon-example: Examples
 * ribbon-core: Client configuration APIs and other shared APIs
 
+## Project Status: On Maintenance
+Ribbon comprises of multiple components some of which are used in production internally and some of which were replaced by non-OSS solutions over time.
+This is because Netflix started moving into a more componentized architecture for RPC with a focus on single-responsibility modules. So each Ribbon component gets a different level of attention at this moment.
+
+More specifically, here are the components of Ribbon and their level of attention by our teams:
+* ribbon-core: **deployed at scale in production**
+* ribbon-eureka: **deployed at scale in production**
+* ribbon-evcache: **not used**
+* ribbon-guice: **not used**
+* ribbon-httpclient: **we use everything not under com.netflix.http4.ssl.
+                       Instead, we use an internal solution developed by our cloud security team**
+* ribbon-loadbalancer: **deployed at scale in production**
+* ribbon-test: **this is just an internal integration test suite**
+* ribbon-transport: **not used**
+* ribbon: **not used**
+
+Even for the components deployed in production we have wrapped them in a Netflix internal http client and we are not adding new functionality since they’ve been stable for a while.
+ Any new functionality has been added to internal wrappers on top of Ribbon (such as request tracing and metrics). We have not made an effort to make those components Netflix-agnostic under Ribbon.
+
+Recognizing these realities and deficiencies, we are placing Ribbon in maintenance mode.
+This means that if an external user submits a large feature request, internally we wouldn’t prioritize it highly.
+However, if someone were to do work on their own and submit complete pull requests, we’d be happy to review and accept.
+Our team has instead started building an RPC solution on top of gRPC.
+We are doing this transition for two main reasons: multi-language support and better extensibility/composability through request interceptors.
+That’s our current plan moving forward.
+
+We currently contribute to the gRPC code base regularly.
+To help our teams migrate to a gRPC-based solution in production (and battle-test it),
+we are also adding load-balancing and discovery interceptors to achieve feature parity with the functionality Ribbon and Eureka provide.
+The interceptors are Netflix-internal at the moment. When we reach that level of confidence we hope to open-source this new approach.
+We don’t expect this to happen before Q3 of 2016.
+
 ## Release notes
 
 See https://github.com/Netflix/ribbon/releases
