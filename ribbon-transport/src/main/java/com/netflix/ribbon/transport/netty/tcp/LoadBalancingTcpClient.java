@@ -19,10 +19,14 @@ package com.netflix.ribbon.transport.netty.tcp;
 
 import java.util.concurrent.ScheduledExecutorService;
 
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.ribbon.transport.netty.DynamicPropertyBasedPoolStrategy;
 import io.netty.channel.ChannelOption;
 import io.reactivex.netty.RxNetty;
 import io.reactivex.netty.client.ClientBuilder;
 import io.reactivex.netty.client.ClientMetricsEvent;
+import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
+import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.metrics.MetricEventsListener;
 import io.reactivex.netty.pipeline.PipelineConfigurator;
@@ -60,6 +64,10 @@ public class LoadBalancingTcpClient<I, O> extends LoadBalancingRxClientWithPoolO
         Integer connectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout, null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
         builder.channelOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout);
         if (isPoolEnabled()) {
+            int maxConnections = this.clientConfig.get(IClientConfigKey.Keys.MaxConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_CONNECTIONS_PER_HOST);
+            MaxConnectionsBasedStrategy perHostStrategy = new DynamicPropertyBasedPoolStrategy(maxConnections,
+                    this.clientConfig.getClientName() + "." + this.clientConfig.getNameSpace() + "." + CommonClientConfigKey.MaxConnectionsPerHost);
+            CompositePoolLimitDeterminationStrategy poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
             builder.withConnectionPoolLimitStrategy(poolStrategy)
             .withIdleConnectionsTimeoutMillis(idleConnectionEvictionMills)
             .withPoolIdleCleanupScheduler(poolCleanerScheduler);
