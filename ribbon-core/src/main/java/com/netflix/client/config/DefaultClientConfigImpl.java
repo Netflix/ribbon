@@ -883,9 +883,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
             return null;
         }
         Class<T> type = key.type();
-        try {
+        if (type.isInstance(obj)) {
             return type.cast(obj);
-        } catch (ClassCastException e) {
+        } else {
             if (obj instanceof String) {
                 String stringValue = (String) obj;
                 if (Integer.class.equals(type)) {
@@ -902,9 +902,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
                     return (T) TimeUnit.valueOf(stringValue);
                 }
                 throw new IllegalArgumentException("Unable to convert string value to desired type " + type);
-            } else {
-               throw e;
             }
+             
+            throw new IllegalArgumentException("Unable to convert value to desired type " + type);
         }
     }
 
