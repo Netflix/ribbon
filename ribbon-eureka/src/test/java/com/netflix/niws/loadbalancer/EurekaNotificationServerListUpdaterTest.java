@@ -1,5 +1,6 @@
 package com.netflix.niws.loadbalancer;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.discovery.CacheRefreshedEvent;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.EurekaEventListener;
@@ -11,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Provider;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -24,10 +26,25 @@ public class EurekaNotificationServerListUpdaterTest {
     private EurekaClient eurekaClientMock;
     private EurekaClient eurekaClientMock2;
 
+    private ThreadPoolExecutor testExecutor;
+
     @Before
     public void setUp() {
         eurekaClientMock = setUpEurekaClientMock();
         eurekaClientMock2 = setUpEurekaClientMock();
+
+        // use a test executor so that the tests do not share executors
+        testExecutor = new ThreadPoolExecutor(
+                2,
+                2 * 5,
+                0,
+                TimeUnit.NANOSECONDS,
+                new ArrayBlockingQueue<Runnable>(1000),
+                new ThreadFactoryBuilder()
+                        .setNameFormat("EurekaNotificationServerListUpdater-%d")
+                        .setDaemon(true)
+                        .build()
+        );
     }
 
     @Test
@@ -38,7 +55,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return eurekaClientMock;
                     }
-                }
+                },
+                testExecutor
         );
 
         try {
@@ -52,7 +70,7 @@ public class EurekaNotificationServerListUpdaterTest {
             serverListUpdater.start(new ServerListUpdater.UpdateAction() {
                 @Override
                 public void doUpdate() {
-                    if (firstLatch.getCount() == 0) {
+                    if (firstLatch.getCount() == 0l) {
                         secondLatch.countDown();
                     } else {
                         firstLatch.countDown();
@@ -61,10 +79,10 @@ public class EurekaNotificationServerListUpdaterTest {
             });
 
             eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
-            Assert.assertTrue(firstLatch.await(1, TimeUnit.SECONDS));
+            Assert.assertTrue(firstLatch.await(2, TimeUnit.SECONDS));
 
             eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
-            Assert.assertTrue(secondLatch.await(1, TimeUnit.SECONDS));
+            Assert.assertTrue(secondLatch.await(2, TimeUnit.SECONDS));
         } finally {
             serverListUpdater.stop();
 
@@ -80,7 +98,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return eurekaClientMock;
                     }
-                }
+                },
+                testExecutor
         );
 
         EurekaNotificationServerListUpdater serverListUpdater2 = new EurekaNotificationServerListUpdater(
@@ -89,7 +108,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return eurekaClientMock2;
                     }
-                }
+                },
+                testExecutor
         );
 
         Capture<EurekaEventListener> eventListenerCapture = new Capture<EurekaEventListener>();
@@ -136,7 +156,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return eurekaClientMock;
                     }
-                }
+                },
+                testExecutor
         );
 
         try {
@@ -220,7 +241,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return null;
                     }
-                }
+                },
+                testExecutor
         );
 
         serverListUpdater.start(new ServerListUpdater.UpdateAction() {
