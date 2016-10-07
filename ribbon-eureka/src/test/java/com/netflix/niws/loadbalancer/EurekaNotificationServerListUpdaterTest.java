@@ -12,11 +12,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Provider;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author David Liu
@@ -65,21 +67,30 @@ public class EurekaNotificationServerListUpdaterTest {
 
             EasyMock.replay(eurekaClientMock);
 
+            final AtomicBoolean firstTime = new AtomicBoolean(false);
             final CountDownLatch firstLatch = new CountDownLatch(1);
             final CountDownLatch secondLatch = new CountDownLatch(1);
             serverListUpdater.start(new ServerListUpdater.UpdateAction() {
                 @Override
                 public void doUpdate() {
-                    if (firstLatch.getCount() == 0l) {
-                        secondLatch.countDown();
-                    } else {
+                    if (firstTime.compareAndSet(false, true)) {
                         firstLatch.countDown();
+                    } else {
+                        secondLatch.countDown();
                     }
                 }
             });
 
             eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
             Assert.assertTrue(firstLatch.await(2, TimeUnit.SECONDS));
+            // wait a bit for the updateQueued flag to be reset
+            for (int i = 1; i < 10; i++) {
+                if (serverListUpdater.updateQueued.get()) {
+                    Thread.sleep(i * 100);
+                } else {
+                    break;
+                }
+            }
 
             eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
             Assert.assertTrue(secondLatch.await(2, TimeUnit.SECONDS));
