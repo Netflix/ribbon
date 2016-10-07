@@ -120,6 +120,25 @@ public class EurekaNotificationServerListUpdaterTest {
         EasyMock.verify(eurekaClientMock2);
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testFailIfDiscoveryIsNotAvailable() {
+        EurekaNotificationServerListUpdater serverListUpdater = new EurekaNotificationServerListUpdater(
+                new Provider<EurekaClient>() {
+                    @Override
+                    public EurekaClient get() {
+                        return null;
+                    }
+                }
+        );
+
+        serverListUpdater.start(new ServerListUpdater.UpdateAction() {
+            @Override
+            public void doUpdate() {
+                Assert.fail("Should not reach here");
+            }
+        });
+    }
+
     private EurekaClient setUpEurekaClientMock() {
         final EurekaClient eurekaClientMock = EasyMock.createMock(EurekaClient.class);
 
