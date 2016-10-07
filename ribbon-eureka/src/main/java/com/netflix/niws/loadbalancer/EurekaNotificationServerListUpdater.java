@@ -34,7 +34,9 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
 
     private static class LazyHolder {
         private final static String CORE_THREAD = "EurekaNotificationServerListUpdater.ThreadPoolSize";
+        private final static String QUEUE_SIZE = "EurekaNotificationServerListUpdater.queueSize";
         private final static DynamicIntProperty poolSizeProp = new DynamicIntProperty(CORE_THREAD, 2);
+        private final static DynamicIntProperty queueSizeProp = new DynamicIntProperty(QUEUE_SIZE, 1000);
 
         private static ThreadPoolExecutor DEFAULT_SERVER_LIST_UPDATE_EXECUTOR;
         private static Thread SHUTDOWN_THREAD;
@@ -46,7 +48,7 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
                     corePoolSize * 5,
                     0,
                     TimeUnit.NANOSECONDS,
-                    new ArrayBlockingQueue<Runnable>(1000),
+                    new ArrayBlockingQueue<Runnable>(queueSizeProp.get()),
                     new ThreadFactoryBuilder()
                             .setNameFormat("EurekaNotificationServerListUpdater-%d")
                             .setDaemon(true)
@@ -91,6 +93,7 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
         return LazyHolder.DEFAULT_SERVER_LIST_UPDATE_EXECUTOR;
     }
 
+    /* visible for testing */ final AtomicBoolean updateQueued = new AtomicBoolean(false);
     private final AtomicBoolean isActive = new AtomicBoolean(false);
     private final AtomicLong lastUpdated = new AtomicLong(System.currentTimeMillis());
     private final Provider<EurekaClient> eurekaClientProvider;
@@ -119,6 +122,11 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
                 @Override
                 public void onEvent(EurekaEvent event) {
                     if (event instanceof CacheRefreshedEvent) {
+                        if (!updateQueued.compareAndSet(false, true)) {  // if an update is already queued
+                            logger.info("an update action is already queued, returning as no-op");
+                            return;
+                        }
+
                         try {
                             refreshExecutor.submit(new Runnable() {
                                 @Override
@@ -128,11 +136,14 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
                                         lastUpdated.set(System.currentTimeMillis());
                                     } catch (Exception e) {
                                         logger.warn("Failed to update serverList", e);
+                                    } finally {
+                                        updateQueued.set(false);
                                     }
                                 }
                             });  // fire and forget
                         } catch (Exception e) {
                             logger.warn("Error submitting update task to executor, skipping one round of updates", e);
+                            updateQueued.set(false);  // if submit fails, need to reset updateQueued to false
                         }
                     }
                 }
