@@ -1,5 +1,6 @@
 package com.netflix.niws.loadbalancer;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.discovery.CacheRefreshedEvent;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.EurekaEventListener;
@@ -11,8 +12,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Provider;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author David Liu
@@ -22,10 +28,25 @@ public class EurekaNotificationServerListUpdaterTest {
     private EurekaClient eurekaClientMock;
     private EurekaClient eurekaClientMock2;
 
+    private ThreadPoolExecutor testExecutor;
+
     @Before
     public void setUp() {
         eurekaClientMock = setUpEurekaClientMock();
         eurekaClientMock2 = setUpEurekaClientMock();
+
+        // use a test executor so that the tests do not share executors
+        testExecutor = new ThreadPoolExecutor(
+                2,
+                2 * 5,
+                0,
+                TimeUnit.NANOSECONDS,
+                new ArrayBlockingQueue<Runnable>(1000),
+                new ThreadFactoryBuilder()
+                        .setNameFormat("EurekaNotificationServerListUpdater-%d")
+                        .setDaemon(true)
+                        .build()
+        );
     }
 
     @Test
@@ -36,7 +57,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return eurekaClientMock;
                     }
-                }
+                },
+                testExecutor
         );
 
         try {
@@ -45,18 +67,33 @@ public class EurekaNotificationServerListUpdaterTest {
 
             EasyMock.replay(eurekaClientMock);
 
-            final CountDownLatch updateCountLatch = new CountDownLatch(2);
+            final AtomicBoolean firstTime = new AtomicBoolean(false);
+            final CountDownLatch firstLatch = new CountDownLatch(1);
+            final CountDownLatch secondLatch = new CountDownLatch(1);
             serverListUpdater.start(new ServerListUpdater.UpdateAction() {
                 @Override
                 public void doUpdate() {
-                    updateCountLatch.countDown();
+                    if (firstTime.compareAndSet(false, true)) {
+                        firstLatch.countDown();
+                    } else {
+                        secondLatch.countDown();
+                    }
                 }
             });
 
             eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
-            eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
+            Assert.assertTrue(firstLatch.await(2, TimeUnit.SECONDS));
+            // wait a bit for the updateQueued flag to be reset
+            for (int i = 1; i < 10; i++) {
+                if (serverListUpdater.updateQueued.get()) {
+                    Thread.sleep(i * 100);
+                } else {
+                    break;
+                }
+            }
 
-            Assert.assertTrue(updateCountLatch.await(2, TimeUnit.SECONDS));
+            eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
+            Assert.assertTrue(secondLatch.await(2, TimeUnit.SECONDS));
         } finally {
             serverListUpdater.stop();
 
@@ -72,7 +109,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return eurekaClientMock;
                     }
-                }
+                },
+                testExecutor
         );
 
         EurekaNotificationServerListUpdater serverListUpdater2 = new EurekaNotificationServerListUpdater(
@@ -81,7 +119,8 @@ public class EurekaNotificationServerListUpdaterTest {
                     public EurekaClient get() {
                         return eurekaClientMock2;
                     }
-                }
+                },
+                testExecutor
         );
 
         Capture<EurekaEventListener> eventListenerCapture = new Capture<EurekaEventListener>();
@@ -118,6 +157,111 @@ public class EurekaNotificationServerListUpdaterTest {
 
         EasyMock.verify(eurekaClientMock);
         EasyMock.verify(eurekaClientMock2);
+    }
+
+    @Test
+    public void testTaskAlreadyQueued() throws Exception {
+        EurekaNotificationServerListUpdater serverListUpdater = new EurekaNotificationServerListUpdater(
+                new Provider<EurekaClient>() {
+                    @Override
+                    public EurekaClient get() {
+                        return eurekaClientMock;
+                    }
+                },
+                testExecutor
+        );
+
+        try {
+            Capture<EurekaEventListener> eventListenerCapture = new Capture<EurekaEventListener>();
+            eurekaClientMock.registerEventListener(EasyMock.capture(eventListenerCapture));
+
+            EasyMock.replay(eurekaClientMock);
+
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
+            serverListUpdater.start(new ServerListUpdater.UpdateAction() {
+                @Override
+                public void doUpdate() {
+                    if (countDownLatch.getCount() == 0) {
+                        Assert.fail("should only countdown once");
+                    }
+                    countDownLatch.countDown();
+                }
+            });
+
+            eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
+            eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
+
+            Assert.assertTrue(countDownLatch.await(2, TimeUnit.SECONDS));
+            Thread.sleep(100);  // sleep a bit more
+
+            Assert.assertFalse(serverListUpdater.updateQueued.get());
+        } finally {
+            serverListUpdater.stop();
+
+            EasyMock.verify(eurekaClientMock);
+        }
+    }
+
+    @Test
+    public void testSubmitExceptionClearQueued() {
+        ThreadPoolExecutor executorMock = EasyMock.createMock(ThreadPoolExecutor.class);
+        EasyMock.expect(executorMock.submit(EasyMock.isA(Runnable.class)))
+                .andThrow(new RejectedExecutionException("test exception"));
+
+        EurekaNotificationServerListUpdater serverListUpdater = new EurekaNotificationServerListUpdater(
+                new Provider<EurekaClient>() {
+                    @Override
+                    public EurekaClient get() {
+                        return eurekaClientMock;
+                    }
+                },
+                executorMock
+        );
+
+        try {
+            Capture<EurekaEventListener> eventListenerCapture = new Capture<EurekaEventListener>();
+            eurekaClientMock.registerEventListener(EasyMock.capture(eventListenerCapture));
+
+            EasyMock.replay(eurekaClientMock);
+            EasyMock.replay(executorMock);
+
+            serverListUpdater.start(new ServerListUpdater.UpdateAction() {
+                @Override
+                public void doUpdate() {
+                    Assert.fail("should not reach here");
+                }
+            });
+
+            eventListenerCapture.getValue().onEvent(new CacheRefreshedEvent());
+
+            Assert.assertFalse(serverListUpdater.updateQueued.get());
+        } finally {
+            serverListUpdater.stop();
+
+            EasyMock.verify(executorMock);
+            EasyMock.verify(eurekaClientMock);
+        }
+
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testFailIfDiscoveryIsNotAvailable() {
+        EurekaNotificationServerListUpdater serverListUpdater = new EurekaNotificationServerListUpdater(
+                new Provider<EurekaClient>() {
+                    @Override
+                    public EurekaClient get() {
+                        return null;
+                    }
+                },
+                testExecutor
+        );
+
+        serverListUpdater.start(new ServerListUpdater.UpdateAction() {
+            @Override
+            public void doUpdate() {
+                Assert.fail("Should not reach here");
+            }
+        });
     }
 
     private EurekaClient setUpEurekaClientMock() {
