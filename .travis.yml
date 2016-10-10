@@ -6,10 +6,10 @@ install: "./installViaTravis.sh"
 script: "./buildViaTravis.sh"
 env:
   global:
-  - secure: NUI16VBRvbDdxdJ1B8Tjw2m50Lyumt0sg1e3FJd4zvk60QbN+bK3TT46W27+Idkb0XYF1R69wy25UO1OGOHRBbh5rxDYXFvnoVUOf2s7vHCLqVePMuVzhUYtMCC6h7hExOLCtRwg6mgqVuSIf53DVFJTJdlFfFcz+XNsVwooN5M=
-  - secure: Fa06ITXBJM8014dSoHlYZq0Cyw940Y+0wpYVlyB6Ry86EJBxwNQmvsSzmB7EdvCUpMxTd3sU/ynav6wYACgXChtLpyRDZ+qNw9dnYQCXgYx8R4aO8eStHQlrronI4ZJTzVwROkpWJBgtOVSf8uGLkkUPYFIBEfF17Iy1UcgO3lE=
-  - secure: RaDZ+y8TUfQzRuh2GG2qn0YUW3ZHFcsXcXJl06S1XsgTokNGEetebEk3rBB5fjeEfrHC1bITvY+fnXYWxh4W/SqIh4S8EdilA9sdbP9To4shy5gG62WgE9BWwH/1YnTbzQfj8MSvJ1FgLjKKZQLGmb/yKQM3239OUBdK9bV/Pbo=
-  - secure: fz3uqkaf3mEXoMhtYW5Jjwj0iZlbJB+p6ro1m9e/XKOq4HLPjmXDVxojafpat3jckAsVvGSSF3Yxts2C1/foIf/fmZ1MYHtE+8ROHe7IcpCOzUYkzpFcYm1/1PtQrenD4DdrOWUacbucLH6G8Gkic34JwC2ZjcCKY3eB14U/KpM=
+  - secure: mprd3lRQDzNFIqWJ/hhHt84Oo1rQFv5Hp2GyySTx/xPiu2Qv6F+C0YOHTHIT2+BxxW/7580w/8e6L8YLxiVX0d2J8YwQm7tPoc4WN3kV9K6U/LTdVmNAePNyeMq1R13CPAguDVG2CY4+Y08rdU7OYDuL1mQFHzPmvhGzLnN4kiE=
+  - secure: INE6Zlu2EMfRZI13F8B4RyKkmvtaMA8K5bMYwRPWDJ+PUnGUfU27xIjx8mY+dd6A2JfSeeoF7dkOko4xi+PiiayY2Byi8fneja1j01Du7l0okBaeROGlLscLid2ME0yDCql06vERhCdIDEBMpZzVu8GbqpZ1z/x0JQ0YgBiMVEc=
+  - secure: OumwxBfa3lOrT2BHRx9a9Ppxiua0IbEtRFs2CQHCWOW6iYRLDavLqya+oMPvx+gAlZRX54VTYuuxh858dxR8O94xPi4NvZ/POvoTdgU1MNekBqYsuWys3B4Dw8CMrrpfzvtD8tWe8TkgwGpzzpRuEzQ6bvh0uCAmiQ0kQhKA8+0=
+  - secure: TeSjCxSjlH0fE30WoBWOPIWPMMn66v6KGAMbUGPO1Z98q1AXptmcFnAob0of8Q/HLkR6Paxtl4r4yt35pqakw40M6s5w4O2PeXPArZZE+qBRR9izRpXIPq+jAIZwabYkEgLMhF3u3VOIYmP94hGvFfddtuTF8UmqkEeK1/AmruU=
 cache:
   directories:
   - "$HOME/.gradle/caches"
