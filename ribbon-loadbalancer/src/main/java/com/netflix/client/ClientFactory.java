@@ -17,12 +17,15 @@
 */
 package com.netflix.client;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -38,9 +41,17 @@ import com.netflix.servo.monitor.Monitors;
  */
 public class ClientFactory {
     
-    private static Map<String, IClient<?,?>> simpleClientMap = new ConcurrentHashMap<String, IClient<?,?>>();
-    private static Map<String, ILoadBalancer> namedLBMap = new ConcurrentHashMap<String, ILoadBalancer>();
-    private static ConcurrentHashMap<String, IClientConfig> namedConfig = new ConcurrentHashMap<String, IClientConfig>();
+    private static final ConcurrentMap<String, IClient<?,?>> simpleClientMap = new ConcurrentHashMap<String, IClient<?,?>>();
+    private static final ConcurrentMap<String, ILoadBalancer> namedLBMap = new ConcurrentHashMap<String, ILoadBalancer>();
+    private static final ConcurrentMap<String, IClientConfig> namedConfig = new ConcurrentHashMap<String, IClientConfig>();
+    private static final LoadingCache<String, Object> locks = CacheBuilder.newBuilder()
+            .weakValues()
+            .build(new CacheLoader<String, Object>() {
+                @Override
+                public Object load(String key) throws Exception {
+                   return new Object();
+                } 
+             });
     
     private static Logger logger = LoggerFactory.getLogger(ClientFactory.class);
     
@@ -52,38 +63,40 @@ public class ClientFactory {
      * @param clientConfig
      * @throws ClientException if any errors occurs in the process, or if the client with the same name already exists
      */
-    public static synchronized IClient<?, ?> registerClientFromProperties(String restClientName, IClientConfig clientConfig) throws ClientException { 
-    	IClient<?, ?> client = null;
-    	ILoadBalancer loadBalancer = null;
-    	if (simpleClientMap.get(restClientName) != null) {
-    		throw new ClientException(
-    				ClientException.ErrorType.GENERAL,
-    				"A Rest Client with this name is already registered. Please use a different name");
-    	}
-    	try {
-    		String clientClassName = (String) clientConfig.getProperty(CommonClientConfigKey.ClientClassName);
-    		client = (IClient<?, ?>) instantiateInstanceWithClientConfig(clientClassName, clientConfig);
-    		boolean initializeNFLoadBalancer = Boolean.parseBoolean(clientConfig.getProperty(
-    				CommonClientConfigKey.InitializeNFLoadBalancer, DefaultClientConfigImpl.DEFAULT_ENABLE_LOADBALANCER).toString());
-    		if (initializeNFLoadBalancer) {
-    			loadBalancer  = registerNamedLoadBalancerFromclientConfig(restClientName, clientConfig);
-    		}
-    		if (client instanceof AbstractLoadBalancerAwareClient) {
-    			((AbstractLoadBalancerAwareClient) client).setLoadBalancer(loadBalancer);
-    		}
-    	} catch (Throwable e) {
-    		String message = "Unable to InitializeAndAssociateNFLoadBalancer set for RestClient:"
-    				+ restClientName;
-    		logger.warn(message, e);
-    		throw new ClientException(ClientException.ErrorType.CONFIGURATION, 
-    				message, e);
-    	}
-    	simpleClientMap.put(restClientName, client);
-
-    	Monitors.registerObject("Client_" + restClientName, client);
-
-    	logger.info("Client Registered:" + client.toString());
-    	return client;
+    public static IClient<?, ?> registerClientFromProperties(String restClientName, IClientConfig clientConfig) throws ClientException {
+        synchronized(getLock(restClientName)) {
+        	IClient<?, ?> client = null;
+        	ILoadBalancer loadBalancer = null;
+        	if (simpleClientMap.get(restClientName) != null) {
+        		throw new ClientException(
+        				ClientException.ErrorType.GENERAL,
+        				"A Rest Client with this name is already registered. Please use a different name");
+        	}
+        	try {
+        		String clientClassName = (String) clientConfig.getProperty(CommonClientConfigKey.ClientClassName);
+        		client = (IClient<?, ?>) instantiateInstanceWithClientConfig(clientClassName, clientConfig);
+        		boolean initializeNFLoadBalancer = Boolean.parseBoolean(clientConfig.getProperty(
+        				CommonClientConfigKey.InitializeNFLoadBalancer, DefaultClientConfigImpl.DEFAULT_ENABLE_LOADBALANCER).toString());
+        		if (initializeNFLoadBalancer) {
+        			loadBalancer  = registerNamedLoadBalancerFromclientConfig(restClientName, clientConfig);
+        		}
+        		if (client instanceof AbstractLoadBalancerAwareClient) {
+        			((AbstractLoadBalancerAwareClient) client).setLoadBalancer(loadBalancer);
+        		}
+        	} catch (Throwable e) {
+        		String message = "Unable to InitializeAndAssociateNFLoadBalancer set for RestClient:"
+        				+ restClientName;
+        		logger.warn(message, e);
+        		throw new ClientException(ClientException.ErrorType.CONFIGURATION, 
+        				message, e);
+        	}
+        	simpleClientMap.put(restClientName, client);
+    
+        	Monitors.registerObject("Client_" + restClientName, client);
+    
+        	logger.info("Client Registered:" + client.toString());
+        	return client;
+        }
     }
 
     /**
@@ -91,7 +104,7 @@ public class ClientFactory {
      * 
      * @throws RuntimeException if an error occurs in creating the client.
      */
-    public static synchronized IClient getNamedClient(String name) {
+    public static IClient getNamedClient(String name) {
         return getNamedClient(name, DefaultClientConfigImpl.class);
     }
 
@@ -100,25 +113,38 @@ public class ClientFactory {
      * 
      * @throws RuntimeException if an error occurs in creating the client.
      */
-    public static synchronized IClient getNamedClient(String name, Class<? extends IClientConfig> configClass) {
-    	if (simpleClientMap.get(name) != null) {
-    	    return simpleClientMap.get(name);
-    	}
-        try {
-            return createNamedClient(name, configClass);
-        } catch (ClientException e) {
-            throw new RuntimeException("Unable to create client", e);
+    public static IClient getNamedClient(String name, Class<? extends IClientConfig> configClass) {
+        if (simpleClientMap.get(name) == null) {
+            synchronized(getLock(name)) {
+                if (simpleClientMap.get(name) == null) {
+                    try {
+                        return createNamedClient(name, configClass);
+                    } catch (ClientException e) {
+                        throw new RuntimeException("Unable to create client", e);
+                    }
+                }
+            }
         }
+        
+        return simpleClientMap.get(name);
     }
     
     /**
      * Creates a named client using a IClientConfig instance created off the configClass class object passed in as the parameter.
      *  
-     * @throws ClientException if any error occurs, or if the client with the same name already exists
+     * @throws ClientException if any error occurs
      */
-    public static synchronized IClient createNamedClient(String name, Class<? extends IClientConfig> configClass) throws ClientException {
-    	IClientConfig config = getNamedConfig(name, configClass);
-        return registerClientFromProperties(name, config);
+    public static IClient createNamedClient(String name, Class<? extends IClientConfig> configClass) throws ClientException {
+        if (simpleClientMap.get(name) == null) {
+            synchronized(getLock(name)) {
+                if (simpleClientMap.get(name) == null) {
+                	IClientConfig config = getNamedConfig(name, configClass);
+                    registerClientFromProperties(name, config);
+                }
+            }
+        }
+        
+        return simpleClientMap.get(name);
     }
     
     /**
@@ -126,7 +152,7 @@ public class ClientFactory {
      * 
      * @throws RuntimeException if any error occurs
      */
-    public static synchronized ILoadBalancer getNamedLoadBalancer(String name) {
+    public static ILoadBalancer getNamedLoadBalancer(String name) {
     	return getNamedLoadBalancer(name, DefaultClientConfigImpl.class);
     }
     
@@ -136,18 +162,20 @@ public class ClientFactory {
      * @throws RuntimeException if any error occurs
      * @see #registerNamedLoadBalancerFromProperties(String, Class)
      */
-    public static synchronized ILoadBalancer getNamedLoadBalancer(String name, Class<? extends IClientConfig> configClass) {
-        ILoadBalancer lb = namedLBMap.get(name);
-        if (lb != null) {
-            return lb;
-        } else {
-            try {
-                lb = registerNamedLoadBalancerFromProperties(name, configClass);
-            } catch (ClientException e) {
-                throw new RuntimeException("Unable to create load balancer", e);
+    public static ILoadBalancer getNamedLoadBalancer(String name, Class<? extends IClientConfig> configClass) {
+        if (namedLBMap.get(name) == null) {
+            synchronized(getLock(name)) {
+                if (namedLBMap.get(name) == null) {
+                    try {
+                        registerNamedLoadBalancerFromProperties(name, configClass);
+                    } catch (ClientException e) {
+                        throw new RuntimeException("Unable to create load balancer", e);
+                    }
+                }
             }
-            return lb;
         }
+        
+        return namedLBMap.get(name);
     }
 
     /**
@@ -157,20 +185,22 @@ public class ClientFactory {
      * @see #instantiateInstanceWithClientConfig(String, IClientConfig)
      */
     public static ILoadBalancer registerNamedLoadBalancerFromclientConfig(String name, IClientConfig clientConfig) throws ClientException {
-        if (namedLBMap.get(name) != null) {
-            throw new ClientException("LoadBalancer for name " + name + " already exists");
+        synchronized(getLock(name)) {
+            if (namedLBMap.get(name) != null) {
+                throw new ClientException("LoadBalancer for name " + name + " already exists");
+            }
+        	ILoadBalancer lb = null;
+            try {
+                String loadBalancerClassName = (String) clientConfig.getProperty(CommonClientConfigKey.NFLoadBalancerClassName);
+                lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, clientConfig);                                    
+                namedLBMap.put(name, lb);            
+                logger.info("Client:" + name
+                        + " instantiated a LoadBalancer:" + lb.toString());
+                return lb;
+            } catch (Exception e) {           
+               throw new ClientException("Unable to instantiate/associate LoadBalancer with Client:" + name, e);
+            }  
         }
-    	ILoadBalancer lb = null;
-        try {
-            String loadBalancerClassName = (String) clientConfig.getProperty(CommonClientConfigKey.NFLoadBalancerClassName);
-            lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, clientConfig);                                    
-            namedLBMap.put(name, lb);            
-            logger.info("Client:" + name
-                    + " instantiated a LoadBalancer:" + lb.toString());
-            return lb;
-        } catch (Exception e) {           
-           throw new ClientException("Unable to instantiate/associate LoadBalancer with Client:" + name, e);
-        }    	
     }
     
     /**
@@ -179,12 +209,14 @@ public class ClientFactory {
      * @throws ClientException if load balancer with the same name already exists or any error occurs
      * @see #instantiateInstanceWithClientConfig(String, IClientConfig)
      */
-    public static synchronized ILoadBalancer registerNamedLoadBalancerFromProperties(String name, Class<? extends IClientConfig> configClass) throws ClientException {
-        if (namedLBMap.get(name) != null) {
-            throw new ClientException("LoadBalancer for name " + name + " already exists");
+    public static ILoadBalancer registerNamedLoadBalancerFromProperties(String name, Class<? extends IClientConfig> configClass) throws ClientException {
+        synchronized(getLock(name)) {
+            if (namedLBMap.get(name) != null) {
+                throw new ClientException("LoadBalancer for name " + name + " already exists");
+            }
+            IClientConfig clientConfig = getNamedConfig(name, configClass);
+            return registerNamedLoadBalancerFromclientConfig(name, clientConfig);
         }
-        IClientConfig clientConfig = getNamedConfig(name, configClass);
-        return registerNamedLoadBalancerFromclientConfig(name, clientConfig);
     }    
 
     /**
@@ -231,22 +263,24 @@ public class ClientFactory {
      */
     public static IClientConfig getNamedConfig(String name, Class<? extends IClientConfig> clientConfigClass) {
     	IClientConfig config = namedConfig.get(name);
-        if (config != null) {
-            return config;
-        } else {
-        	try {
-                config = (IClientConfig) clientConfigClass.newInstance();
+        if (config == null) {
+            synchronized(getLock(name)) {
+            	try {
+                    config = (IClientConfig) clientConfigClass.newInstance();
+                    config.loadProperties(name);
+            	} catch (Throwable e) {
+            		logger.error("Unable to create client config instance", e);
+            		return null;
+            	}
                 config.loadProperties(name);
-        	} catch (Throwable e) {
-        		logger.error("Unable to create client config instance", e);
-        		return null;
-        	}
-            config.loadProperties(name);
-            IClientConfig old = namedConfig.putIfAbsent(name, config);
-            if (old != null) {
-                config = old;
+                namedConfig.putIfAbsent(name, config);
             }
-            return config;
         }
+        
+        return namedConfig.get(name);
+    }
+    
+    private static Object getLock(String key) {
+        return locks.getUnchecked(key);
     }
 }
