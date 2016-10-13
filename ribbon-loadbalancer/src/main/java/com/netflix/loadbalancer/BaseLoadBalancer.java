@@ -746,6 +746,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             try {
                 return rule.choose(key);
             } catch (Throwable t) {
+                logger.warn("Failed to choose server for key {}", key, t);
                 return null;
             }
         }
@@ -760,6 +761,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 Server svr = rule.choose(key);
                 return ((svr == null) ? null : svr.getId());
             } catch (Throwable t) {
+                logger.warn("Failed to choose server for key {}", key, t);
                 return null;
             }
         }
