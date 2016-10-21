@@ -19,22 +19,6 @@ package com.netflix.loadbalancer;
 
 import static java.util.Collections.singleton;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
@@ -47,6 +31,22 @@ import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.util.concurrent.ShutdownEnabledTimer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * A basic implementation of the load balancer where an arbitrary list of
@@ -503,7 +503,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                    for (ServerListChangeListener l: changeListeners) {
                        try {
                            l.serverListChanged(oldList, newList);
-                       } catch (Error e) {
+                       } catch (Exception e) {
                            logger.error("LoadBalancer [{}]: Error invoking server list change listener", name, e);
                        }
                    }
@@ -625,7 +625,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         public void run() {
             try {
             	new Pinger(pingStrategy).runPinger();
-            } catch (Error e) {
+            } catch (Exception e) {
                 logger.error("LoadBalancer [{}]: Error pinging", name, e);
             }
         }
@@ -699,7 +699,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
                 notifyServerStatusChangeListener(changedServers);
 
-            } catch (Error e) {
+            } catch (Exception e) {
                 logger.error("LoadBalancer [{}] : Error running the Pinger", name, e);
             } finally {
                 pingInProgress.set(false);
@@ -712,7 +712,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             for (ServerStatusChangeListener listener : serverStatusListeners) {
                 try {
                     listener.serverStatusChanged(changedServers);
-                } catch (Error e) {
+                } catch (Exception e) {
                     logger.error("LoadBalancer [{}]: Error invoking server status change listener", name, e);
                 }
             }
@@ -738,8 +738,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         } else {
             try {
                 return rule.choose(key);
-            } catch (Error t) {
-                throw new Error("Error choosing server for key " + key);
+            } catch (Exception e) {
+                throw new RuntimeException("Error choosing server for key " + key, e);
             }
         }
     }
@@ -752,8 +752,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             try {
                 Server svr = rule.choose(key);
                 return ((svr == null) ? null : svr.getId());
-            } catch (Error t) {
-            	logger.error("LoadBalancer [{}]:  Error choosing server for key '{}'", name, key, t);
+            } catch (Exception e) {
+            	logger.error("LoadBalancer [{}]:  Error choosing server for key '{}'", name, key, e);
                 return null;
             }
         }
@@ -815,7 +815,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         
         try {
         	new Pinger(pingStrategy).runPinger();
-        } catch (Error e) {
+        } catch (Exception e) {
             logger.error("LoadBalancer [{}]: Error running forceQuickPing()", name, e);
         }
     }
@@ -904,7 +904,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                     if (ping != null) {
                         results[i] = ping.isAlive(servers[i]);
                     }
-                } catch (Error e) {
+                } catch (Exception e) {
                     logger.error("Exception while pinging Server: '{}'", servers[i], e);
                 }
             }

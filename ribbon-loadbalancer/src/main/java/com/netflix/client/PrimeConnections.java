@@ -364,7 +364,7 @@ public class PrimeConnections {
         if (listener != null) {
             try {
                 listener.primeCompleted(s, lastException);
-            } catch (Error e) {
+            } catch (Exception e) {
                 logger.error("Error calling PrimeComplete listener for server '{}'", s.getHost(), e);
             }
         }

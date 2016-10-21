@@ -136,7 +136,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
                     server = zoneLoadBalancer.chooseServer(key);
                 }
             }
-        } catch (Error e) {
+        } catch (Exception e) {
             logger.error("Error choosing server using zone aware logic for load balancer={}", name, e);
         }
         if (server != null) {

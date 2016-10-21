@@ -222,7 +222,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
             ServerWeight serverWeight = new ServerWeight();
             try {
                 serverWeight.maintainWeights();
-            } catch (Error e) {
+            } catch (Exception e) {
                 logger.error("Error running DynamicServerWeightTask for {}", name, e);
             }
         }
@@ -268,8 +268,8 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                     finalWeights.add(weightSoFar);   
                 }
                 setWeights(finalWeights);
-            } catch (Error t) {
-                logger.error("Error calculating server weights", t);
+            } catch (Exception e) {
+                logger.error("Error calculating server weights", e);
             } finally {
                 serverWeightAssignmentInProgress.set(false);
             }
