@@ -348,6 +348,7 @@ public class PrimeConnections {
                 	s, primeConnectionsURIPath, tryNum);
                 success = connector.connect(s, primeConnectionsURIPath);
                 successCounter.increment();
+                lastException = null;
                 break;
             } catch (Exception e) {
                 // It does not really matter if there was an exception,
@@ -365,7 +366,7 @@ public class PrimeConnections {
             try {
                 listener.primeCompleted(s, lastException);
             } catch (Exception e) {
-                logger.error("Error calling PrimeComplete listener for server '{}'", s.getHost(), e);
+                logger.error("Error calling PrimeComplete listener for server '{}'", s, e);
             }
         }
         logger.debug("Either done, or quitting server:{}, result={}, tryNum={}, maxRetries={}", 

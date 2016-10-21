@@ -189,7 +189,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if (ping instanceof AbstractLoadBalancerPing) {
             ((AbstractLoadBalancerPing) ping).setLoadBalancer(this);
         }
-        logger.info("Client: {} instantiated a LoadBalancer: {}", name, toString());
+        logger.info("Client: {} instantiated a LoadBalancer: {}", name, this);
         boolean enablePrimeConnections = clientConfig.get(
                 CommonClientConfigKey.EnablePrimeConnections, DefaultClientConfigImpl.DEFAULT_ENABLE_PRIME_CONNECTIONS);
 
@@ -645,12 +645,11 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             this.pingerStrategy = pingerStrategy;
         }
 
-        public void runPinger() {
-            if (pingInProgress.get()) {
+        public void runPinger() throws Exception {
+            if (!pingInProgress.compareAndSet(false, true)) { 
                 return; // Ping in progress - nothing to do
-            } else {
-                pingInProgress.set(true);
             }
+            
             // we are "in" - we get to Ping
 
             Server[] allServers = null;
@@ -698,9 +697,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 upLock.unlock();
 
                 notifyServerStatusChangeListener(changedServers);
-
-            } catch (Exception e) {
-                logger.error("LoadBalancer [{}] : Error running the Pinger", name, e);
             } finally {
                 pingInProgress.set(false);
             }
@@ -753,8 +749,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 Server svr = rule.choose(key);
                 return ((svr == null) ? null : svr.getId());
             } catch (Exception e) {
-            	logger.error("LoadBalancer [{}]:  Error choosing server for key '{}'", name, key, e);
-                return null;
+                throw new RuntimeException("Error choosing server", e);
             }
         }
     }

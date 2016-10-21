@@ -17,18 +17,18 @@
 */
 package com.netflix.client;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.servo.monitor.Monitors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A factory that creates client, load balancer and client configuration instances from properties. It also keeps mappings of client names to 
@@ -166,8 +166,7 @@ public class ClientFactory {
             String loadBalancerClassName = (String) clientConfig.getProperty(CommonClientConfigKey.NFLoadBalancerClassName);
             lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, clientConfig);                                    
             namedLBMap.put(name, lb);            
-            logger.info("Client:" + name
-                    + " instantiated a LoadBalancer:" + lb.toString());
+            logger.info("Client: {} instantiated a LoadBalancer: {}", name, lb);
             return lb;
         } catch (Exception e) {           
            throw new ClientException("Unable to instantiate/associate LoadBalancer with Client:" + name, e);
@@ -210,7 +209,10 @@ public class ClientFactory {
     		    if (clazz.getConstructor(IClientConfig.class) != null) {
     		    	return clazz.getConstructor(IClientConfig.class).newInstance(clientConfig);
     		    }
-    		} catch (NoSuchMethodException | SecurityException | IllegalArgumentException | InvocationTargetException ignore) { // NOPMD   			
+    		} catch (NoSuchMethodException ignored) {
+    		    // OK for a class to not take an IClientConfig
+    		} catch (SecurityException | IllegalArgumentException | InvocationTargetException e) { 
+    		    logger.warn("Error getting/invoking IClientConfig constructor of {}", className, e);
     		}    		
     	}
     	logger.warn("Class " + className + " neither implements IClientConfigAware nor provides a constructor with IClientConfig as the parameter. Only default constructor will be used.");
@@ -230,25 +232,25 @@ public class ClientFactory {
      * Get the client configuration given the name or create one with clientConfigClass if it does not exist. An instance of IClientConfig
      * is created and {@link IClientConfig#loadProperties(String)} will be called.
      */
-	public static IClientConfig getNamedConfig(String name, Class<? extends IClientConfig> clientConfigClass) {
-		IClientConfig config = namedConfig.get(name);
-		if (config != null) {
-			return config;
-		} else {
-			try {
-				config = (IClientConfig) clientConfigClass.newInstance();
-				config.loadProperties(name);
-			} catch (InstantiationException | IllegalAccessException e) {
-				logger.error("Unable to create named client config '{}' instance for config class {}", name,
-				        clientConfigClass, e);
-				return null;
-			}
-			config.loadProperties(name);
-			IClientConfig old = namedConfig.putIfAbsent(name, config);
-			if (old != null) {
-				config = old;
-			}
-			return config;
-		}
-	}
+    public static IClientConfig getNamedConfig(String name, Class<? extends IClientConfig> clientConfigClass) {
+        IClientConfig config = namedConfig.get(name);
+        if (config != null) {
+            return config;
+        } else {
+            try {
+                config = (IClientConfig) clientConfigClass.newInstance();
+                config.loadProperties(name);
+            } catch (InstantiationException | IllegalAccessException e) {
+                logger.error("Unable to create named client config '{}' instance for config class {}", name,
+                        clientConfigClass, e);
+                return null;
+            }
+            config.loadProperties(name);
+            IClientConfig old = namedConfig.putIfAbsent(name, config);
+            if (old != null) {
+                config = old;
+            }
+            return config;
+        }
+    }
 }
