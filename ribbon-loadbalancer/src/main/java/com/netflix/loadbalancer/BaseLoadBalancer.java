@@ -781,7 +781,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         }
 
         Lock writeLock = upServerLock.writeLock();
-
+    	writeLock.lock();
         try {
             final List<Server> changedServers = new ArrayList<Server>();
 
