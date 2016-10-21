@@ -49,7 +49,7 @@ public abstract class AbstractServerList<T extends Server> implements ServerList
             AbstractServerListFilter<T> abstractNIWSServerListFilter = 
                     (AbstractServerListFilter<T>) ClientFactory.instantiateInstanceWithClientConfig(niwsServerListFilterClassName, niwsClientConfig);
             return abstractNIWSServerListFilter;
-        } catch (Throwable e) {
+        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
             throw new ClientException(
                     ClientException.ErrorType.CONFIGURATION,
                     "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"

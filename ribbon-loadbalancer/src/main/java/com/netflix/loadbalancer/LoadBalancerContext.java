@@ -273,8 +273,8 @@ public class LoadBalancerContext implements IClientConfigAware {
                     stats.clearSuccessiveConnectionFailureCount();
                 }
             }
-        } catch (Throwable ex) {
-            logger.error("Unexpected exception", ex);
+        } catch (Error ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
         }            
     }
 
@@ -294,8 +294,8 @@ public class LoadBalancerContext implements IClientConfigAware {
                     stats.clearSuccessiveConnectionFailureCount();
                 }
             }
-        } catch (Throwable ex) {
-            logger.error("Unexpected exception", ex);
+        } catch (Error ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
         }            
     }
 
@@ -310,8 +310,8 @@ public class LoadBalancerContext implements IClientConfigAware {
             if (errorHandler != null && response != null) {
                 stats.clearSuccessiveConnectionFailureCount();
             } 
-        } catch (Throwable ex) {
-            logger.error("Unexpected exception", ex);
+        } catch (Error ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
         }            
     }
 
@@ -324,9 +324,9 @@ public class LoadBalancerContext implements IClientConfigAware {
         }
         try {
             serverStats.incrementActiveRequestsCount();
-        } catch (Throwable e) {
-            logger.info("Unable to note Server Stats:", e);
-        }
+        } catch (Error ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
+        }            
     }
 
 

@@ -17,6 +17,7 @@
 */
 package com.netflix.client;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,7 +72,7 @@ public class ClientFactory {
     		if (client instanceof AbstractLoadBalancerAwareClient) {
     			((AbstractLoadBalancerAwareClient) client).setLoadBalancer(loadBalancer);
     		}
-    	} catch (Throwable e) {
+    	} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
     		String message = "Unable to InitializeAndAssociateNFLoadBalancer set for RestClient:"
     				+ restClientName;
     		logger.warn(message, e);
@@ -209,7 +210,7 @@ public class ClientFactory {
     		    if (clazz.getConstructor(IClientConfig.class) != null) {
     		    	return clazz.getConstructor(IClientConfig.class).newInstance(clientConfig);
     		    }
-    		} catch (Throwable e) { // NOPMD   			
+    		} catch (NoSuchMethodException | SecurityException | IllegalArgumentException | InvocationTargetException ignore) { // NOPMD   			
     		}    		
     	}
     	logger.warn("Class " + className + " neither implements IClientConfigAware nor provides a constructor with IClientConfig as the parameter. Only default constructor will be used.");
@@ -229,24 +230,25 @@ public class ClientFactory {
      * Get the client configuration given the name or create one with clientConfigClass if it does not exist. An instance of IClientConfig
      * is created and {@link IClientConfig#loadProperties(String)} will be called.
      */
-    public static IClientConfig getNamedConfig(String name, Class<? extends IClientConfig> clientConfigClass) {
-    	IClientConfig config = namedConfig.get(name);
-        if (config != null) {
-            return config;
-        } else {
-        	try {
-                config = (IClientConfig) clientConfigClass.newInstance();
-                config.loadProperties(name);
-        	} catch (Throwable e) {
-        		logger.error("Unable to create client config instance", e);
-        		return null;
-        	}
-            config.loadProperties(name);
-            IClientConfig old = namedConfig.putIfAbsent(name, config);
-            if (old != null) {
-                config = old;
-            }
-            return config;
-        }
-    }
+	public static IClientConfig getNamedConfig(String name, Class<? extends IClientConfig> clientConfigClass) {
+		IClientConfig config = namedConfig.get(name);
+		if (config != null) {
+			return config;
+		} else {
+			try {
+				config = (IClientConfig) clientConfigClass.newInstance();
+				config.loadProperties(name);
+			} catch (InstantiationException | IllegalAccessException e) {
+				logger.error("Unable to create named client config '{}' instance for config class {}", name,
+				        clientConfigClass, e);
+				return null;
+			}
+			config.loadProperties(name);
+			IClientConfig old = namedConfig.putIfAbsent(name, config);
+			if (old != null) {
+				config = old;
+			}
+			return config;
+		}
+	}
 }

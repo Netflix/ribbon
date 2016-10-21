@@ -17,6 +17,24 @@
  */
 package com.netflix.loadbalancer;
 
+import static java.util.Collections.singleton;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
@@ -29,17 +47,6 @@ import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.util.concurrent.ShutdownEnabledTimer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Collections.singleton;
 
 /**
  * A basic implementation of the load balancer where an arbitrary list of
@@ -136,9 +143,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     
     public BaseLoadBalancer(String name, IRule rule, LoadBalancerStats stats,
             IPing ping, IPingStrategy pingStrategy) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("LoadBalancer:  initialized");
-        }
+	
+        logger.debug("LoadBalancer [{}]:  initialized", name);
+        
         this.name = name;
         this.ping = ping;
         this.pingStrategy = pingStrategy;
@@ -182,8 +189,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if (ping instanceof AbstractLoadBalancerPing) {
             ((AbstractLoadBalancerPing) ping).setLoadBalancer(this);
         }
-        logger.info("Client:" + name + " instantiated a LoadBalancer:"
-                + toString());
+        logger.info("Client: {} instantiated a LoadBalancer: {}", name, toString());
         boolean enablePrimeConnections = clientConfig.get(
                 CommonClientConfigKey.EnablePrimeConnections, DefaultClientConfigImpl.DEFAULT_ENABLE_PRIME_CONNECTIONS);
 
@@ -310,8 +316,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
         this.pingIntervalSeconds = pingIntervalSeconds;
         if (logger.isDebugEnabled()) {
-            logger.debug("LoadBalancer:  pingIntervalSeconds set to "
-                    + this.pingIntervalSeconds);
+            logger.debug("LoadBalancer [{}]:  pingIntervalSeconds set to {}",
+        	    name, this.pingIntervalSeconds);
         }
         setupPingTask(); // since ping data changed
     }
@@ -328,10 +334,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             return;
         }
         this.maxTotalPingTimeSeconds = maxTotalPingTimeSeconds;
-        if (logger.isDebugEnabled()) {
-            logger.debug("LoadBalancer: maxTotalPingTime set to "
-                    + this.maxTotalPingTimeSeconds);
-        }
+        logger.debug("LoadBalancer [{}]: maxTotalPingTime set to {}", name, this.maxTotalPingTimeSeconds);
 
     }
 
@@ -407,7 +410,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 newList.add(newServer);
                 setServersList(newList);
             } catch (Exception e) {
-                logger.error("Exception while adding a newServer", e);
+                logger.error("LoadBalancer [{}]: Error adding newServer {}", name, newServer.getHost(), e);
             }
         }
     }
@@ -426,7 +429,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 newList.addAll(newServers);
                 setServersList(newList);
             } catch (Exception e) {
-                logger.error("Exception while adding Servers", e);
+                logger.error("LoadBalancer [{}]: Exception while adding Servers", name, e);
             }
         }
     }
@@ -455,7 +458,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 }
                 setServersList(newList);
             } catch (Exception e) {
-                logger.error("Exception while adding Servers", e);
+                logger.error("LoadBalancer [{}]: Exception while adding Servers", name, e);
             }
         }
     }
@@ -466,9 +469,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      */
     public void setServersList(List lsrv) {
         Lock writeLock = allServerLock.writeLock();
-        if (logger.isDebugEnabled()) {
-            logger.debug("LoadBalancer:  clearing server list (SET op)");
-        }
+        logger.debug("LoadBalancer [{}]: clearing server list (SET op)", name);
+        
         ArrayList<Server> newServers = new ArrayList<Server>();
         writeLock.lock();
         try {
@@ -483,10 +485,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 }
 
                 if (server instanceof Server) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("LoadBalancer:  addServer ["
-                                + ((Server) server).getId() + "]");
-                    }
+                    logger.debug("LoadBalancer [{}]:  addServer [{}]", name, ((Server) server).getId());
                     allServers.add((Server) server);
                 } else {
                     throw new IllegalArgumentException(
@@ -504,8 +503,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                    for (ServerListChangeListener l: changeListeners) {
                        try {
                            l.serverListChanged(oldList, newList);
-                       } catch (Throwable e) {
-                           logger.error("Error invoking server list change listener", e);
+                       } catch (Error e) {
+                           logger.error("LoadBalancer [{}]: Error invoking server list change listener", name, e);
                        }
                    }
                 }
@@ -557,7 +556,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 }
                 setServersList(newList);
             } catch (Exception e) {
-                logger.error("Exception while adding Servers", e);
+                logger.error("LoadBalancer [{}]: Exception while adding Servers", name, e);
             }
         }
     }
@@ -624,12 +623,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      */
     class PingTask extends TimerTask {
         public void run() {
-            Pinger ping = new Pinger(pingStrategy);
             try {
-                ping.runPinger();
-            } catch (Throwable t) {
-                logger.error("Throwable caught while running extends for "
-                        + name, t);
+            	new Pinger(pingStrategy).runPinger();
+            } catch (Error e) {
+                logger.error("LoadBalancer [{}]: Error pinging", name, e);
             }
         }
     }
@@ -687,11 +684,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
                     if (oldIsAlive != isAlive) {
                         changedServers.add(svr);
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("LoadBalancer:  Server [" + svr.getId()
-                                    + "] status changed to "
-                                    + (isAlive ? "ALIVE" : "DEAD"));
-                        }
+                        logger.debug("LoadBalancer [{}]:  Server [{}] status changed to {}", 
+                    		name, svr.getId(), (isAlive ? "ALIVE" : "DEAD"));
                     }
 
                     if (isAlive) {
@@ -705,9 +699,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
                 notifyServerStatusChangeListener(changedServers);
 
-            } catch (Throwable t) {
-                logger.error("Throwable caught while running the Pinger-"
-                        + name, t);
+            } catch (Error e) {
+                logger.error("LoadBalancer [{}] : Error running the Pinger", name, e);
             } finally {
                 pingInProgress.set(false);
             }
@@ -719,8 +712,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             for (ServerStatusChangeListener listener : serverStatusListeners) {
                 try {
                     listener.serverStatusChanged(changedServers);
-                } catch (Throwable e) {
-                    logger.error("Error invoking server status change listener", e);
+                } catch (Error e) {
+                    logger.error("LoadBalancer [{}]: Error invoking server status change listener", name, e);
                 }
             }
         }
@@ -745,8 +738,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         } else {
             try {
                 return rule.choose(key);
-            } catch (Throwable t) {
-                return null;
+            } catch (Error t) {
+                throw new Error("Error choosing server for key " + key);
             }
         }
     }
@@ -759,23 +752,19 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             try {
                 Server svr = rule.choose(key);
                 return ((svr == null) ? null : svr.getId());
-            } catch (Throwable t) {
+            } catch (Error t) {
+            	logger.error("LoadBalancer [{}]:  Error choosing server for key '{}'", name, key, t);
                 return null;
             }
         }
     }
 
     public void markServerDown(Server server) {
-        if (server == null) {
+        if (server == null || !server.isAlive()) {
             return;
         }
 
-        if (!server.isAlive()) {
-            return;
-        }
-
-        logger.error("LoadBalancer:  markServerDown called on ["
-                + server.getId() + "]");
+        logger.error("LoadBalancer [{}]:  markServerDown called on [{}]", name, server.getId());
         server.setAlive(false);
         // forceQuickPing();
 
@@ -794,7 +783,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         Lock writeLock = upServerLock.writeLock();
 
         try {
-
             final List<Server> changedServers = new ArrayList<Server>();
 
             for (Server svr : upServerList) {
@@ -806,16 +794,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             }
 
             if (triggered) {
-                logger.error("LoadBalancer:  markServerDown called on [" + id
-                        + "]");
+                logger.error("LoadBalancer [{}]:  markServerDown called for server [{}]", name, id);
                 notifyServerStatusChangeListener(changedServers);
             }
 
         } finally {
-            try {
-                writeLock.unlock();
-            } catch (Exception e) { // NOPMD
-            }
+            writeLock.unlock();
         }
     }
 
@@ -827,15 +811,12 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if (canSkipPing()) {
             return;
         }
-        if (logger.isDebugEnabled()) {
-            logger.debug("LoadBalancer:  forceQuickPing invoked");
-        }
-        Pinger ping = new Pinger(pingStrategy);
+        logger.debug("LoadBalancer [{}]:  forceQuickPing invoking", name);
+        
         try {
-            ping.runPinger();
-        } catch (Throwable t) {
-            logger.error("Throwable caught while running forceQuickPing() for "
-                    + name, t);
+        	new Pinger(pingStrategy).runPinger();
+        } catch (Error e) {
+            logger.error("LoadBalancer [{}]: Error running forceQuickPing()", name, e);
         }
     }
 
@@ -903,10 +884,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             int numCandidates = servers.length;
             boolean[] results = new boolean[numCandidates];
 
-            if (logger.isDebugEnabled()) {
-                logger.debug("LoadBalancer:  PingTask executing ["
-                             + numCandidates + "] servers configured");
-            }
+            logger.debug("LoadBalancer:  PingTask executing [{}] servers configured", numCandidates);
 
             for (int i = 0; i < numCandidates; i++) {
                 results[i] = false; /* Default answer is DEAD. */
@@ -926,9 +904,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                     if (ping != null) {
                         results[i] = ping.isAlive(servers[i]);
                     }
-                } catch (Throwable t) {
-                    logger.error("Exception while pinging Server:"
-                                 + servers[i], t);
+                } catch (Error e) {
+                    logger.error("Exception while pinging Server: '{}'", servers[i], e);
                 }
             }
             return results;

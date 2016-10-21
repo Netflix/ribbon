@@ -17,23 +17,23 @@
 */
 package com.netflix.client.config;
 
-import com.google.common.base.Strings;
-import com.netflix.client.VipAddressResolver;
-import com.netflix.config.ConfigurationManager;
-import com.netflix.config.DynamicProperty;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.config.DynamicStringProperty;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Strings;
+import com.netflix.client.VipAddressResolver;
+import com.netflix.config.ConfigurationManager;
+import com.netflix.config.DynamicProperty;
+import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.config.DynamicStringProperty;
 
 /**
  * Default client configuration that loads properties from Archaius's ConfigurationManager.
@@ -633,9 +633,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
                     try {
                         resolver = (VipAddressResolver) Class.forName(
                                 (String) getProperty(CommonClientConfigKey.VipAddressResolverClassName)).newInstance();
-                    } catch (Throwable e) {
+                    } catch (InstantiationException|IllegalAccessException|ClassNotFoundException e) {
                         LOG.error("Cannot instantiate VipAddressResolver", e);
-                    }
+		    }
                 }
             }
         }
