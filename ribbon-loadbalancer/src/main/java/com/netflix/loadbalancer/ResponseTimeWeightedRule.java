@@ -90,8 +90,7 @@ public class ResponseTimeWeightedRule extends RoundRobinRule {
 
     protected Timer serverWeightTimer = null;
 
-    protected AtomicBoolean serverWeightAssignmentInProgress = new AtomicBoolean(
-            false);
+    protected AtomicBoolean serverWeightAssignmentInProgress = new AtomicBoolean(false);
 
     String name = "unknown";
 
@@ -220,11 +219,11 @@ public class ResponseTimeWeightedRule extends RoundRobinRule {
             if (lb == null) {
                 return;
             }
-            if (serverWeightAssignmentInProgress.get()) {
-                return; // Ping in progress - nothing to do
-            } else {
-                serverWeightAssignmentInProgress.set(true);
+            
+            if (!serverWeightAssignmentInProgress.compareAndSet(false, true)) {
+                return;
             }
+            
             try {
                 logger.info("Weight adjusting job started");
                 AbstractLoadBalancer nlb = (AbstractLoadBalancer) lb;

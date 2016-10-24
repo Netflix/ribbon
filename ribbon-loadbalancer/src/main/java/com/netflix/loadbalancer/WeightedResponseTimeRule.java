@@ -17,18 +17,18 @@
 */
 package com.netflix.loadbalancer;
 
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.netflix.client.config.IClientConfig;
-import com.netflix.client.config.IClientConfigKey;
 
 /** 
  * Rule that use the average/percentile response times
@@ -100,8 +100,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
 
     protected Timer serverWeightTimer = null;
 
-    protected AtomicBoolean serverWeightAssignmentInProgress = new AtomicBoolean(
-            false);
+    protected AtomicBoolean serverWeightAssignmentInProgress = new AtomicBoolean(false);
 
     String name = "unknown";
 
@@ -235,11 +234,11 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
             if (lb == null) {
                 return;
             }
-            if (serverWeightAssignmentInProgress.get()) {
-                return; // Ping in progress - nothing to do
-            } else {
-                serverWeightAssignmentInProgress.set(true);
+            
+            if (!serverWeightAssignmentInProgress.compareAndSet(false,  true))  {
+                return; 
             }
+            
             try {
                 logger.info("Weight adjusting job started");
                 AbstractLoadBalancer nlb = (AbstractLoadBalancer) lb;

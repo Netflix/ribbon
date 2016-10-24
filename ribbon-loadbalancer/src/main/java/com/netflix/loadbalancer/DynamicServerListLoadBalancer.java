@@ -250,14 +250,17 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     protected void updateAllServerList(List<T> ls) {
         // other threads might be doing this - in which case, we pass
         if (serverListUpdateInProgress.compareAndSet(false, true)) {
-            for (T s : ls) {
-                s.setAlive(true); // set so that clients can start using these
-                                  // servers right away instead
-                // of having to wait out the ping cycle.
+            try {
+                for (T s : ls) {
+                    s.setAlive(true); // set so that clients can start using these
+                                      // servers right away instead
+                                      // of having to wait out the ping cycle.
+                }
+                setServersList(ls);
+                super.forceQuickPing();
+            } finally {
+                serverListUpdateInProgress.set(false);
             }
-            setServersList(ls);
-            super.forceQuickPing();
-            serverListUpdateInProgress.set(false);
         }
     }
 

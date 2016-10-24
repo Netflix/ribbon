@@ -72,7 +72,7 @@ public class ClientFactory {
     		if (client instanceof AbstractLoadBalancerAwareClient) {
     			((AbstractLoadBalancerAwareClient) client).setLoadBalancer(loadBalancer);
     		}
-    	} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+    	} catch (Throwable e) {
     		String message = "Unable to InitializeAndAssociateNFLoadBalancer set for RestClient:"
     				+ restClientName;
     		logger.warn(message, e);
@@ -168,7 +168,7 @@ public class ClientFactory {
             namedLBMap.put(name, lb);            
             logger.info("Client: {} instantiated a LoadBalancer: {}", name, lb);
             return lb;
-        } catch (Exception e) {           
+        } catch (Throwable e) {           
            throw new ClientException("Unable to instantiate/associate LoadBalancer with Client:" + name, e);
         }    	
     }
