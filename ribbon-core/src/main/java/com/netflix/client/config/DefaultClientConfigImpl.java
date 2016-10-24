@@ -631,16 +631,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
             synchronized (this) {
                 if (resolver == null) {
                     try {
-                        resolver = (VipAddressResolver) Class.forName(
-                                (String) getProperty(CommonClientConfigKey.VipAddressResolverClassName)).newInstance();
-                    } catch (Throwable e) {
-                        LOG.error("Cannot instantiate VipAddressResolver", e);
+                        resolver = (VipAddressResolver) Class
+                                .forName((String) getProperty(CommonClientConfigKey.VipAddressResolverClassName))
+                                .newInstance();
+                    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                        throw new RuntimeException("Cannot instantiate VipAddressResolver", e);
                     }
                 }
             }
         }
         return resolver;
-
     }
 
     @Override

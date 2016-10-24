@@ -344,10 +344,11 @@ public class PrimeConnections {
         boolean success = false;
         do {
             try {
-                logger.debug("Executing PrimeConnections request to server " + s + " with path " + primeConnectionsURIPath
-                        + ", tryNum=" + tryNum);
+                logger.debug("Executing PrimeConnections request to server {} with path {}, tryNum={}",
+                	s, primeConnectionsURIPath, tryNum);
                 success = connector.connect(s, primeConnectionsURIPath);
                 successCounter.increment();
+                lastException = null;
                 break;
             } catch (Exception e) {
                 // It does not really matter if there was an exception,
@@ -357,20 +358,19 @@ public class PrimeConnections {
                 lastException = e;
                 sleepBeforeRetry(tryNum);
             } 
-            logger.debug("server:" + s + ", result=" + success + ", tryNum="
-                    + tryNum + ", maxRetries=" + maxRetries);
+            logger.debug("server:{}, result={}, tryNum={}, maxRetries={}", s, success, tryNum, maxRetries);
             tryNum++;
         } while (!success && (tryNum <= maxRetries));
         // set the alive flag so that it can be used by load balancers
         if (listener != null) {
             try {
                 listener.primeCompleted(s, lastException);
-            } catch (Throwable e) {
-                logger.error("Error calling PrimeComplete listener", e);
+            } catch (Exception e) {
+                logger.error("Error calling PrimeComplete listener for server '{}'", s, e);
             }
         }
-        logger.debug("Either done, or quitting server:" + s + ", result="
-                + success + ", tryNum=" + tryNum + ", maxRetries=" + maxRetries);        
+        logger.debug("Either done, or quitting server:{}, result={}, tryNum={}, maxRetries={}", 
+        	s, success, tryNum, maxRetries);
         return success;
     }
 

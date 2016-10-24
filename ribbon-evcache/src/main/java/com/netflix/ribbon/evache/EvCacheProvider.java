@@ -22,14 +22,15 @@ import com.netflix.ribbon.CacheProvider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Subscriber;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Subscriber;
 
 /**
  * @author Tomasz Bak
@@ -104,10 +105,9 @@ public class EvCacheProvider<T> implements CacheProvider<T> {
                     } else if (future.isDone()) {
                         try {
                             handleCompletedFuture(future, subscriber);
-                        } catch (Error e) {
-                            throw e;
-                        } catch (Throwable e) {
-                            LOGGER.warn("unexpected error during checking future result", e);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException(e);
                         } finally {
                             futureMap.remove(future);
                         }

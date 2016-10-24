@@ -245,12 +245,18 @@ public class LoadBalancerContext implements IClientConfigAware {
     }
 
     private void recordStats(ServerStats stats, long responseTime) {
+    	if (stats == null) {
+    		return;
+    	}
         stats.decrementActiveRequestsCount();
         stats.incrementNumRequests();
         stats.noteResponseTime(responseTime);
     }
 
     protected void noteRequestCompletion(ServerStats stats, Object response, Throwable e, long responseTime) {
+    	if (stats == null) {
+    		return;
+    	}
         noteRequestCompletion(stats, response, e, responseTime, null);
     }
     
@@ -260,6 +266,9 @@ public class LoadBalancerContext implements IClientConfigAware {
      * to update related stats.  
      */
     public void noteRequestCompletion(ServerStats stats, Object response, Throwable e, long responseTime, RetryHandler errorHandler) {
+    	if (stats == null) {
+    		return;
+    	}
         try {
             recordStats(stats, responseTime);
             RetryHandler callErrorHandler = errorHandler == null ? getRetryHandler() : errorHandler;
@@ -273,8 +282,8 @@ public class LoadBalancerContext implements IClientConfigAware {
                     stats.clearSuccessiveConnectionFailureCount();
                 }
             }
-        } catch (Throwable ex) {
-            logger.error("Unexpected exception", ex);
+        } catch (Exception ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
         }            
     }
 
@@ -283,6 +292,9 @@ public class LoadBalancerContext implements IClientConfigAware {
      * to update related stats.  
      */
     protected void noteError(ServerStats stats, ClientRequest request, Throwable e, long responseTime) {
+    	if (stats == null) {
+    		return;
+    	}
         try {
             recordStats(stats, responseTime);
             RetryHandler errorHandler = getRetryHandler();
@@ -294,8 +306,8 @@ public class LoadBalancerContext implements IClientConfigAware {
                     stats.clearSuccessiveConnectionFailureCount();
                 }
             }
-        } catch (Throwable ex) {
-            logger.error("Unexpected exception", ex);
+        } catch (Exception ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
         }            
     }
 
@@ -304,14 +316,17 @@ public class LoadBalancerContext implements IClientConfigAware {
      * to update related stats.  
      */
     protected void noteResponse(ServerStats stats, ClientRequest request, Object response, long responseTime) {
+    	if (stats == null) {
+    		return;
+    	}
         try {
             recordStats(stats, responseTime);
             RetryHandler errorHandler = getRetryHandler();
             if (errorHandler != null && response != null) {
                 stats.clearSuccessiveConnectionFailureCount();
             } 
-        } catch (Throwable ex) {
-            logger.error("Unexpected exception", ex);
+        } catch (Exception ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
         }            
     }
 
@@ -324,9 +339,9 @@ public class LoadBalancerContext implements IClientConfigAware {
         }
         try {
             serverStats.incrementActiveRequestsCount();
-        } catch (Throwable e) {
-            logger.info("Unable to note Server Stats:", e);
-        }
+        } catch (Exception ex) {
+            logger.error("Error noting stats for client {}", clientName, ex);
+        }            
     }
 
 
