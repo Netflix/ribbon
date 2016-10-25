@@ -735,7 +735,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             try {
                 return rule.choose(key);
             } catch (Exception e) {
-                throw new RuntimeException("Error choosing server for key " + key, e);
+                logger.warn("LoadBalancer [{}]:  Error choosing server for key {}", name, key, e);
+                return null;
             }
         }
     }
@@ -749,7 +750,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 Server svr = rule.choose(key);
                 return ((svr == null) ? null : svr.getId());
             } catch (Exception e) {
-                throw new RuntimeException("Error choosing server", e);
+                logger.warn("LoadBalancer [{}]:  Error choosing server", name, e);
+                return null;
             }
         }
     }

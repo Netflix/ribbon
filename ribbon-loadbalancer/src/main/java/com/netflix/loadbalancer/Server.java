@@ -61,7 +61,7 @@ public class Server {
     private String host;
     private int port = 80;
     private volatile String id;
-    private boolean isAliveFlag;
+    private volatile boolean isAliveFlag;
     private String zone = UNKNOWN_ZONE;
     private volatile boolean readyToServe = true;
 
