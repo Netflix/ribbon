@@ -137,6 +137,22 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
             return results;            
         }
     }
+	
+	/**
+	 * Referenced from RoundRobinRule
+     * Inspired by the implementation of {@link AtomicInteger#incrementAndGet()}.
+     *
+     * @param modulo The modulo to bound the value of the counter.
+     * @return The next value.
+     */
+    private int incrementAndGetModulo(int modulo) {
+        for (;;) {
+            int current = nextIndex.get();
+            int next = (current + 1) % modulo;
+            if (nextIndex.compareAndSet(current, next))
+                return next;
+        }
+    }
     
     /**
      * Choose a random server after the predicate filters a list of servers. Load balancer key 
@@ -160,7 +176,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
         if (eligible.size() == 0) {
             return Optional.absent();
         }
-        return Optional.of(eligible.get(nextIndex.getAndIncrement() % eligible.size()));
+        return Optional.of(eligible.get(incrementAndGetModulo(eligible.size())));
     }
     
     /**
@@ -184,7 +200,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
         if (eligible.size() == 0) {
             return Optional.absent();
         }
-        return Optional.of(eligible.get(nextIndex.getAndIncrement() % eligible.size()));
+        return Optional.of(eligible.get(incrementAndGetModulo(eligible.size())));
     }
         
     /**
