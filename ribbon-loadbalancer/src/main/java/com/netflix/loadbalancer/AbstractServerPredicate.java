@@ -150,7 +150,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
             int current = nextIndex.get();
             int next = (current + 1) % modulo;
             if (nextIndex.compareAndSet(current, next))
-                return next;
+                return current;
         }
     }
     
