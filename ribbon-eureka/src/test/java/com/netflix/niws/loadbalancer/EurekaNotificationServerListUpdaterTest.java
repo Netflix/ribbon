@@ -207,7 +207,7 @@ public class EurekaNotificationServerListUpdaterTest {
         ThreadPoolExecutor executorMock = EasyMock.createMock(ThreadPoolExecutor.class);
         EasyMock.expect(executorMock.submit(EasyMock.isA(Runnable.class)))
                 .andThrow(new RejectedExecutionException("test exception"));
-
+        EasyMock.expect(executorMock.isShutdown()).andReturn(Boolean.FALSE);
         EurekaNotificationServerListUpdater serverListUpdater = new EurekaNotificationServerListUpdater(
                 new Provider<EurekaClient>() {
                     @Override
@@ -238,6 +238,44 @@ public class EurekaNotificationServerListUpdaterTest {
         } finally {
             serverListUpdater.stop();
 
+            EasyMock.verify(executorMock);
+            EasyMock.verify(eurekaClientMock);
+        }
+
+    }
+    
+    @Test
+    public void testEurekaClientUnregister() {
+        ThreadPoolExecutor executorMock = EasyMock.createMock(ThreadPoolExecutor.class);
+        EasyMock.expect(executorMock.isShutdown()).andReturn(Boolean.TRUE);
+
+        EurekaNotificationServerListUpdater serverListUpdater = new EurekaNotificationServerListUpdater(
+                new Provider<EurekaClient>() {
+                    @Override
+                    public EurekaClient get() {
+                        return eurekaClientMock;
+                    }
+                },
+                executorMock
+        );
+
+        try {
+            Capture<EurekaEventListener> registeredListener = new Capture<EurekaEventListener>();
+            eurekaClientMock.registerEventListener(EasyMock.capture(registeredListener));
+
+            EasyMock.replay(eurekaClientMock);
+            EasyMock.replay(executorMock);
+
+            serverListUpdater.start(new ServerListUpdater.UpdateAction() {
+                @Override
+                public void doUpdate() {
+                    Assert.fail("should not reach here");
+                }
+            });
+
+            registeredListener.getValue().onEvent(new CacheRefreshedEvent());
+            
+        } finally {
             EasyMock.verify(executorMock);
             EasyMock.verify(eurekaClientMock);
         }
