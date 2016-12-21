@@ -75,6 +75,19 @@ public class GetPostTest {
     	assertEquals(200, response.getStatus());
     	assertTrue(response.getEntity(TestObject.class).name.equals("test"));
     }
+
+    @Test
+    public void testGetWithBody() throws Exception {
+        URI getUri = new URI(SERVICE_URI + "test/getObject");
+        TestObject obj = new TestObject();
+        obj.name = "fromClient";
+        MultivaluedMapImpl params = new MultivaluedMapImpl();
+        params.add("name", "test");
+        HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParams("name", "test").entity(obj).build();
+        HttpResponse response = client.execute(request);
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getEntity(TestObject.class).name.equals("test"));
+    }
     
     @Test
     public void testPost() throws Exception {

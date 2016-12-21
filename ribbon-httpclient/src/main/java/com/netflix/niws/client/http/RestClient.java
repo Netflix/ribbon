@@ -615,7 +615,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         
         switch (verb) {
         case GET:
-            jerseyResponse = b.get(ClientResponse.class);
+            jerseyResponse = b.method("GET", ClientResponse.class, entity);
             break;
         case POST:
             jerseyResponse = b.post(ClientResponse.class, entity);
