@@ -17,7 +17,7 @@
  */
 package com.netflix.loadbalancer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -25,11 +25,11 @@ import java.net.URLEncoder;
 import org.junit.Test;
 
 import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.BaseLoadBalancer;
-import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.Server;
 
 public class LoadBalancerContextTest {
+    
+    final static Object httpKey = "http";
+    final static Object httpsKey = "https";
 
     static BaseLoadBalancer lb = new BaseLoadBalancer() {
 
@@ -39,11 +39,48 @@ public class LoadBalancerContextTest {
         }
     };
     
+    static BaseLoadBalancer mixedSchemeLb = new BaseLoadBalancer() {
+
+        @Override
+        public Server chooseServer(Object key) {
+            if (key == httpKey) {
+                return new Server("http://www.example.com:8081");
+            } else if (key == httpsKey) {
+                return new Server("https://www.example.com:8443");
+            }
+            
+            return new Server("www.example.com:8080");
+        }
+    };
+    
     
     private MyLoadBalancerContext context;
     
     public LoadBalancerContextTest() {
         context = new MyLoadBalancerContext(lb);
+    }
+    
+    @Test
+    public void testComputeURIWithMixedSchemaLoadBalancer() throws Exception {
+        
+        context = new MyLoadBalancerContext(mixedSchemeLb);
+        
+        URI request = new URI("/test?abc=xyz");
+        
+        // server with no scheme defined
+        Server server = context.getServerFromLoadBalancer(request, null);
+        URI newURI = context.reconstructURIWithServer(server, request);
+        assertEquals("http://www.example.com:8080/test?abc=xyz", newURI.toString());
+        
+
+        // server with no scheme defined
+        server = context.getServerFromLoadBalancer(request, httpKey);
+        newURI = context.reconstructURIWithServer(server, request);
+        assertEquals("http://www.example.com:8081/test?abc=xyz", newURI.toString());
+        
+        server = context.getServerFromLoadBalancer(request, httpsKey);
+        newURI = context.reconstructURIWithServer(server, request);
+        assertEquals("https://www.example.com:8443/test?abc=xyz", newURI.toString());
     }
     
     @Test

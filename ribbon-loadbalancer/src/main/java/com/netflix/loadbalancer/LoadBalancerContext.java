@@ -571,12 +571,17 @@ public class LoadBalancerContext implements IClientConfigAware {
 
     public URI reconstructURIWithServer(Server server, URI original) {
         String host = server.getHost();
-        int port = server .getPort();
+        int port = server.getPort();
+        String scheme = server.getScheme();
+        
         if (host.equals(original.getHost()) 
-                && port == original.getPort()) {
+                && port == original.getPort()
+                && scheme == original.getScheme()) {
             return original;
         }
-        String scheme = original.getScheme();
+        if (scheme == null) {
+            scheme = original.getScheme();
+        }
         if (scheme == null) {
             scheme = deriveSchemeAndPortFromPartialUri(original).first();
         }
