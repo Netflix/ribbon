@@ -91,12 +91,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
      * URI which does not contain the host name or the protocol.
      */
     public T executeWithLoadBalancer(final S request, final IClientConfig requestConfig) throws ClientException {
-        RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, requestConfig);
-        LoadBalancerCommand<T> command = LoadBalancerCommand.<T>builder()
-                .withLoadBalancerContext(this)
-                .withRetryHandler(handler)
-                .withLoadBalancerURI(request.getUri())
-                .build();
+        LoadBalancerCommand<T> command = buildLoadBalancerCommand(request, requestConfig);
 
         try {
             return command.submit(
@@ -127,6 +122,21 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
     }
     
     public abstract RequestSpecificRetryHandler getRequestSpecificRetryHandler(S request, IClientConfig requestConfig);
+
+    protected LoadBalancerCommand<T> buildLoadBalancerCommand(final S request, final IClientConfig config) {
+		RequestSpecificRetryHandler handler = getRequestSpecificRetryHandler(request, config);
+		LoadBalancerCommand.Builder<T> builder = LoadBalancerCommand.<T>builder()
+				.withLoadBalancerContext(this)
+				.withRetryHandler(handler)
+				.withLoadBalancerURI(request.getUri());
+		customizeLoadBalancerCommandBuilder(request, config, builder);
+		return builder.build();
+	}
+
+	protected void customizeLoadBalancerCommandBuilder(final S request, final IClientConfig config,
+			final LoadBalancerCommand.Builder<T> builder) {
+		// do nothing by default, give a chance to its derived class to customize the builder
+	}
 
     @Deprecated
     protected boolean isRetriable(S request) {
