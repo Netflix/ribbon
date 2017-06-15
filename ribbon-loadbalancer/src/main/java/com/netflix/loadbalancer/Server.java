@@ -89,10 +89,7 @@ public class Server {
     };
 
     public Server(String host, int port) {
-        this.host = host;
-        this.port = port;
-        this.id = host + ":" + port;
-        isAliveFlag = false;
+        this(null, host, port);
     }
     
     public Server(String scheme, String host, int port) {
@@ -193,6 +190,10 @@ public class Server {
         } else {
             this.id = null;
         }
+    }
+    
+    public void setSchemea(String scheme) {
+        this.scheme = scheme;
     }
 
     public void setPort(int port) {
