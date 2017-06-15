@@ -60,7 +60,7 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 	    this.clientConfig = clientConfig;
 	}
 	
-	private List<Server> derive(String value) {
+	protected List<Server> derive(String value) {
 	    List<Server> list = Lists.newArrayList();
 		if (!Strings.isNullOrEmpty(value)) {
 			for (String s: value.split(",")) {

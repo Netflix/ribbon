@@ -60,6 +60,7 @@ public class Server {
     public static final String UNKNOWN_ZONE = "UNKNOWN";
     private String host;
     private int port = 80;
+    private String scheme;
     private volatile String id;
     private volatile boolean isAliveFlag;
     private String zone = UNKNOWN_ZONE;
@@ -88,6 +89,11 @@ public class Server {
     };
 
     public Server(String host, int port) {
+        this(null, host, port);
+    }
+    
+    public Server(String scheme, String host, int port) {
+        this.scheme = scheme;
         this.host = host;
         this.port = port;
         this.id = host + ":" + port;
@@ -125,6 +131,17 @@ public class Server {
         } else {
             return hostPort.first() + ":" + hostPort.second();
         }
+    }
+    
+    private static String getScheme(String id) {
+        if (id != null) {
+            if (id.toLowerCase().startsWith("http://")) {
+                return "http";
+            } else if (id.toLowerCase().startsWith("https://")) {
+                return "https";
+            }
+        }
+        return null;
     }
 
     static Pair<String, Integer> getHostPort(String id) {
@@ -169,9 +186,14 @@ public class Server {
             this.id = hostPort.first() + ":" + hostPort.second();
             this.host = hostPort.first();
             this.port = hostPort.second();
+            this.scheme = getScheme(id);
         } else {
             this.id = null;
         }
+    }
+    
+    public void setSchemea(String scheme) {
+        this.scheme = scheme;
     }
 
     public void setPort(int port) {
@@ -199,6 +221,10 @@ public class Server {
 
     public int getPort() {
         return port;
+    }
+    
+    public String getScheme() {
+        return scheme;
     }
 
     public String getHostPort() {
