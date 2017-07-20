@@ -151,8 +151,10 @@ public class Server {
 
             if (id.toLowerCase().startsWith("http://")) {
                 id = id.substring(7);
+                port = 80;
             } else if (id.toLowerCase().startsWith("https://")) {
                 id = id.substring(8);
+                port = 443;
             }
 
             if (id.contains("/")) {

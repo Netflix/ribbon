@@ -28,7 +28,7 @@ public class ServerTest {
         Server server = new Server("https://netflix.com");
         assertEquals("https", server.getScheme());
         assertEquals("netflix.com", server.getHost());
-        assertEquals(80, server.getPort());
+        assertEquals(443, server.getPort());
     }
     
     @Test
