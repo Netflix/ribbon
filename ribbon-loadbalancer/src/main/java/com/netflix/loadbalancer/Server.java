@@ -166,7 +166,6 @@ public class Server {
 
             if (colon_idx == -1) {
                 host = id; // default
-                port = 80;
             } else {
                 host = id.substring(0, colon_idx);
                 try {
