@@ -127,7 +127,7 @@ public class PingUrl implements IPing {
 					content = EntityUtils.toString(response.getEntity());
 					isAlive = (response.getStatusLine().getStatusCode() == 200);
 					if (getExpectedContent()!=null){
-						LOGGER.debug("content:" + content);
+						LOGGER.debug("content:{}", content);
 						if (content == null){
 							isAlive = false;
 						}else{

@@ -135,9 +135,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             public void run() {
-                logger
-                        .info("Stopping NFLoadBalancer-serverWeightTimer-"
-                                + name);
+                logger.info("Stopping NFLoadBalancer-serverWeightTimer-{}", name);
                 serverWeightTimer.cancel();
             }
         }));
@@ -145,7 +143,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
 
     public void shutdown() {
         if (serverWeightTimer != null) {
-            logger.info("Stopping NFLoadBalancer-serverWeightTimer-" + name);
+            logger.info("Stopping NFLoadBalancer-serverWeightTimer-{}", name);
             serverWeightTimer.cancel();
         }
     }

@@ -147,7 +147,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
                     .primeConnections(getReachableServers());
         }
         this.setEnablePrimingConnections(primeConnection);
-        LOGGER.info("DynamicServerListLoadBalancer for client {} initialized: {}", clientConfig.getClientName(), this.toString());
+        LOGGER.info("DynamicServerListLoadBalancer for client {} initialized: {}", clientConfig.getClientName(), this);
     }
     
     

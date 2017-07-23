@@ -584,10 +584,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         }
         restClient.setFollowRedirects(bbFollowRedirects);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("RestClient sending new Request(" + verb
-                    + ": ) " + uri);
-        }
+        logger.debug("RestClient sending new Request({}): {}", verb, uri);
 
 
         WebResource xResource = restClient.resource(uri.toString());

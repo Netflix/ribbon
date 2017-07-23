@@ -650,7 +650,7 @@ public class LoadBalancerContext implements IClientConfigAware {
             try {
                 numRetries = overriddenClientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetries, maxAutoRetries);
             } catch (Exception e) {
-                logger.warn("Invalid maxRetries requested for RestClient:" + this.clientName);
+                logger.warn("Invalid maxRetries requested for RestClient:{}", this.clientName);
             }
         }
         return numRetries;

@@ -74,7 +74,7 @@ public class NFHttpMethodRetryHandler extends DefaultHttpRequestRetryHandler {
 				Thread.sleep(executionCount * this.sleepTimeFactorMs);
 			}
 			catch (InterruptedException e) {
-				logger.warn("Interrupted while sleep before retrying http method " + methodName + " " + path, e);
+				logger.warn("Interrupted while sleep before retrying http method {} {}", methodName, path, e);
 			}
 			DynamicCounter.increment(RETRY_COUNTER + methodName + ":" + path);
 			return true;

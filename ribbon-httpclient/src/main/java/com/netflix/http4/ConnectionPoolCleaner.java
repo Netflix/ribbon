@@ -109,7 +109,7 @@ public class ConnectionPoolCleaner {
                     }
                 }
             }, connectionCleanerTimerDelay, connectionCleanerRepeatInterval, TimeUnit.MILLISECONDS);
-            logger.info("Initializing ConnectionPoolCleaner for NFHttpClient:" + name);
+            logger.info("Initializing ConnectionPoolCleaner for NFHttpClient:{}", name);
         }
     }
     
