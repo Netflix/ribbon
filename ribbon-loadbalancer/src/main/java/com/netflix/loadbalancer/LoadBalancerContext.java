@@ -660,8 +660,8 @@ public class LoadBalancerContext implements IClientConfigAware {
         if (currentRetryCount > maxRetries) {
             return false;
         }
-        logger.debug("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt#: {}",  
-                currentRetryCount, server);
+        logger.debug("Exception while executing request which is deemed retry-able, retrying ..., SAME Server ({}) Retry Attempt#: {}",  
+                server, currentRetryCount);
         return true;
     }
 
