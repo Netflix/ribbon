@@ -1,7 +1,7 @@
 dependencies {
     compile project(':ribbon-core')
     compile project(':ribbon-loadbalancer')
-    compile 'commons-collections:commons-collections:3.2.1'        
+    compile 'commons-collections:commons-collections:3.2.2'        
     compile 'org.apache.httpcomponents:httpclient:4.2.1'
     compile 'com.google.code.findbugs:annotations:2.0.0' 
     compile "com.sun.jersey:jersey-client:${jersey_version}"
