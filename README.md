@@ -14,7 +14,7 @@ To get ribbon binaries, go to [maven central](http://search.maven.org/#search%7C
 <dependency>
     <groupId>com.netflix.ribbon</groupId>
     <artifactId>ribbon</artifactId>
-    <version>2.0-RC1</version>
+    <version>2.2.2</version>
 </dependency>
 ```
 
