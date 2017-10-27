@@ -15,6 +15,7 @@ public class LoadBalancerBuilder<T extends Server> {
     private IRule rule;
     private IPing ping = new DummyPing();
     private ServerList serverListImpl;
+    private ServerListUpdater serverListUpdater;
     
     
     private LoadBalancerBuilder() {
@@ -49,6 +50,11 @@ public class LoadBalancerBuilder<T extends Server> {
         return this;
     }
 
+    public LoadBalancerBuilder<T> withServerListUpdater(ServerListUpdater serverListUpdater) {
+        this.serverListUpdater = serverListUpdater;
+        return this;
+    }
+
     public BaseLoadBalancer buildFixedServerListLoadBalancer(List<T> servers) {
         if (rule == null) {
             rule = createRuleFromConfig(config);
@@ -70,6 +76,20 @@ public class LoadBalancerBuilder<T extends Server> {
             throw new RuntimeException(e);
         }
         return rule;
+    }
+
+    private static ServerListUpdater createServerListUpdaterFromConfig(IClientConfig config) {
+        String serverListUpdaterClassName = config.get(IClientConfigKey.Keys.ServerListUpdaterClassName);
+        if (serverListUpdaterClassName == null) {
+            throw new IllegalArgumentException("NIWSServerListClassName is not specified in the config");
+        }
+        ServerListUpdater updater;
+        try {
+            updater = (ServerListUpdater) ClientFactory.instantiateInstanceWithClientConfig(serverListUpdaterClassName, config);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return updater;
     }
     
     private static ServerList<Server> createServerListFromConfig(IClientConfig config) {
@@ -101,7 +121,30 @@ public class LoadBalancerBuilder<T extends Server> {
         }
         return new ZoneAwareLoadBalancer<T>(config, rule, ping, serverListImpl, serverListFilter);
     }
-    
+
+    /**
+     * Build a {@link ZoneAwareLoadBalancer} with a dynamic {@link ServerList} and an {@link IRule} and a {@link ServerListUpdater}.
+     *
+     * The {@link ServerList} can be either set in the {@link #withDynamicServerList(ServerList)} or in the {@link IClientConfig}
+     * using {@link CommonClientConfigKey#NIWSServerListClassName}.
+     * The {@link IRule} can be either set by {@link #withRule(IRule)} or in the {@link IClientConfig} using
+     * {@link CommonClientConfigKey#NFLoadBalancerRuleClassName}.
+     * The {@link ServerListUpdater} can be either set by {@link #withServerListUpdater(ServerListUpdater)} or
+     * in the {@link IClientConfig} using {@link CommonClientConfigKey#ServerListUpdaterClassName}.
+     */
+    public ZoneAwareLoadBalancer<T> buildDynamicServerListLoadBalancerWithUpdater() {
+        if (serverListImpl == null) {
+            serverListImpl = createServerListFromConfig(config);
+        }
+        if (rule == null) {
+            rule = createRuleFromConfig(config);
+        }
+        if (serverListUpdater == null) {
+            serverListUpdater = createServerListUpdaterFromConfig(config);
+        }
+        return new ZoneAwareLoadBalancer<T>(config, rule, ping, serverListImpl, serverListFilter, serverListUpdater);
+    }
+
     /**
      * Build a load balancer using the configuration from the {@link IClientConfig} only. It uses reflection to initialize necessary load balancer
      * components. 

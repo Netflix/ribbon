@@ -196,6 +196,14 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
         this.filter = filter;
     }
 
+    public ServerListUpdater getServerListUpdater() {
+        return serverListUpdater;
+    }
+
+    public void setServerListUpdater(ServerListUpdater serverListUpdater) {
+        this.serverListUpdater = serverListUpdater;
+    }
+
     @Override
     /**
      * Makes no sense to ping an inmemory disc client

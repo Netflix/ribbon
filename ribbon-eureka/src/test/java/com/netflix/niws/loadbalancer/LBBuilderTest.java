@@ -15,10 +15,12 @@ import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.IRule;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
+import com.netflix.loadbalancer.PollingServerListUpdater;
 import com.netflix.loadbalancer.RoundRobinRule;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerList;
 import com.netflix.loadbalancer.ServerListFilter;
+import com.netflix.loadbalancer.ServerListUpdater;
 import com.netflix.loadbalancer.ZoneAffinityServerListFilter;
 import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
 import org.apache.commons.configuration.Configuration;
@@ -110,6 +112,28 @@ public class LBBuilderTest {
     }
 
     @Test
+    public void testBuildWithDiscoveryEnabledNIWSServerListAndUpdater() {
+        IRule rule = new AvailabilityFilteringRule();
+        ServerList<DiscoveryEnabledServer> list = new DiscoveryEnabledNIWSServerList("dummy:7001");
+        ServerListFilter<DiscoveryEnabledServer> filter = new ZoneAffinityServerListFilter<DiscoveryEnabledServer>();
+        ServerListUpdater updater = new PollingServerListUpdater();
+        ZoneAwareLoadBalancer<DiscoveryEnabledServer> lb = LoadBalancerBuilder.<DiscoveryEnabledServer>newBuilder()
+                .withDynamicServerList(list)
+                .withRule(rule)
+                .withServerListFilter(filter)
+                .withServerListUpdater(updater)
+                .buildDynamicServerListLoadBalancerWithUpdater();
+        assertNotNull(lb);
+        assertEquals(Lists.newArrayList(expected), lb.getAllServers());
+        assertSame(filter, lb.getFilter());
+        assertSame(list, lb.getServerListImpl());
+        assertSame(updater, lb.getServerListUpdater());
+        Server server = lb.chooseServer();
+        // make sure load balancer does not recreate the server instance
+        assertTrue(server instanceof DiscoveryEnabledServer);
+    }
+
+    @Test
     public void testBuildWithArchaiusProperties() {
         Configuration config = ConfigurationManager.getConfigInstance();
         config.setProperty("client1.niws.client." + Keys.DeploymentContextBasedVipAddresses, "dummy:7001");
@@ -118,11 +142,13 @@ public class LBBuilderTest {
         config.setProperty("client1.niws.client." + Keys.NFLoadBalancerRuleClassName, RoundRobinRule.class.getName());
         config.setProperty("client1.niws.client." + Keys.NIWSServerListClassName, DiscoveryEnabledNIWSServerList.class.getName());
         config.setProperty("client1.niws.client." + Keys.NIWSServerListFilterClassName, ZoneAffinityServerListFilter.class.getName());
+        config.setProperty("client1.niws.client." + Keys.ServerListUpdaterClassName, PollingServerListUpdater.class.getName());
         IClientConfig clientConfig = IClientConfig.Builder.newBuilder(NiwsClientConfig.class, "client1").build();
         ILoadBalancer lb = LoadBalancerBuilder.newBuilder().withClientConfig(clientConfig).buildLoadBalancerFromConfigWithReflection();
         assertNotNull(lb);
         assertEquals(DynamicServerListLoadBalancer.class.getName(), lb.getClass().getName());
         DynamicServerListLoadBalancer<Server> dynamicLB = (DynamicServerListLoadBalancer<Server>) lb;
+        assertTrue(dynamicLB.getServerListUpdater() instanceof PollingServerListUpdater);
         assertTrue(dynamicLB.getFilter() instanceof ZoneAffinityServerListFilter);
         assertTrue(dynamicLB.getRule() instanceof RoundRobinRule);
         assertTrue(dynamicLB.getPing() instanceof DummyPing);
