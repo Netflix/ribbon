@@ -80,7 +80,7 @@ HttpRequestTemplate<ByteBuf> recommendationsByUserIdTemplate = httpResourceGroup
             .withResponseValidator(new RecommendationServiceResponseValidator())
             .build();
 Observable<ByteBuf> result = recommendationsByUserIdTemplate.requestBuilder()
-                        .withRequestProperty("userId", “user1")
+                        .withRequestProperty("userId", "user1")
                         .build()
                         .observe();
 ```
