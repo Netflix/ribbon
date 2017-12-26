@@ -47,7 +47,8 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     }
     
     public boolean isConnectionException(Throwable e) {
-        return Utils.isPresentAsCause(e, connectionRelated);
+        return Utils.isPresentAsCause(e, connectionRelated)
+                || e.getMessage().contains("connect timed out");
     }
 
     @Override
