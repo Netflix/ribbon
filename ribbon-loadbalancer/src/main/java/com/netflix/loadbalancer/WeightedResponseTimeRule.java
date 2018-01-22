@@ -196,8 +196,10 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                         n++;
                     }
                 }
+                if(serverCount > serverIndex){
+                    server = allList.get(serverIndex);
+                }
 
-                server = allList.get(serverIndex);
             }
 
             if (server == null) {
