@@ -64,7 +64,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>
  * When there is not enough statistics gathered for the servers, this rule
  * will fall back to use {@link RoundRobinRule}.
- *
  * @author stonse
  */
 public class WeightedResponseTimeRule extends RoundRobinRule {
@@ -180,8 +179,8 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
             // No server has been hit yet and total weight is not initialized
             // fallback to use round robin
             if (maxTotalWeight < 0.001d) {
-                server = super.choose(getLoadBalancer(), key);
-                if (server == null) {
+                server =  super.choose(getLoadBalancer(), key);
+                if(server == null) {
                     return server;
                 }
             } else {
@@ -197,7 +196,8 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                         n++;
                     }
                 }
-                if (serverCount > serverIndex) {
+
+                if(serverCount > serverIndex){
                     server = allList.get(serverIndex);
                 }
 
@@ -238,7 +238,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                 return;
             }
 
-            if (!serverWeightAssignmentInProgress.compareAndSet(false, true)) {
+            if (!serverWeightAssignmentInProgress.compareAndSet(false,  true))  {
                 return;
             }
 
