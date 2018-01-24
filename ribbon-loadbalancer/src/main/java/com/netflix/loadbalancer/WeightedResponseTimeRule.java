@@ -158,6 +158,8 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
         }
         Server server = null;
 
+        int badLoopCount =10;
+        int badLoopIndex =1;
         while (server == null) {
             // get hold of the current reference in case it is changed from the other thread
             List<Double> currentWeights = accumulatedWeights;
@@ -178,7 +180,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
             double maxTotalWeight = currentWeights.size() == 0 ? 0 : currentWeights.get(currentWeights.size() - 1); 
             // No server has been hit yet and total weight is not initialized
             // fallback to use round robin
-            if (maxTotalWeight < 0.001d) {
+            if (badLoopIndex > badLoopCount || maxTotalWeight < 0.001d) {
                 server =  super.choose(getLoadBalancer(), key);
                 if(server == null) {
                     return server;
@@ -198,6 +200,8 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                 }
                 if(serverCount > serverIndex){
                     server = allList.get(serverIndex);
+                }else {
+                    badLoopIndex++;
                 }
 
             }
