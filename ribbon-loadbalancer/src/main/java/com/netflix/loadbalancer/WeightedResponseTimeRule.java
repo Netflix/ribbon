@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Timer;
@@ -150,6 +151,10 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
         }
     }
 
+    List<Double> getAccumulatedWeights() {
+        return Collections.unmodifiableList(accumulatedWeights);
+    }
+
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
     @Override
     public Server choose(ILoadBalancer lb, Object key) {
@@ -178,7 +183,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
             double maxTotalWeight = currentWeights.size() == 0 ? 0 : currentWeights.get(currentWeights.size() - 1); 
             // No server has been hit yet and total weight is not initialized
             // fallback to use round robin
-            if (maxTotalWeight < 0.001d) {
+            if (maxTotalWeight < 0.001d || serverCount != currentWeights.size()) {
                 server =  super.choose(getLoadBalancer(), key);
                 if(server == null) {
                     return server;
@@ -279,7 +284,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
     void setWeights(List<Double> weights) {
         this.accumulatedWeights = weights;
     }
-    
+
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         super.initWithNiwsConfig(clientConfig);
