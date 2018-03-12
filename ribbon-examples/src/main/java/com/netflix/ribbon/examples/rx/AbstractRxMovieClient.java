@@ -41,6 +41,7 @@ import static java.lang.String.*;
  */
 public abstract class AbstractRxMovieClient {
     protected static final String TEST_USER = "user1";
+    protected static final String TEST_TOKEN = "abc";
     protected static final Pattern NEW_LINE_SPLIT_RE = Pattern.compile("\n");
 
     protected abstract Observable<ByteBuf>[] triggerMoviesRegistration();

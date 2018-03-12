@@ -71,6 +71,7 @@ class MethodTemplateExecutor {
     public <O> RibbonRequest<O> executeFromTemplate(Object[] args) {
         HttpRequestBuilder<?> requestBuilder = httpRequestTemplateBuilder.build().requestBuilder();
         withParameters(requestBuilder, args);
+        withHeaders(requestBuilder, args);
         withContent(requestBuilder, args);
 
         return (RibbonRequest<O>) requestBuilder.build();
@@ -98,6 +99,17 @@ class MethodTemplateExecutor {
             String name = methodTemplate.getParamName(i);
             Object value = args[methodTemplate.getParamPosition(i)];
             requestBuilder.withRequestProperty(name, value);
+        }
+    }
+
+    private void withHeaders(HttpRequestBuilder<?> requestBuilder, Object[] args) {
+        int length = methodTemplate.getHeaderSize();
+        for (int i = 0; i < length; i++) {
+            String name = methodTemplate.getHeaderName(i);
+            Object value = args[methodTemplate.getHeaderPosition(i)];
+            if (value != null) {
+                requestBuilder.withHeader(name, value.toString());
+            }
         }
     }
 

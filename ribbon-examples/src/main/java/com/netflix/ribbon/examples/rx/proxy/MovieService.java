@@ -33,6 +33,7 @@ import com.netflix.ribbon.proxy.annotation.Http.HttpMethod;
 import com.netflix.ribbon.proxy.annotation.Hystrix;
 import com.netflix.ribbon.proxy.annotation.TemplateName;
 import com.netflix.ribbon.proxy.annotation.Var;
+import com.netflix.ribbon.proxy.annotation.VarHeader;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -50,49 +51,49 @@ public interface MovieService {
             method = HttpMethod.GET,
             uri = "/users/{userId}/recommendations",
             headers = {
-                    @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc")
+                    @Header(name = "X-Platform-Version", value = "xyz")
             })
     @Hystrix(
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
     @CacheProvider(key = "{userId}", provider = InMemoryCacheProviderFactory.class)
-    RibbonRequest<ByteBuf> recommendationsByUserId(@Var("userId") String userId);
+    RibbonRequest<ByteBuf> recommendationsByUserId(@Var("userId") String userId,
+                                                   @VarHeader("X-Auth-Token") String token);
 
     @TemplateName("recommendationsBy")
     @Http(
             method = HttpMethod.GET,
             uri = "/recommendations?category={category}&ageGroup={ageGroup}",
             headers = {
-                    @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc")
+                    @Header(name = "X-Platform-Version", value = "xyz")
             })
     @Hystrix(
             validator = RecommendationServiceResponseValidator.class,
             fallbackHandler = RecommendationServiceFallbackHandler.class)
     @CacheProvider(key = "{category},{ageGroup}", provider = InMemoryCacheProviderFactory.class)
-    RibbonRequest<ByteBuf> recommendationsBy(@Var("category") String category, @Var("ageGroup") String ageGroup);
+    RibbonRequest<ByteBuf> recommendationsBy(@Var("category") String category, @Var("ageGroup") String ageGroup,
+                                             @VarHeader("X-Auth-Token") String token);
 
     @TemplateName("registerMovie")
     @Http(
             method = HttpMethod.POST,
             uri = "/movies",
             headers = {
-                    @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc")
+                    @Header(name = "X-Platform-Version", value = "xyz")
             })
     @Hystrix(validator = RecommendationServiceResponseValidator.class)
     @ContentTransformerClass(RxMovieTransformer.class)
-    RibbonRequest<ByteBuf> registerMovie(@Content Movie movie);
+    RibbonRequest<ByteBuf> registerMovie(@Content Movie movie,
+                                         @VarHeader("X-Auth-Token") String token);
 
     @TemplateName("updateRecommendations")
     @Http(
             method = HttpMethod.POST,
             uri = "/users/{userId}/recommendations",
             headers = {
-                    @Header(name = "X-Platform-Version", value = "xyz"),
-                    @Header(name = "X-Auth-Token", value = "abc")
+                    @Header(name = "X-Platform-Version", value = "xyz")
             })
     @Hystrix(validator = RecommendationServiceResponseValidator.class)
-    RibbonRequest<ByteBuf> updateRecommendations(@Var("userId") String userId, @Content String movieId);
+    RibbonRequest<ByteBuf> updateRecommendations(@Var("userId") String userId, @Content String movieId,
+                                                 @VarHeader("X-Auth-Token") String token);
 }
