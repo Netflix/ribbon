@@ -8,6 +8,8 @@ dependencies {
     compile "com.netflix.archaius:archaius-core:${archaius_version}"
     compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
     testCompile 'junit:junit:4.11'
+    testCompile 'org.mockito:mockito-core:2.13.0'
+    testCompile 'org.awaitility:awaitility:3.0.0'
     testCompile 'org.slf4j:slf4j-log4j12:1.7.2'
     testCompile "com.sun.jersey:jersey-server:${jersey_version}"
 }

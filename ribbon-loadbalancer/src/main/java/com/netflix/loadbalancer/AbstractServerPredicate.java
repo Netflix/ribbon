@@ -137,9 +137,9 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
             return results;            
         }
     }
-	
-	/**
-	 * Referenced from RoundRobinRule
+
+    /**
+     * Referenced from RoundRobinRule
      * Inspired by the implementation of {@link AtomicInteger#incrementAndGet()}.
      *
      * @param modulo The modulo to bound the value of the counter.
@@ -150,7 +150,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
             int current = nextIndex.get();
             int next = (current + 1) % modulo;
             if (nextIndex.compareAndSet(current, next))
-                return next;
+                return next;       
         }
     }
     
