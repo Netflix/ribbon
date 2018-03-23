@@ -31,6 +31,7 @@ import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.loadbalancer.AbstractServerList;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
+import com.netflix.loadbalancer.LoadBalancerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,8 +186,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                             }
                         }
 
-                        DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure, shouldUseIpAddr);
-                        des.setZone(DiscoveryClient.getZone(ii));
+                        DiscoveryEnabledServer des = createServer(ii, isSecure, shouldUseIpAddr);
                         serverList.add(des);
                     }
                 }
@@ -196,6 +196,12 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
             }
         }
         return serverList;
+    }
+
+    protected DiscoveryEnabledServer createServer(final InstanceInfo instanceInfo, boolean useSecurePort, boolean useIpAddr) {
+        DiscoveryEnabledServer server = new DiscoveryEnabledServer(instanceInfo, useSecurePort, useIpAddr);
+        server.setZone(DiscoveryClient.getZone(instanceInfo));
+        return server;
     }
 
     public String getVipAddresses() {
