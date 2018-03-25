@@ -33,6 +33,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.netflix.config.CachedDynamicIntProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.servo.annotations.DataSourceType;
@@ -60,11 +61,11 @@ public class LoadBalancerStats {
     volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();
     volatile Map<String, List<? extends Server>> upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();
     
-    private volatile DynamicIntProperty connectionFailureThreshold;
+    private volatile CachedDynamicIntProperty connectionFailureThreshold;
         
-    private volatile DynamicIntProperty circuitTrippedTimeoutFactor;
+    private volatile CachedDynamicIntProperty circuitTrippedTimeoutFactor;
 
-    private volatile DynamicIntProperty maxCircuitTrippedTimeout;
+    private volatile CachedDynamicIntProperty maxCircuitTrippedTimeout;
 
     private static final DynamicIntProperty SERVERSTATS_EXPIRE_MINUTES = 
         DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.expire.minutes", 30);
@@ -113,26 +114,26 @@ public class LoadBalancerStats {
         this.name = name;
     }
 
-    DynamicIntProperty getConnectionFailureCountThreshold() {
+    CachedDynamicIntProperty getConnectionFailureCountThreshold() {
         if (connectionFailureThreshold == null) {
-            connectionFailureThreshold = DynamicPropertyFactory.getInstance().getIntProperty(
+            connectionFailureThreshold = new CachedDynamicIntProperty(
                     "niws.loadbalancer." + name + ".connectionFailureCountThreshold", 3);
         }
         return connectionFailureThreshold;
 
     }
-    
-    DynamicIntProperty getCircuitTrippedTimeoutFactor() {
+
+    CachedDynamicIntProperty getCircuitTrippedTimeoutFactor() {
         if (circuitTrippedTimeoutFactor == null) {
-            circuitTrippedTimeoutFactor = DynamicPropertyFactory.getInstance().getIntProperty(
+            circuitTrippedTimeoutFactor = new CachedDynamicIntProperty(
                     "niws.loadbalancer." + name + ".circuitTripTimeoutFactorSeconds", 10);
         }
         return circuitTrippedTimeoutFactor;        
     }
-    
-    DynamicIntProperty getCircuitTripMaxTimeoutSeconds() {
+
+    CachedDynamicIntProperty getCircuitTripMaxTimeoutSeconds() {
         if (maxCircuitTrippedTimeout == null) {
-            maxCircuitTrippedTimeout = DynamicPropertyFactory.getInstance().getIntProperty(
+            maxCircuitTrippedTimeout = new CachedDynamicIntProperty(
                     "niws.loadbalancer." + name + ".circuitTripMaxTimeoutSeconds", 30);
         }
         return maxCircuitTrippedTimeout;        

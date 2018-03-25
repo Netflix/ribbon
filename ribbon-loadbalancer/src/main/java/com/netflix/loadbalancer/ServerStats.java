@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.config.CachedDynamicIntProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.servo.annotations.DataSourceType;
@@ -41,9 +42,9 @@ public class ServerStats {
     
     private static final int DEFAULT_PUBLISH_INTERVAL =  60 * 1000; // = 1 minute
     private static final int DEFAULT_BUFFER_SIZE = 60 * 1000; // = 1000 requests/sec for 1 minute
-    private final DynamicIntProperty connectionFailureThreshold;    
-    private final DynamicIntProperty circuitTrippedTimeoutFactor; 
-    private final DynamicIntProperty maxCircuitTrippedTimeout;
+    private final CachedDynamicIntProperty connectionFailureThreshold;
+    private final CachedDynamicIntProperty circuitTrippedTimeoutFactor;
+    private final CachedDynamicIntProperty maxCircuitTrippedTimeout;
     private static final DynamicIntProperty activeRequestsCountTimeout = 
         DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 60 * 10);
     
@@ -82,12 +83,12 @@ public class ServerStats {
     private volatile long firstConnectionTimestamp = 0;
     
     public ServerStats() {
-        connectionFailureThreshold = DynamicPropertyFactory.getInstance().getIntProperty(
+        connectionFailureThreshold = new CachedDynamicIntProperty(
                 "niws.loadbalancer.default.connectionFailureCountThreshold", 3);        
-        circuitTrippedTimeoutFactor = DynamicPropertyFactory.getInstance().getIntProperty(
+        circuitTrippedTimeoutFactor = new CachedDynamicIntProperty(
                 "niws.loadbalancer.default.circuitTripTimeoutFactorSeconds", 10);
 
-        maxCircuitTrippedTimeout = DynamicPropertyFactory.getInstance().getIntProperty(
+        maxCircuitTrippedTimeout = new CachedDynamicIntProperty(
                 "niws.loadbalancer.default.circuitTripMaxTimeoutSeconds", 30);
     }
     
@@ -114,6 +115,10 @@ public class ServerStats {
     public void close() {
         if (publisher != null)
             publisher.stop();
+    }
+
+    public Server getServer() {
+        return server;
     }
 
     private int getBufferSize() {
