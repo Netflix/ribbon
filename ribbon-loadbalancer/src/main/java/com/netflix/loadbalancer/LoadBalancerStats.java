@@ -86,7 +86,7 @@ public class LoadBalancerStats {
                     }
                 });
         
-    private ServerStats createServerStats(Server server) {
+    protected ServerStats createServerStats(Server server) {
         ServerStats ss = new ServerStats(this);
         //configure custom settings
         ss.setBufferSize(1000);
@@ -171,7 +171,7 @@ public class LoadBalancerStats {
         ss.noteResponseTime(msecs);
     }
     
-    private ServerStats getServerStats(Server server) {
+    protected ServerStats getServerStats(Server server) {
         try {
             return serverStatsCache.get(server);
         } catch (ExecutionException e) {
