@@ -33,6 +33,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.netflix.client.IClientConfigAware;
+import com.netflix.client.config.IClientConfig;
 import com.netflix.config.CachedDynamicIntProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
@@ -51,7 +53,7 @@ import com.netflix.servo.monitor.Monitors;
  * @author stonse
  * 
  */
-public class LoadBalancerStats {
+public class LoadBalancerStats implements IClientConfigAware {
     
     private static final String PREFIX = "LBStats_";
     
@@ -95,7 +97,7 @@ public class LoadBalancerStats {
         return ss;        
     }
     
-    private LoadBalancerStats(){
+    public LoadBalancerStats(){
         zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();  
         upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();        
     }
@@ -105,7 +107,14 @@ public class LoadBalancerStats {
         this.name = name;
         Monitors.registerObject(name, this); 
     }
-       
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig)
+    {
+        this.name = clientConfig.getClientName();
+        Monitors.registerObject(name, this);
+    }
+
     public String getName() {
         return name;
     }
