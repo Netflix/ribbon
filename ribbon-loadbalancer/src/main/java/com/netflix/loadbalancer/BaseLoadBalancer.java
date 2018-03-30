@@ -160,7 +160,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     }
 
     public BaseLoadBalancer(IClientConfig config, IRule rule, IPing ping) {
-        initWithConfig(config, rule, ping, new LoadBalancerStats((config.getClientName())));
+        initWithConfig(config, rule, ping, createLoadBalancerStatsFromConfig(config));
     }
     
     void initWithConfig(IClientConfig clientConfig, IRule rule, IPing ping, LoadBalancerStats stats) {
@@ -210,9 +210,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                 .getProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName);
         String pingClassName = (String) clientConfig
                 .getProperty(CommonClientConfigKey.NFLoadBalancerPingClassName);
-        String loadBalancerStatsClassName = (String) clientConfig
-                .getProperty(CommonClientConfigKey.NFLoadBalancerStatsClassName, LoadBalancerStats.class.getName());
-
         IRule rule;
         IPing ping;
         LoadBalancerStats stats;
@@ -221,12 +218,22 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                     ruleClassName, clientConfig);
             ping = (IPing) ClientFactory.instantiateInstanceWithClientConfig(
                     pingClassName, clientConfig);
-            stats = (LoadBalancerStats) ClientFactory.instantiateInstanceWithClientConfig(
-                    loadBalancerStatsClassName, clientConfig);
+            stats = createLoadBalancerStatsFromConfig(clientConfig);
         } catch (Exception e) {
             throw new RuntimeException("Error initializing load balancer", e);
         }
         initWithConfig(clientConfig, rule, ping, stats);
+    }
+
+    private LoadBalancerStats createLoadBalancerStatsFromConfig(IClientConfig clientConfig) {
+        String loadBalancerStatsClassName = clientConfig
+                .get(CommonClientConfigKey.NFLoadBalancerStatsClassName, LoadBalancerStats.class.getName());
+        try {
+            return (LoadBalancerStats) ClientFactory.instantiateInstanceWithClientConfig(
+                    loadBalancerStatsClassName, clientConfig);
+        } catch (Exception e) {
+            throw new RuntimeException("Error initializing LoadBalancerStats", e);
+        }
     }
 
     public void addServerListChangeListener(ServerListChangeListener listener) {
