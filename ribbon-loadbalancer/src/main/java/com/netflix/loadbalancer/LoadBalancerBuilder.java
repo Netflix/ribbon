@@ -16,7 +16,7 @@ public class LoadBalancerBuilder<T extends Server> {
     private IPing ping = new DummyPing();
     private ServerList serverListImpl;
     private ServerListUpdater serverListUpdater;
-    
+    private int pingInterval;
     
     private LoadBalancerBuilder() {
     }
@@ -39,7 +39,12 @@ public class LoadBalancerBuilder<T extends Server> {
         this.ping = ping;
         return this;
     }
-    
+
+    public LoadBalancerBuilder<T> withPingInterval(int pingInterval) {
+        this.pingInterval = pingInterval;
+        return this;
+    }
+
     public LoadBalancerBuilder<T> withDynamicServerList(ServerList<T> serverListImpl) {
         this.serverListImpl = serverListImpl;
         return this;
@@ -61,6 +66,7 @@ public class LoadBalancerBuilder<T extends Server> {
         }
         BaseLoadBalancer lb = new BaseLoadBalancer(config, rule, ping);
         lb.setServersList(servers);
+        lb.setPingInterval(this.pingInterval);
         return lb;
     }
     
