@@ -33,6 +33,9 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.netflix.client.IClientConfigAware;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.config.CachedDynamicIntProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.servo.annotations.DataSourceType;
@@ -50,7 +53,7 @@ import com.netflix.servo.monitor.Monitors;
  * @author stonse
  * 
  */
-public class LoadBalancerStats {
+public class LoadBalancerStats implements IClientConfigAware {
     
     private static final String PREFIX = "LBStats_";
     
@@ -60,11 +63,11 @@ public class LoadBalancerStats {
     volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();
     volatile Map<String, List<? extends Server>> upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();
     
-    private volatile DynamicIntProperty connectionFailureThreshold;
+    private volatile CachedDynamicIntProperty connectionFailureThreshold;
         
-    private volatile DynamicIntProperty circuitTrippedTimeoutFactor;
+    private volatile CachedDynamicIntProperty circuitTrippedTimeoutFactor;
 
-    private volatile DynamicIntProperty maxCircuitTrippedTimeout;
+    private volatile CachedDynamicIntProperty maxCircuitTrippedTimeout;
 
     private static final DynamicIntProperty SERVERSTATS_EXPIRE_MINUTES = 
         DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.expire.minutes", 30);
@@ -85,7 +88,7 @@ public class LoadBalancerStats {
                     }
                 });
         
-    private ServerStats createServerStats(Server server) {
+    protected ServerStats createServerStats(Server server) {
         ServerStats ss = new ServerStats(this);
         //configure custom settings
         ss.setBufferSize(1000);
@@ -94,7 +97,7 @@ public class LoadBalancerStats {
         return ss;        
     }
     
-    private LoadBalancerStats(){
+    public LoadBalancerStats(){
         zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();  
         upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();        
     }
@@ -104,7 +107,14 @@ public class LoadBalancerStats {
         this.name = name;
         Monitors.registerObject(name, this); 
     }
-       
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig)
+    {
+        this.name = clientConfig.getClientName();
+        Monitors.registerObject(name, this);
+    }
+
     public String getName() {
         return name;
     }
@@ -113,26 +123,26 @@ public class LoadBalancerStats {
         this.name = name;
     }
 
-    DynamicIntProperty getConnectionFailureCountThreshold() {
+    CachedDynamicIntProperty getConnectionFailureCountThreshold() {
         if (connectionFailureThreshold == null) {
-            connectionFailureThreshold = DynamicPropertyFactory.getInstance().getIntProperty(
+            connectionFailureThreshold = new CachedDynamicIntProperty(
                     "niws.loadbalancer." + name + ".connectionFailureCountThreshold", 3);
         }
         return connectionFailureThreshold;
 
     }
-    
-    DynamicIntProperty getCircuitTrippedTimeoutFactor() {
+
+    CachedDynamicIntProperty getCircuitTrippedTimeoutFactor() {
         if (circuitTrippedTimeoutFactor == null) {
-            circuitTrippedTimeoutFactor = DynamicPropertyFactory.getInstance().getIntProperty(
+            circuitTrippedTimeoutFactor = new CachedDynamicIntProperty(
                     "niws.loadbalancer." + name + ".circuitTripTimeoutFactorSeconds", 10);
         }
         return circuitTrippedTimeoutFactor;        
     }
-    
-    DynamicIntProperty getCircuitTripMaxTimeoutSeconds() {
+
+    CachedDynamicIntProperty getCircuitTripMaxTimeoutSeconds() {
         if (maxCircuitTrippedTimeout == null) {
-            maxCircuitTrippedTimeout = DynamicPropertyFactory.getInstance().getIntProperty(
+            maxCircuitTrippedTimeout = new CachedDynamicIntProperty(
                     "niws.loadbalancer." + name + ".circuitTripMaxTimeoutSeconds", 30);
         }
         return maxCircuitTrippedTimeout;        
@@ -170,7 +180,7 @@ public class LoadBalancerStats {
         ss.noteResponseTime(msecs);
     }
     
-    private ServerStats getServerStats(Server server) {
+    protected ServerStats getServerStats(Server server) {
         try {
             return serverStatsCache.get(server);
         } catch (ExecutionException e) {

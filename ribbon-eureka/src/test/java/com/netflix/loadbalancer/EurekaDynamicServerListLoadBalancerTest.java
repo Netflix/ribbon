@@ -4,6 +4,7 @@ import com.netflix.appinfo.InstanceInfo;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.discovery.CacheRefreshedEvent;
+import com.netflix.discovery.DefaultEurekaClientConfig;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.EurekaEventListener;
@@ -175,6 +176,8 @@ public class EurekaDynamicServerListLoadBalancerTest {
 
     private EurekaClient setUpEurekaClientMock(List<InstanceInfo> servers) {
         final EurekaClient eurekaClientMock = PowerMock.createMock(EurekaClient.class);
+
+        EasyMock.expect(eurekaClientMock.getEurekaClientConfig()).andReturn(new DefaultEurekaClientConfig()).anyTimes();
 
         EasyMock
                 .expect(eurekaClientMock.getInstancesByVipAddress(EasyMock.anyString(), EasyMock.anyBoolean(), EasyMock.anyString()))

@@ -27,8 +27,8 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.config.ConfigurationManager;
-import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.EurekaClient;
+import com.netflix.discovery.EurekaClientConfig;
 import com.netflix.loadbalancer.AbstractServerList;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import org.slf4j.Logger;
@@ -185,8 +185,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                             }
                         }
 
-                        DiscoveryEnabledServer des = new DiscoveryEnabledServer(ii, isSecure, shouldUseIpAddr);
-                        des.setZone(DiscoveryClient.getZone(ii));
+                        DiscoveryEnabledServer des = createServer(ii, isSecure, shouldUseIpAddr);
                         serverList.add(des);
                     }
                 }
@@ -196,6 +195,18 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
             }
         }
         return serverList;
+    }
+
+    protected DiscoveryEnabledServer createServer(final InstanceInfo instanceInfo, boolean useSecurePort, boolean useIpAddr) {
+        DiscoveryEnabledServer server = new DiscoveryEnabledServer(instanceInfo, useSecurePort, useIpAddr);
+
+        // Get availabilty zone for this instance.
+        EurekaClientConfig clientConfig = eurekaClientProvider.get().getEurekaClientConfig();
+        String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
+        String instanceZone = InstanceInfo.getZone(availZones, instanceInfo);
+        server.setZone(instanceZone);
+
+        return server;
     }
 
     public String getVipAddresses() {
