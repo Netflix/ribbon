@@ -23,7 +23,6 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
-import org.easymock.EasyMock;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -35,7 +34,6 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.easymock.EasyMock.expect;
@@ -69,20 +67,18 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
     @Before
     public void setupMock(){
 
-        List<InstanceInfo> dummyII = getDummyInstanceInfo("dummy", "http://www.host.com", "1.1.1.1", 8001);
-        List<InstanceInfo> secureDummyII = getDummyInstanceInfo("secureDummy", "http://www.host.com", "1.1.1.1", 8002);
+        List<InstanceInfo> dummyII = LoadBalancerTestUtils.getDummyInstanceInfo("dummy", "http://www.host.com", "1.1.1.1", 8001);
+        List<InstanceInfo> secureDummyII = LoadBalancerTestUtils.getDummyInstanceInfo("secureDummy", "http://www.host.com", "1.1.1.1", 8002);
 
 
         PowerMock.mockStatic(DiscoveryManager.class);
         PowerMock.mockStatic(DiscoveryClient.class);
 
-        DiscoveryClient mockedDiscoveryClient = createMock(DiscoveryClient.class);
+        DiscoveryClient mockedDiscoveryClient = LoadBalancerTestUtils.mockDiscoveryClient();
         DiscoveryManager mockedDiscoveryManager = createMock(DiscoveryManager.class);
 
-        expect(DiscoveryClient.getZone((InstanceInfo) EasyMock.anyObject())).andReturn("dummyZone").anyTimes();
         expect(DiscoveryManager.getInstance()).andReturn(mockedDiscoveryManager).anyTimes();
         expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
-
 
         expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy", false, "region")).andReturn(dummyII).anyTimes();
         expect(mockedDiscoveryClient.getInstancesByVipAddress("secureDummy", true, "region")).andReturn(secureDummyII).anyTimes();
@@ -262,23 +258,4 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         Assert.assertEquals(8001, serverList2.get(0).getInstanceInfo().getPort());         // client property indicated in ii
         Assert.assertEquals(7002, serverList2.get(0).getInstanceInfo().getSecurePort());   // 7002 is the secure default
     }
-
-
-
-    protected static List<InstanceInfo> getDummyInstanceInfo(String appName, String host, String ipAddr, int port){
-
-        List<InstanceInfo> list = new ArrayList<InstanceInfo>();
-
-        InstanceInfo info = InstanceInfo.Builder.newBuilder().setAppName(appName)
-                .setHostName(host)
-                .setIPAddr(ipAddr)
-                .setPort(port)
-                .build();
-
-        list.add(info);
-
-        return list;
-
-    }
-
 }

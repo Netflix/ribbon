@@ -24,7 +24,6 @@ import com.netflix.loadbalancer.ServerListUpdater;
 import com.netflix.loadbalancer.ZoneAffinityServerListFilter;
 import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
 import org.apache.commons.configuration.Configuration;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +32,6 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.easymock.EasyMock.expect;
@@ -49,16 +47,6 @@ public class LBBuilderTest {
     
     static Server expected = new Server("www.example.com", 8001);
     
-    static List<InstanceInfo> getDummyInstanceInfo(String appName, String host, int port){
-        List<InstanceInfo> list = new ArrayList<InstanceInfo>();
-        InstanceInfo info = InstanceInfo.Builder.newBuilder().setAppName(appName)
-                .setHostName(host)
-                .setPort(port)
-                .build();
-        list.add(info);
-        return list;
-    }
-    
     static class NiwsClientConfig extends DefaultClientConfigImpl {
         public NiwsClientConfig() {
             super();
@@ -72,17 +60,15 @@ public class LBBuilderTest {
     
     @Before
     public void setupMock(){
-        List<InstanceInfo> instances = getDummyInstanceInfo("dummy", expected.getHost(), expected.getPort());
+        List<InstanceInfo> instances = LoadBalancerTestUtils.getDummyInstanceInfo("dummy", expected.getHost(), "127.0.0.1", expected.getPort());
         PowerMock.mockStatic(DiscoveryManager.class);
         PowerMock.mockStatic(DiscoveryClient.class);
 
-        DiscoveryClient mockedDiscoveryClient = createMock(DiscoveryClient.class);
+        DiscoveryClient mockedDiscoveryClient = LoadBalancerTestUtils.mockDiscoveryClient();
         DiscoveryManager mockedDiscoveryManager = createMock(DiscoveryManager.class);
 
-        expect(DiscoveryClient.getZone((InstanceInfo) EasyMock.anyObject())).andReturn("dummyZone").anyTimes();
         expect(DiscoveryManager.getInstance()).andReturn(mockedDiscoveryManager).anyTimes();
         expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
-
 
         expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy:7001", false, null)).andReturn(instances).anyTimes();
 

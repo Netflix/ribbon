@@ -27,11 +27,10 @@ import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey.Keys;
 import com.netflix.config.ConfigurationManager;
-import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.EurekaClient;
+import com.netflix.discovery.EurekaClientConfig;
 import com.netflix.loadbalancer.AbstractServerList;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
-import com.netflix.loadbalancer.LoadBalancerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,7 +199,13 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
 
     protected DiscoveryEnabledServer createServer(final InstanceInfo instanceInfo, boolean useSecurePort, boolean useIpAddr) {
         DiscoveryEnabledServer server = new DiscoveryEnabledServer(instanceInfo, useSecurePort, useIpAddr);
-        server.setZone(DiscoveryClient.getZone(instanceInfo));
+
+        // Get availabilty zone for this instance.
+        EurekaClientConfig clientConfig = eurekaClientProvider.get().getEurekaClientConfig();
+        String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
+        String instanceZone = InstanceInfo.getZone(availZones, instanceInfo);
+        server.setZone(instanceZone);
+
         return server;
     }
 

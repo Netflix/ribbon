@@ -162,6 +162,10 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     public BaseLoadBalancer(IClientConfig config, IRule rule, IPing ping) {
         initWithConfig(config, rule, ping, createLoadBalancerStatsFromConfig(config));
     }
+
+    void initWithConfig(IClientConfig clientConfig, IRule rule, IPing ping) {
+        initWithConfig(clientConfig, rule, ping, createLoadBalancerStatsFromConfig(config));
+    }
     
     void initWithConfig(IClientConfig clientConfig, IRule rule, IPing ping, LoadBalancerStats stats) {
         this.config = clientConfig;
@@ -232,7 +236,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             return (LoadBalancerStats) ClientFactory.instantiateInstanceWithClientConfig(
                     loadBalancerStatsClassName, clientConfig);
         } catch (Exception e) {
-            throw new RuntimeException("Error initializing LoadBalancerStats", e);
+            logger.warn("Error initializing configured LoadBalancerStats class - " + String.valueOf(loadBalancerStatsClassName)
+                    + ". Falling-back to a new LoadBalancerStats instance instead.", e);
+            return new LoadBalancerStats(clientConfig.getClientName());
         }
     }
 
