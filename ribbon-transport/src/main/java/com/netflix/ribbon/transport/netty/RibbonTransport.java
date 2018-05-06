@@ -38,7 +38,7 @@ import io.reactivex.netty.pipeline.PipelineConfigurator;
 import io.reactivex.netty.pipeline.PipelineConfigurators;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import io.reactivex.netty.protocol.http.sse.ServerSentEvent;
 
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,7 +47,7 @@ import java.util.concurrent.ThreadFactory;
 public final class RibbonTransport {
     
     public static final PipelineConfigurator<HttpClientResponse<ServerSentEvent>, HttpClientRequest<ByteBuf>> DEFAULT_SSE_PIPELINE_CONFIGURATOR  = 
-            PipelineConfigurators.sseClientConfigurator();
+            PipelineConfigurators.clientSseConfigurator();
 
     public static final PipelineConfigurator<HttpClientResponse<ByteBuf>, HttpClientRequest<ByteBuf>> DEFAULT_HTTP_PIPELINE_CONFIGURATOR = 
             PipelineConfigurators.httpClientConfigurator();
