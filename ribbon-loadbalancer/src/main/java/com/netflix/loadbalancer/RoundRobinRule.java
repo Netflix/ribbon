@@ -63,7 +63,7 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
             int serverCount = allServers.size();
 
             if ((upCount == 0) || (serverCount == 0)) {
-                log.warn("No up servers available from load balancer: " + lb);
+                log.warn("No up servers available from load balancer: {}", lb);
                 return null;
             }
 
@@ -85,8 +85,7 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
         }
 
         if (count >= 10) {
-            log.warn("No available alive servers after 10 tries from load balancer: "
-                    + lb);
+            log.warn("No available alive servers after 10 tries from load balancer: {}", lb);
         }
         return server;
     }

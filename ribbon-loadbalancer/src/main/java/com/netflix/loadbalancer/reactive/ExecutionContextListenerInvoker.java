@@ -78,7 +78,7 @@ public class ExecutionContextListenerInvoker<I, O> {
                 if (e instanceof AbortExecutionException) {
                     throw (AbortExecutionException) e;
                 }
-                logger.error("Error invoking listener " + listener, e);
+                logger.error("Error invoking listener {}", listener, e);
             }
         }
     }
@@ -101,7 +101,7 @@ public class ExecutionContextListenerInvoker<I, O> {
                 if (e instanceof AbortExecutionException) {
                     throw (AbortExecutionException) e;
                 }
-                logger.error("Error invoking listener " + listener, e);
+                logger.error("Error invoking listener {}", listener, e);
             }
         }
     }
@@ -122,7 +122,7 @@ public class ExecutionContextListenerInvoker<I, O> {
                     listener.onExceptionWithServer(context.getChildContext(listener), exception, info);
                 }
             } catch (Throwable e) {
-                logger.error("Error invoking listener " + listener, e);
+                logger.error("Error invoking listener {}", listener, e);
             }
         }
     }
@@ -143,7 +143,7 @@ public class ExecutionContextListenerInvoker<I, O> {
                     listener.onExecutionSuccess(context.getChildContext(listener), response, info);
                 }
             } catch (Throwable e) {
-                logger.error("Error invoking listener " + listener, e);
+                logger.error("Error invoking listener {}", listener, e);
             }
         }
     }
@@ -164,7 +164,7 @@ public class ExecutionContextListenerInvoker<I, O> {
                     listener.onExecutionFailed(context.getChildContext(listener), finalException, info);
                 }
             } catch (Throwable e) {
-                logger.error("Error invoking listener " + listener, e);
+                logger.error("Error invoking listener {}", listener, e);
             }
         }
     }

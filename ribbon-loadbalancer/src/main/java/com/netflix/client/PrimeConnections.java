@@ -250,16 +250,13 @@ public class PrimeConnections {
         } else {
             logger.info("Priming connections fully successful");
         }
-        logger.debug("numServers left to be 'primed'="
-                + (stats.total - stats.success));
-        logger.debug("numServers successfully 'primed'=" + stats.success);
-        logger
-                .debug("numServers whose attempts not complete exclusively due to max time allocated="
-                        + (stats.total - (stats.success + stats.failure)));
-        logger.debug("Total Time Taken=" + stats.totalTime
-                + " msecs, out of an allocated max of (msecs)="
-                + maxTotalTimeToPrimeConnections);
-        logger.debug("stats = " + stats);
+        logger.debug("numServers left to be 'primed'={}", stats.total - stats.success);
+        logger.debug("numServers successfully 'primed'={}", stats.success);
+        logger.debug("numServers whose attempts not complete exclusively due to max time allocated={}",
+                stats.total - (stats.success + stats.failure));
+        logger.debug("Total Time Taken={} msecs, out of an allocated max of (msecs)={}",
+                stats.totalTime, maxTotalTimeToPrimeConnections);
+        logger.debug("stats = {}", stats);
     }
 
     /*
@@ -288,12 +285,11 @@ public class PrimeConnections {
         List<Server> allServers = new ArrayList<Server>();
         allServers.addAll(servers);
         if (allServers.size() == 0){
-            logger.debug("RestClient:" + name + ". No nodes/servers to prime connections");
+            logger.debug("RestClient:{}. No nodes/servers to prime connections", name);
             return Collections.emptyList();
         }        
 
-        logger.info("Priming Connections for RestClient:" + name
-                + ", numServers:" + allServers.size());
+        logger.info("Priming Connections for RestClient:{}, numServers:{}", name, allServers.size());
         List<Future<Boolean>> ftList = new ArrayList<Future<Boolean>>();
         for (Server s : allServers) {
             // prevent the server to be used by load balancer
@@ -377,7 +373,7 @@ public class PrimeConnections {
     private void sleepBeforeRetry(int tryNum) {
         try {
             int sleep = (tryNum + 1) * 100;
-            logger.debug("Sleeping for " + sleep + "ms ...");
+            logger.debug("Sleeping for {}ms ...", sleep);
             Thread.sleep(sleep); // making this seconds based is too slow
             // i.e. 200ms, 400 ms, 800ms, 1600ms etc.
         } catch (InterruptedException ex) {

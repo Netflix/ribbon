@@ -62,7 +62,7 @@ public class HelloUdpServerExternalResource extends ExternalResource {
                             @Override
                             public Observable<Void> call(Long aLong) {
                                 InetSocketAddress sender = received.sender();
-                                LOG.info("Received datagram. Sender: " + sender);
+                                LOG.info("Received datagram. Sender: {}", sender);
                                 ByteBuf data = newConnection.getChannel().alloc().buffer(WELCOME_MSG_BYTES.length);
                                 data.writeBytes(WELCOME_MSG_BYTES);
                                 return newConnection.writeAndFlush(new DatagramPacket(data, sender));
@@ -75,7 +75,7 @@ public class HelloUdpServerExternalResource extends ExternalResource {
         
         server.start();
         
-        LOG.info("UDP hello server started at port: " + port);
+        LOG.info("UDP hello server started at port: {}", port);
     }
 
     /**

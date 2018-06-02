@@ -83,7 +83,7 @@ public class ClientFactory {
 
     	Monitors.registerObject("Client_" + restClientName, client);
 
-    	logger.info("Client Registered:" + client.toString());
+    	logger.info("Client Registered:{}", client);
     	return client;
     }
 
@@ -215,7 +215,7 @@ public class ClientFactory {
     		    logger.warn("Error getting/invoking IClientConfig constructor of {}", className, e);
     		}    		
     	}
-    	logger.warn("Class " + className + " neither implements IClientConfigAware nor provides a constructor with IClientConfig as the parameter. Only default constructor will be used.");
+    	logger.warn("Class {} neither implements IClientConfigAware nor provides a constructor with IClientConfig as the parameter. Only default constructor will be used.", className);
     	return clazz.newInstance();
     }
     

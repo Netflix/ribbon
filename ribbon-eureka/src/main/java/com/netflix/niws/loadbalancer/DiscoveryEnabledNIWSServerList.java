@@ -126,7 +126,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                     shouldUseOverridePort = true;
 
                 }else{
-                    logger.warn(clientName + " set to force client port but no secure port is set, so ignoring");
+                    logger.warn("{} set to force client port but no secure port is set, so ignoring", clientName);
                 }
             }else{
 
@@ -136,7 +136,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                     shouldUseOverridePort = true;
 
                 }else{
-                    logger.warn(clientName + " set to force client port but no port is set, so ignoring");
+                    logger.warn("{} set to force client port but no port is set, so ignoring", clientName);
                 }
             }
         }
@@ -169,9 +169,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                     if (ii.getStatus().equals(InstanceStatus.UP)) {
 
                         if(shouldUseOverridePort){
-                            if(logger.isDebugEnabled()){
-                                logger.debug("Overriding port on client name: " + clientName + " to " + overridePort);
-                            }
+                            logger.debug("Overriding port on client name: {} to {}", clientName, overridePort);
 
                             // copy is necessary since the InstanceInfo builder just uses the original reference,
                             // and we don't want to corrupt the global eureka copy of the object which may be

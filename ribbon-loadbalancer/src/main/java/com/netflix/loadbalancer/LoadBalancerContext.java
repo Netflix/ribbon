@@ -650,7 +650,7 @@ public class LoadBalancerContext implements IClientConfigAware {
             try {
                 numRetries = overriddenClientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetries, maxAutoRetries);
             } catch (Exception e) {
-                logger.warn("Invalid maxRetries requested for RestClient:" + this.clientName);
+                logger.warn("Invalid maxRetries requested for RestClient:{}", this.clientName);
             }
         }
         return numRetries;
@@ -660,8 +660,8 @@ public class LoadBalancerContext implements IClientConfigAware {
         if (currentRetryCount > maxRetries) {
             return false;
         }
-        logger.debug("Exception while executing request which is deemed retry-able, retrying ..., SAME Server Retry Attempt#: {}",  
-                currentRetryCount, server);
+        logger.debug("Exception while executing request which is deemed retry-able, retrying ..., SAME Server ({}) Retry Attempt#: {}",  
+                server, currentRetryCount);
         return true;
     }
 
