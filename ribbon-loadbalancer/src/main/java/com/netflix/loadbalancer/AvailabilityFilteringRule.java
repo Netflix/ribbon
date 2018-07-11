@@ -83,7 +83,7 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
         int count = 0;
         Server server = roundRobinRule.choose(key);
         while (count++ <= 10) {
-            if (predicate.apply(new PredicateKey(server))) {
+            if (getPredicate().apply(new PredicateKey(server))) {
                 return server;
             }
             server = roundRobinRule.choose(key);
