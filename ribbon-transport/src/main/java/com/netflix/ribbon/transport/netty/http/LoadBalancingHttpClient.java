@@ -91,7 +91,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         implements HttpClient<I, O> {
 
     private static final HttpClientConfig DEFAULT_RX_CONFIG = HttpClientConfig.Builder.newDefaultConfig();
-    
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancingRxClient.class);
     private final String requestIdHeaderName;
     private final HttpRequestIdProvider requestIdProvider;
     private final List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners;
@@ -522,16 +522,16 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                         URL url = null;
                         if(null!=getRxClients()) {
                           try {
-                            Server server = getRxClients().entrySet().iterator().next().getKey();
-                            url = new URL(server.getScheme() + "://" + server.getHost());
-
                             SSLParameters sslParameters = new SSLParameters();
                             List<SNIServerName> sniServerNames = new ArrayList<>();
-                            sniServerNames.add(new SNIHostName(url.getHost()));
+                            for(Server server: getRxClients().keySet()) {
+                              url = new URL(server.getScheme() + "://" + server.getHost());
+                              sniServerNames.add(new SNIHostName(url.getHost()));
+                            }
                             sslParameters.setServerNames(sniServerNames);
                             myEngine.setSSLParameters(sslParameters);
                           } catch (MalformedURLException e) {
-                            e.printStackTrace();
+                            logger.error("MalformedURL: " + url.toString());
                           }
                         }
 
