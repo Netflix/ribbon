@@ -57,6 +57,9 @@ import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -91,7 +94,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         implements HttpClient<I, O> {
 
     private static final HttpClientConfig DEFAULT_RX_CONFIG = HttpClientConfig.Builder.newDefaultConfig();
-    private static final Logger logger = LoggerFactory.getLogger(LoadBalancingRxClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancingHttpClient.class);
     private final String requestIdHeaderName;
     private final HttpRequestIdProvider requestIdProvider;
     private final List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners;
