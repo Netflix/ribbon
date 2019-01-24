@@ -29,7 +29,9 @@ import com.netflix.config.DynamicIntProperty;
  *
  * @author awang
  *
+ * @deprecated This class is no longer necessary as part of Ribbon and should not be used by anyone
  */
+@Deprecated
 public class ScheduledThreadPoolExectuorWithDynamicSize extends ScheduledThreadPoolExecutor {
 
     private final Thread shutdownThread;

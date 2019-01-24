@@ -24,7 +24,7 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.DynamicFloatProperty;
 import com.netflix.config.DynamicIntProperty;
@@ -43,13 +43,13 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
 
     private Random random = new Random();
     private volatile Set<T> currentSubset = Sets.newHashSet(); 
-    private DynamicIntProperty sizeProp = new DynamicIntProperty(DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.size", 20);
+    private DynamicIntProperty sizeProp = new DynamicIntProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.size", 20);
     private DynamicFloatProperty eliminationPercent = 
-            new DynamicFloatProperty(DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.forceEliminatePercent", 0.1f);
+            new DynamicFloatProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.forceEliminatePercent", 0.1f);
     private DynamicIntProperty eliminationFailureCountThreshold = 
-            new DynamicIntProperty(DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.eliminationFailureThresold", 0);
+            new DynamicIntProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.eliminationFailureThresold", 0);
     private DynamicIntProperty eliminationConnectionCountThreshold = 
-            new DynamicIntProperty(DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.eliminationConnectionThresold", 0);
+            new DynamicIntProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.eliminationConnectionThresold", 0);
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {

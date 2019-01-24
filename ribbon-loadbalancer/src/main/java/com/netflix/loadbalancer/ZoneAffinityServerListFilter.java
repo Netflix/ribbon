@@ -27,18 +27,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DeploymentContext.ContextKey;
 import com.netflix.config.DynamicDoubleProperty;
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.loadbalancer.AbstractServerListFilter;
-import com.netflix.loadbalancer.LoadBalancerStats;
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ZoneAffinityPredicate;
-import com.netflix.loadbalancer.ZoneSnapshot;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
 
@@ -56,8 +50,8 @@ import com.netflix.servo.monitor.Monitors;
 public class ZoneAffinityServerListFilter<T extends Server> extends
         AbstractServerListFilter<T> implements IClientConfigAware {
 
-    private volatile boolean zoneAffinity = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_AFFINITY;
-    private volatile boolean zoneExclusive = DefaultClientConfigImpl.DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
+    private volatile boolean zoneAffinity = CommonClientConfigKey.EnableZoneAffinity.getDefaultValue();
+    private volatile boolean zoneExclusive = CommonClientConfigKey.EnableZoneExclusivity.getDefaultValue();
     private DynamicDoubleProperty activeReqeustsPerServerThreshold;
     private DynamicDoubleProperty blackOutServerPercentageThreshold;
     private DynamicIntProperty availableServersThreshold;

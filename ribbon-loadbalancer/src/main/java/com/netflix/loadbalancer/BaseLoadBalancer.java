@@ -24,7 +24,6 @@ import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.PrimeConnections;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
@@ -195,8 +194,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             ((AbstractLoadBalancerPing) ping).setLoadBalancer(this);
         }
         logger.info("Client: {} instantiated a LoadBalancer: {}", name, this);
-        boolean enablePrimeConnections = clientConfig.get(
-                CommonClientConfigKey.EnablePrimeConnections, DefaultClientConfigImpl.DEFAULT_ENABLE_PRIME_CONNECTIONS);
+        boolean enablePrimeConnections = clientConfig.getOrDefault(CommonClientConfigKey.EnablePrimeConnections);
 
         if (enablePrimeConnections) {
             this.setEnablePrimingConnections(true);
@@ -210,10 +208,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
-        String ruleClassName = (String) clientConfig
-                .getProperty(CommonClientConfigKey.NFLoadBalancerRuleClassName);
-        String pingClassName = (String) clientConfig
-                .getProperty(CommonClientConfigKey.NFLoadBalancerPingClassName);
+        String ruleClassName = clientConfig.getOrDefault(CommonClientConfigKey.NFLoadBalancerRuleClassName);
+        String pingClassName = clientConfig.getOrDefault(CommonClientConfigKey.NFLoadBalancerPingClassName);
         IRule rule;
         IPing ping;
         LoadBalancerStats stats;

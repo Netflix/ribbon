@@ -6,6 +6,7 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.6.4'
     compile "com.netflix.archaius:archaius-core:${archaius_version}"
 
+    testCompile project(":ribbon-archaius")
     testCompile "junit:junit:${junit_version}"
     testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
     testCompile "org.powermock:powermock-mockito-release-full:${powermock_version}"

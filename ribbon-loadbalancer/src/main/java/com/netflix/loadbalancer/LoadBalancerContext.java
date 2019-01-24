@@ -24,7 +24,6 @@ import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Timer;
@@ -49,13 +48,13 @@ public class LoadBalancerContext implements IClientConfigAware {
 
     protected String vipAddresses;
 
-    protected int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
-    protected int maxAutoRetries = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES;
+    protected int maxAutoRetriesNextServer = CommonClientConfigKey.MaxAutoRetriesNextServer.getDefaultValue();
+    protected int maxAutoRetries = CommonClientConfigKey.MaxAutoRetries.getDefaultValue();
 
     protected RetryHandler defaultRetryHandler = new DefaultLoadBalancerRetryHandler();
 
 
-    protected boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
+    protected boolean okToRetryOnAllOperations = CommonClientConfigKey.OkToRetryOnAllOperations.getDefaultValue();
 
     private ILoadBalancer lb;
 
@@ -92,10 +91,9 @@ public class LoadBalancerContext implements IClientConfigAware {
             clientName = "default";
         }
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
-        maxAutoRetries = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
-        maxAutoRetriesNextServer = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer);
-
-        okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
+        maxAutoRetries = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetries);
+        maxAutoRetriesNextServer = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetriesNextServer);
+        okToRetryOnAllOperations = clientConfig.getOrDefault(CommonClientConfigKey.OkToRetryOnAllOperations);
         defaultRetryHandler = new DefaultLoadBalancerRetryHandler(clientConfig);
         
         tracer = getExecuteTracer();

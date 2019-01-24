@@ -20,7 +20,6 @@ package com.netflix.loadbalancer;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
@@ -103,9 +102,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         try {
             super.initWithNiwsConfig(clientConfig);
-            String niwsServerListClassName = clientConfig.getPropertyAsString(
-                    CommonClientConfigKey.NIWSServerListClassName,
-                    DefaultClientConfigImpl.DEFAULT_SEVER_LIST_CLASS);
+            String niwsServerListClassName = clientConfig.getOrDefault(CommonClientConfigKey.NIWSServerListClassName);
 
             ServerList<T> niwsServerListImpl = (ServerList<T>) ClientFactory
                     .instantiateInstanceWithClientConfig(niwsServerListClassName, clientConfig);
@@ -118,10 +115,8 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
                 this.filter = niwsFilter;
             }
 
-            String serverListUpdaterClassName = clientConfig.getPropertyAsString(
-                    CommonClientConfigKey.ServerListUpdaterClassName,
-                    DefaultClientConfigImpl.DEFAULT_SERVER_LIST_UPDATER_CLASS
-            );
+            String serverListUpdaterClassName = clientConfig.getOrDefault(
+                    CommonClientConfigKey.ServerListUpdaterClassName);
 
             this.serverListUpdater = (ServerListUpdater) ClientFactory
                     .instantiateInstanceWithClientConfig(serverListUpdaterClassName, clientConfig);

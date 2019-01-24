@@ -19,7 +19,6 @@ package com.netflix.client;
 
 import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 
 import java.net.ConnectException;
@@ -61,9 +60,9 @@ public class DefaultLoadBalancerRetryHandler implements RetryHandler {
     }
     
     public DefaultLoadBalancerRetryHandler(IClientConfig clientConfig) {
-        this.retrySameServer = clientConfig.get(CommonClientConfigKey.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
-        this.retryNextServer = clientConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER);
-        this.retryEnabled = clientConfig.get(CommonClientConfigKey.OkToRetryOnAllOperations, false);
+        this.retrySameServer = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetries);
+        this.retryNextServer = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetriesNextServer);
+        this.retryEnabled = clientConfig.getOrDefault(CommonClientConfigKey.OkToRetryOnAllOperations);
     }
     
     @Override
