@@ -37,7 +37,7 @@ public interface ClientConfigFactory {
                         .thenComparing(Comparator.comparing(f -> f.getClass().getCanonicalName())))
                 .findFirst()
                 .orElseGet(() -> {
-                    throw new IllegalStateException("Expecting on implementation of ClientConfigFactory discoverable via the ServiceLoader");
+                    throw new IllegalStateException("Expecting at least one implementation of ClientConfigFactory discoverable via the ServiceLoader");
                 });
     }
 }
