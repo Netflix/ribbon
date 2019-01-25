@@ -112,7 +112,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER = CommonClientConfigKey.EnableGZIPContentEncodingFilter.getDefaultValue();
 
-    public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = Boolean.TRUE;
+    public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled.getDefaultValue();
 
     public static final Boolean DEFAULT_FOLLOW_REDIRECTS = CommonClientConfigKey.FollowRedirects.getDefaultValue();
 
@@ -133,7 +133,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = CommonClientConfigKey.EnableConnectionPool.getDefaultValue();
     
     @Deprecated
-    public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = 50;
+    public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxHttpConnectionsPerHost.getDefaultValue();
 
     @Deprecated
     public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = CommonClientConfigKey.MaxTotalHttpConnections.getDefaultValue();

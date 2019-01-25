@@ -82,7 +82,7 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
      * Use {@link #MaxConnectionsPerHost}
      */
     @Deprecated    
-    public static final IClientConfigKey<Integer> MaxHttpConnectionsPerHost = new CommonClientConfigKey<Integer>("MaxHttpConnectionsPerHost", 200){};
+    public static final IClientConfigKey<Integer> MaxHttpConnectionsPerHost = new CommonClientConfigKey<Integer>("MaxHttpConnectionsPerHost", 50){};
     
     /**
      * Use {@link #MaxTotalConnections}
@@ -114,7 +114,7 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<Boolean> FollowRedirects = new CommonClientConfigKey<Boolean>("FollowRedirects", false){};
     
-    public static final IClientConfigKey<Boolean> ConnectionPoolCleanerTaskEnabled = new CommonClientConfigKey<Boolean>("ConnectionPoolCleanerTaskEnabled"){};
+    public static final IClientConfigKey<Boolean> ConnectionPoolCleanerTaskEnabled = new CommonClientConfigKey<Boolean>("ConnectionPoolCleanerTaskEnabled", true){};
     
     public static final IClientConfigKey<Integer> ConnIdleEvictTimeMilliSeconds = new CommonClientConfigKey<Integer>("ConnIdleEvictTimeMilliSeconds"){};
     
