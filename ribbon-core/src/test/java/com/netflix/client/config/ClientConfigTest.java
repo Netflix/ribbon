@@ -19,7 +19,6 @@ package com.netflix.client.config;
 
 import static org.junit.Assert.*;
 
-import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
 
@@ -37,10 +36,6 @@ import java.util.Properties;
  * 
  */
 public class ClientConfigTest {
-
-
-
-    
     @BeforeClass
     public static void setUp() throws Exception {
     }

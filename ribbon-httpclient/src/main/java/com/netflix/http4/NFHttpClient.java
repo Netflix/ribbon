@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -72,9 +73,7 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	protected static final String EXECUTE_TRACER = "HttpClient-ExecuteTimer";
 	
-	private static final DynamicIntProperty CORE_SIZE = new DynamicIntProperty("NFHttpClient.connectionPoolCleanerNumberCoreThreads", 2);
-	
-	private static ScheduledExecutorService connectionPoolCleanUpScheduler; 
+	private static ScheduledExecutorService connectionPoolCleanUpScheduler;
 	
 	private HttpHost httpHost = null;
 	private HttpRoute httpRoute = null;
@@ -99,9 +98,9 @@ public class NFHttpClient extends DefaultHttpClient {
 	    ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true)
 	            .setNameFormat("Connection pool clean up thread")
 	            .build();
-	    connectionPoolCleanUpScheduler = new ScheduledThreadPoolExectuorWithDynamicSize(CORE_SIZE, factory); 
+	    connectionPoolCleanUpScheduler = Executors.newScheduledThreadPool(2, factory);
 	}
-	
+
 	protected NFHttpClient(String host, int port){
 		super(new ThreadSafeClientConnManager());
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();

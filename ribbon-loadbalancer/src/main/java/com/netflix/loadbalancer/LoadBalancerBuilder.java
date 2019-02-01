@@ -1,8 +1,8 @@
 package com.netflix.loadbalancer;
 
 import com.netflix.client.ClientFactory;
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
@@ -10,7 +10,7 @@ import java.util.List;
 
 public class LoadBalancerBuilder<T extends Server> {
     
-    private IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+    private IClientConfig config = ClientConfigFactory.findDefaultConfigFactory().newConfig();
     private ServerListFilter serverListFilter;
     private IRule rule;
     private IPing ping = new DummyPing();
@@ -65,7 +65,7 @@ public class LoadBalancerBuilder<T extends Server> {
     }
     
     private static IRule createRuleFromConfig(IClientConfig config) {
-        String ruleClassName = config.get(IClientConfigKey.Keys.NFLoadBalancerRuleClassName);
+        String ruleClassName = config.getOrDefault(IClientConfigKey.Keys.NFLoadBalancerRuleClassName);
         if (ruleClassName == null) {
             throw new IllegalArgumentException("NFLoadBalancerRuleClassName is not specified in the config");
         }
@@ -79,7 +79,7 @@ public class LoadBalancerBuilder<T extends Server> {
     }
 
     private static ServerListUpdater createServerListUpdaterFromConfig(IClientConfig config) {
-        String serverListUpdaterClassName = config.get(IClientConfigKey.Keys.ServerListUpdaterClassName);
+        String serverListUpdaterClassName = config.getOrDefault(IClientConfigKey.Keys.ServerListUpdaterClassName);
         if (serverListUpdaterClassName == null) {
             throw new IllegalArgumentException("NIWSServerListClassName is not specified in the config");
         }

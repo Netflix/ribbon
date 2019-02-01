@@ -1,5 +1,6 @@
 dependencies {
     compile project(':ribbon-core')
+    compile project(':ribbon-archaius')
     compile project(':ribbon-loadbalancer')
     compile 'commons-collections:commons-collections:3.2.2'        
     compile 'org.apache.httpcomponents:httpclient:4.2.1'

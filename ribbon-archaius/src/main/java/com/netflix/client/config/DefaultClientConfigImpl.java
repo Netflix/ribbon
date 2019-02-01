@@ -19,11 +19,11 @@ package com.netflix.client.config;
 
 import com.google.common.base.Strings;
 import com.netflix.client.VipAddressResolver;
+
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
-
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
@@ -84,25 +84,25 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = Boolean.TRUE;
 
-	public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = "com.netflix.loadbalancer.DummyPing"; // DummyPing.class.getName();
+	public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = CommonClientConfigKey.NFLoadBalancerPingClassName.getDefaultValue();
 
-    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = "com.netflix.loadbalancer.AvailabilityFilteringRule";
+    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = CommonClientConfigKey.NFLoadBalancerRuleClassName.getDefaultValue();
 
-    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = "com.netflix.loadbalancer.ZoneAwareLoadBalancer";
+    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = CommonClientConfigKey.NFLoadBalancerClassName.getDefaultValue();
     
-    public static final boolean DEFAULT_USEIPADDRESS_FOR_SERVER = Boolean.FALSE;
+    public static final boolean DEFAULT_USEIPADDRESS_FOR_SERVER = CommonClientConfigKey.UseIPAddrForServer.getDefaultValue();
 
-    public static final String DEFAULT_CLIENT_CLASSNAME = "com.netflix.niws.client.http.RestClient";
+    public static final String DEFAULT_CLIENT_CLASSNAME = CommonClientConfigKey.ClientClassName.getDefaultValue();
 
-    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = "com.netflix.client.SimpleVipAddressResolver";
+    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = CommonClientConfigKey.VipAddressResolverClassName.getDefaultValue();
 
-    public static final String DEFAULT_PRIME_CONNECTIONS_URI = "/";
+    public static final String DEFAULT_PRIME_CONNECTIONS_URI = CommonClientConfigKey.PrimeConnectionsURI.getDefaultValue();
 
-    public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = 30000;
+    public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = CommonClientConfigKey.MaxTotalTimeToPrimeConnections.getDefaultValue();
 
-    public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = 9;
+    public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = CommonClientConfigKey.MaxRetriesPerServerPrimeConnection.getDefaultValue();
 
-    public static final Boolean DEFAULT_ENABLE_PRIME_CONNECTIONS = Boolean.FALSE;
+    public static final Boolean DEFAULT_ENABLE_PRIME_CONNECTIONS = CommonClientConfigKey.EnablePrimeConnections.getDefaultValue();
 
     public static final int DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW = Integer.MAX_VALUE;
 
@@ -110,45 +110,45 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_ENABLE_REQUEST_THROTTLING = Boolean.FALSE;
 
-    public static final Boolean DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER = Boolean.FALSE;
+    public static final Boolean DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER = CommonClientConfigKey.EnableGZIPContentEncodingFilter.getDefaultValue();
 
-    public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = Boolean.TRUE;
+    public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled.getDefaultValue();
 
-    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = Boolean.FALSE;
+    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = CommonClientConfigKey.FollowRedirects.getDefaultValue();
 
     public static final float DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED = 0.0f;
 
-    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = 1;
+    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = CommonClientConfigKey.MaxAutoRetriesNextServer.getDefaultValue();
 
-    public static final int DEFAULT_MAX_AUTO_RETRIES = 0;
+    public static final int DEFAULT_MAX_AUTO_RETRIES = CommonClientConfigKey.MaxAutoRetries.getDefaultValue();
 
-    public static final int DEFAULT_BACKOFF_INTERVAL = 0;
+    public static final int DEFAULT_BACKOFF_INTERVAL = CommonClientConfigKey.BackoffInterval.getDefaultValue();
     
-    public static final int DEFAULT_READ_TIMEOUT = 5000;
+    public static final int DEFAULT_READ_TIMEOUT = CommonClientConfigKey.ReadTimeout.getDefaultValue();
 
-    public static final int DEFAULT_CONNECTION_MANAGER_TIMEOUT = 2000;
+    public static final int DEFAULT_CONNECTION_MANAGER_TIMEOUT = CommonClientConfigKey.ConnectionManagerTimeout.getDefaultValue();
 
-    public static final int DEFAULT_CONNECT_TIMEOUT = 2000;
+    public static final int DEFAULT_CONNECT_TIMEOUT = CommonClientConfigKey.ConnectTimeout.getDefaultValue();
 
-    public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = Boolean.TRUE;
+    public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = CommonClientConfigKey.EnableConnectionPool.getDefaultValue();
     
     @Deprecated
-    public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = 50;
+    public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxHttpConnectionsPerHost.getDefaultValue();
 
     @Deprecated
-    public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = 200;
+    public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = CommonClientConfigKey.MaxTotalHttpConnections.getDefaultValue();
 
-    public static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 50;
+    public static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxConnectionsPerHost.getDefaultValue();
 
-    public static final int DEFAULT_MAX_TOTAL_CONNECTIONS = 200;
+    public static final int DEFAULT_MAX_TOTAL_CONNECTIONS = CommonClientConfigKey.MaxTotalConnections.getDefaultValue();
 
-    public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = 1.0f;
+    public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = CommonClientConfigKey.MinPrimeConnectionsRatio.getDefaultValue();
 
-    public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = "com.netflix.niws.client.http.HttpPrimeConnection";
+    public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = CommonClientConfigKey.PrimeConnectionsClassName.getDefaultValue();
 
-    public static final String DEFAULT_SEVER_LIST_CLASS = "com.netflix.loadbalancer.ConfigurationBasedServerList";
+    public static final String DEFAULT_SEVER_LIST_CLASS = CommonClientConfigKey.NIWSServerListClassName.getDefaultValue();
 
-    public static final String DEFAULT_SERVER_LIST_UPDATER_CLASS = "com.netflix.loadbalancer.PollingServerListUpdater";
+    public static final String DEFAULT_SERVER_LIST_UPDATER_CLASS = CommonClientConfigKey.ServerListUpdaterClassName.getDefaultValue();
 
     public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
 
@@ -173,16 +173,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_POOL_MIN_THREADS = 1;
     public static final long DEFAULT_POOL_KEEP_ALIVE_TIME = 15 * 60L;
     public static final TimeUnit DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS = TimeUnit.SECONDS;
-    public static final Boolean DEFAULT_ENABLE_ZONE_AFFINITY = Boolean.FALSE;
-    public static final Boolean DEFAULT_ENABLE_ZONE_EXCLUSIVITY = Boolean.FALSE;
-    public static final int DEFAULT_PORT = 7001;
-    public static final Boolean DEFAULT_ENABLE_LOADBALANCER = Boolean.TRUE;
+    public static final Boolean DEFAULT_ENABLE_ZONE_AFFINITY = CommonClientConfigKey.EnableZoneAffinity.getDefaultValue();
+    public static final Boolean DEFAULT_ENABLE_ZONE_EXCLUSIVITY = CommonClientConfigKey.EnableZoneExclusivity.getDefaultValue();
+    public static final int DEFAULT_PORT = CommonClientConfigKey.Port.getDefaultValue();
+    public static final Boolean DEFAULT_ENABLE_LOADBALANCER = CommonClientConfigKey.InitializeNFLoadBalancer.getDefaultValue();
 
-    public static final String DEFAULT_PROPERTY_NAME_SPACE = "ribbon";
+    public static final String DEFAULT_PROPERTY_NAME_SPACE = CommonClientConfigKey.DEFAULT_NAME_SPACE;
 
     private String propertyNameSpace = DEFAULT_PROPERTY_NAME_SPACE;
 
-    public static final Boolean DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS = Boolean.FALSE;
+    public static final Boolean DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS = CommonClientConfigKey.OkToRetryOnAllOperations.getDefaultValue();
 
     public static final Boolean DEFAULT_ENABLE_NIWS_EVENT_LOGGING = Boolean.TRUE;
 
@@ -632,7 +632,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
                 if (resolver == null) {
                     try {
                         resolver = (VipAddressResolver) Class
-                                .forName((String) getProperty(CommonClientConfigKey.VipAddressResolverClassName))
+                                .forName(getOrDefault(CommonClientConfigKey.VipAddressResolverClassName))
                                 .newInstance();
                     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
                         throw new RuntimeException("Cannot instantiate VipAddressResolver", e);
@@ -645,7 +645,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @Override
 	public String resolveDeploymentContextbasedVipAddresses(){
-        String deploymentContextBasedVipAddressesMacro = (String) getProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses);
+        String deploymentContextBasedVipAddressesMacro = get(CommonClientConfigKey.DeploymentContextBasedVipAddresses);
         if (deploymentContextBasedVipAddressesMacro == null) {
             return null;
         }
@@ -653,21 +653,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     public String getAppName(){
-        String appName = null;
-        Object an = getProperty(CommonClientConfigKey.AppName);
-        if (an!=null){
-            appName = "" + an;
-        }
-        return appName;
+        return get(CommonClientConfigKey.AppName);
     }
 
     public String getVersion(){
-        String version = null;
-        Object an = getProperty(CommonClientConfigKey.Version);
-        if (an!=null){
-            version = "" + an;
-        }
-        return version;
+        return get(CommonClientConfigKey.Version);
     }
 
     /* (non-Javadoc)
@@ -818,6 +808,11 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	public String getNameSpace() {
 		return propertyNameSpace;
 	}
+
+	@Override
+    public void setNameSpace(String nameSpace) {
+        this.propertyNameSpace = nameSpace;
+    }
 
 	public static DefaultClientConfigImpl getEmptyConfig() {
 	    return new DefaultClientConfigImpl();

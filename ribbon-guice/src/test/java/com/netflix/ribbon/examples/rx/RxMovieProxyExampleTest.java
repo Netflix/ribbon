@@ -20,7 +20,6 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Scopes;
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.client.config.ClientConfigFactory.DefaultClientConfigFactory;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.ribbon.transport.netty.http.LoadBalancingHttpClient;
@@ -44,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 
 public class RxMovieProxyExampleTest extends RxMovieClientTestBase {
 
-    static class MyClientConfigFactory extends DefaultClientConfigFactory {
+    static class MyClientConfigFactory implements ClientConfigFactory {
         @Override
         public IClientConfig newConfig() {
             return new DefaultClientConfigImpl() {
