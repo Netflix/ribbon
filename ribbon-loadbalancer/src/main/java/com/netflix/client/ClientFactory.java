@@ -45,11 +45,11 @@ public class ClientFactory {
     private static ConcurrentHashMap<String, IClientConfig> namedConfig = new ConcurrentHashMap<String, IClientConfig>();
     
     private static Logger logger = LoggerFactory.getLogger(ClientFactory.class);
-    
+
     /**
-     * Utility method to create client and load balancer (if enabled in client config) given the name and client config. 
+     * Utility method to create client and load balancer (if enabled in client config) given the name and client config.
      * Instances are created using reflection (see {@link #instantiateInstanceWithClientConfig(String, IClientConfig)}
-     * 
+     *
      * @param restClientName
      * @param clientConfig
      * @throws ClientException if any errors occurs in the process, or if the client with the same name already exists
@@ -236,7 +236,7 @@ public class ClientFactory {
     	logger.warn("Class " + className + " neither implements IClientConfigAware nor provides a constructor with IClientConfig as the parameter. Only default constructor will be used.");
     	return clazz.newInstance();
     }
-    
+
     /**
      * Get the client configuration given the name or create one with the resolved {@link ClientConfigFactory} if it does not exist.
      * 

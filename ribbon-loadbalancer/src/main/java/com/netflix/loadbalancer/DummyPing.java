@@ -33,8 +33,4 @@ public class DummyPing extends AbstractLoadBalancerPing {
     public boolean isAlive(Server server) {
         return true;
     }
-
-    @Override
-    public void initWithNiwsConfig(IClientConfig clientConfig) {
-    }
 }
