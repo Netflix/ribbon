@@ -110,8 +110,4 @@ public class RoundRobinRule extends AbstractLoadBalancerRule {
     public Server choose(Object key) {
         return choose(getLoadBalancer(), key);
     }
-
-    @Override
-    public void initWithNiwsConfig(IClientConfig clientConfig) {
-    }
 }

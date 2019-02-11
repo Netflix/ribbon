@@ -29,6 +29,9 @@ import com.netflix.client.config.IClientConfig;
  *
  */
 public interface IClientConfigAware {
+    interface Factory {
+        Object create(String type, IClientConfig config) throws InstantiationException, IllegalAccessException, ClassNotFoundException;
+    }
 
     /**
      * Concrete implementation should implement this method so that the configuration set via 
@@ -36,6 +39,11 @@ public interface IClientConfigAware {
      *
      * @param clientConfig
      */
-    public abstract void initWithNiwsConfig(IClientConfig clientConfig);
+    default void initWithNiwsConfig(IClientConfig clientConfig) {
+    }
+
+    default void initWithNiwsConfig(IClientConfig clientConfig, Factory factory) {
+        initWithNiwsConfig(clientConfig);
+    }
     
 }

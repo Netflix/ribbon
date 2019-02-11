@@ -100,12 +100,17 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
+        this.initWithNiwsConfig(clientConfig, ClientFactory::instantiateInstanceWithClientConfig);
+
+    }
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig, Factory factory) {
         try {
-            super.initWithNiwsConfig(clientConfig);
+            super.initWithNiwsConfig(clientConfig, factory);
             String niwsServerListClassName = clientConfig.getOrDefault(CommonClientConfigKey.NIWSServerListClassName);
 
-            ServerList<T> niwsServerListImpl = (ServerList<T>) ClientFactory
-                    .instantiateInstanceWithClientConfig(niwsServerListClassName, clientConfig);
+            ServerList<T> niwsServerListImpl = (ServerList<T>) factory.create(niwsServerListClassName, clientConfig);
             this.serverListImpl = niwsServerListImpl;
 
             if (niwsServerListImpl instanceof AbstractServerList) {
@@ -118,8 +123,7 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
             String serverListUpdaterClassName = clientConfig.getOrDefault(
                     CommonClientConfigKey.ServerListUpdaterClassName);
 
-            this.serverListUpdater = (ServerListUpdater) ClientFactory
-                    .instantiateInstanceWithClientConfig(serverListUpdaterClassName, clientConfig);
+            this.serverListUpdater = (ServerListUpdater) factory.create(serverListUpdaterClassName, clientConfig);
 
             restOfInit(clientConfig);
         } catch (Exception e) {
