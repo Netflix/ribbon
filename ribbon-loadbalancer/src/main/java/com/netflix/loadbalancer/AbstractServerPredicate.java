@@ -47,7 +47,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
     
     private final Random random = new Random();
     
-    private final AtomicInteger nextIndex = new AtomicInteger();
+    private final AtomicInteger index = new AtomicInteger(0);
             
     private final Predicate<Server> serverOnlyPredicate =  new Predicate<Server>() {
         @Override
@@ -147,10 +147,10 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
      */
     private int incrementAndGetModulo(int modulo) {
         for (;;) {
-            int current = nextIndex.get();
+            int current = index.get();
             int next = (current + 1) % modulo;
-            if (nextIndex.compareAndSet(current, next) && current < modulo)
-                return current;
+            if(index.compareAndSet(current,next))
+              return next;
         }
     }
     
