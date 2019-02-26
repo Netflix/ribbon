@@ -17,28 +17,26 @@
  */
 package com.netflix.loadbalancer;
 
-import com.netflix.config.ConfigurationManager;
-import com.netflix.config.DeploymentContext.ContextKey;
-import com.netflix.loadbalancer.AbstractServerPredicate;
-import com.netflix.loadbalancer.PredicateKey;
-import com.netflix.loadbalancer.Server;
+import com.netflix.client.config.DynamicPropertyRepository;
 
 /**
  * A predicate the filters out servers that are not in the same zone as the client's current
- * zone. The current zone is determined from the call
- * 
- * <pre>{@code
- * ConfigurationManager.getDeploymentContext().getValue(ContextKey.zone);
- * }</pre>
+ * zone.
  * 
  * @author awang
  *
  */
 public class ZoneAffinityPredicate extends AbstractServerPredicate {
 
-    private final String zone = ConfigurationManager.getDeploymentContext().getValue(ContextKey.zone);
-    
-    public ZoneAffinityPredicate() {        
+    private final String zone;
+
+    @Deprecated
+    public ZoneAffinityPredicate() {
+        this(DynamicPropertyRepository.DEFAULT.getProperty("@zone", String.class, (String)null).get());
+    }
+
+    public ZoneAffinityPredicate(String zone) {
+        this.zone = zone;
     }
 
     @Override

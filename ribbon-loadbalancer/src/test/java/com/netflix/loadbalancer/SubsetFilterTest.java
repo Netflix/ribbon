@@ -44,8 +44,7 @@ public class SubsetFilterTest {
         config.setProperty(
                 DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.size", "5");
         
-        config.setProperty("SubsetFilerTest.ribbon.NFLoadBalancerClassName", 
-                com.netflix.loadbalancer.DynamicServerListLoadBalancer.class.getName());
+        config.setProperty("SubsetFilerTest.ribbon.NFLoadBalancerClassName", com.netflix.loadbalancer.DynamicServerListLoadBalancer.class.getName());
         config.setProperty("SubsetFilerTest.ribbon.NIWSServerListClassName", MockServerList.class.getName());
         config.setProperty("SubsetFilerTest.ribbon.NIWSServerListFilterClassName", ServerListSubsetFilter.class.getName());
         // turn off auto refresh

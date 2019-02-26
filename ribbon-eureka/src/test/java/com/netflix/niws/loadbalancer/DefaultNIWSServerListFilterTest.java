@@ -40,7 +40,7 @@ import com.netflix.loadbalancer.ZoneAffinityServerListFilter;
 public class DefaultNIWSServerListFilterTest {
     @BeforeClass
     public static void init() {
-    	ConfigurationManager.getDeploymentContext().setValue(ContextKey.zone, "us-eAst-1C");
+    	ConfigurationManager.getConfigInstance().setProperty(ContextKey.zone.getKey(), "us-eAst-1C");
     }
     
     private DiscoveryEnabledServer createServer(String host, String zone) {

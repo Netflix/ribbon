@@ -3,14 +3,13 @@ package com.netflix.loadbalancer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicIntProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,59 +25,22 @@ public class PollingServerListUpdater implements ServerListUpdater {
 
     private static long LISTOFSERVERS_CACHE_UPDATE_DELAY = 1000; // msecs;
     private static int LISTOFSERVERS_CACHE_REPEAT_INTERVAL = 30 * 1000; // msecs;
+    private static int POOL_SIZE = 2;
 
     private static class LazyHolder {
-        private final static String CORE_THREAD = "DynamicServerListLoadBalancer.ThreadPoolSize";
-        private final static DynamicIntProperty poolSizeProp = new DynamicIntProperty(CORE_THREAD, 2);
-        private static Thread _shutdownThread;
-
-        static ScheduledThreadPoolExecutor _serverListRefreshExecutor = null;
+        static ScheduledExecutorService _serverListRefreshExecutor = null;
 
         static {
-            int coreSize = poolSizeProp.get();
-            ThreadFactory factory = (new ThreadFactoryBuilder())
+            _serverListRefreshExecutor = Executors.newScheduledThreadPool(POOL_SIZE, new ThreadFactoryBuilder()
                     .setNameFormat("PollingServerListUpdater-%d")
                     .setDaemon(true)
-                    .build();
-            _serverListRefreshExecutor = new ScheduledThreadPoolExecutor(coreSize, factory);
-            poolSizeProp.addCallback(new Runnable() {
-                @Override
-                public void run() {
-                    _serverListRefreshExecutor.setCorePoolSize(poolSizeProp.get());
-                }
-
-            });
-            _shutdownThread = new Thread(new Runnable() {
-                public void run() {
-                    logger.info("Shutting down the Executor Pool for PollingServerListUpdater");
-                    shutdownExecutorPool();
-                }
-            });
-            Runtime.getRuntime().addShutdownHook(_shutdownThread);
-        }
-
-        private static void shutdownExecutorPool() {
-            if (_serverListRefreshExecutor != null) {
-                _serverListRefreshExecutor.shutdown();
-
-                if (_shutdownThread != null) {
-                    try {
-                        Runtime.getRuntime().removeShutdownHook(_shutdownThread);
-                    } catch (IllegalStateException ise) { // NOPMD
-                        // this can happen if we're in the middle of a real
-                        // shutdown,
-                        // and that's 'ok'
-                    }
-                }
-
-            }
+                    .build());
         }
     }
 
-    private static ScheduledThreadPoolExecutor getRefreshExecutor() {
+    private static ScheduledExecutorService getRefreshExecutor() {
         return LazyHolder._serverListRefreshExecutor;
     }
-
 
     private final AtomicBoolean isActive = new AtomicBoolean(false);
     private volatile long lastUpdated = System.currentTimeMillis();
@@ -103,21 +65,18 @@ public class PollingServerListUpdater implements ServerListUpdater {
     @Override
     public synchronized void start(final UpdateAction updateAction) {
         if (isActive.compareAndSet(false, true)) {
-            final Runnable wrapperRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    if (!isActive.get()) {
-                        if (scheduledFuture != null) {
-                            scheduledFuture.cancel(true);
-                        }
-                        return;
+            final Runnable wrapperRunnable = () ->  {
+                if (!isActive.get()) {
+                    if (scheduledFuture != null) {
+                        scheduledFuture.cancel(true);
                     }
-                    try {
-                        updateAction.doUpdate();
-                        lastUpdated = System.currentTimeMillis();
-                    } catch (Exception e) {
-                        logger.warn("Failed one update cycle", e);
-                    }
+                    return;
+                }
+                try {
+                    updateAction.doUpdate();
+                    lastUpdated = System.currentTimeMillis();
+                } catch (Exception e) {
+                    logger.warn("Failed one update cycle", e);
                 }
             };
 
@@ -163,12 +122,7 @@ public class PollingServerListUpdater implements ServerListUpdater {
 
     @Override
     public int getCoreThreads() {
-        if (isActive.get()) {
-            if (getRefreshExecutor() != null) {
-                return getRefreshExecutor().getCorePoolSize();
-            }
-        }
-        return 0;
+        return POOL_SIZE;
     }
 
     private static long getRefreshIntervalMs(IClientConfig clientConfig) {

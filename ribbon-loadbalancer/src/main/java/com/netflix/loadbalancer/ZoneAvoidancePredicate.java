@@ -17,18 +17,15 @@
  */
 package com.netflix.loadbalancer;
 
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import com.netflix.client.config.DynamicProperty;
+import com.netflix.client.config.DynamicPropertyRepository;
+import com.netflix.client.config.IClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicBooleanProperty;
-import com.netflix.config.DynamicDoubleProperty;
-import com.netflix.config.DynamicPropertyFactory;
+import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A server predicate that filters out all servers in a worst zone if the aggregated metric for that zone reaches a threshold.
@@ -37,48 +34,57 @@ import com.netflix.config.DynamicPropertyFactory;
  * @author awang
  *
  */
-public class ZoneAvoidancePredicate extends  AbstractServerPredicate {
+public class ZoneAvoidancePredicate extends AbstractServerPredicate {
 
-    private volatile DynamicDoubleProperty triggeringLoad = new DynamicDoubleProperty("ZoneAwareNIWSDiscoveryLoadBalancer.triggeringLoadPerServerThreshold", 0.2d);
-
-    private volatile DynamicDoubleProperty triggeringBlackoutPercentage = new DynamicDoubleProperty("ZoneAwareNIWSDiscoveryLoadBalancer.avoidZoneWithBlackoutPercetage", 0.99999d);
-    
     private static final Logger logger = LoggerFactory.getLogger(ZoneAvoidancePredicate.class);
-    
-    private static final DynamicBooleanProperty ENABLED = DynamicPropertyFactory
-            .getInstance().getBooleanProperty(
-                    "niws.loadbalancer.zoneAvoidanceRule.enabled", true);
+    private final DynamicPropertyRepository repository;
 
+    private DynamicProperty<Double> triggeringLoad;
+
+    private DynamicProperty<Double> triggeringBlackoutPercentage;
+    
+    private DynamicProperty<Boolean> enabled;
 
     public ZoneAvoidancePredicate(IRule rule, IClientConfig clientConfig) {
-        super(rule, clientConfig);
+        super(rule);
+        this.repository = clientConfig == null ? DynamicPropertyRepository.DEFAULT : clientConfig.getDynamicPropertyRepository();
         initDynamicProperties(clientConfig);
     }
 
-    public ZoneAvoidancePredicate(LoadBalancerStats lbStats,
-            IClientConfig clientConfig) {
-        super(lbStats, clientConfig);
+    public ZoneAvoidancePredicate(LoadBalancerStats lbStats, IClientConfig clientConfig) {
+        super(lbStats);
+        this.repository = clientConfig == null ? DynamicPropertyRepository.DEFAULT : clientConfig.getDynamicPropertyRepository();
         initDynamicProperties(clientConfig);
     }
 
     ZoneAvoidancePredicate(IRule rule) {
-        super(rule);
+        this(rule, null);
     }
     
     private void initDynamicProperties(IClientConfig clientConfig) {
-        if (clientConfig != null) {
-            triggeringLoad = DynamicPropertyFactory.getInstance().getDoubleProperty(
-                    "ZoneAwareNIWSDiscoveryLoadBalancer." + clientConfig.getClientName() + ".triggeringLoadPerServerThreshold", 0.2d);
+        this.enabled = repository.getProperty("niws.loadbalancer.zoneAvoidanceRule.enabled", Boolean.class, true);
 
-            triggeringBlackoutPercentage = DynamicPropertyFactory.getInstance().getDoubleProperty(
-                    "ZoneAwareNIWSDiscoveryLoadBalancer." + clientConfig.getClientName() + ".avoidZoneWithBlackoutPercetage", 0.99999d);
+        if (clientConfig != null) {
+            triggeringLoad = repository.getProperty(
+                    "ZoneAwareNIWSDiscoveryLoadBalancer." + clientConfig.getClientName() + ".triggeringLoadPerServerThreshold",
+                    Double.class,
+                    0.2d);
+
+            triggeringBlackoutPercentage = repository.getProperty(
+                    "ZoneAwareNIWSDiscoveryLoadBalancer." + clientConfig.getClientName() + ".avoidZoneWithBlackoutPercetage",
+                    Double.class,
+                    0.99999d);
+        } else {
+            triggeringLoad = repository.getProperty("ZoneAwareNIWSDiscoveryLoadBalancer.triggeringLoadPerServerThreshold", Double.class, 0.2d);
+
+            triggeringBlackoutPercentage = repository.getProperty("ZoneAwareNIWSDiscoveryLoadBalancer.avoidZoneWithBlackoutPercetage", Double.class, 0.99999d);
         }
         
     }
 
     @Override
     public boolean apply(@Nullable PredicateKey input) {
-        if (!ENABLED.get()) {
+        if (!enabled.get()) {
             return true;
         }
         String serverZone = input.getServer().getZone();

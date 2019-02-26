@@ -1,10 +1,10 @@
 dependencies {
     compile project(':ribbon-core')
     compile project(':ribbon-loadbalancer')
+    compile project(':ribbon-archaius')
     compile "com.netflix.eureka:eureka-client:${eureka_version}"
     compile 'com.google.code.findbugs:annotations:2.0.0'
     compile 'org.slf4j:slf4j-api:1.6.4'
-    compile "com.netflix.archaius:archaius-core:${archaius_version}"
 
     testCompile project(":ribbon-archaius")
     testCompile "junit:junit:${junit_version}"

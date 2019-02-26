@@ -49,9 +49,7 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
     
     public AvailabilityFilteringRule() {
     	super();
-    	predicate = CompositePredicate.withPredicate(new AvailabilityPredicate(this, null))
-                .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
-                .build();
+        initWithNiwsConfig(null);
     }
     
     

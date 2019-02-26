@@ -17,21 +17,20 @@
 */
 package com.netflix.loadbalancer;
 
-import java.util.Date;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.netflix.config.CachedDynamicIntProperty;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
+import com.netflix.client.config.DynamicPropertyRepository;
+import com.netflix.client.config.UnboxedIntProperty;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.stats.distribution.DataDistribution;
 import com.netflix.stats.distribution.DataPublisher;
 import com.netflix.stats.distribution.Distribution;
 import com.netflix.util.MeasuredRate;
+
+import java.util.Date;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Capture various stats per Server(node) in the LoadBalancer
@@ -42,12 +41,11 @@ public class ServerStats {
     
     private static final int DEFAULT_PUBLISH_INTERVAL =  60 * 1000; // = 1 minute
     private static final int DEFAULT_BUFFER_SIZE = 60 * 1000; // = 1000 requests/sec for 1 minute
-    private final CachedDynamicIntProperty connectionFailureThreshold;
-    private final CachedDynamicIntProperty circuitTrippedTimeoutFactor;
-    private final CachedDynamicIntProperty maxCircuitTrippedTimeout;
-    private static final DynamicIntProperty activeRequestsCountTimeout = 
-        DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 60 * 10);
-    
+    private final UnboxedIntProperty connectionFailureThreshold;
+    private final UnboxedIntProperty circuitTrippedTimeoutFactor;
+    private final UnboxedIntProperty maxCircuitTrippedTimeout;
+    private final UnboxedIntProperty activeRequestsCountTimeout;
+
     private static final double[] PERCENTS = makePercentValues();
     
     private DataDistribution dataDist = new DataDistribution(1, PERCENTS); // in case
@@ -81,21 +79,37 @@ public class ServerStats {
     private AtomicLong totalCircuitBreakerBlackOutPeriod = new AtomicLong(0);
     private volatile long lastAccessedTimestamp;
     private volatile long firstConnectionTimestamp = 0;
-    
-    public ServerStats() {
-        connectionFailureThreshold = new CachedDynamicIntProperty(
-                "niws.loadbalancer.default.connectionFailureCountThreshold", 3);        
-        circuitTrippedTimeoutFactor = new CachedDynamicIntProperty(
-                "niws.loadbalancer.default.circuitTripTimeoutFactorSeconds", 10);
 
-        maxCircuitTrippedTimeout = new CachedDynamicIntProperty(
-                "niws.loadbalancer.default.circuitTripMaxTimeoutSeconds", 30);
+    public ServerStats() {
+        DynamicPropertyRepository respository = DynamicPropertyRepository.DEFAULT;
+
+        connectionFailureThreshold = new UnboxedIntProperty(respository.getProperty(
+                "niws.loadbalancer.default.connectionFailureCountThreshold",
+                Integer.class,
+                3));
+        circuitTrippedTimeoutFactor = new UnboxedIntProperty(respository.getProperty(
+                "niws.loadbalancer.default.circuitTripTimeoutFactorSeconds",
+                Integer.class,
+                10));
+        maxCircuitTrippedTimeout = new UnboxedIntProperty(respository.getProperty(
+                "niws.loadbalancer.default.circuitTripMaxTimeoutSeconds",
+                Integer.class,
+                30));
+        activeRequestsCountTimeout = new UnboxedIntProperty(respository.getProperty(
+                "niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds",
+                Integer.class,
+                60 * 10));
     }
     
     public ServerStats(LoadBalancerStats lbStats) {
         this.maxCircuitTrippedTimeout = lbStats.getCircuitTripMaxTimeoutSeconds();
         this.circuitTrippedTimeoutFactor = lbStats.getCircuitTrippedTimeoutFactor();
         this.connectionFailureThreshold = lbStats.getConnectionFailureCountThreshold();
+
+        activeRequestsCountTimeout = new UnboxedIntProperty(lbStats.getDynamicPropertyRepository().getProperty(
+                "niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds",
+                Integer.class,
+                60 * 10));
     }
     
     /**
@@ -236,7 +250,7 @@ public class ServerStats {
             openConnectionsCount.set(0);
         }
     }
-    
+
     public int  getActiveRequestsCount() {
         return getActiveRequestsCount(System.currentTimeMillis());
     }

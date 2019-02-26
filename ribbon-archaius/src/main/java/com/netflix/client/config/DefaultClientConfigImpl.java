@@ -17,19 +17,14 @@
 */
 package com.netflix.client.config;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.netflix.client.VipAddressResolver;
-
-import com.netflix.config.ConfigurationManager;
-import com.netflix.config.DynamicProperty;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.config.DynamicStringProperty;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -188,7 +183,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_IS_CLIENT_AUTH_REQUIRED = Boolean.FALSE;
 
-    private final Map<String, DynamicStringProperty> dynamicProperties = new ConcurrentHashMap<String, DynamicStringProperty>();
+    private final Map<String, DynamicProperty<String>> dynamicProperties = new ConcurrentHashMap<>();
 
     public Boolean getDefaultPrioritizeVipAddressBasedServers() {
 		return DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS;
@@ -369,6 +364,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
 		return DEFAULT_IS_CLIENT_AUTH_REQUIRED;
 	}
 
+	// TODO: Load via service loader
+    private DynamicPropertyRepository propertyRepository = DynamicPropertyRepository.DEFAULT;
 
 	/**
 	 * Create instance with no properties in default name space {@link #DEFAULT_PROPERTY_NAME_SPACE}
@@ -385,6 +382,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
     	this();
     	this.propertyNameSpace = nameSpace;
     }
+
+    public void setPropertyRepository(DynamicPropertyRepository propertyRepository) {
+        Preconditions.checkArgument(propertyRepository != null, "propertyRepository cannot be null");
+        this.propertyRepository = propertyRepository;
+    }
+
+    @Override
+    public DynamicPropertyRepository getDynamicPropertyRepository() {
+        return this.propertyRepository;
+    }
+
 
     public void loadDefaultValues() {
         putDefaultIntegerProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
@@ -403,15 +411,15 @@ public class DefaultClientConfigImpl implements IClientConfig {
         putDefaultIntegerProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, getDefaultConnectionidleTimeInMsecs());
         putDefaultIntegerProperty(CommonClientConfigKey.ConnectionCleanerRepeatInterval, getDefaultConnectionIdleTimertaskRepeatInMsecs());
         putDefaultBooleanProperty(CommonClientConfigKey.EnableGZIPContentEncodingFilter, getDefaultEnableGzipContentEncodingFilter());
-        String proxyHost = ConfigurationManager.getConfigInstance().getString(getDefaultPropName(CommonClientConfigKey.ProxyHost.key()));
+
+        String proxyHost = propertyRepository.getProperty(getDefaultPropName(CommonClientConfigKey.ProxyHost.key()), String.class, null).get();
         if (proxyHost != null && proxyHost.length() > 0) {
             setProperty(CommonClientConfigKey.ProxyHost, proxyHost);
         }
-        Integer proxyPort = ConfigurationManager
-                .getConfigInstance()
-                .getInteger(
+        Integer proxyPort = propertyRepository.getProperty(
                         getDefaultPropName(CommonClientConfigKey.ProxyPort),
-                        (Integer.MIN_VALUE + 1)); // + 1 just to avoid potential clash with user setting
+                        Integer.class,
+                        (Integer.MIN_VALUE + 1)).get(); // + 1 just to avoid potential clash with user setting
         if (proxyPort != (Integer.MIN_VALUE + 1)) {
             setProperty(CommonClientConfigKey.ProxyPort, proxyPort);
         }
@@ -454,51 +462,20 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     protected void setPropertyInternal(final String propName, Object value) {
-        String stringValue = (value == null) ? "" : String.valueOf(value);
+        final String stringValue = (value == null) ? "" : String.valueOf(value);
         properties.put(propName, stringValue);
         if (!enableDynamicProperties) {
             return;
         }
-        String configKey = getConfigKey(propName);
-        final DynamicStringProperty prop = DynamicPropertyFactory.getInstance().getStringProperty(configKey, null);
-        Runnable callback = new Runnable() {
-            @Override
-            public void run() {
-                String value = prop.get();
-                if (value != null) {
-                    properties.put(propName, value);
-                } else {
-                    properties.remove(propName);
-                }
+        final String configKey = getConfigKey(propName);
+        DynamicProperty<String> prop = propertyRepository.getProperty(configKey, String.class, null);
+        prop.onChange(newValue -> {
+            if (newValue != null) {
+                properties.put(propName, newValue);
+            } else {
+                properties.remove(propName);
             }
-
-            // equals and hashcode needed
-            // since this is anonymous object is later used as a set key
-
-            @Override
-            public boolean equals(Object other){
-            	if (other == null) {
-            		return false;
-            	}
-            	if (getClass() == other.getClass()) {
-                    return toString().equals(other.toString());
-                }
-                return false;
-            }
-
-            @Override
-            public String toString(){
-            	return propName;
-            }
-
-            @Override
-            public int hashCode(){
-            	return propName.hashCode();
-            }
-
-
-        };
-        prop.addCallback(callback);
+        });
         dynamicProperties.put(propName, prop);
     }
 
@@ -507,27 +484,27 @@ public class DefaultClientConfigImpl implements IClientConfig {
 	// property exists. If so, that value is used, else the default value
 	// passed as argument is used to put into the properties member variable
     protected void putDefaultIntegerProperty(IClientConfigKey propName, Integer defaultValue) {
-        Integer value = ConfigurationManager.getConfigInstance().getInteger(
-                getDefaultPropName(propName), defaultValue);
+        final Integer value = propertyRepository.getProperty(
+                getDefaultPropName(propName), Integer.class, defaultValue).get();
         setPropertyInternal(propName, value);
     }
 
     protected void putDefaultLongProperty(IClientConfigKey propName, Long defaultValue) {
-        Long value = ConfigurationManager.getConfigInstance().getLong(
-                getDefaultPropName(propName), defaultValue);
+        final Long value = propertyRepository.getProperty(
+                getDefaultPropName(propName), Long.class, defaultValue).get();
         setPropertyInternal(propName, value);
     }
 
     protected void putDefaultFloatProperty(IClientConfigKey propName, Float defaultValue) {
-        Float value = ConfigurationManager.getConfigInstance().getFloat(
-                getDefaultPropName(propName), defaultValue);
+        final Float value = propertyRepository.getProperty(
+                getDefaultPropName(propName), Float.class, defaultValue).get();
         setPropertyInternal(propName, value);
     }
 
     protected void putDefaultTimeUnitProperty(IClientConfigKey propName, TimeUnit defaultValue) {
         TimeUnit value = defaultValue;
-        String propValue = ConfigurationManager.getConfigInstance().getString(
-                getDefaultPropName(propName));
+        String propValue = propertyRepository.getProperty(
+                getDefaultPropName(propName), String.class, null).get();
         if(propValue != null && propValue.length() > 0) {
             value = TimeUnit.valueOf(propValue);
         }
@@ -544,14 +521,14 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
 
     protected void putDefaultStringProperty(IClientConfigKey propName, String defaultValue) {
-        String value = ConfigurationManager.getConfigInstance().getString(
-                getDefaultPropName(propName), defaultValue);
+        String value = propertyRepository.getProperty(
+                getDefaultPropName(propName), String.class, defaultValue).get();
         setPropertyInternal(propName, value);
     }
 
     protected void putDefaultBooleanProperty(IClientConfigKey propName, Boolean defaultValue) {
-        Boolean value = ConfigurationManager.getConfigInstance().getBoolean(
-                getDefaultPropName(propName), defaultValue);
+        Boolean value = propertyRepository.getProperty(
+                getDefaultPropName(propName), Boolean.class, defaultValue).get();
         setPropertyInternal(propName, value);
     }
 
@@ -576,19 +553,18 @@ public class DefaultClientConfigImpl implements IClientConfig {
         enableDynamicProperties = true;
         setClientName(restClientName);
         loadDefaultValues();
-        Configuration props = ConfigurationManager.getConfigInstance().subset(restClientName);
-        for (Iterator<String> keys = props.getKeys(); keys.hasNext(); ){
-            String key = keys.next();
-            String prop = key;
+        DynamicPropertyRepository props = propertyRepository.withPrefix(restClientName);
+        props.forEachPropertyName(key -> {
             try {
-                if (prop.startsWith(getNameSpace())){
-                    prop = prop.substring(getNameSpace().length() + 1);
-                }
-                setPropertyInternal(prop, getStringValue(props, key));
+                final String prop = key.startsWith(getNameSpace())
+                        ? key.substring(getNameSpace().length() + 1)
+                        : key;
+
+                setPropertyInternal(prop, props.getProperty(key, String.class, null).get());
             } catch (Exception ex) {
-                throw new RuntimeException(String.format("Property %s is invalid", prop));
+                throw new RuntimeException(String.format("Property %s is invalid", key));
             }
-        }
+        });
     }
     
     /**
@@ -596,33 +572,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
      * automatically convert comma delimited string to array
      */
     protected static String getStringValue(Configuration config, String key) {
-        try {
-            String values[] = config.getStringArray(key);
-            if (values == null) {
-                return null;
-            }
-            if (values.length == 0) {
-                return config.getString(key);
-            } else if (values.length == 1) {
-                return values[0];
-            }
-
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < values.length; i++) {
-                sb.append(values[i]);
-                if (i != values.length - 1) {
-                    sb.append(",");
-                }
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            Object v = config.getProperty(key);
-            if (v != null) {
-                return String.valueOf(v);
-            } else {
-                return null;
-            }
-        }
+        throw new UnsupportedOperationException();
     }
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "DC_DOUBLECHECK")
@@ -699,14 +649,14 @@ public class DefaultClientConfigImpl implements IClientConfig {
     protected Object getProperty(String key) {
         if (enableDynamicProperties) {
             String dynamicValue = null;
-            DynamicStringProperty dynamicProperty = dynamicProperties.get(key);
+            DynamicProperty<String> dynamicProperty = dynamicProperties.get(key);
             if (dynamicProperty != null) {
                 dynamicValue = dynamicProperty.get();
             }
             if (dynamicValue == null) {
-                dynamicValue = DynamicProperty.getInstance(getConfigKey(key)).getString();
+                dynamicValue = propertyRepository.getProperty(getConfigKey(key), String.class, null).get();
                 if (dynamicValue == null) {
-                    dynamicValue = DynamicProperty.getInstance(getDefaultPropName(key)).getString();
+                    dynamicValue = propertyRepository.getProperty(getDefaultPropName(key), String.class, null).get();
                 }
             }
             if (dynamicValue != null) {

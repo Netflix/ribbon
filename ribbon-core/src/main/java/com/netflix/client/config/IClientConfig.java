@@ -109,6 +109,10 @@ public interface IClientConfig {
         return get(key, key.getDefaultValue());
     }
 
+    default DynamicPropertyRepository getDynamicPropertyRepository() {
+        return DynamicPropertyRepository.DEFAULT;
+    }
+
     /**
      * Returns a typed property. If the property of IClientConfigKey is not set, 
      * it returns the default value passed in as the parameter.

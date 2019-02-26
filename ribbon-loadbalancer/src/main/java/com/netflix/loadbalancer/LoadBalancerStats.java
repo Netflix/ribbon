@@ -17,6 +17,19 @@
 */
 package com.netflix.loadbalancer;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.netflix.client.IClientConfigAware;
+import com.netflix.client.config.DynamicPropertyRepository;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.UnboxedIntProperty;
+import com.netflix.servo.annotations.DataSourceType;
+import com.netflix.servo.annotations.Monitor;
+import com.netflix.servo.monitor.Monitors;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,20 +40,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-import com.netflix.client.IClientConfigAware;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.config.CachedDynamicIntProperty;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
-import com.netflix.servo.monitor.Monitors;
 
 /**
  * Class that acts as a repository of operational charateristics and statistics
@@ -56,37 +55,21 @@ import com.netflix.servo.monitor.Monitors;
 public class LoadBalancerStats implements IClientConfigAware {
     
     private static final String PREFIX = "LBStats_";
-    
+
+    private DynamicPropertyRepository repository = DynamicPropertyRepository.DEFAULT;
+
     String name;
     
-    // Map<Server,ServerStats> serverStatsMap = new ConcurrentHashMap<Server,ServerStats>();
-    volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();
-    volatile Map<String, List<? extends Server>> upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();
+    volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<>();
+    volatile Map<String, List<? extends Server>> upServerListZoneMap = new ConcurrentHashMap<>();
     
-    private volatile CachedDynamicIntProperty connectionFailureThreshold;
+    private UnboxedIntProperty connectionFailureThreshold;
         
-    private volatile CachedDynamicIntProperty circuitTrippedTimeoutFactor;
+    private UnboxedIntProperty circuitTrippedTimeoutFactor;
 
-    private volatile CachedDynamicIntProperty maxCircuitTrippedTimeout;
+    private UnboxedIntProperty maxCircuitTrippedTimeout;
 
-    private static final DynamicIntProperty SERVERSTATS_EXPIRE_MINUTES = 
-        DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.expire.minutes", 30);
-    
-    private final LoadingCache<Server, ServerStats> serverStatsCache = 
-        CacheBuilder.newBuilder()
-            .expireAfterAccess(SERVERSTATS_EXPIRE_MINUTES.get(), TimeUnit.MINUTES)
-            .removalListener(new RemovalListener<Server, ServerStats>() {
-                @Override
-                public void onRemoval(RemovalNotification<Server, ServerStats> notification) {
-                    notification.getValue().close();
-                }
-            })
-            .build(
-                new CacheLoader<Server, ServerStats>() {
-                    public ServerStats load(Server server) {
-                        return createServerStats(server);
-                    }
-                });
+    private LoadingCache<Server, ServerStats> serverStatsCache;
         
     protected ServerStats createServerStats(Server server) {
         ServerStats ss = new ServerStats(this);
@@ -97,21 +80,53 @@ public class LoadBalancerStats implements IClientConfigAware {
         return ss;        
     }
     
-    public LoadBalancerStats(){
-        zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();  
-        upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();        
+    public LoadBalancerStats() {
+        this(null, DynamicPropertyRepository.DEFAULT);
     }
     
-    public LoadBalancerStats(String name){
-        this();
+    public LoadBalancerStats(String name) {
+        this(name, DynamicPropertyRepository.DEFAULT);
+    }
+
+    public LoadBalancerStats(String name, DynamicPropertyRepository repository) {
+        this.zoneStatsMap = new ConcurrentHashMap<>();
+        this.upServerListZoneMap = new ConcurrentHashMap<>();
+        this.repository = repository;
         this.name = name;
-        Monitors.registerObject(name, this); 
+        if (this.name != null) {
+            Monitors.registerObject(name, this);
+        }
+
+        if (repository != null) {
+            this.serverStatsCache = createLoadingCache(repository);
+        }
+    }
+
+    private LoadingCache<Server, ServerStats> createLoadingCache(DynamicPropertyRepository repository) {
+        return CacheBuilder.newBuilder()
+                        .expireAfterAccess(
+                                repository.getProperty(
+                                        "niws.loadbalancer.serverStats.expire.minutes",
+                                        Integer.class,
+                                        30).get(),
+                                TimeUnit.MINUTES)
+                        .removalListener((RemovalListener<Server, ServerStats>) notification -> notification.getValue().close())
+                        .build(
+                                new CacheLoader<Server, ServerStats>() {
+                                    public ServerStats load(Server server) {
+                                        return createServerStats(server);
+                                    }
+                                });
+    }
+
+    DynamicPropertyRepository getDynamicPropertyRepository() {
+        return this.repository;
     }
 
     @Override
-    public void initWithNiwsConfig(IClientConfig clientConfig)
-    {
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
         this.name = clientConfig.getClientName();
+        this.serverStatsCache = createLoadingCache(clientConfig.getDynamicPropertyRepository());
         Monitors.registerObject(name, this);
     }
 
@@ -123,27 +138,33 @@ public class LoadBalancerStats implements IClientConfigAware {
         this.name = name;
     }
 
-    CachedDynamicIntProperty getConnectionFailureCountThreshold() {
+    UnboxedIntProperty getConnectionFailureCountThreshold() {
         if (connectionFailureThreshold == null) {
-            connectionFailureThreshold = new CachedDynamicIntProperty(
-                    "niws.loadbalancer." + name + ".connectionFailureCountThreshold", 3);
+            connectionFailureThreshold = new UnboxedIntProperty(repository.getProperty(
+                            "niws.loadbalancer." + name + ".connectionFailureCountThreshold",
+                            Integer.class,
+                            3));
         }
         return connectionFailureThreshold;
 
     }
 
-    CachedDynamicIntProperty getCircuitTrippedTimeoutFactor() {
+    UnboxedIntProperty getCircuitTrippedTimeoutFactor() {
         if (circuitTrippedTimeoutFactor == null) {
-            circuitTrippedTimeoutFactor = new CachedDynamicIntProperty(
-                    "niws.loadbalancer." + name + ".circuitTripTimeoutFactorSeconds", 10);
+            circuitTrippedTimeoutFactor = new UnboxedIntProperty(repository.getProperty(
+                            "niws.loadbalancer." + name + ".circuitTripTimeoutFactorSeconds",
+                            Integer.class,
+                            10));
         }
         return circuitTrippedTimeoutFactor;        
     }
 
-    CachedDynamicIntProperty getCircuitTripMaxTimeoutSeconds() {
+    UnboxedIntProperty getCircuitTripMaxTimeoutSeconds() {
         if (maxCircuitTrippedTimeout == null) {
-            maxCircuitTrippedTimeout = new CachedDynamicIntProperty(
-                    "niws.loadbalancer." + name + ".circuitTripMaxTimeoutSeconds", 30);
+            maxCircuitTrippedTimeout = new UnboxedIntProperty(repository.getProperty(
+                            "niws.loadbalancer." + name + ".circuitTripMaxTimeoutSeconds",
+                            Integer.class,
+                            30));
         }
         return maxCircuitTrippedTimeout;        
     }

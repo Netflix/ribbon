@@ -28,6 +28,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.netflix.client.config.DynamicPropertyRepository;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.PredicateKey;
 
@@ -48,7 +49,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
     private final Random random = new Random();
     
     private final AtomicInteger nextIndex = new AtomicInteger();
-            
+
     private final Predicate<Server> serverOnlyPredicate =  new Predicate<Server>() {
         @Override
         public boolean apply(@Nullable Server input) {                    
@@ -56,7 +57,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
         }
     };
 
-    public static AbstractServerPredicate alwaysTrue() { 
+    public static AbstractServerPredicate alwaysTrue() {
         return new AbstractServerPredicate() {        
             @Override
             public boolean apply(@Nullable PredicateKey input) {
@@ -72,15 +73,21 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
     public AbstractServerPredicate(IRule rule) {
         this.rule = rule;
     }
-    
+
+    @Deprecated
     public AbstractServerPredicate(IRule rule, IClientConfig clientConfig) {
-        this.rule = rule;
+        this(rule);
     }
-    
+
+    @Deprecated
     public AbstractServerPredicate(LoadBalancerStats lbStats, IClientConfig clientConfig) {
+        this(lbStats);
+    }
+
+    public AbstractServerPredicate(LoadBalancerStats lbStats) {
         this.lbStats = lbStats;
     }
-    
+
     protected LoadBalancerStats getLBStats() {
         if (lbStats != null) {
             return lbStats;
