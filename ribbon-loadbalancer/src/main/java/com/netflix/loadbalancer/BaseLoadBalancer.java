@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.PrimeConnections;
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.annotations.DataSourceType;
@@ -59,8 +60,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class BaseLoadBalancer extends AbstractLoadBalancer implements
         PrimeConnections.PrimeConnectionListener, IClientConfigAware {
 
-    private static Logger logger = LoggerFactory
-            .getLogger(BaseLoadBalancer.class);
+    private static Logger logger = LoggerFactory.getLogger(BaseLoadBalancer.class);
+
     private final static IRule DEFAULT_RULE = new RoundRobinRule();
     private final static SerialPingStrategy DEFAULT_PING_STRATEGY = new SerialPingStrategy();
     private static final String DEFAULT_NAME = "default";

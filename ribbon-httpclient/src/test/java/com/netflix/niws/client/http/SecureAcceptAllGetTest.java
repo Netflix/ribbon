@@ -26,6 +26,7 @@ import com.netflix.config.ConfigurationManager;
 import com.sun.jersey.core.util.Base64;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.junit.*;
+import org.junit.rules.TestName;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.File;
@@ -47,7 +48,6 @@ import static org.junit.Assert.fail;
  */
 public class SecureAcceptAllGetTest {
 
-    private static int TEST_PORT;
     private static String TEST_SERVICE_URI;
 
     private static File TEST_FILE_KS;
@@ -55,13 +55,11 @@ public class SecureAcceptAllGetTest {
 
     private static SimpleSSLTestServer TEST_SERVER;
 
+    @Rule
+    public TestName testName = new TestName();
 
     @BeforeClass
     public static void init() throws Exception {
-
-        // setup server 1, will use first keystore/truststore with client auth
-        TEST_PORT = new Random().nextInt(1000) + 4000;
-        TEST_SERVICE_URI = "https://127.0.0.1:" + TEST_PORT + "/";
 
         // jks format
         byte[] sampleTruststore1 = Base64.decode(SecureGetTest.TEST_TS1);
@@ -84,12 +82,15 @@ public class SecureAcceptAllGetTest {
             truststoreFileOut.close();
         }
 
-        try{
-            TEST_SERVER = new SimpleSSLTestServer(TEST_FILE_TS, SecureGetTest.PASSWORD, TEST_FILE_KS, SecureGetTest.PASSWORD, TEST_PORT, false);
+        try {
+            TEST_SERVER = new SimpleSSLTestServer(TEST_FILE_TS, SecureGetTest.PASSWORD, TEST_FILE_KS, SecureGetTest.PASSWORD, false);
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
         }
+
+        // setup server 1, will use first keystore/truststore with client auth
+        TEST_SERVICE_URI = "https://127.0.0.1:" + TEST_SERVER.getPort() + "/";
 
 
     }
@@ -113,7 +114,7 @@ public class SecureAcceptAllGetTest {
 
         AbstractConfiguration cm = ConfigurationManager.getConfigInstance();
 
-        String name = "GetPostSecureTest" + ".testPositiveAcceptAllSSLSocketFactory";
+        String name = "GetPostSecureTest." + testName.getMethodName();
 
         String configPrefix = name + "." + "ribbon";
 
@@ -136,7 +137,7 @@ public class SecureAcceptAllGetTest {
 
         AbstractConfiguration cm = ConfigurationManager.getConfigInstance();
 
-        String name = "GetPostSecureTest" + ".testNegativeAcceptAllSSLSocketFactoryCannotWorkWithTrustStore";
+        String name = "GetPostSecureTest." + testName.getMethodName();
 
         String configPrefix = name + "." + "ribbon";
 
@@ -146,25 +147,19 @@ public class SecureAcceptAllGetTest {
 
         boolean foundCause = false;
 
-        try{
-
+        try {
             ClientFactory.getNamedClient(name);
-
-        }catch(Throwable t){
-
-             while(t != null && ! foundCause){
-
-                 if(t instanceof IllegalArgumentException && t.getMessage().startsWith("Invalid value associated with property:CustomSSLSocketFactoryClassName")){
+        } catch(Throwable t){
+             while (t != null && ! foundCause){
+                 if (t instanceof IllegalArgumentException && t.getMessage().startsWith("Invalid value for property:CustomSSLSocketFactoryClassName")){
                      foundCause = true;
                      break;
                  }
-
                  t = t.getCause();
              }
         }
 
         assertTrue(foundCause);
-
     }
 
 
@@ -173,7 +168,7 @@ public class SecureAcceptAllGetTest {
 
         // test exception is thrown connecting to a random SSL endpoint without explicitly setting factory to allow all
 
-        String name = "GetPostSecureTest" + ".testNegativeAcceptAllSSLSocketFactory";
+        String name = "GetPostSecureTest." + testName.getMethodName();
 
         // don't set any interesting properties -- really we're just setting the defaults
 
@@ -184,31 +179,20 @@ public class SecureAcceptAllGetTest {
         URI getUri = new URI(TEST_SERVICE_URI + "test/");
         HttpRequest request = HttpRequest.newBuilder().uri(getUri).queryParams("name", "test").build();
 
-
         boolean foundCause = false;
 
-        try{
-
+        try {
             rc.execute(request);
-
-        }catch(Throwable t){
-
-            while(t != null && ! foundCause){
-
-                if(t instanceof SSLPeerUnverifiedException && t.getMessage().startsWith("peer not authenticated")){
+        } catch(Throwable t){
+            while (t != null && ! foundCause){
+                if (t instanceof SSLPeerUnverifiedException && t.getMessage().startsWith("peer not authenticated")){
                     foundCause = true;
                     break;
                 }
-
                 t = t.getCause();
             }
         }
 
         assertTrue(foundCause);
-
-
-
     }
-
-
 }

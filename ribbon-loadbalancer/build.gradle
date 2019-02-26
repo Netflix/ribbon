@@ -2,16 +2,15 @@ dependencies {
     compile project(':ribbon-core')
     compile 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
     compile "io.reactivex:rxjava:${rx_java_version}"
-    compile 'org.slf4j:slf4j-api:1.6.4'
+    compile "org.slf4j:slf4j-api:${slf4j_version}"
     compile "com.netflix.servo:servo-core:${servo_version}"
     compile "com.google.guava:guava:${guava_version}"
-    compile "com.netflix.archaius:archaius-core:${archaius_version}"
     compile 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
 
     testCompile project(":ribbon-archaius")
     testCompile 'junit:junit:4.11'
     testCompile 'org.mockito:mockito-core:2.13.0'
     testCompile 'org.awaitility:awaitility:3.0.0'
-    testCompile 'org.slf4j:slf4j-log4j12:1.7.2'
+    testCompile "org.slf4j:slf4j-log4j12:${slf4j_version}"
     testCompile "com.sun.jersey:jersey-server:${jersey_version}"
 }

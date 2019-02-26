@@ -56,7 +56,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     String datacenter;
     String targetRegion;
 
-    int overridePort = CommonClientConfigKey.Port.getDefaultValue();
+    int overridePort = CommonClientConfigKey.Port.defaultValue();
     boolean shouldUseOverridePort = false;
     boolean shouldUseIpAddr = false;
 

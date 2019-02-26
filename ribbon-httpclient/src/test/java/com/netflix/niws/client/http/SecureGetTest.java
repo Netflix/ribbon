@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.net.URI;
-import java.util.Random;
 
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.junit.AfterClass;
@@ -243,10 +242,7 @@ public class SecureGetTest {
 
 
 	private static String SERVICE_URI1;
-	private static int PORT1;
-
 	private static String SERVICE_URI2;
-	private static int PORT2;
 
 	private static SimpleSSLTestServer testServer1;
 	private static SimpleSSLTestServer testServer2;
@@ -264,8 +260,6 @@ public class SecureGetTest {
 	public static void init() throws Exception {
 
 		// setup server 1, will use first keystore/truststore with client auth
-		PORT1 = new Random().nextInt(1000) + 4000;
-		SERVICE_URI1 = "https://127.0.0.1:" + PORT1 + "/";
 
 		// jks format
 		byte[] sampleTruststore1 = Base64.decode(TEST_TS1);
@@ -289,16 +283,15 @@ public class SecureGetTest {
         }
 
 		try{
-			testServer1 = new SimpleSSLTestServer(FILE_TS1, PASSWORD, FILE_KS1, PASSWORD, PORT1, true);
+			testServer1 = new SimpleSSLTestServer(FILE_TS1, PASSWORD, FILE_KS1, PASSWORD, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
-		// setup server 2, will use second keystore truststore without client auth
+		SERVICE_URI1 = "https://127.0.0.1:" + testServer1.getPort() + "/";
 
-		PORT2 = PORT1 + 1;
-		SERVICE_URI2 = "https://127.0.0.1:" + PORT2 + "/";
+		// setup server 2, will use second keystore truststore without client auth
 
 		// jks format
 		byte[] sampleTruststore2 = Base64.decode(TEST_TS2);
@@ -322,11 +315,13 @@ public class SecureGetTest {
         }
 
 		try{
-			testServer2 = new SimpleSSLTestServer(FILE_TS2, PASSWORD, FILE_KS2, PASSWORD, PORT2, false);
+			testServer2 = new SimpleSSLTestServer(FILE_TS2, PASSWORD, FILE_KS2, PASSWORD, false);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+
+		SERVICE_URI2 = "https://127.0.0.1:" + testServer2.getPort() + "/";
 	}
 
 	@AfterClass
@@ -356,7 +351,7 @@ public class SecureGetTest {
 		String configPrefix = name + "." + "ribbon";
 
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsSecure, "true");
-		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(PORT1));
+		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(testServer1.getPort()));
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsHostnameValidationRequired, "false");
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsClientAuthRequired, "true");
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.KeyStore, FILE_KS1.getAbsolutePath());
@@ -385,7 +380,7 @@ public class SecureGetTest {
 		String configPrefix = name + "." + "ribbon";
 
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsSecure, "true");
-		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(PORT2));
+		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(testServer2.getPort()));
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsHostnameValidationRequired, "false");
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.TrustStore, FILE_TS2.getAbsolutePath());
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.TrustStorePassword, PASSWORD);
@@ -411,7 +406,7 @@ public class SecureGetTest {
 		String configPrefix = name + "." + "ribbon";
 
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsSecure, "true");
-		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(PORT1));
+		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(testServer2.getPort()));
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsHostnameValidationRequired, "true"); // <--
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsClientAuthRequired, "true");
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.KeyStore, FILE_KS1.getAbsolutePath());
@@ -447,7 +442,7 @@ public class SecureGetTest {
 		String configPrefix = name + "." + "ribbon";
 
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsSecure, "true");
-		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(PORT2));
+		cm.setProperty(configPrefix + "." + CommonClientConfigKey.SecurePort, Integer.toString(testServer2.getPort()));
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.IsHostnameValidationRequired, "false");
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.TrustStore, FILE_TS1.getAbsolutePath()); // <--
 		cm.setProperty(configPrefix + "." + CommonClientConfigKey.TrustStorePassword, PASSWORD);

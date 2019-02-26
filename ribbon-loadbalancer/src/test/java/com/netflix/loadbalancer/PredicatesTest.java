@@ -168,9 +168,11 @@ public class PredicatesTest {
         assertTrue(predicate.apply(new PredicateKey((Server) stats[0][0])));
         assertTrue(predicate.apply(new PredicateKey((Server) stats[9][0])));
     }
-    
+
     @Test
     public void testCompositePredicate() {
+        ConfigurationManager.getConfigInstance().setProperty(ContextKey.zone.getKey(), "0");
+
         Object[][] stats = new Object[10][3];
         Map<String, List<Server>> zoneMap = Maps.newHashMap();
         List<Server> expectedFiltered = Lists.newArrayList();
@@ -205,9 +207,9 @@ public class PredicatesTest {
         LoadBalancerStats lbStats = new LoadBalancerStats("default");
         setServerStats(lbStats, stats);
         lbStats.updateZoneServerMapping(zoneMap);
-        ConfigurationManager.getDeploymentContext().setValue(ContextKey.zone, "0");
+
         AvailabilityPredicate p1 = new AvailabilityPredicate(lbStats, null);
-        ZoneAffinityPredicate p2 = new ZoneAffinityPredicate();
+        ZoneAffinityPredicate p2 = new ZoneAffinityPredicate("0");
         CompositePredicate c = CompositePredicate.withPredicates(p2, p1).build();
         assertFalse(c.apply(new PredicateKey((Server) stats[5][0])));
         assertTrue(c.apply(new PredicateKey((Server) stats[0][0])));

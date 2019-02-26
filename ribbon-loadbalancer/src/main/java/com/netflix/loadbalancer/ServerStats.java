@@ -17,15 +17,12 @@
 */
 package com.netflix.loadbalancer;
 
-import java.util.Date;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.netflix.config.CachedDynamicIntProperty;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
+
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.config.Property;
+import com.netflix.client.config.UnboxedIntProperty;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.stats.distribution.DataDistribution;
@@ -33,21 +30,26 @@ import com.netflix.stats.distribution.DataPublisher;
 import com.netflix.stats.distribution.Distribution;
 import com.netflix.util.MeasuredRate;
 
+import java.util.Date;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Capture various stats per Server(node) in the LoadBalancer
  * @author stonse
  *
  */
 public class ServerStats {
-    
+
     private static final int DEFAULT_PUBLISH_INTERVAL =  60 * 1000; // = 1 minute
     private static final int DEFAULT_BUFFER_SIZE = 60 * 1000; // = 1000 requests/sec for 1 minute
-    private final CachedDynamicIntProperty connectionFailureThreshold;
-    private final CachedDynamicIntProperty circuitTrippedTimeoutFactor;
-    private final CachedDynamicIntProperty maxCircuitTrippedTimeout;
-    private static final DynamicIntProperty activeRequestsCountTimeout = 
-        DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 60 * 10);
-    
+
+    private final UnboxedIntProperty connectionFailureThreshold;
+    private final UnboxedIntProperty circuitTrippedTimeoutFactor;
+    private final UnboxedIntProperty maxCircuitTrippedTimeout;
+    private final UnboxedIntProperty activeRequestsCountTimeout;
+
     private static final double[] PERCENTS = makePercentValues();
     
     private DataDistribution dataDist = new DataDistribution(1, PERCENTS); // in case
@@ -81,21 +83,19 @@ public class ServerStats {
     private AtomicLong totalCircuitBreakerBlackOutPeriod = new AtomicLong(0);
     private volatile long lastAccessedTimestamp;
     private volatile long firstConnectionTimestamp = 0;
-    
-    public ServerStats() {
-        connectionFailureThreshold = new CachedDynamicIntProperty(
-                "niws.loadbalancer.default.connectionFailureCountThreshold", 3);        
-        circuitTrippedTimeoutFactor = new CachedDynamicIntProperty(
-                "niws.loadbalancer.default.circuitTripTimeoutFactorSeconds", 10);
 
-        maxCircuitTrippedTimeout = new CachedDynamicIntProperty(
-                "niws.loadbalancer.default.circuitTripMaxTimeoutSeconds", 30);
+    public ServerStats() {
+        connectionFailureThreshold = new UnboxedIntProperty(Property.of(LoadBalancerStats.CONNECTION_FAILURE_COUNT_THRESHOLD.defaultValue()));
+        circuitTrippedTimeoutFactor = new UnboxedIntProperty(LoadBalancerStats.CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS.defaultValue());
+        maxCircuitTrippedTimeout = new UnboxedIntProperty(LoadBalancerStats.CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS.defaultValue());
+        activeRequestsCountTimeout = new UnboxedIntProperty(LoadBalancerStats.ACTIVE_REQUESTS_COUNT_TIMEOUT.defaultValue());
     }
-    
+
     public ServerStats(LoadBalancerStats lbStats) {
-        this.maxCircuitTrippedTimeout = lbStats.getCircuitTripMaxTimeoutSeconds();
-        this.circuitTrippedTimeoutFactor = lbStats.getCircuitTrippedTimeoutFactor();
-        this.connectionFailureThreshold = lbStats.getConnectionFailureCountThreshold();
+        maxCircuitTrippedTimeout = lbStats.getCircuitTripMaxTimeoutSeconds();
+        circuitTrippedTimeoutFactor = lbStats.getCircuitTrippedTimeoutFactor();
+        connectionFailureThreshold = lbStats.getConnectionFailureCountThreshold();
+        activeRequestsCountTimeout = lbStats.getActiveRequestsCountTimeout();
     }
     
     /**
@@ -225,18 +225,14 @@ public class ServerStats {
     }
 
     public void decrementActiveRequestsCount() {
-        if (activeRequestsCount.decrementAndGet() < 0) {
-            activeRequestsCount.set(0);
-        }
+        activeRequestsCount.getAndUpdate(current -> Math.max(0, current - 1));
         lastActiveRequestsCountChangeTimestamp = System.currentTimeMillis();
     }
 
     public void decrementOpenConnectionsCount() {
-        if (openConnectionsCount.decrementAndGet() < 0) {
-            openConnectionsCount.set(0);
-        }
+        openConnectionsCount.getAndUpdate(current -> Math.max(0, current - 1));
     }
-    
+
     public int  getActiveRequestsCount() {
         return getActiveRequestsCount(System.currentTimeMillis());
     }
@@ -257,7 +253,6 @@ public class ServerStats {
         return openConnectionsCount.get();
     }
 
-    
     public long getMeasuredRequestsCount() {
         return requestCountInWindow.getCount();
     }
@@ -280,7 +275,6 @@ public class ServerStats {
         return circuitBreakerTimeout > currentTime;
     }
 
-    
     private long getCircuitBreakerTimeout() {
         long blackOutPeriod = getCircuitBreakerBlackoutPeriod();
         if (blackOutPeriod <= 0) {
@@ -295,7 +289,7 @@ public class ServerStats {
         if (failureCount < threshold) {
             return 0;
         }
-        int diff = (failureCount - threshold) > 16 ? 16 : (failureCount - threshold);
+        int diff = Math.min(failureCount - threshold, 16);
         int blackOutSeconds = (1 << diff) * circuitTrippedTimeoutFactor.get();
         if (blackOutSeconds > maxCircuitTrippedTimeout.get()) {
             blackOutSeconds = maxCircuitTrippedTimeout.get();
@@ -312,7 +306,6 @@ public class ServerStats {
     public void clearSuccessiveConnectionFailureCount() {
         successiveConnectionFailureCount.set(0);
     }
-    
     
     @Monitor(name="SuccessiveConnectionFailureCount", type = DataSourceType.GAUGE)
     public int getSuccessiveConnectionFailureCount() {
@@ -518,35 +511,4 @@ public class ServerStats {
         
         return sb.toString();
     }
-    
-    public static void main(String[] args){
-        ServerStats ss = new ServerStats();
-        ss.setBufferSize(1000);
-        ss.setPublishInterval(1000);
-        ss.initialize(new Server("stonse", 80));
-        
-        Random r = new Random(1459834);
-        for (int i=0; i < 99; i++){
-            double rl = r.nextDouble() * 25.2;
-            ss.noteResponseTime(rl);
-            ss.incrementNumRequests();
-            try {
-                Thread.sleep(100);
-                System.out.println("ServerStats:avg:" + ss.getResponseTimeAvg());
-                System.out.println("ServerStats:90 percentile:" + ss.getResponseTime90thPercentile());
-                System.out.println("ServerStats:90 percentile:" + ss.getResponseTimePercentileNumValues());
-                
-            } catch (InterruptedException e) {
-                
-            }
-           
-        }
-        System.out.println("done ---");
-        ss.publisher.stop();
-        
-        System.out.println("ServerStats:" + ss);
-     
-        
-    }
-    
 }

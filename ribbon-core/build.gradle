@@ -1,9 +1,10 @@
 dependencies {
-    compile 'org.slf4j:slf4j-api:1.6.4'
+    compile "org.slf4j:slf4j-api:${slf4j_version}"
     compile 'com.google.code.findbugs:annotations:2.0.0'
     compile "com.google.guava:guava:${guava_version}"
     compile 'commons-lang:commons-lang:2.6'
 
     testCompile 'junit:junit:4.11'
+    testCompile "org.slf4j:slf4j-log4j12:${slf4j_version}"
     testCompile project(":ribbon-archaius")
 }

@@ -1,29 +1,30 @@
 /*
-*
-* Copyright 2013 Netflix, Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
+ *
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package com.netflix.client.config;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.netflix.client.VipAddressResolver;
-
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DynamicProperty;
 import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.config.DynamicStringProperty;
+import com.netflix.config.PropertyWrapper;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.slf4j.Logger;
@@ -34,47 +35,48 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Default client configuration that loads properties from Archaius's ConfigurationManager.
  * <p>
  * The easiest way to configure client and load balancer is through loading properties into Archaius that conform to the specific format:
 
-<pre>{@code
+ <pre>{@code
 <clientName>.<nameSpace>.<propertyName>=<value>
 }</pre>
-<p>
-You can define properties in a file on classpath or as system properties. If former, ConfigurationManager.loadPropertiesFromResources() API should be called to load the file.
-<p>
-By default, "ribbon" should be the nameSpace.
-<p>
-If there is no property specified for a named client, {@code com.netflix.client.ClientFactory} will still create the client and
-load balancer with default values for all necessary properties. The default
-values are specified in this class as constants.
-<p>
-If a property is missing the clientName, it is interpreted as a property that applies to all clients. For example
+ <p>
+ You can define properties in a file on classpath or as system properties. If former, ConfigurationManager.loadPropertiesFromResources() API should be called to load the file.
+ <p>
+ By default, "ribbon" should be the nameSpace.
+ <p>
+ If there is no property specified for a named client, {@code com.netflix.client.ClientFactory} will still create the client and
+ load balancer with default values for all necessary properties. The default
+ values are specified in this class as constants.
+ <p>
+ If a property is missing the clientName, it is interpreted as a property that applies to all clients. For example
 
-<pre>{@code
+ <pre>{@code
 ribbon.ReadTimeout=1000
 }</pre>
 
-This will establish the default ReadTimeout property for all clients.
-<p>
-You can also programmatically set properties by constructing instance of DefaultClientConfigImpl. Follow these steps:
-<ul>
-<li> Get an instance by calling {@link #getClientConfigWithDefaultValues(String)} to load default values,
-and any properties that are already defined with Configuration in Archaius
-<li> Set all desired properties by calling {@link #setProperty(IClientConfigKey, Object)} API.
-<li> Pass this instance together with client name to {@code com.netflix.client.ClientFactory} API.
-</ul>
-<p><p>
-If it is desired to have properties defined in a different name space, for example, "foo"
+ This will establish the default ReadTimeout property for all clients.
+ <p>
+ You can also programmatically set properties by constructing instance of DefaultClientConfigImpl. Follow these steps:
+ <ul>
+ <li> Get an instance by calling {@link #getClientConfigWithDefaultValues(String)} to load default values,
+ and any properties that are already defined with Configuration in Archaius
+ <li> Set all desired properties by calling {@link #setProperty(IClientConfigKey, Object)} API.
+ <li> Pass this instance together with client name to {@code com.netflix.client.ClientFactory} API.
+ </ul>
+ <p><p>
+ If it is desired to have properties defined in a different name space, for example, "foo"
 
-<pre>{@code
+ <pre>{@code
 myclient.foo.ReadTimeout=1000
 }</pre>
 
-You should use {@link #getClientConfigWithDefaultValues(String, String)} - in the first step above.
+ You should use {@link #getClientConfigWithDefaultValues(String, String)} - in the first step above.
  *
  * @author Sudhir Tonse
  * @author awang
@@ -84,25 +86,25 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = Boolean.TRUE;
 
-	public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = CommonClientConfigKey.NFLoadBalancerPingClassName.getDefaultValue();
+    public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = CommonClientConfigKey.NFLoadBalancerPingClassName.defaultValue();
 
-    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = CommonClientConfigKey.NFLoadBalancerRuleClassName.getDefaultValue();
+    public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = CommonClientConfigKey.NFLoadBalancerRuleClassName.defaultValue();
 
-    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = CommonClientConfigKey.NFLoadBalancerClassName.getDefaultValue();
-    
-    public static final boolean DEFAULT_USEIPADDRESS_FOR_SERVER = CommonClientConfigKey.UseIPAddrForServer.getDefaultValue();
+    public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = CommonClientConfigKey.NFLoadBalancerClassName.defaultValue();
 
-    public static final String DEFAULT_CLIENT_CLASSNAME = CommonClientConfigKey.ClientClassName.getDefaultValue();
+    public static final boolean DEFAULT_USEIPADDRESS_FOR_SERVER = CommonClientConfigKey.UseIPAddrForServer.defaultValue();
 
-    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = CommonClientConfigKey.VipAddressResolverClassName.getDefaultValue();
+    public static final String DEFAULT_CLIENT_CLASSNAME = CommonClientConfigKey.ClientClassName.defaultValue();
 
-    public static final String DEFAULT_PRIME_CONNECTIONS_URI = CommonClientConfigKey.PrimeConnectionsURI.getDefaultValue();
+    public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = CommonClientConfigKey.VipAddressResolverClassName.defaultValue();
 
-    public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = CommonClientConfigKey.MaxTotalTimeToPrimeConnections.getDefaultValue();
+    public static final String DEFAULT_PRIME_CONNECTIONS_URI = CommonClientConfigKey.PrimeConnectionsURI.defaultValue();
 
-    public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = CommonClientConfigKey.MaxRetriesPerServerPrimeConnection.getDefaultValue();
+    public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = CommonClientConfigKey.MaxTotalTimeToPrimeConnections.defaultValue();
 
-    public static final Boolean DEFAULT_ENABLE_PRIME_CONNECTIONS = CommonClientConfigKey.EnablePrimeConnections.getDefaultValue();
+    public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = CommonClientConfigKey.MaxRetriesPerServerPrimeConnection.defaultValue();
+
+    public static final Boolean DEFAULT_ENABLE_PRIME_CONNECTIONS = CommonClientConfigKey.EnablePrimeConnections.defaultValue();
 
     public static final int DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW = Integer.MAX_VALUE;
 
@@ -110,52 +112,52 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     public static final Boolean DEFAULT_ENABLE_REQUEST_THROTTLING = Boolean.FALSE;
 
-    public static final Boolean DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER = CommonClientConfigKey.EnableGZIPContentEncodingFilter.getDefaultValue();
+    public static final Boolean DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER = CommonClientConfigKey.EnableGZIPContentEncodingFilter.defaultValue();
 
-    public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled.getDefaultValue();
+    public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled.defaultValue();
 
-    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = CommonClientConfigKey.FollowRedirects.getDefaultValue();
+    public static final Boolean DEFAULT_FOLLOW_REDIRECTS = CommonClientConfigKey.FollowRedirects.defaultValue();
 
     public static final float DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED = 0.0f;
 
-    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = CommonClientConfigKey.MaxAutoRetriesNextServer.getDefaultValue();
+    public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = CommonClientConfigKey.MaxAutoRetriesNextServer.defaultValue();
 
-    public static final int DEFAULT_MAX_AUTO_RETRIES = CommonClientConfigKey.MaxAutoRetries.getDefaultValue();
+    public static final int DEFAULT_MAX_AUTO_RETRIES = CommonClientConfigKey.MaxAutoRetries.defaultValue();
 
-    public static final int DEFAULT_BACKOFF_INTERVAL = CommonClientConfigKey.BackoffInterval.getDefaultValue();
-    
-    public static final int DEFAULT_READ_TIMEOUT = CommonClientConfigKey.ReadTimeout.getDefaultValue();
+    public static final int DEFAULT_BACKOFF_INTERVAL = CommonClientConfigKey.BackoffInterval.defaultValue();
 
-    public static final int DEFAULT_CONNECTION_MANAGER_TIMEOUT = CommonClientConfigKey.ConnectionManagerTimeout.getDefaultValue();
+    public static final int DEFAULT_READ_TIMEOUT = CommonClientConfigKey.ReadTimeout.defaultValue();
 
-    public static final int DEFAULT_CONNECT_TIMEOUT = CommonClientConfigKey.ConnectTimeout.getDefaultValue();
+    public static final int DEFAULT_CONNECTION_MANAGER_TIMEOUT = CommonClientConfigKey.ConnectionManagerTimeout.defaultValue();
 
-    public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = CommonClientConfigKey.EnableConnectionPool.getDefaultValue();
-    
-    @Deprecated
-    public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxHttpConnectionsPerHost.getDefaultValue();
+    public static final int DEFAULT_CONNECT_TIMEOUT = CommonClientConfigKey.ConnectTimeout.defaultValue();
+
+    public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = CommonClientConfigKey.EnableConnectionPool.defaultValue();
 
     @Deprecated
-    public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = CommonClientConfigKey.MaxTotalHttpConnections.getDefaultValue();
+    public static final int DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxHttpConnectionsPerHost.defaultValue();
 
-    public static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxConnectionsPerHost.getDefaultValue();
+    @Deprecated
+    public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = CommonClientConfigKey.MaxTotalHttpConnections.defaultValue();
 
-    public static final int DEFAULT_MAX_TOTAL_CONNECTIONS = CommonClientConfigKey.MaxTotalConnections.getDefaultValue();
+    public static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxConnectionsPerHost.defaultValue();
 
-    public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = CommonClientConfigKey.MinPrimeConnectionsRatio.getDefaultValue();
+    public static final int DEFAULT_MAX_TOTAL_CONNECTIONS = CommonClientConfigKey.MaxTotalConnections.defaultValue();
 
-    public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = CommonClientConfigKey.PrimeConnectionsClassName.getDefaultValue();
+    public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = CommonClientConfigKey.MinPrimeConnectionsRatio.defaultValue();
 
-    public static final String DEFAULT_SEVER_LIST_CLASS = CommonClientConfigKey.NIWSServerListClassName.getDefaultValue();
+    public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = CommonClientConfigKey.PrimeConnectionsClassName.defaultValue();
 
-    public static final String DEFAULT_SERVER_LIST_UPDATER_CLASS = CommonClientConfigKey.ServerListUpdaterClassName.getDefaultValue();
+    public static final String DEFAULT_SEVER_LIST_CLASS = CommonClientConfigKey.NIWSServerListClassName.defaultValue();
+
+    public static final String DEFAULT_SERVER_LIST_UPDATER_CLASS = CommonClientConfigKey.ServerListUpdaterClassName.defaultValue();
 
     public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
 
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
-    
+
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
-    
+
     protected Map<IClientConfigKey<?>, Object> typedProperties = new ConcurrentHashMap<IClientConfigKey<?>, Object>();
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
@@ -173,16 +175,16 @@ public class DefaultClientConfigImpl implements IClientConfig {
     public static final int DEFAULT_POOL_MIN_THREADS = 1;
     public static final long DEFAULT_POOL_KEEP_ALIVE_TIME = 15 * 60L;
     public static final TimeUnit DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS = TimeUnit.SECONDS;
-    public static final Boolean DEFAULT_ENABLE_ZONE_AFFINITY = CommonClientConfigKey.EnableZoneAffinity.getDefaultValue();
-    public static final Boolean DEFAULT_ENABLE_ZONE_EXCLUSIVITY = CommonClientConfigKey.EnableZoneExclusivity.getDefaultValue();
-    public static final int DEFAULT_PORT = CommonClientConfigKey.Port.getDefaultValue();
-    public static final Boolean DEFAULT_ENABLE_LOADBALANCER = CommonClientConfigKey.InitializeNFLoadBalancer.getDefaultValue();
+    public static final Boolean DEFAULT_ENABLE_ZONE_AFFINITY = CommonClientConfigKey.EnableZoneAffinity.defaultValue();
+    public static final Boolean DEFAULT_ENABLE_ZONE_EXCLUSIVITY = CommonClientConfigKey.EnableZoneExclusivity.defaultValue();
+    public static final int DEFAULT_PORT = CommonClientConfigKey.Port.defaultValue();
+    public static final Boolean DEFAULT_ENABLE_LOADBALANCER = CommonClientConfigKey.InitializeNFLoadBalancer.defaultValue();
 
     public static final String DEFAULT_PROPERTY_NAME_SPACE = CommonClientConfigKey.DEFAULT_NAME_SPACE;
 
     private String propertyNameSpace = DEFAULT_PROPERTY_NAME_SPACE;
 
-    public static final Boolean DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS = CommonClientConfigKey.OkToRetryOnAllOperations.getDefaultValue();
+    public static final Boolean DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS = CommonClientConfigKey.OkToRetryOnAllOperations.defaultValue();
 
     public static final Boolean DEFAULT_ENABLE_NIWS_EVENT_LOGGING = Boolean.TRUE;
 
@@ -191,199 +193,198 @@ public class DefaultClientConfigImpl implements IClientConfig {
     private final Map<String, DynamicStringProperty> dynamicProperties = new ConcurrentHashMap<String, DynamicStringProperty>();
 
     public Boolean getDefaultPrioritizeVipAddressBasedServers() {
-		return DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS;
-	}
+        return DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS;
+    }
 
-	public String getDefaultNfloadbalancerPingClassname() {
-		return DEFAULT_NFLOADBALANCER_PING_CLASSNAME;
-	}
+    public String getDefaultNfloadbalancerPingClassname() {
+        return DEFAULT_NFLOADBALANCER_PING_CLASSNAME;
+    }
 
-	public String getDefaultNfloadbalancerRuleClassname() {
-		return DEFAULT_NFLOADBALANCER_RULE_CLASSNAME;
-	}
+    public String getDefaultNfloadbalancerRuleClassname() {
+        return DEFAULT_NFLOADBALANCER_RULE_CLASSNAME;
+    }
 
-	public String getDefaultNfloadbalancerClassname() {
-		return DEFAULT_NFLOADBALANCER_CLASSNAME;
-	}
-	
-	public boolean getDefaultUseIpAddressForServer() {
-		return DEFAULT_USEIPADDRESS_FOR_SERVER;
-	}
+    public String getDefaultNfloadbalancerClassname() {
+        return DEFAULT_NFLOADBALANCER_CLASSNAME;
+    }
 
-	public String getDefaultClientClassname() {
-		return DEFAULT_CLIENT_CLASSNAME;
-	}
+    public boolean getDefaultUseIpAddressForServer() {
+        return DEFAULT_USEIPADDRESS_FOR_SERVER;
+    }
 
-	public String getDefaultVipaddressResolverClassname() {
-		return DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME;
-	}
+    public String getDefaultClientClassname() {
+        return DEFAULT_CLIENT_CLASSNAME;
+    }
 
-	public String getDefaultPrimeConnectionsUri() {
-		return DEFAULT_PRIME_CONNECTIONS_URI;
-	}
+    public String getDefaultVipaddressResolverClassname() {
+        return DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME;
+    }
 
-	public int getDefaultMaxTotalTimeToPrimeConnections() {
-		return DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS;
-	}
+    public String getDefaultPrimeConnectionsUri() {
+        return DEFAULT_PRIME_CONNECTIONS_URI;
+    }
 
-	public int getDefaultMaxRetriesPerServerPrimeConnection() {
-		return DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION;
-	}
+    public int getDefaultMaxTotalTimeToPrimeConnections() {
+        return DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS;
+    }
 
-	public Boolean getDefaultEnablePrimeConnections() {
-		return DEFAULT_ENABLE_PRIME_CONNECTIONS;
-	}
+    public int getDefaultMaxRetriesPerServerPrimeConnection() {
+        return DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION;
+    }
 
-	public int getDefaultMaxRequestsAllowedPerWindow() {
-		return DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW;
-	}
+    public Boolean getDefaultEnablePrimeConnections() {
+        return DEFAULT_ENABLE_PRIME_CONNECTIONS;
+    }
 
-	public int getDefaultRequestThrottlingWindowInMillis() {
-		return DEFAULT_REQUEST_THROTTLING_WINDOW_IN_MILLIS;
-	}
+    public int getDefaultMaxRequestsAllowedPerWindow() {
+        return DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW;
+    }
 
-	public Boolean getDefaultEnableRequestThrottling() {
-		return DEFAULT_ENABLE_REQUEST_THROTTLING;
-	}
+    public int getDefaultRequestThrottlingWindowInMillis() {
+        return DEFAULT_REQUEST_THROTTLING_WINDOW_IN_MILLIS;
+    }
 
-	public Boolean getDefaultEnableGzipContentEncodingFilter() {
-		return DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER;
-	}
+    public Boolean getDefaultEnableRequestThrottling() {
+        return DEFAULT_ENABLE_REQUEST_THROTTLING;
+    }
 
-	public Boolean getDefaultConnectionPoolCleanerTaskEnabled() {
-		return DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED;
-	}
+    public Boolean getDefaultEnableGzipContentEncodingFilter() {
+        return DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER;
+    }
 
-	public Boolean getDefaultFollowRedirects() {
-		return DEFAULT_FOLLOW_REDIRECTS;
-	}
+    public Boolean getDefaultConnectionPoolCleanerTaskEnabled() {
+        return DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED;
+    }
 
-	public float getDefaultPercentageNiwsEventLogged() {
-		return DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED;
-	}
+    public Boolean getDefaultFollowRedirects() {
+        return DEFAULT_FOLLOW_REDIRECTS;
+    }
 
-	public int getDefaultMaxAutoRetriesNextServer() {
-		return DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
-	}
+    public float getDefaultPercentageNiwsEventLogged() {
+        return DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED;
+    }
 
-	public int getDefaultMaxAutoRetries() {
-		return DEFAULT_MAX_AUTO_RETRIES;
-	}
+    public int getDefaultMaxAutoRetriesNextServer() {
+        return DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
+    }
 
-	public int getDefaultReadTimeout() {
-		return DEFAULT_READ_TIMEOUT;
-	}
+    public int getDefaultMaxAutoRetries() {
+        return DEFAULT_MAX_AUTO_RETRIES;
+    }
 
-	public int getDefaultConnectionManagerTimeout() {
-		return DEFAULT_CONNECTION_MANAGER_TIMEOUT;
-	}
+    public int getDefaultReadTimeout() {
+        return DEFAULT_READ_TIMEOUT;
+    }
 
-	public int getDefaultConnectTimeout() {
-		return DEFAULT_CONNECT_TIMEOUT;
-	}
+    public int getDefaultConnectionManagerTimeout() {
+        return DEFAULT_CONNECTION_MANAGER_TIMEOUT;
+    }
 
-	@Deprecated
-	public int getDefaultMaxHttpConnectionsPerHost() {
-		return DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST;
-	}
+    public int getDefaultConnectTimeout() {
+        return DEFAULT_CONNECT_TIMEOUT;
+    }
 
-	@Deprecated
-	public int getDefaultMaxTotalHttpConnections() {
-		return DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS;
-	}
+    @Deprecated
+    public int getDefaultMaxHttpConnectionsPerHost() {
+        return DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST;
+    }
 
-	public int getDefaultMaxConnectionsPerHost() {
-	    return DEFAULT_MAX_CONNECTIONS_PER_HOST;
-	}
+    @Deprecated
+    public int getDefaultMaxTotalHttpConnections() {
+        return DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS;
+    }
 
-	public int getDefaultMaxTotalConnections() {
-	    return DEFAULT_MAX_TOTAL_CONNECTIONS;
-	}
-	
-	public float getDefaultMinPrimeConnectionsRatio() {
-		return DEFAULT_MIN_PRIME_CONNECTIONS_RATIO;
-	}
+    public int getDefaultMaxConnectionsPerHost() {
+        return DEFAULT_MAX_CONNECTIONS_PER_HOST;
+    }
 
-	public String getDefaultPrimeConnectionsClass() {
-		return DEFAULT_PRIME_CONNECTIONS_CLASS;
-	}
+    public int getDefaultMaxTotalConnections() {
+        return DEFAULT_MAX_TOTAL_CONNECTIONS;
+    }
 
-	public String getDefaultSeverListClass() {
-		return DEFAULT_SEVER_LIST_CLASS;
-	}
+    public float getDefaultMinPrimeConnectionsRatio() {
+        return DEFAULT_MIN_PRIME_CONNECTIONS_RATIO;
+    }
 
-	public int getDefaultConnectionIdleTimertaskRepeatInMsecs() {
-		return DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS;
-	}
+    public String getDefaultPrimeConnectionsClass() {
+        return DEFAULT_PRIME_CONNECTIONS_CLASS;
+    }
 
-	public int getDefaultConnectionidleTimeInMsecs() {
-		return DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS;
-	}
-	
-	public VipAddressResolver getResolver() {
-		return resolver;
-	}
+    public String getDefaultSeverListClass() {
+        return DEFAULT_SEVER_LIST_CLASS;
+    }
 
-	public boolean isEnableDynamicProperties() {
-		return enableDynamicProperties;
-	}
+    public int getDefaultConnectionIdleTimertaskRepeatInMsecs() {
+        return DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS;
+    }
 
-	public int getDefaultPoolMaxThreads() {
-		return DEFAULT_POOL_MAX_THREADS;
-	}
+    public int getDefaultConnectionidleTimeInMsecs() {
+        return DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS;
+    }
 
-	public int getDefaultPoolMinThreads() {
-		return DEFAULT_POOL_MIN_THREADS;
-	}
+    public VipAddressResolver getResolver() {
+        return resolver;
+    }
 
-	public long getDefaultPoolKeepAliveTime() {
-		return DEFAULT_POOL_KEEP_ALIVE_TIME;
-	}
+    public boolean isEnableDynamicProperties() {
+        return enableDynamicProperties;
+    }
 
-	public TimeUnit getDefaultPoolKeepAliveTimeUnits() {
-		return DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS;
-	}
+    public int getDefaultPoolMaxThreads() {
+        return DEFAULT_POOL_MAX_THREADS;
+    }
 
-	public Boolean getDefaultEnableZoneAffinity() {
-		return DEFAULT_ENABLE_ZONE_AFFINITY;
-	}
+    public int getDefaultPoolMinThreads() {
+        return DEFAULT_POOL_MIN_THREADS;
+    }
 
-	public Boolean getDefaultEnableZoneExclusivity() {
-		return DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
-	}
+    public long getDefaultPoolKeepAliveTime() {
+        return DEFAULT_POOL_KEEP_ALIVE_TIME;
+    }
 
-	public int getDefaultPort() {
-		return DEFAULT_PORT;
-	}
+    public TimeUnit getDefaultPoolKeepAliveTimeUnits() {
+        return DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS;
+    }
 
-	public Boolean getDefaultEnableLoadbalancer() {
-		return DEFAULT_ENABLE_LOADBALANCER;
-	}
+    public Boolean getDefaultEnableZoneAffinity() {
+        return DEFAULT_ENABLE_ZONE_AFFINITY;
+    }
 
+    public Boolean getDefaultEnableZoneExclusivity() {
+        return DEFAULT_ENABLE_ZONE_EXCLUSIVITY;
+    }
 
-	public Boolean getDefaultOkToRetryOnAllOperations() {
-		return DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS;
-	}
+    public int getDefaultPort() {
+        return DEFAULT_PORT;
+    }
 
-	public Boolean getDefaultIsClientAuthRequired(){
-		return DEFAULT_IS_CLIENT_AUTH_REQUIRED;
-	}
+    public Boolean getDefaultEnableLoadbalancer() {
+        return DEFAULT_ENABLE_LOADBALANCER;
+    }
 
 
-	/**
-	 * Create instance with no properties in default name space {@link #DEFAULT_PROPERTY_NAME_SPACE}
-	 */
+    public Boolean getDefaultOkToRetryOnAllOperations() {
+        return DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS;
+    }
+
+    public Boolean getDefaultIsClientAuthRequired(){
+        return DEFAULT_IS_CLIENT_AUTH_REQUIRED;
+    }
+
+
+    /**
+     * Create instance with no properties in default name space {@link #DEFAULT_PROPERTY_NAME_SPACE}
+     */
     public DefaultClientConfigImpl() {
-        this.dynamicProperties.clear();
         this.enableDynamicProperties = false;
     }
 
-	/**
-	 * Create instance with no properties in the specified name space
-	 */
+    /**
+     * Create instance with no properties in the specified name space
+     */
     public DefaultClientConfigImpl(String nameSpace) {
-    	this();
-    	this.propertyNameSpace = nameSpace;
+        this();
+        this.propertyNameSpace = nameSpace;
     }
 
     public void loadDefaultValues() {
@@ -477,10 +478,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
             @Override
             public boolean equals(Object other){
-            	if (other == null) {
-            		return false;
-            	}
-            	if (getClass() == other.getClass()) {
+                if (other == null) {
+                    return false;
+                }
+                if (getClass() == other.getClass()) {
                     return toString().equals(other.toString());
                 }
                 return false;
@@ -488,12 +489,12 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
             @Override
             public String toString(){
-            	return propName;
+                return propName;
             }
 
             @Override
             public int hashCode(){
-            	return propName.hashCode();
+                return propName.hashCode();
             }
 
 
@@ -503,9 +504,9 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
 
-	// Helper methods which first check if a "default" (with rest client name)
-	// property exists. If so, that value is used, else the default value
-	// passed as argument is used to put into the properties member variable
+    // Helper methods which first check if a "default" (with rest client name)
+    // property exists. If so, that value is used, else the default value
+    // passed as argument is used to put into the properties member variable
     protected void putDefaultIntegerProperty(IClientConfigKey propName, Integer defaultValue) {
         Integer value = ConfigurationManager.getConfigInstance().getInteger(
                 getDefaultPropName(propName), defaultValue);
@@ -560,10 +561,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     /* (non-Javadoc)
-	 * @see com.netflix.niws.client.CliengConfig#getClientName()
-	 */
+     * @see com.netflix.niws.client.CliengConfig#getClientName()
+     */
     @Override
-	public String getClientName() {
+    public String getClientName() {
         return clientName;
     }
 
@@ -572,7 +573,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
      * and any properties already defined with Archaius ConfigurationManager.
      */
     @Override
-	public void loadProperties(String restClientName){
+    public void loadProperties(String restClientName){
         enableDynamicProperties = true;
         setClientName(restClientName);
         loadDefaultValues();
@@ -590,7 +591,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
         }
     }
-    
+
     /**
      * This is to workaround the issue that {@link AbstractConfiguration} by default
      * automatically convert comma delimited string to array
@@ -644,7 +645,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
-	public String resolveDeploymentContextbasedVipAddresses(){
+    public String resolveDeploymentContextbasedVipAddresses(){
         String deploymentContextBasedVipAddressesMacro = get(CommonClientConfigKey.DeploymentContextBasedVipAddresses);
         if (deploymentContextBasedVipAddressesMacro == null) {
             return null;
@@ -661,21 +662,21 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     /* (non-Javadoc)
-	 * @see com.netflix.niws.client.CliengConfig#getProperties()
-	 */
+     * @see com.netflix.niws.client.CliengConfig#getProperties()
+     */
     @Override
-	public  Map<String, Object> getProperties() {
+    public  Map<String, Object> getProperties() {
         return properties;
     }
 
     /* (non-Javadoc)
-	 * @see com.netflix.niws.client.CliengConfig#setProperty(com.netflix.niws.client.ClientConfigKey, java.lang.Object)
-	 */
+     * @see com.netflix.niws.client.CliengConfig#setProperty(com.netflix.niws.client.ClientConfigKey, java.lang.Object)
+     */
     @Override
-	public void setProperty(IClientConfigKey key, Object value){
+    public void setProperty(IClientConfigKey key, Object value){
         setPropertyInternal(key.key(), value);
     }
-    
+
     public DefaultClientConfigImpl withProperty(IClientConfigKey key, Object value) {
         setProperty(key, value);
         return this;
@@ -687,16 +688,17 @@ public class DefaultClientConfigImpl implements IClientConfig {
         }
         Map<String, Object> props = override.getProperties();
         for (Map.Entry<String, Object> entry: props.entrySet()) {
-        	String key = entry.getKey();
-        	Object value = entry.getValue();
-        	if (key != null && value != null) {
-        	    setPropertyInternal(key, value);
-        	}
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if (key != null && value != null) {
+                setPropertyInternal(key, value);
+            }
         }
         return this;
     }
 
     protected Object getProperty(String key) {
+        LOG.debug("Get property {}, {}, {}", key, getConfigKey(key), getDefaultPropName(key));
         if (enableDynamicProperties) {
             String dynamicValue = null;
             DynamicStringProperty dynamicProperty = dynamicProperties.get(key);
@@ -717,20 +719,20 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     /* (non-Javadoc)
-	 * @see com.netflix.niws.client.CliengConfig#getProperty(com.netflix.niws.client.ClientConfigKey)
-	 */
+     * @see com.netflix.niws.client.CliengConfig#getProperty(com.netflix.niws.client.ClientConfigKey)
+     */
     @Override
-	public Object getProperty(IClientConfigKey key){
+    public Object getProperty(IClientConfigKey key){
         String propName = key.key();
         Object value = getProperty(propName);
         return value;
     }
 
     /* (non-Javadoc)
-	 * @see com.netflix.niws.client.CliengConfig#getProperty(com.netflix.niws.client.ClientConfigKey, java.lang.Object)
-	 */
+     * @see com.netflix.niws.client.CliengConfig#getProperty(com.netflix.niws.client.ClientConfigKey, java.lang.Object)
+     */
     @Override
-	public Object getProperty(IClientConfigKey key, Object defaultVal){
+    public Object getProperty(IClientConfigKey key, Object defaultVal){
         Object val = getProperty(key);
         if (val == null){
             return defaultVal;
@@ -755,15 +757,15 @@ public class DefaultClientConfigImpl implements IClientConfig {
         if (oo != null) {
             return Boolean.parseBoolean(oo.toString());
         } else {
-        	return false;
+            return false;
         }
     }
 
     /* (non-Javadoc)
-	 * @see com.netflix.niws.client.CliengConfig#containsProperty(com.netflix.niws.client.ClientConfigKey)
-	 */
+     * @see com.netflix.niws.client.CliengConfig#containsProperty(com.netflix.niws.client.ClientConfigKey)
+     */
     @Override
-	public boolean containsProperty(IClientConfigKey key){
+    public boolean containsProperty(IClientConfigKey key){
         Object oo = getProperty(key);
         return oo!=null? true: false;
     }
@@ -794,44 +796,45 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     public String getInstancePropName(String restClientName,
-            IClientConfigKey configKey) {
+                                      IClientConfigKey configKey) {
         return getInstancePropName(restClientName, configKey.key());
     }
 
     public String getInstancePropName(String restClientName, String key) {
+        Preconditions.checkNotNull(getNameSpace(), "getNameSpace() may not be null");
         return restClientName + "." + getNameSpace() + "."
                 + key;
     }
 
 
-	@Override
-	public String getNameSpace() {
-		return propertyNameSpace;
-	}
+    @Override
+    public String getNameSpace() {
+        return propertyNameSpace;
+    }
 
-	@Override
+    @Override
     public void setNameSpace(String nameSpace) {
         this.propertyNameSpace = nameSpace;
     }
 
-	public static DefaultClientConfigImpl getEmptyConfig() {
-	    return new DefaultClientConfigImpl();
-	}
-	
-	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
-		return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
-	}
-	
-	public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
+    public static DefaultClientConfigImpl getEmptyConfig() {
+        return new DefaultClientConfigImpl();
+    }
+
+    public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName) {
+        return getClientConfigWithDefaultValues(clientName, DEFAULT_PROPERTY_NAME_SPACE);
+    }
+
+    public static DefaultClientConfigImpl getClientConfigWithDefaultValues() {
         return getClientConfigWithDefaultValues("default", DEFAULT_PROPERTY_NAME_SPACE);
     }
 
 
-	public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {
-	    DefaultClientConfigImpl config = new DefaultClientConfigImpl(nameSpace);
-	    config.loadProperties(clientName);
-		return config;
-	}
+    public static DefaultClientConfigImpl getClientConfigWithDefaultValues(String clientName, String nameSpace) {
+        DefaultClientConfigImpl config = new DefaultClientConfigImpl(nameSpace);
+        config.loadProperties(clientName);
+        return config;
+    }
 
     @Override
     public int getPropertyAsInteger(IClientConfigKey key, int defaultValue) {
@@ -844,7 +847,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
         }
         return defaultValue;
-        
+
     }
 
     @Override
@@ -858,7 +861,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @Override
     public boolean getPropertyAsBoolean(IClientConfigKey key,
-            boolean defaultValue) {
+                                        boolean defaultValue) {
         Object rawValue = getProperty(key);
         if (rawValue != null) {
             try {
@@ -898,9 +901,99 @@ public class DefaultClientConfigImpl implements IClientConfig {
                 }
                 throw new IllegalArgumentException("Unable to convert string value to desired type " + type);
             }
-             
+
             throw new IllegalArgumentException("Unable to convert value to desired type " + type);
         }
+    }
+
+    @Override
+    public <T> Property<T> getGlobalProperty(IClientConfigKey<T> key) {
+        final PropertyWrapper<T> propertyWrapper = getPropertyWrapper(
+                key.key(),
+                key.type(),
+                key.defaultValue());
+
+        return toProperty(key, propertyWrapper);
+    }
+
+    private <T> Property<T> toProperty(IClientConfigKey<T> key, PropertyWrapper<T> propertyWrapper) {
+        return new Property() {
+            @Override
+            public void onChange(Consumer consumer) {
+                Runnable callback = new Runnable() {
+                    @Override
+                    public void run() {
+                        consumer.accept(propertyWrapper.getValue());
+                    }
+
+                    // equals and hashcode needed
+                    // since this is anonymous object is later used as a set key
+
+                    @Override
+                    public boolean equals(Object other){
+                        if (other == null) {
+                            return false;
+                        }
+                        if (getClass() == other.getClass()) {
+                            return toString().equals(other.toString());
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public String toString(){
+                        return key.key();
+                    }
+
+                    @Override
+                    public int hashCode(){
+                        return key.key().hashCode();
+                    }
+                };
+
+                propertyWrapper.addCallback(callback);
+            }
+
+            @Override
+            public Object get() {
+                return propertyWrapper.getValue();
+            }
+        };
+    }
+
+    private <T> PropertyWrapper<T> getPropertyWrapper(String propName, Class<T> type, T defaultValue) {
+        Preconditions.checkArgument(propName != null, "propName may not be null");
+        Preconditions.checkArgument(type != null, "type may not be null");
+
+        try {
+            if (String.class.equals(type)) {
+                return (PropertyWrapper<T>) DynamicPropertyFactory.getInstance().getStringProperty(propName, (String) defaultValue);
+            } else if (Integer.class.equals(type)) {
+                return (PropertyWrapper<T>) DynamicPropertyFactory.getInstance().getIntProperty(propName, (Integer) defaultValue);
+            } else if (Boolean.class.equals(type)) {
+                return (PropertyWrapper<T>) DynamicPropertyFactory.getInstance().getBooleanProperty(propName, (Boolean) defaultValue);
+            } else if (Double.class.equals(type)) {
+                return (PropertyWrapper<T>) DynamicPropertyFactory.getInstance().getDoubleProperty(propName, (Double) defaultValue);
+            } else if (Float.class.equals(type)) {
+                return (PropertyWrapper<T>) DynamicPropertyFactory.getInstance().getFloatProperty(propName, (Float) defaultValue);
+            } else if (Long.class.equals(type)) {
+                return (PropertyWrapper<T>) DynamicPropertyFactory.getInstance().getLongProperty(propName, (Long) defaultValue);
+            } else {
+                throw new UnsupportedOperationException("Dynamic properties for " + type + " not supported");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Error getting property '%s'", propName), e);
+        }
+    }
+
+    @Override
+    public <T> Property<T> getDynamicProperty(IClientConfigKey<T> key) {
+        final PropertyWrapper<T> propertyWrapper = getPropertyWrapper(
+                getInstancePropName(getClientName(), key.key()),
+                key.type(),
+                key.defaultValue());
+
+        return toProperty(key, propertyWrapper);
     }
 
     @Override

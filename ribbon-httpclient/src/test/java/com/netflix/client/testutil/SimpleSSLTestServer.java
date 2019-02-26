@@ -61,7 +61,7 @@ public class SimpleSSLTestServer {
 
 	@edu.umd.cs.findbugs.annotations.SuppressWarnings
 	public SimpleSSLTestServer(final File truststore, final String truststorePass,
-			final File keystore, final String keystorePass, final int port, final boolean clientAuthRequred) throws Exception{
+			final File keystore, final String keystorePass, final boolean clientAuthRequred) throws Exception{
 
 			KeyStore ks = KeyStore.getInstance("JKS");
 			ks.load(new FileInputStream(keystore), keystorePass.toCharArray());
@@ -76,7 +76,7 @@ public class SimpleSSLTestServer {
 			SSLContext sc = SSLContext.getInstance("TLS");
 			sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
-			ss = sc.getServerSocketFactory().createServerSocket(port);
+			ss = sc.getServerSocketFactory().createServerSocket(0);
 
 			((SSLServerSocket) ss).setNeedClientAuth(clientAuthRequred);
 	}
@@ -120,6 +120,10 @@ public class SimpleSSLTestServer {
 
 	public void close() throws Exception{
 		ss.close();
+	}
+
+	public int getPort() {
+		return ss.getLocalPort();
 	}
 
 

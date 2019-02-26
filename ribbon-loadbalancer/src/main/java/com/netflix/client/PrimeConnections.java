@@ -125,8 +125,8 @@ public class PrimeConnections {
     }
 
     public PrimeConnections(String name, IClientConfig niwsClientConfig) {
-        int maxRetriesPerServerPrimeConnection = CommonClientConfigKey.MaxRetriesPerServerPrimeConnection.getDefaultValue();
-        int maxTotalTimeToPrimeConnections =  CommonClientConfigKey.MaxTotalTimeToPrimeConnections.getDefaultValue();
+        int maxRetriesPerServerPrimeConnection = CommonClientConfigKey.MaxRetriesPerServerPrimeConnection.defaultValue();
+        int maxTotalTimeToPrimeConnections =  CommonClientConfigKey.MaxTotalTimeToPrimeConnections.defaultValue();
         try {
             maxRetriesPerServerPrimeConnection = niwsClientConfig.getOrDefault(CommonClientConfigKey.MaxRetriesPerServerPrimeConnection);
         } catch (Exception e) {
@@ -152,7 +152,7 @@ public class PrimeConnections {
         
     public PrimeConnections(String name, int maxRetries, 
             long maxTotalTimeToPrimeConnections, String primeConnectionsURI) {
-        setUp(name, maxRetries, maxTotalTimeToPrimeConnections, primeConnectionsURI, CommonClientConfigKey.MinPrimeConnectionsRatio.getDefaultValue());
+        setUp(name, maxRetries, maxTotalTimeToPrimeConnections, primeConnectionsURI, CommonClientConfigKey.MinPrimeConnectionsRatio.defaultValue());
     }
 
     public PrimeConnections(String name, int maxRetries, 

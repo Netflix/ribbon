@@ -106,8 +106,19 @@ public interface IClientConfig {
      * <br><br>
      */
     default <T> T getOrDefault(IClientConfigKey<T> key) {
-        return get(key, key.getDefaultValue());
+        return get(key, key.defaultValue());
     }
+
+    /**
+     * @return Return a global dynamic property not scoped to the specific client.  The property will be looked up as is using the
+     * key without any client name or namespace prefix
+     */
+    <T> Property<T> getGlobalProperty(IClientConfigKey<T> key);
+
+    /**
+     * @return Return a dynamic property scoped to the client name or namespace.
+     */
+    <T> Property<T> getDynamicProperty(IClientConfigKey<T> key);
 
     /**
      * Returns a typed property. If the property of IClientConfigKey is not set, 
@@ -119,7 +130,7 @@ public interface IClientConfig {
      * Set the typed property with the given value. 
      */
     <T> IClientConfig set(IClientConfigKey<T> key, T value);
-    
+
     class Builder {
         
         private IClientConfig config;
