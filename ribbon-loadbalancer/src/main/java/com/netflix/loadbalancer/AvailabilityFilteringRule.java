@@ -49,7 +49,7 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
     
     public AvailabilityFilteringRule() {
     	super();
-    	predicate = CompositePredicate.withPredicate(new AvailabilityPredicate(this, null))
+        predicate = CompositePredicate.withPredicate(new AvailabilityPredicate(this, null))
                 .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
                 .build();
     }
@@ -83,7 +83,7 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
         int count = 0;
         Server server = roundRobinRule.choose(key);
         while (count++ <= 10) {
-            if (predicate.apply(new PredicateKey(server))) {
+            if (server != null && predicate.apply(new PredicateKey(server))) {
                 return server;
             }
             server = roundRobinRule.choose(key);

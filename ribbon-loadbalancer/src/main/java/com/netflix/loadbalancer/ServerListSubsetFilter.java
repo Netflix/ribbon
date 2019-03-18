@@ -15,19 +15,19 @@
  */
 package com.netflix.loadbalancer;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicFloatProperty;
-import com.netflix.config.DynamicIntProperty;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.config.Property;
+
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 /**
  * A server list filter that limits the number of the servers used by the load balancer to be the subset of all servers.
@@ -43,26 +43,41 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
 
     private Random random = new Random();
     private volatile Set<T> currentSubset = Sets.newHashSet(); 
-    private DynamicIntProperty sizeProp = new DynamicIntProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.size", 20);
-    private DynamicFloatProperty eliminationPercent = 
-            new DynamicFloatProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.forceEliminatePercent", 0.1f);
-    private DynamicIntProperty eliminationFailureCountThreshold = 
-            new DynamicIntProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.eliminationFailureThresold", 0);
-    private DynamicIntProperty eliminationConnectionCountThreshold = 
-            new DynamicIntProperty(CommonClientConfigKey.DEFAULT_NAME_SPACE + ".ServerListSubsetFilter.eliminationConnectionThresold", 0);
-    
+    private Property<Integer> sizeProp;
+    private Property<Float> eliminationPercent;
+    private Property<Integer> eliminationFailureCountThreshold;
+    private Property<Integer> eliminationConnectionCountThreshold;
+
+    private static final IClientConfigKey<Integer> SIZE = new CommonClientConfigKey<Integer>("ServerListSubsetFilter.size", 20) {};
+    private static final IClientConfigKey<Float> FORCE_ELIMINATE_PERCENT = new CommonClientConfigKey<Float>("ServerListSubsetFilter.forceEliminatePercent", 0.1f) {};
+    private static final IClientConfigKey<Integer> ELIMINATION_FAILURE_THRESHOLD = new CommonClientConfigKey<Integer>("ServerListSubsetFilter.eliminationFailureThresold", 0) {};
+    private static final IClientConfigKey<Integer> ELIMINATION_CONNECTION_THRESHOLD = new CommonClientConfigKey<Integer>("ServerListSubsetFilter.eliminationConnectionThresold", 0) {};
+
+    /**
+     * @deprecated ServerListSubsetFilter should only be created with an IClientConfig.  See {@link ServerListSubsetFilter#ServerListSubsetFilter(IClientConfig)}
+     */
+    @Deprecated
+    public ServerListSubsetFilter() {
+        sizeProp = Property.of(SIZE.defaultValue());
+        eliminationPercent = Property.of(FORCE_ELIMINATE_PERCENT.defaultValue());
+        eliminationFailureCountThreshold = Property.of(ELIMINATION_FAILURE_THRESHOLD.defaultValue());
+        eliminationConnectionCountThreshold = Property.of(ELIMINATION_CONNECTION_THRESHOLD.defaultValue());
+    }
+
+    public ServerListSubsetFilter(IClientConfig clientConfig) {
+        super(clientConfig);
+
+        initWithNiwsConfig(clientConfig);
+    }
+
     @Override
     public void initWithNiwsConfig(IClientConfig clientConfig) {
-        super.initWithNiwsConfig(clientConfig);
-        sizeProp = new DynamicIntProperty(clientConfig.getClientName() + "." + clientConfig.getNameSpace() + ".ServerListSubsetFilter.size", 20);
-        eliminationPercent = 
-                new DynamicFloatProperty(clientConfig.getClientName() + "." + clientConfig.getNameSpace() + ".ServerListSubsetFilter.forceEliminatePercent", 0.1f);
-        eliminationFailureCountThreshold = new DynamicIntProperty( clientConfig.getClientName()  + "." + clientConfig.getNameSpace()
-                + ".ServerListSubsetFilter.eliminationFailureThresold", 0);
-        eliminationConnectionCountThreshold = new DynamicIntProperty(clientConfig.getClientName() + "." + clientConfig.getNameSpace()
-                + ".ServerListSubsetFilter.eliminationConnectionThresold", 0);
+        sizeProp = clientConfig.getDynamicProperty(SIZE);
+        eliminationPercent = clientConfig.getDynamicProperty(FORCE_ELIMINATE_PERCENT);
+        eliminationFailureCountThreshold = clientConfig.getDynamicProperty(ELIMINATION_FAILURE_THRESHOLD);
+        eliminationConnectionCountThreshold = clientConfig.getDynamicProperty(ELIMINATION_CONNECTION_THRESHOLD);
     }
-        
+
     /**
      * Given all the servers, keep only a stable subset of servers to use. This method
      * keeps the current list of subset in use and keep returning the same list, with exceptions

@@ -25,6 +25,7 @@ import com.netflix.loadbalancer.ZoneAffinityServerListFilter;
 import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
 import org.apache.commons.configuration.Configuration;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
@@ -79,10 +80,11 @@ public class LBBuilderTest {
     }
 
     @Test
+    @Ignore
     public void testBuildWithDiscoveryEnabledNIWSServerList() {
         IRule rule = new AvailabilityFilteringRule();
         ServerList<DiscoveryEnabledServer> list = new DiscoveryEnabledNIWSServerList("dummy:7001");
-        ServerListFilter<DiscoveryEnabledServer> filter = new ZoneAffinityServerListFilter<DiscoveryEnabledServer>();
+        ServerListFilter<DiscoveryEnabledServer> filter = new ZoneAffinityServerListFilter<>();
         ZoneAwareLoadBalancer<DiscoveryEnabledServer> lb = LoadBalancerBuilder.<DiscoveryEnabledServer>newBuilder()
                 .withDynamicServerList(list)
                 .withRule(rule)
@@ -98,10 +100,11 @@ public class LBBuilderTest {
     }
 
     @Test
+    @Ignore
     public void testBuildWithDiscoveryEnabledNIWSServerListAndUpdater() {
         IRule rule = new AvailabilityFilteringRule();
         ServerList<DiscoveryEnabledServer> list = new DiscoveryEnabledNIWSServerList("dummy:7001");
-        ServerListFilter<DiscoveryEnabledServer> filter = new ZoneAffinityServerListFilter<DiscoveryEnabledServer>();
+        ServerListFilter<DiscoveryEnabledServer> filter = new ZoneAffinityServerListFilter<>();
         ServerListUpdater updater = new PollingServerListUpdater();
         ZoneAwareLoadBalancer<DiscoveryEnabledServer> lb = LoadBalancerBuilder.<DiscoveryEnabledServer>newBuilder()
                 .withDynamicServerList(list)

@@ -64,7 +64,7 @@ public class AcceptAllSocketFactory extends SSLSocketFactory implements IClientC
             return;
         }
 
-        if(clientConfig.getProperty(CommonClientConfigKey.TrustStore) != null){
+        if (clientConfig.getOrDefault(CommonClientConfigKey.TrustStore) != null) {
             throw new IllegalArgumentException("Client configured with an AcceptAllSocketFactory cannot utilize a truststore");
         }
     }

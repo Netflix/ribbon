@@ -1,5 +1,5 @@
 dependencies {
-    compile 'org.slf4j:slf4j-api:1.6.4'
+    compile "org.slf4j:slf4j-api:${slf4j_version}"
     compile 'com.google.code.findbugs:annotations:2.0.0'
     compile "com.google.guava:guava:${guava_version}"
     compile 'commons-configuration:commons-configuration:1.8'

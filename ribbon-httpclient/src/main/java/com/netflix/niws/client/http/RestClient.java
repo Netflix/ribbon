@@ -28,6 +28,7 @@ import java.security.KeyStore;
 import java.util.Collection;
 import java.util.Map;
 
+import com.netflix.client.config.Property;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.UserTokenHandler;
@@ -52,7 +53,6 @@ import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.http.HttpRequest;
@@ -60,11 +60,7 @@ import com.netflix.client.http.HttpResponse;
 import com.netflix.client.ssl.AbstractSslContextFactory;
 import com.netflix.client.ssl.ClientSslSocketFactoryException;
 import com.netflix.client.ssl.URLSslContextFactory;
-import com.netflix.config.ConfigurationManager;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
 import com.netflix.http4.NFHttpClient;
-import com.netflix.http4.NFHttpClientConstants;
 import com.netflix.http4.NFHttpClientFactory;
 import com.netflix.http4.NFHttpMethodRetryHandler;
 import com.netflix.http4.ssl.KeyStoreAwareSocketFactory;
@@ -92,13 +88,17 @@ import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
 @Deprecated
 public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, HttpResponse> {
 
+    private static IClientConfigKey<Integer> CONN_IDLE_EVICT_TIME_MILLIS = new CommonClientConfigKey<Integer>(
+            "%s.nfhttpclient.connIdleEvictTimeMilliSeconds") {};
+
+
     private Client restClient;
     private HttpClient httpClient4;
     private IClientConfig ncc;
     private String restClientName;
 
     private boolean enableConnectionPoolCleanerTask = false;
-    private DynamicIntProperty connIdleEvictTimeMilliSeconds;
+    private Property<Integer> connIdleEvictTimeMilliSeconds;
     private int connectionCleanerRepeatInterval;
     private int maxConnectionsperHost;
     private int maxTotalConnections;
@@ -112,7 +112,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     private boolean ignoreUserToken;
     private ApacheHttpClient4Config config;
 
-    boolean bFollowRedirects = DefaultClientConfigImpl.DEFAULT_FOLLOW_REDIRECTS;
+    boolean bFollowRedirects = CommonClientConfigKey.FollowRedirects.defaultValue();
 
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
     
@@ -164,6 +164,11 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         this.setRetryHandler(new HttpClientLoadBalancerErrorHandler(ncc));
     }
 
+    private void throwInvalidValue(IClientConfigKey<?> key, Exception e) {
+        throw new IllegalArgumentException("Invalid value for property:" + key, e);
+
+    }
+
     protected Client apacheHttpClientSpecificInitialization() {
         httpClient4 = NFHttpClientFactory.getNamedNFHttpClient(restClientName, this.ncc, true);
 
@@ -182,98 +187,64 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         NFHttpClient nfHttpClient = (NFHttpClient) httpClient4;
         // should we enable connection cleanup for idle connections?
         try {
-            enableConnectionPoolCleanerTask = Boolean.parseBoolean(ncc.getProperty(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled,
-                    NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIMETASK_ENABLED).toString());
+            enableConnectionPoolCleanerTask = ncc.getOrDefault(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled);
             nfHttpClient.getConnPoolCleaner().setEnableConnectionPoolCleanerTask(enableConnectionPoolCleanerTask);
         } catch (Exception e1) {
-            throw new IllegalArgumentException("Invalid value for property:"
-                    + CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, e1);
+            throwInvalidValue(CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled, e1);
         }
         if (enableConnectionPoolCleanerTask) {
             try {
-                connectionCleanerRepeatInterval = Integer
-                .parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ConnectionCleanerRepeatInterval,
-                        NFHttpClientConstants.DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS)));
+                connectionCleanerRepeatInterval = ncc.getOrDefault(CommonClientConfigKey.ConnectionCleanerRepeatInterval);
                 nfHttpClient.getConnPoolCleaner().setConnectionCleanerRepeatInterval(connectionCleanerRepeatInterval);
             } catch (Exception e1) {
-                throw new IllegalArgumentException(
-                        "Invalid value for property:"
-                        + CommonClientConfigKey.ConnectionCleanerRepeatInterval, e1);
+                throwInvalidValue(CommonClientConfigKey.ConnectionCleanerRepeatInterval, e1);
             }
 
             try {
-                int iConnIdleEvictTimeMilliSeconds = Integer
-                .parseInt(""
-                        + ncc
-                        .getProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds,
-                                NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS));
-                connIdleEvictTimeMilliSeconds = DynamicPropertyFactory.getInstance().getIntProperty(
-                        restClientName
-                        + ".nfhttpclient.connIdleEvictTimeMilliSeconds",
-                        iConnIdleEvictTimeMilliSeconds);
+                connIdleEvictTimeMilliSeconds = ncc.getDynamicProperty(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds);
                 nfHttpClient.setConnIdleEvictTimeMilliSeconds(connIdleEvictTimeMilliSeconds);
             } catch (Exception e1) {
-                throw new IllegalArgumentException(
-                        "Invalid value for property:"
-                        + CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds,
-                        e1);
+                throwInvalidValue(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, e1);
             }
 
             nfHttpClient.initConnectionCleanerTask();
         }
 
         try {
-            maxConnectionsperHost = Integer
-            .parseInt(""
-                    + ncc
-                    .getProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost,
-                            maxConnectionsperHost));
+            maxConnectionsperHost = ncc.getOrDefault(CommonClientConfigKey.MaxHttpConnectionsPerHost);
             ClientConnectionManager connMgr = httpClient4.getConnectionManager();
             if (connMgr instanceof ThreadSafeClientConnManager) {
                 ((ThreadSafeClientConnManager) connMgr)
                 .setDefaultMaxPerRoute(maxConnectionsperHost);
             }
         } catch (Exception e1) {
-            throw new IllegalArgumentException("Invalid value for property:"
-                    + CommonClientConfigKey.MaxHttpConnectionsPerHost, e1);
+            throwInvalidValue(CommonClientConfigKey.MaxHttpConnectionsPerHost, e1);
         }
 
         try {
-            maxTotalConnections = Integer
-            .parseInt(""
-                    + ncc
-                    .getProperty(CommonClientConfigKey.MaxTotalHttpConnections,
-                            maxTotalConnections));
-            ClientConnectionManager connMgr = httpClient4
-            .getConnectionManager();
+            maxTotalConnections = ncc.getOrDefault(CommonClientConfigKey.MaxTotalHttpConnections);
+            ClientConnectionManager connMgr = httpClient4.getConnectionManager();
             if (connMgr instanceof ThreadSafeClientConnManager) {
                 ((ThreadSafeClientConnManager) connMgr)
                 .setMaxTotal(maxTotalConnections);
             }
         } catch (Exception e1) {
-            throw new IllegalArgumentException("Invalid value for property:"
-                    + CommonClientConfigKey.MaxTotalHttpConnections, e1);
+            throwInvalidValue(CommonClientConfigKey.MaxTotalHttpConnections, e1);
         }
 
         try {
-            connectionTimeout = Integer.parseInt(""
-                    + ncc.getProperty(CommonClientConfigKey.ConnectTimeout,
-                            connectionTimeout));
+            connectionTimeout = ncc.getOrDefault(CommonClientConfigKey.ConnectTimeout);
             HttpConnectionParams.setConnectionTimeout(httpClientParams,
                     connectionTimeout);
         } catch (Exception e1) {
-            throw new IllegalArgumentException("Invalid value for property:"
-                    + CommonClientConfigKey.ConnectTimeout, e1);
+            throwInvalidValue(CommonClientConfigKey.ConnectTimeout, e1);
         }
 
         try {
-            readTimeout = Integer.parseInt(""
-                    + ncc.getProperty(CommonClientConfigKey.ReadTimeout,
-                            readTimeout));
+            readTimeout = ncc.getOrDefault(CommonClientConfigKey.ReadTimeout);
             HttpConnectionParams.setSoTimeout(httpClientParams, readTimeout);
         } catch (Exception e1) {
-            throw new IllegalArgumentException("Invalid value for property:"
-                    + CommonClientConfigKey.ReadTimeout, e1);
+            throwInvalidValue(CommonClientConfigKey.ReadTimeout, e1);
         }
 
         // httpclient 4 seems to only have one buffer size controlling both
@@ -282,30 +253,18 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         int bufferSize = Integer.MIN_VALUE;
         if (ncc.getProperty(CommonClientConfigKey.ReceiveBufferSize) != null) {
             try {
-                bufferSize = Integer
-                .parseInt(""
-                        + ncc
-                        .getProperty(CommonClientConfigKey.ReceiveBufferSize));
+                bufferSize = ncc.getOrDefault(CommonClientConfigKey.ReceiveBufferSize);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
-                        "Invalid value for property:"
-                        + CommonClientConfigKey.ReceiveBufferSize,
-                        e);
+                throwInvalidValue(CommonClientConfigKey.ReceiveBufferSize, e);
             }
             if (ncc.getProperty(CommonClientConfigKey.SendBufferSize) != null) {
                 try {
-                    int sendBufferSize = Integer
-                    .parseInt(""
-                            + ncc
-                            .getProperty(CommonClientConfigKey.SendBufferSize));
+                    int sendBufferSize = ncc.getOrDefault(CommonClientConfigKey.SendBufferSize);
                     if (sendBufferSize > bufferSize) {
                         bufferSize = sendBufferSize;
                     }
                 } catch (Exception e) {
-                    throw new IllegalArgumentException(
-                            "Invalid value for property:"
-                            + CommonClientConfigKey.SendBufferSize,
-                            e);
+                    throwInvalidValue(CommonClientConfigKey.SendBufferSize,e);
                 }
             }
         }
@@ -316,45 +275,30 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 
         if (ncc.getProperty(CommonClientConfigKey.StaleCheckingEnabled) != null) {
             try {
-                HttpConnectionParams
-                .setStaleCheckingEnabled(httpClientParams,
-                        Boolean.parseBoolean(ncc.getProperty(CommonClientConfigKey.StaleCheckingEnabled, false).toString()));
+                HttpConnectionParams.setStaleCheckingEnabled(
+                        httpClientParams, ncc.getOrDefault(CommonClientConfigKey.StaleCheckingEnabled));
             } catch (Exception e) {
-                throw new IllegalArgumentException(
-                        "Invalid value for property:"
-                        + CommonClientConfigKey.StaleCheckingEnabled,
-                        e);
+                throwInvalidValue(CommonClientConfigKey.StaleCheckingEnabled, e);
             }
         }
 
         if (ncc.getProperty(CommonClientConfigKey.Linger) != null) {
             try {
-                HttpConnectionParams.setLinger(httpClientParams,
-                        Integer.parseInt(""
-                                + ncc.getProperty(CommonClientConfigKey.Linger)));
+                HttpConnectionParams.setLinger(httpClientParams, ncc.getOrDefault(CommonClientConfigKey.Linger));
             } catch (Exception e) {
-                throw new IllegalArgumentException(
-                        "Invalid value for property:"
-                        + CommonClientConfigKey.Linger,
-                        e);
+                throwInvalidValue(CommonClientConfigKey.Linger, e);
             }
         }
 
         if (ncc.getProperty(CommonClientConfigKey.ProxyHost) != null) {
             try {
-                proxyHost = (String) ncc
-                .getProperty(CommonClientConfigKey.ProxyHost);
-                proxyPort = Integer.parseInt(""
-                        + ncc.getProperty(CommonClientConfigKey.ProxyPort));
+                proxyHost = (String) ncc.getOrDefault(CommonClientConfigKey.ProxyHost);
+                proxyPort = ncc.getOrDefault(CommonClientConfigKey.ProxyPort);
                 HttpHost proxy = new HttpHost(proxyHost, proxyPort);
-                httpClient4
-                .getParams()
-                .setParameter(ConnRouteParams.DEFAULT_PROXY, proxy);
+                httpClient4.getParams()
+                    .setParameter(ConnRouteParams.DEFAULT_PROXY, proxy);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
-                        "Invalid value for property:"
-                        + CommonClientConfigKey.ProxyHost,
-                        e);
+                throwInvalidValue(CommonClientConfigKey.ProxyHost, e);
             }
         }
 
@@ -370,8 +314,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
             if (    // if client auth is required, need both a truststore and a keystore to warrant configuring
             		// if client is not is not required, we only need a keystore OR a truststore to warrant configuring
             		(isClientAuthRequired && (trustStoreUrl != null && keyStoreUrl != null))
-            		||
-            		(!isClientAuthRequired && (trustStoreUrl != null || keyStoreUrl != null))
+            		    || (!isClientAuthRequired && (trustStoreUrl != null || keyStoreUrl != null))
             		) {
 
                 try {
@@ -413,17 +356,15 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         // custom SSL Factory handler
         String customSSLFactoryClassName = (String) ncc.getProperty(CommonClientConfigKey.CustomSSLSocketFactoryClassName);
 
-        if(customSSLFactoryClassName != null){
-
+        if (customSSLFactoryClassName != null){
             try{
                 SSLSocketFactory customSocketFactory = (SSLSocketFactory) ClientFactory.instantiateInstanceWithClientConfig(customSSLFactoryClassName, ncc);
 
                 httpClient4.getConnectionManager().getSchemeRegistry().register(new Scheme(
                         "https",443, customSocketFactory));
 
-            }catch(Exception e){
-                throw new IllegalArgumentException("Invalid value associated with property:"
-                        + CommonClientConfigKey.CustomSSLSocketFactoryClassName, e);
+            } catch(Exception e){
+                throwInvalidValue(CommonClientConfigKey.CustomSSLSocketFactoryClassName, e);
             }
         }
 
@@ -478,11 +419,11 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         }
         if (url == null) {
             // attempt to load from the system classpath
-            url = ConfigurationManager.class.getResource(resourceName);
+            url = RestClient.class.getResource(resourceName);
         }
         if (url == null) {
             // attempt to load from the system classpath
-            url = ConfigurationManager.class.getClassLoader().getResource(resourceName);
+            url = RestClient.class.getClassLoader().getResource(resourceName);
         }
         if (url == null) {
             try {

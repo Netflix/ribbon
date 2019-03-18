@@ -48,13 +48,13 @@ public class LoadBalancerContext implements IClientConfigAware {
 
     protected String vipAddresses;
 
-    protected int maxAutoRetriesNextServer = CommonClientConfigKey.MaxAutoRetriesNextServer.getDefaultValue();
-    protected int maxAutoRetries = CommonClientConfigKey.MaxAutoRetries.getDefaultValue();
+    protected int maxAutoRetriesNextServer = CommonClientConfigKey.MaxAutoRetriesNextServer.defaultValue();
+    protected int maxAutoRetries = CommonClientConfigKey.MaxAutoRetries.defaultValue();
 
     protected RetryHandler defaultRetryHandler = new DefaultLoadBalancerRetryHandler();
 
 
-    protected boolean okToRetryOnAllOperations = CommonClientConfigKey.OkToRetryOnAllOperations.getDefaultValue();
+    protected boolean okToRetryOnAllOperations = CommonClientConfigKey.OkToRetryOnAllOperations.defaultValue();
 
     private ILoadBalancer lb;
 

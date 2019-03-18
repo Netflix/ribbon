@@ -43,5 +43,45 @@ public interface IClientConfigKey<T> {
 	 */
 	Class<T> type();
 
-	default T getDefaultValue() { return null; }
+	default T defaultValue() { return null; }
+
+	default IClientConfigKey<T> format(Object ... args) {
+		return create(String.format(key(), args), type(), defaultValue());
+	}
+
+	default IClientConfigKey<T> create(String key, Class<T> type, T defaultValue) {
+		return new IClientConfigKey<T>() {
+
+			@Override
+			public int hashCode() {
+				return key().hashCode();
+			}
+
+			@Override
+			public boolean equals(Object obj) {
+				if (obj instanceof IClientConfigKey) {
+					return key().equals(((IClientConfigKey)obj).key());
+				}
+				return false;
+			}
+
+			@Override
+			public String toString() {
+				return key();
+			}
+
+			@Override
+			public String key() {
+				return key;
+			}
+
+			@Override
+			public Class<T> type() {
+				return type;
+			}
+
+			@Override
+			public T defaultValue() { return defaultValue; }
+		};
+	}
 }

@@ -23,6 +23,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.netflix.config.ConfigurationBasedDeploymentContext;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -40,7 +42,7 @@ import com.netflix.loadbalancer.ZoneAffinityServerListFilter;
 public class DefaultNIWSServerListFilterTest {
     @BeforeClass
     public static void init() {
-    	ConfigurationManager.getDeploymentContext().setValue(ContextKey.zone, "us-eAst-1C");
+        ConfigurationManager.getConfigInstance().setProperty(ContextKey.zone.getKey(), "us-eAst-1C");
     }
     
     private DiscoveryEnabledServer createServer(String host, String zone) {

@@ -20,9 +20,9 @@ package com.netflix.http4;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.netflix.client.config.ClientConfigFactory;
 import org.apache.commons.collections.keyvalue.MultiKey;
 
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Monitors;
 
@@ -52,15 +52,19 @@ public class NFHttpClientFactory {
 	}
 
     public static NFHttpClient getNamedNFHttpClient(String name) {
-        return getNamedNFHttpClient(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(name), true);
+		IClientConfig config = ClientConfigFactory.DEFAULT.newConfig();
+		config.loadProperties(name);
+        return getNamedNFHttpClient(name, config, true);
     }
 
     public static NFHttpClient getNamedNFHttpClient(String name, IClientConfig config) {
         return getNamedNFHttpClient(name, config, true);
     }
 
-    public static NFHttpClient getNamedNFHttpClient(String name, boolean registerMonitor) {       
-        return getNamedNFHttpClient(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(name), registerMonitor);
+    public static NFHttpClient getNamedNFHttpClient(String name, boolean registerMonitor) {
+		IClientConfig config = ClientConfigFactory.DEFAULT.newConfig();
+		config.loadProperties(name);
+        return getNamedNFHttpClient(name, config, registerMonitor);
     }
     
 	public static NFHttpClient getNamedNFHttpClient(String name, IClientConfig config, boolean registerMonitor) {		

@@ -17,16 +17,17 @@
 */
 package com.netflix.http4;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.netflix.client.config.ClientConfigFactory;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.config.Property;
+import com.netflix.servo.annotations.DataSourceType;
+import com.netflix.servo.annotations.Monitor;
+import com.netflix.servo.monitor.Monitors;
+import com.netflix.servo.monitor.Stopwatch;
+import com.netflix.servo.monitor.Timer;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -47,18 +48,15 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
-import com.netflix.servo.monitor.Monitors;
-import com.netflix.servo.monitor.Stopwatch;
-import com.netflix.servo.monitor.Timer;
-import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Netflix extension of Apache 4.0 HttpClient
@@ -70,6 +68,10 @@ import com.netflix.utils.ScheduledThreadPoolExectuorWithDynamicSize;
 public class NFHttpClient extends DefaultHttpClient {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NFHttpClient.class);
+
+	private static IClientConfigKey<Integer> RETRIES = new CommonClientConfigKey<Integer>("%s.nfhttpclient.retries", 3) {};
+	private static IClientConfigKey<Integer> SLEEP_TIME_FACTOR_MS = new CommonClientConfigKey<Integer>("%s.nfhttpclient.sleepTimeFactorMs", 10) {};
+	private static IClientConfigKey<Integer> CONN_IDLE_EVICT_TIME_MILLIS = new CommonClientConfigKey<Integer>("%s.nfhttpclient.connIdleEvictTimeMilliSeconds", 30*1000) {};
 
 	protected static final String EXECUTE_TRACER = "HttpClient-ExecuteTimer";
 	
@@ -84,15 +86,15 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	ConnectionPoolCleaner connPoolCleaner;
 
-	DynamicIntProperty connIdleEvictTimeMilliSeconds;
+	Property<Integer> connIdleEvictTimeMilliSeconds;
 
-	private DynamicIntProperty retriesProperty;
-	private DynamicIntProperty sleepTimeFactorMsProperty;
+	private Property<Integer> retriesProperty;
+	private Property<Integer> sleepTimeFactorMsProperty;
 	
 	private Timer tracer; 
 
-	private DynamicIntProperty maxTotalConnectionProperty;
-	private DynamicIntProperty maxConnectionPerHostProperty;
+	private Property<Integer> maxTotalConnectionProperty;
+	private Property<Integer> maxConnectionPerHostProperty;
 	
 	static {
 	    ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true)
@@ -106,17 +108,25 @@ public class NFHttpClient extends DefaultHttpClient {
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
 		httpHost = new HttpHost(host, port);
 		httpRoute = new HttpRoute(httpHost);
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), false);
+
+		init(createDefaultConfig(), false);
 	}   
 
 	protected NFHttpClient(){
 		super(new ThreadSafeClientConnManager());
 		this.name = "UNNAMED_" + numNonNamedHttpClients.incrementAndGet();
-		init(DefaultClientConfigImpl.getClientConfigWithDefaultValues(), false);
+
+		init(createDefaultConfig(), false);
+	}
+
+	private static IClientConfig createDefaultConfig() {
+		IClientConfig config = ClientConfigFactory.DEFAULT.newConfig();
+		config.loadProperties("default");
+		return config;
 	}
 
 	protected NFHttpClient(String name) {
-	    this(name, DefaultClientConfigImpl.getClientConfigWithDefaultValues(), true);
+	    this(name, createDefaultConfig(), true);
 	}
 
     protected NFHttpClient(String name, IClientConfig config) {
@@ -144,8 +154,9 @@ public class NFHttpClient extends DefaultHttpClient {
 
 		connPoolCleaner = new ConnectionPoolCleaner(name, this.getConnectionManager(), connectionPoolCleanUpScheduler);
 
-		this.retriesProperty = DynamicPropertyFactory.getInstance().getIntProperty(this.name + ".nfhttpclient" + ".retries", 3);
-		this.sleepTimeFactorMsProperty = DynamicPropertyFactory.getInstance().getIntProperty(this.name + ".nfhttpclient"+ ".sleepTimeFactorMs", 10);
+		this.retriesProperty = config.getGlobalProperty(RETRIES.format(name));
+
+		this.sleepTimeFactorMsProperty = config.getGlobalProperty(SLEEP_TIME_FACTOR_MS.format(name));
 		setHttpRequestRetryHandler(
 				new NFHttpMethodRetryHandler(this.name, this.retriesProperty.get(), false,
 						this.sleepTimeFactorMsProperty.get()));
@@ -153,22 +164,17 @@ public class NFHttpClient extends DefaultHttpClient {
 	    if (registerMonitor) {
             Monitors.registerObject(name, this);
 	    }
-	    maxTotalConnectionProperty = new DynamicIntProperty(this.name + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxTotalHttpConnections.key(), 
-	            DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS);
-	    maxTotalConnectionProperty.addCallback(new Runnable() {
-            @Override
-            public void run() {
-                ((ThreadSafeClientConnManager) getConnectionManager()).setMaxTotal(maxTotalConnectionProperty.get());
-            }
-	    });
-	    maxConnectionPerHostProperty = new DynamicIntProperty(this.name + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxHttpConnectionsPerHost.key(), 
-	            DefaultClientConfigImpl.DEFAULT_MAX_HTTP_CONNECTIONS_PER_HOST);
-	    maxConnectionPerHostProperty.addCallback(new Runnable() {
-            @Override
-            public void run() {
-                ((ThreadSafeClientConnManager) getConnectionManager()).setDefaultMaxPerRoute(maxConnectionPerHostProperty.get());
-            }
-        });
+	    maxTotalConnectionProperty = config.getDynamicProperty(CommonClientConfigKey.MaxTotalHttpConnections);
+	    maxTotalConnectionProperty.onChange(newValue ->
+	    	((ThreadSafeClientConnManager) getConnectionManager()).setMaxTotal(newValue)
+	    );
+
+	    maxConnectionPerHostProperty = config.getDynamicProperty(CommonClientConfigKey.MaxHttpConnectionsPerHost);
+	    maxConnectionPerHostProperty.onChange(newValue ->
+			((ThreadSafeClientConnManager) getConnectionManager()).setDefaultMaxPerRoute(newValue)
+        );
+
+		connIdleEvictTimeMilliSeconds = config.getGlobalProperty(CONN_IDLE_EVICT_TIME_MILLIS.format(name));
 	}
 
 	public void initConnectionCleanerTask(){
@@ -188,11 +194,7 @@ public class NFHttpClient extends DefaultHttpClient {
 	}
 
 	@Monitor(name = "HttpClient-ConnIdleEvictTimeMilliSeconds", type = DataSourceType.INFORMATIONAL)
-	public DynamicIntProperty getConnIdleEvictTimeMilliSeconds() {
-		if (connIdleEvictTimeMilliSeconds == null){
-			connIdleEvictTimeMilliSeconds = DynamicPropertyFactory.getInstance().getIntProperty(name + ".nfhttpclient.connIdleEvictTimeMilliSeconds", 
-					NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
-		}
+	public Property<Integer> getConnIdleEvictTimeMilliSeconds() {
 		return connIdleEvictTimeMilliSeconds;
 	}
 
@@ -234,7 +236,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		return this.retriesProperty.get();
 	}
 
-	public void setConnIdleEvictTimeMilliSeconds(DynamicIntProperty connIdleEvictTimeMilliSeconds) {
+	public void setConnIdleEvictTimeMilliSeconds(Property<Integer> connIdleEvictTimeMilliSeconds) {
 		this.connIdleEvictTimeMilliSeconds = connIdleEvictTimeMilliSeconds;
 	}
 
