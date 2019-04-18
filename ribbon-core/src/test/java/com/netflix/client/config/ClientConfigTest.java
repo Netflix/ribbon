@@ -19,13 +19,17 @@ package com.netflix.client.config;
 
 import static org.junit.Assert.*;
 
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.config.ConfigurationManager;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.runners.MethodSorters;
 
 import java.util.Properties;
 
@@ -35,9 +39,21 @@ import java.util.Properties;
  * @author stonse
  * 
  */
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClientConfigTest {
-    @BeforeClass
-    public static void setUp() throws Exception {
+    @Rule
+    public TestName testName = new TestName();
+
+    IClientConfigKey<Integer> INTEGER_PROPERTY;
+
+    IClientConfigKey<Integer> DEFAULT_INTEGER_PROPERTY;
+
+    @Before
+    public void setUp() throws Exception {
+        INTEGER_PROPERTY = new CommonClientConfigKey<Integer>(
+                "niws.loadbalancer.%s." + testName.getMethodName(), 10) {};
+        DEFAULT_INTEGER_PROPERTY = new CommonClientConfigKey<Integer>(
+                "niws.loadbalancer.default." + testName.getMethodName(), 30) {};
     }
 
     @AfterClass
@@ -112,6 +128,37 @@ public class ClientConfigTest {
         
         ConfigurationManager.getConfigInstance().clearProperty("testRestClient2.ribbon.EnableZoneAffinity");
         assertNull(clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));
+    }
+
+    @Test
+    public void testFallback_noneSet() {
+        DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+        Property<Integer> prop = clientConfig.getGlobalProperty(INTEGER_PROPERTY.format(testName.getMethodName()))
+                .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_INTEGER_PROPERTY));
+
+        Assert.assertEquals(30, prop.get().intValue());
+    }
+
+    @Test
+    public void testFallback_fallbackSet() {
+        ConfigurationManager.getConfigInstance().setProperty(DEFAULT_INTEGER_PROPERTY.key(), "100");
+        DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+        Property<Integer> prop = clientConfig.getGlobalProperty(INTEGER_PROPERTY.format(testName.getMethodName()))
+                .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_INTEGER_PROPERTY));
+
+        Assert.assertEquals(100, prop.get().intValue());
+    }
+
+    @Test
+    public void testFallback_primarySet() {
+
+        ConfigurationManager.getConfigInstance().setProperty(INTEGER_PROPERTY.format(testName.getMethodName()).key(), "200");
+
+        DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+        Property<Integer> prop = clientConfig.getGlobalProperty(INTEGER_PROPERTY.format(testName.getMethodName()))
+                .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_INTEGER_PROPERTY));
+
+        Assert.assertEquals(200, prop.get().intValue());
     }
 }
 
