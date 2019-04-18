@@ -1,5 +1,6 @@
 package com.netflix.client.config;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -17,6 +18,12 @@ public interface Property<T> {
      * @return Get the current value or default value
      */
     T get();
+
+    default Optional<T> getOptional() { return Optional.ofNullable(get()); }
+
+    default Property<T> fallbackWith(Property<T> fallback) {
+        return new FallbackProperty<>(this, fallback);
+    }
 
     static <T> Property<T> of(T value) {
         return new Property<T>() {

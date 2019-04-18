@@ -70,6 +70,15 @@ public class LoadBalancerStats implements IClientConfigAware {
     public static final IClientConfigKey<Integer> CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS = new CommonClientConfigKey<Integer>(
             "niws.loadbalancer.%s.circuitTripMaxTimeoutSeconds", 30) {};
 
+    public static final IClientConfigKey<Integer> DEFAULT_CONNECTION_FAILURE_COUNT_THRESHOLD = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.default.connectionFailureCountThreshold", 3) {};
+
+    public static final IClientConfigKey<Integer> DEFAULT_CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.default.circuitTripTimeoutFactorSeconds", 10) {};
+
+    public static final IClientConfigKey<Integer> DEFAULT_CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.default.circuitTripMaxTimeoutSeconds", 30) {};
+
     private String name;
     
     volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<>();
@@ -115,10 +124,20 @@ public class LoadBalancerStats implements IClientConfigAware {
     public void initWithNiwsConfig(IClientConfig clientConfig) {
         this.name = clientConfig.getClientName();
         Preconditions.checkArgument(name != null, "IClientConfig#getCLientName() must not be null");
-        this.connectionFailureThreshold = new UnboxedIntProperty(clientConfig.getGlobalProperty(CONNECTION_FAILURE_COUNT_THRESHOLD.format(name)));
-        this.circuitTrippedTimeoutFactor = new UnboxedIntProperty(clientConfig.getGlobalProperty(CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS.format(name)));
-        this.maxCircuitTrippedTimeout = new UnboxedIntProperty(clientConfig.getGlobalProperty(CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS.format(name)));
-        this.activeRequestsCountTimeout = new UnboxedIntProperty(clientConfig.getGlobalProperty(ACTIVE_REQUESTS_COUNT_TIMEOUT));
+        this.connectionFailureThreshold = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(CONNECTION_FAILURE_COUNT_THRESHOLD.format(name))
+                    .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_CONNECTION_FAILURE_COUNT_THRESHOLD))
+        );
+        this.circuitTrippedTimeoutFactor = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS.format(name))
+                        .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS))
+        );
+        this.maxCircuitTrippedTimeout = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS.format(name))
+                        .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS))
+        );
+        this.activeRequestsCountTimeout = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(ACTIVE_REQUESTS_COUNT_TIMEOUT));
     }
 
 

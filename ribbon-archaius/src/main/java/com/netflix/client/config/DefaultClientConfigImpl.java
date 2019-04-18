@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -917,7 +918,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     private <T> Property<T> toProperty(IClientConfigKey<T> key, PropertyWrapper<T> propertyWrapper) {
-        return new Property() {
+        return new Property<T>() {
             @Override
             public void onChange(Consumer consumer) {
                 Runnable callback = new Runnable() {
@@ -955,8 +956,13 @@ public class DefaultClientConfigImpl implements IClientConfig {
             }
 
             @Override
-            public Object get() {
+            public T get() {
                 return propertyWrapper.getValue();
+            }
+
+            @Override
+            public Optional<T> getOptional() {
+                return Optional.ofNullable(propertyWrapper.getDynamicProperty().getCachedValue(key.type()).orNull());
             }
         };
     }
