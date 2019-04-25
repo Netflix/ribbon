@@ -80,7 +80,6 @@ public class LBBuilderTest {
     }
 
     @Test
-    @Ignore
     public void testBuildWithDiscoveryEnabledNIWSServerList() {
         IRule rule = new AvailabilityFilteringRule();
         ServerList<DiscoveryEnabledServer> list = new DiscoveryEnabledNIWSServerList("dummy:7001");
@@ -100,7 +99,6 @@ public class LBBuilderTest {
     }
 
     @Test
-    @Ignore
     public void testBuildWithDiscoveryEnabledNIWSServerListAndUpdater() {
         IRule rule = new AvailabilityFilteringRule();
         ServerList<DiscoveryEnabledServer> list = new DiscoveryEnabledNIWSServerList("dummy:7001");

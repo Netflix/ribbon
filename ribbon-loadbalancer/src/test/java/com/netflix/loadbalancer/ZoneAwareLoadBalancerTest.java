@@ -70,11 +70,11 @@ public class ZoneAwareLoadBalancerTest {
     
     
     @Test
-    @Ignore
     public void testChooseZone() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 10);
 
         DefaultClientConfigImpl config = new DefaultClientConfigImpl();
+        config.setClientName("testChooseZone");
         ZoneAwareLoadBalancer<Server> balancer = new ZoneAwareLoadBalancer<Server>();
         balancer.init();
         IRule globalRule = new RoundRobinRule();

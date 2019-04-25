@@ -235,9 +235,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         try {
             return (LoadBalancerStats) factory.create(loadBalancerStatsClassName, clientConfig);
         } catch (Exception e) {
-            logger.warn("Error initializing configured LoadBalancerStats class - " + String.valueOf(loadBalancerStatsClassName)
-                    + ". Falling-back to a new LoadBalancerStats instance instead.", e);
-            return new LoadBalancerStats(clientConfig.getClientName());
+            throw new RuntimeException(
+                    "Error initializing configured LoadBalancerStats class - " + loadBalancerStatsClassName,
+                    e);
         }
     }
 

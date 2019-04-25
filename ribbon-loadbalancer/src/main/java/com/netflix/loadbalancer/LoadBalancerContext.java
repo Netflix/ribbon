@@ -28,6 +28,7 @@ import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,7 @@ public class LoadBalancerContext implements IClientConfigAware {
             return;    
         }
         clientName = clientConfig.getClientName();
-        if (clientName == null) {
+        if (StringUtils.isEmpty(clientName)) {
             clientName = "default";
         }
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();

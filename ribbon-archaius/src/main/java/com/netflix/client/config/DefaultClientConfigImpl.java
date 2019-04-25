@@ -27,6 +27,7 @@ import com.netflix.config.DynamicStringProperty;
 import com.netflix.config.PropertyWrapper;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,7 +164,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultClientConfigImpl.class);
 
-    private String clientName = null;
+    private String clientName = "";
 
     private VipAddressResolver resolver = null;
 
@@ -452,7 +453,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     private String getConfigKey(String propName) {
-        return (clientName == null) ? getDefaultPropName(propName) : getInstancePropName(clientName, propName);
+        return (StringUtils.isEmpty(clientName)) ? getDefaultPropName(propName) : getInstancePropName(clientName, propName);
     }
 
     protected void setPropertyInternal(final String propName, Object value) {
@@ -909,6 +910,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @Override
     public <T> Property<T> getGlobalProperty(IClientConfigKey<T> key) {
+        LOG.debug("Get global property {}", key.key());
+
         final PropertyWrapper<T> propertyWrapper = getPropertyWrapper(
                 key.key(),
                 key.type(),
@@ -994,6 +997,8 @@ public class DefaultClientConfigImpl implements IClientConfig {
 
     @Override
     public <T> Property<T> getDynamicProperty(IClientConfigKey<T> key) {
+        LOG.debug("Get dynamic property {}", key.key());
+
         final PropertyWrapper<T> propertyWrapper = getPropertyWrapper(
                 getInstancePropName(getClientName(), key.key()),
                 key.type(),
