@@ -25,11 +25,13 @@ import com.netflix.niws.loadbalancer.DiscoveryEnabledNIWSServerList;
 import com.netflix.ribbon.testutils.MockedDiscoveryServerListTest;
 import io.netty.buffer.ByteBuf;
 import org.junit.Test;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
+@PowerMockIgnore("com.google.*")
 public class DiscoveryLoadBalancerTest extends MockedDiscoveryServerListTest {
 
     @Override
