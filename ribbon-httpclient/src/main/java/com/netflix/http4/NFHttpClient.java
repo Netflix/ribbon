@@ -145,7 +145,7 @@ public class NFHttpClient extends DefaultHttpClient {
 		HttpProtocolParams.setContentCharset(params, "UTF-8");  
 		params.setParameter(ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME, 
 				ThreadSafeClientConnManager.class.getName());
-		HttpClientParams.setRedirecting(params, config.getPropertyAsBoolean(CommonClientConfigKey.FollowRedirects, true));
+		HttpClientParams.setRedirecting(params, config.get(CommonClientConfigKey.FollowRedirects, true));
 		// set up default headers
 		List<Header> defaultHeaders = new ArrayList<Header>();
 		defaultHeaders.add(new BasicHeader("Netflix.NFHttpClient.Version", "1.0"));

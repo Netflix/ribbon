@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.PrimeConnections;
-import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.annotations.DataSourceType;
@@ -169,16 +168,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     
     void initWithConfig(IClientConfig clientConfig, IRule rule, IPing ping, LoadBalancerStats stats) {
         this.config = clientConfig;
-        String clientName = clientConfig.getClientName();
-        this.name = clientName;
-        int pingIntervalTime = Integer.parseInt(""
-                + clientConfig.getProperty(
-                        CommonClientConfigKey.NFLoadBalancerPingInterval,
-                        Integer.parseInt("30")));
-        int maxTotalPingTime = Integer.parseInt(""
-                + clientConfig.getProperty(
-                        CommonClientConfigKey.NFLoadBalancerMaxTotalPingTime,
-                        Integer.parseInt("2")));
+        this.name = clientConfig.getClientName();
+        int pingIntervalTime = clientConfig.get(CommonClientConfigKey.NFLoadBalancerPingInterval, 30);
+        int maxTotalPingTime = clientConfig.get(CommonClientConfigKey.NFLoadBalancerMaxTotalPingTime, 2);
 
         setPingInterval(pingIntervalTime);
         setMaxTotalPingTime(maxTotalPingTime);

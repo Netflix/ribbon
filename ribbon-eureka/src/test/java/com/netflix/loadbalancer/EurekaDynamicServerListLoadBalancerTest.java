@@ -66,8 +66,8 @@ public class EurekaDynamicServerListLoadBalancerTest {
         };
 
         config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
-        config.setProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses, vipAddress);
-        config.setProperty(CommonClientConfigKey.ServerListUpdaterClassName, EurekaNotificationServerListUpdater.class.getName());
+        config.set(CommonClientConfigKey.DeploymentContextBasedVipAddresses, vipAddress);
+        config.set(CommonClientConfigKey.ServerListUpdaterClassName, EurekaNotificationServerListUpdater.class.getName());
     }
 
 

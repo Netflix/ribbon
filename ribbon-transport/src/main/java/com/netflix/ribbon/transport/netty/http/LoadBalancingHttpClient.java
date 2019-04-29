@@ -42,6 +42,7 @@ import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -184,7 +185,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 backoffStrategy = new Func1<Integer, Integer>() {
                     @Override
                     public Integer call(Integer backoffCount) {
-                        int interval = config.getPropertyAsInteger(IClientConfigKey.Keys.BackoffInterval, DefaultClientConfigImpl.DEFAULT_BACKOFF_INTERVAL);
+                        int interval = config.getOrDefault(IClientConfigKey.Keys.BackoffInterval);
                         if (backoffCount < 0) {
                             backoffCount = 0;
                         }
@@ -455,7 +456,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         }
         int port = uri.getPort();
         if (port < 0) {
-            if (clientConfig.getPropertyAsBoolean(IClientConfigKey.Keys.IsSecure, false)) {
+            if (Optional.ofNullable(clientConfig.get(IClientConfigKey.Keys.IsSecure)).orElse(false)) {
                 port = 443;
             } else {
                 port = 80;

@@ -83,23 +83,23 @@ public class ClientConfigTest {
         ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.customProperty", "abc");
         
         clientConfig.loadProperties(restClientName);
-        clientConfig.setProperty(CommonClientConfigKey.ConnectTimeout, "1000");
-        override.setProperty(CommonClientConfigKey.Port, "8000");
-        override.setProperty(CommonClientConfigKey.ConnectTimeout, "5000");
+        clientConfig.set(CommonClientConfigKey.ConnectTimeout, 1000);
+        override.set(CommonClientConfigKey.Port, 8000);
+        override.set(CommonClientConfigKey.ConnectTimeout, 5000);
         clientConfig.applyOverride(override);
         
-        Assert.assertEquals("movieservice", clientConfig.getProperty(CommonClientConfigKey.AppName));
-        Assert.assertEquals("false", clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));        
+        Assert.assertEquals("movieservice", clientConfig.get(CommonClientConfigKey.AppName));
+        Assert.assertEquals(false, clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
         Assert.assertEquals("movieservice-xbox-test,movieservice--test", clientConfig.resolveDeploymentContextbasedVipAddresses());
-        Assert.assertEquals("5000", clientConfig.getProperty(CommonClientConfigKey.ConnectTimeout));
+        Assert.assertEquals(5000, clientConfig.get(CommonClientConfigKey.ConnectTimeout).longValue());
 
-        Assert.assertEquals("8000", clientConfig.getProperty(CommonClientConfigKey.Port));
+        Assert.assertEquals(8000, clientConfig.get(CommonClientConfigKey.Port).longValue());
         assertEquals("abc", clientConfig.getProperties().get("customProperty"));
         System.out.println("AutoVipAddress:" + clientConfig.resolveDeploymentContextbasedVipAddresses());
         
         ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.EnableZoneAffinity", "true");
         ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.customProperty", "xyz");
-        assertEquals("true", clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));
+        assertEquals(true, clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
         assertEquals("xyz", clientConfig.getProperties().get("customProperty"));        
     }
     
@@ -120,14 +120,14 @@ public class ClientConfigTest {
         
         clientConfig.loadProperties(restClientName);
         
-        Assert.assertEquals("movieservice", clientConfig.getProperty(CommonClientConfigKey.AppName));
-        Assert.assertEquals("true", clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));
+        Assert.assertEquals("movieservice", clientConfig.get(CommonClientConfigKey.AppName));
+        Assert.assertEquals(true, clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
         
         ConfigurationManager.getConfigInstance().setProperty("testRestClient2.ribbon.DeploymentContextBasedVipAddresses", "movieservice-xbox-test:7001");
-        assertEquals("movieservice-xbox-test:7001", clientConfig.getProperty(CommonClientConfigKey.DeploymentContextBasedVipAddresses));
+        assertEquals("movieservice-xbox-test:7001", clientConfig.get(CommonClientConfigKey.DeploymentContextBasedVipAddresses));
         
         ConfigurationManager.getConfigInstance().clearProperty("testRestClient2.ribbon.EnableZoneAffinity");
-        assertNull(clientConfig.getProperty(CommonClientConfigKey.EnableZoneAffinity));
+        assertNull(clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
     }
 
     @Test

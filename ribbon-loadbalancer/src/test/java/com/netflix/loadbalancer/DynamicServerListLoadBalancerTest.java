@@ -70,9 +70,9 @@ public class DynamicServerListLoadBalancerTest {
     @Test
     public void testDynamicServerListLoadBalancer() throws Exception {
         DefaultClientConfigImpl config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
-        config.setProperty(CommonClientConfigKey.NIWSServerListClassName, MyServerList.class.getName());
-        config.setProperty(CommonClientConfigKey.NFLoadBalancerClassName, DynamicServerListLoadBalancer.class.getName());
-        config.setProperty(CommonClientConfigKey.ServerListRefreshInterval, "50");
+        config.set(CommonClientConfigKey.NIWSServerListClassName, MyServerList.class.getName());
+        config.set(CommonClientConfigKey.NFLoadBalancerClassName, DynamicServerListLoadBalancer.class.getName());
+        config.set(CommonClientConfigKey.ServerListRefreshInterval, 50);
         DynamicServerListLoadBalancer<Server> lb = new DynamicServerListLoadBalancer<Server>(config);
         try {
             assertTrue(MyServerList.latch.await(2, TimeUnit.SECONDS));
