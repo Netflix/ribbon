@@ -65,17 +65,21 @@ public interface IClientConfig {
     @Deprecated
 	Object getProperty(IClientConfigKey key, Object defaultVal);
 
+    @Deprecated
 	boolean containsProperty(IClientConfigKey key);
 	
 	/**
 	 * Returns the applicable virtual addresses ("vip") used by this client configuration.
 	 */
 	String resolveDeploymentContextbasedVipAddresses();
-	
+
+    @Deprecated
 	int getPropertyAsInteger(IClientConfigKey key, int defaultValue);
 
+    @Deprecated
     String getPropertyAsString(IClientConfigKey key, String defaultValue);
-    
+
+    @Deprecated
     boolean getPropertyAsBoolean(IClientConfigKey key, boolean defaultValue);
     
     /**
@@ -131,6 +135,7 @@ public interface IClientConfig {
      */
     <T> IClientConfig set(IClientConfigKey<T> key, T value);
 
+    @Deprecated
     class Builder {
         
         private IClientConfig config;

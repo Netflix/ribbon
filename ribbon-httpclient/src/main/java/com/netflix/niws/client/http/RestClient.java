@@ -27,6 +27,7 @@ import java.net.URLDecoder;
 import java.security.KeyStore;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 import com.netflix.client.config.Property;
 import org.apache.http.HttpHost;
@@ -155,10 +156,10 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         this.config = new DefaultApacheHttpClient4Config();
         this.config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_CONNECT_TIMEOUT,
-                Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ConnectTimeout))));
+                ncc.getOrDefault(CommonClientConfigKey.ConnectTimeout));
         this.config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_READ_TIMEOUT,
-                Integer.parseInt(String.valueOf(ncc.getProperty(CommonClientConfigKey.ReadTimeout))));
+                ncc.getOrDefault(CommonClientConfigKey.ReadTimeout));
 
         this.restClient = apacheHttpClientSpecificInitialization();
         this.setRetryHandler(new HttpClientLoadBalancerErrorHandler(ncc));
@@ -251,13 +252,13 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         // send/receive - so let's take the bigger of the two values and use
         // it as buffer size
         int bufferSize = Integer.MIN_VALUE;
-        if (ncc.getProperty(CommonClientConfigKey.ReceiveBufferSize) != null) {
+        if (ncc.get(CommonClientConfigKey.ReceiveBufferSize) != null) {
             try {
                 bufferSize = ncc.getOrDefault(CommonClientConfigKey.ReceiveBufferSize);
             } catch (Exception e) {
                 throwInvalidValue(CommonClientConfigKey.ReceiveBufferSize, e);
             }
-            if (ncc.getProperty(CommonClientConfigKey.SendBufferSize) != null) {
+            if (ncc.get(CommonClientConfigKey.SendBufferSize) != null) {
                 try {
                     int sendBufferSize = ncc.getOrDefault(CommonClientConfigKey.SendBufferSize);
                     if (sendBufferSize > bufferSize) {
@@ -273,7 +274,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                     bufferSize);
         }
 
-        if (ncc.getProperty(CommonClientConfigKey.StaleCheckingEnabled) != null) {
+        if (ncc.get(CommonClientConfigKey.StaleCheckingEnabled) != null) {
             try {
                 HttpConnectionParams.setStaleCheckingEnabled(
                         httpClientParams, ncc.getOrDefault(CommonClientConfigKey.StaleCheckingEnabled));
@@ -282,7 +283,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
             }
         }
 
-        if (ncc.getProperty(CommonClientConfigKey.Linger) != null) {
+        if (ncc.get(CommonClientConfigKey.Linger) != null) {
             try {
                 HttpConnectionParams.setLinger(httpClientParams, ncc.getOrDefault(CommonClientConfigKey.Linger));
             } catch (Exception e) {
@@ -290,7 +291,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
             }
         }
 
-        if (ncc.getProperty(CommonClientConfigKey.ProxyHost) != null) {
+        if (ncc.get(CommonClientConfigKey.ProxyHost) != null) {
             try {
                 proxyHost = (String) ncc.getOrDefault(CommonClientConfigKey.ProxyHost);
                 proxyPort = ncc.getOrDefault(CommonClientConfigKey.ProxyPort);
@@ -319,9 +320,9 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 
                 try {
                 	abstractFactory = new URLSslContextFactory(trustStoreUrl,
-                            (String) ncc.getProperty(CommonClientConfigKey.TrustStorePassword),
+                            ncc.get(CommonClientConfigKey.TrustStorePassword),
                             keyStoreUrl,
-                            (String) ncc.getProperty(CommonClientConfigKey.KeyStorePassword));
+                            ncc.get(CommonClientConfigKey.KeyStorePassword));
 
                 } catch (ClientSslSocketFactoryException e) {
                     throw new IllegalArgumentException("Unable to configure custom secure socket factory", e);
@@ -354,7 +355,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         }
 
         // custom SSL Factory handler
-        String customSSLFactoryClassName = (String) ncc.getProperty(CommonClientConfigKey.CustomSSLSocketFactoryClassName);
+        String customSSLFactoryClassName = ncc.get(CommonClientConfigKey.CustomSSLSocketFactoryClassName);
 
         if (customSSLFactoryClassName != null){
             try{
@@ -445,7 +446,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     }
 
     private URL getResourceForOptionalProperty(final IClientConfigKey configKey) {
-        final String propValue = (String) ncc.getProperty(configKey);
+        final String propValue = (String) ncc.get(configKey);
         URL result = null;
 
         if (propValue != null) {
@@ -470,11 +471,10 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
     }
 
 
-    private boolean getBooleanFromConfig(IClientConfig overriddenClientConfig, IClientConfigKey key, boolean defaultValue){
-    	if(overriddenClientConfig != null && overriddenClientConfig.containsProperty(key)){
-    		defaultValue = Boolean.parseBoolean(overriddenClientConfig.getProperty(key).toString());
-    	}
-    	return defaultValue;
+    private boolean getBooleanFromConfig(IClientConfig overriddenClientConfig, IClientConfigKey<Boolean> key, boolean defaultValue) {
+        return Optional.ofNullable(overriddenClientConfig)
+                .map(config -> config.get(key))
+                .orElse(defaultValue);
     }
 
     @Override
@@ -514,15 +514,11 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
             Map<String, Collection<String>> headers, Map<String, Collection<String>> params,
             IClientConfig overriddenClientConfig, Object requestEntity) throws Exception {
         HttpClientResponse thisResponse = null;
-        boolean bbFollowRedirects = bFollowRedirects;
-        // read overriden props
-        if (overriddenClientConfig != null
-        		// set whether we should auto follow redirects
-        		&& overriddenClientConfig.getProperty(CommonClientConfigKey.FollowRedirects)!=null){
-        	// use default directive from overall config
-        	Boolean followRedirects = Boolean.valueOf(""+overriddenClientConfig.getProperty(CommonClientConfigKey.FollowRedirects, bFollowRedirects));
-        	bbFollowRedirects = followRedirects.booleanValue();
-        }
+
+        final boolean bbFollowRedirects = Optional.ofNullable(overriddenClientConfig)
+                .map(config -> config.get(CommonClientConfigKey.FollowRedirects, bFollowRedirects))
+                .orElse(bFollowRedirects);
+
         restClient.setFollowRedirects(bbFollowRedirects);
 
         if (logger.isDebugEnabled()) {

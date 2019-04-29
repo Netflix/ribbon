@@ -85,54 +85,79 @@ myclient.foo.ReadTimeout=1000
  */
 public class DefaultClientConfigImpl implements IClientConfig {
 
+    @Deprecated
     public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = Boolean.TRUE;
 
+    @Deprecated
     public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = CommonClientConfigKey.NFLoadBalancerPingClassName.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_NFLOADBALANCER_RULE_CLASSNAME = CommonClientConfigKey.NFLoadBalancerRuleClassName.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_NFLOADBALANCER_CLASSNAME = CommonClientConfigKey.NFLoadBalancerClassName.defaultValue();
 
+    @Deprecated
     public static final boolean DEFAULT_USEIPADDRESS_FOR_SERVER = CommonClientConfigKey.UseIPAddrForServer.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_CLIENT_CLASSNAME = CommonClientConfigKey.ClientClassName.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_VIPADDRESS_RESOLVER_CLASSNAME = CommonClientConfigKey.VipAddressResolverClassName.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_PRIME_CONNECTIONS_URI = CommonClientConfigKey.PrimeConnectionsURI.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS = CommonClientConfigKey.MaxTotalTimeToPrimeConnections.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION = CommonClientConfigKey.MaxRetriesPerServerPrimeConnection.defaultValue();
 
+    @Deprecated
     public static final Boolean DEFAULT_ENABLE_PRIME_CONNECTIONS = CommonClientConfigKey.EnablePrimeConnections.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_MAX_REQUESTS_ALLOWED_PER_WINDOW = Integer.MAX_VALUE;
 
+    @Deprecated
     public static final int DEFAULT_REQUEST_THROTTLING_WINDOW_IN_MILLIS = 60000;
 
+    @Deprecated
     public static final Boolean DEFAULT_ENABLE_REQUEST_THROTTLING = Boolean.FALSE;
 
+    @Deprecated
     public static final Boolean DEFAULT_ENABLE_GZIP_CONTENT_ENCODING_FILTER = CommonClientConfigKey.EnableGZIPContentEncodingFilter.defaultValue();
 
+    @Deprecated
     public static final Boolean DEFAULT_CONNECTION_POOL_CLEANER_TASK_ENABLED = CommonClientConfigKey.ConnectionPoolCleanerTaskEnabled.defaultValue();
 
+    @Deprecated
     public static final Boolean DEFAULT_FOLLOW_REDIRECTS = CommonClientConfigKey.FollowRedirects.defaultValue();
 
+    @Deprecated
     public static final float DEFAULT_PERCENTAGE_NIWS_EVENT_LOGGED = 0.0f;
 
+    @Deprecated
     public static final int DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER = CommonClientConfigKey.MaxAutoRetriesNextServer.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_MAX_AUTO_RETRIES = CommonClientConfigKey.MaxAutoRetries.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_BACKOFF_INTERVAL = CommonClientConfigKey.BackoffInterval.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_READ_TIMEOUT = CommonClientConfigKey.ReadTimeout.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_CONNECTION_MANAGER_TIMEOUT = CommonClientConfigKey.ConnectionManagerTimeout.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_CONNECT_TIMEOUT = CommonClientConfigKey.ConnectTimeout.defaultValue();
 
+    @Deprecated
     public static final Boolean DEFAULT_ENABLE_CONNECTION_POOL = CommonClientConfigKey.EnableConnectionPool.defaultValue();
 
     @Deprecated
@@ -141,20 +166,28 @@ public class DefaultClientConfigImpl implements IClientConfig {
     @Deprecated
     public static final int DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS = CommonClientConfigKey.MaxTotalHttpConnections.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = CommonClientConfigKey.MaxConnectionsPerHost.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_MAX_TOTAL_CONNECTIONS = CommonClientConfigKey.MaxTotalConnections.defaultValue();
 
+    @Deprecated
     public static final float DEFAULT_MIN_PRIME_CONNECTIONS_RATIO = CommonClientConfigKey.MinPrimeConnectionsRatio.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_PRIME_CONNECTIONS_CLASS = CommonClientConfigKey.PrimeConnectionsClassName.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_SEVER_LIST_CLASS = CommonClientConfigKey.NIWSServerListClassName.defaultValue();
 
+    @Deprecated
     public static final String DEFAULT_SERVER_LIST_UPDATER_CLASS = CommonClientConfigKey.ServerListUpdaterClassName.defaultValue();
 
+    @Deprecated
     public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
 
+    @Deprecated
     public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
 
     protected volatile Map<String, Object> properties = new ConcurrentHashMap<String, Object>();
@@ -172,13 +205,28 @@ public class DefaultClientConfigImpl implements IClientConfig {
      * Defaults for the parameters for the thread pool used by batchParallel
      * calls
      */
+    @Deprecated
     public static final int DEFAULT_POOL_MAX_THREADS = DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS;
+
+    @Deprecated
     public static final int DEFAULT_POOL_MIN_THREADS = 1;
+
+    @Deprecated
     public static final long DEFAULT_POOL_KEEP_ALIVE_TIME = 15 * 60L;
+
+    @Deprecated
     public static final TimeUnit DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS = TimeUnit.SECONDS;
+
+    @Deprecated
     public static final Boolean DEFAULT_ENABLE_ZONE_AFFINITY = CommonClientConfigKey.EnableZoneAffinity.defaultValue();
+
+    @Deprecated
     public static final Boolean DEFAULT_ENABLE_ZONE_EXCLUSIVITY = CommonClientConfigKey.EnableZoneExclusivity.defaultValue();
+
+    @Deprecated
     public static final int DEFAULT_PORT = CommonClientConfigKey.Port.defaultValue();
+
+    @Deprecated
     public static final Boolean DEFAULT_ENABLE_LOADBALANCER = CommonClientConfigKey.InitializeNFLoadBalancer.defaultValue();
 
     public static final String DEFAULT_PROPERTY_NAME_SPACE = CommonClientConfigKey.DEFAULT_NAME_SPACE;
@@ -674,10 +722,12 @@ public class DefaultClientConfigImpl implements IClientConfig {
      * @see com.netflix.niws.client.CliengConfig#setProperty(com.netflix.niws.client.ClientConfigKey, java.lang.Object)
      */
     @Override
+    @Deprecated
     public void setProperty(IClientConfigKey key, Object value){
         setPropertyInternal(key.key(), value);
     }
 
+    @Deprecated
     public DefaultClientConfigImpl withProperty(IClientConfigKey key, Object value) {
         setProperty(key, value);
         return this;
@@ -762,13 +812,10 @@ public class DefaultClientConfigImpl implements IClientConfig {
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.netflix.niws.client.CliengConfig#containsProperty(com.netflix.niws.client.ClientConfigKey)
-     */
     @Override
+    @Deprecated
     public boolean containsProperty(IClientConfigKey key){
-        Object oo = getProperty(key);
-        return oo!=null? true: false;
+        return getProperty(key) != null;
     }
 
     @Override
@@ -792,6 +839,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
         return sb.toString();
     }
 
+    @Deprecated
     public void setProperty(Properties props, String restClientName, String key, String value){
         props.setProperty( getInstancePropName(restClientName, key), value);
     }
@@ -806,7 +854,6 @@ public class DefaultClientConfigImpl implements IClientConfig {
         return restClientName + "." + getNameSpace() + "."
                 + key;
     }
-
 
     @Override
     public String getNameSpace() {
@@ -838,6 +885,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
+    @Deprecated
     public int getPropertyAsInteger(IClientConfigKey key, int defaultValue) {
         Object rawValue = getProperty(key);
         if (rawValue != null) {
@@ -852,6 +900,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
+    @Deprecated
     public String getPropertyAsString(IClientConfigKey key, String defaultValue) {
         Object rawValue = getProperty(key);
         if (rawValue != null) {
@@ -861,6 +910,7 @@ public class DefaultClientConfigImpl implements IClientConfig {
     }
 
     @Override
+    @Deprecated
     public boolean getPropertyAsBoolean(IClientConfigKey key,
                                         boolean defaultValue) {
         Object rawValue = getProperty(key);

@@ -73,7 +73,7 @@ public class FollowRedirectTest {
     @Test
     public void testRedirectNotFollowed() throws Exception {
         IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues("myclient");
-        config.setProperty(CommonClientConfigKey.FollowRedirects, Boolean.FALSE);
+        config.set(CommonClientConfigKey.FollowRedirects, Boolean.FALSE);
         ClientFactory.registerClientFromProperties("myclient", config);
         RestClient client = (RestClient) ClientFactory.getNamedClient("myclient");
         HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://localhost:" + redirectingServer.getPort())).build();

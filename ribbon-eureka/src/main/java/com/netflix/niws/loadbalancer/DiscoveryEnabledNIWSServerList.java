@@ -19,6 +19,7 @@ package com.netflix.niws.loadbalancer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.appinfo.InstanceInfo.InstanceStatus;
@@ -108,26 +109,27 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
                 ConfigurationManager.getConfigInstance().getBoolean("DiscoveryEnabledNIWSServerList.failFastOnNullVip", true)) {
             throw new NullPointerException("VIP address for client " + clientName + " is null");
         }
-        isSecure = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.IsSecure, "false"));
-        prioritizeVipAddressBasedServers = Boolean.parseBoolean(""+clientConfig.getProperty(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers));
+        isSecure = clientConfig.get(CommonClientConfigKey.IsSecure, false);
+        prioritizeVipAddressBasedServers = clientConfig.get(CommonClientConfigKey.PrioritizeVipAddressBasedServers, prioritizeVipAddressBasedServers);
         datacenter = ConfigurationManager.getDeploymentContext().getDeploymentDatacenter();
-        targetRegion = (String) clientConfig.getProperty(CommonClientConfigKey.TargetRegion);
+        targetRegion = clientConfig.get(CommonClientConfigKey.TargetRegion);
 
         shouldUseIpAddr = clientConfig.getOrDefault(CommonClientConfigKey.UseIPAddrForServer);
 
         // override client configuration and use client-defined port
-        if (clientConfig.getPropertyAsBoolean(CommonClientConfigKey.ForceClientPortConfiguration, false)){
+        if (clientConfig.get(CommonClientConfigKey.ForceClientPortConfiguration, false)){
             if (isSecure) {
-                if (clientConfig.containsProperty(CommonClientConfigKey.SecurePort)) {
-                    overridePort = clientConfig.getOrDefault(CommonClientConfigKey.SecurePort);
+                final Integer port = clientConfig.get(CommonClientConfigKey.SecurePort);
+                if (port != null) {
+                    overridePort = port;
                     shouldUseOverridePort = true;
-
                 } else {
                     logger.warn(clientName + " set to force client port but no secure port is set, so ignoring");
                 }
             } else {
-                if(clientConfig.containsProperty(CommonClientConfigKey.Port)){
-                    overridePort = clientConfig.getOrDefault(CommonClientConfigKey.Port);
+                final Integer port = clientConfig.get(CommonClientConfigKey.Port);
+                if (port != null) {
+                    overridePort = port;
                     shouldUseOverridePort = true;
                 } else{
                     logger.warn(clientName + " set to force client port but no port is set, so ignoring");
