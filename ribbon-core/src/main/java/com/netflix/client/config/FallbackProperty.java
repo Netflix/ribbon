@@ -21,4 +21,9 @@ public final class FallbackProperty<T> implements Property<T> {
     public T get() {
         return primary.getOptional().orElseGet(fallback::get);
     }
+
+    @Override
+    public String toString() {
+        return String.valueOf(get());
+    }
 }

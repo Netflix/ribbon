@@ -71,14 +71,11 @@ public class ClientConfigTest {
         
         props.setProperty("netflix.appinfo.stack","xbox");
         props.setProperty("netflix.environment","test");
-        
         props.setProperty("appname", "movieservice");
-        
-        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.AppName.key(), "movieservice");
-        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(),
-                "${appname}-${netflix.appinfo.stack}-${netflix.environment},movieservice--${netflix.environment}");
-        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.EnableZoneAffinity.key(), "false");
-        
+        props.setProperty(restClientName + ".ribbon." + CommonClientConfigKey.AppName.key(), "movieservice");
+        props.setProperty(restClientName + ".ribbon." + CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(), "${appname}-${netflix.appinfo.stack}-${netflix.environment},movieservice--${netflix.environment}");
+        props.setProperty(restClientName + ".ribbon." + CommonClientConfigKey.EnableZoneAffinity.key(), "false");
+
         ConfigurationManager.loadProperties(props);
         ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.customProperty", "abc");
         
@@ -94,32 +91,29 @@ public class ClientConfigTest {
         Assert.assertEquals(5000, clientConfig.get(CommonClientConfigKey.ConnectTimeout).longValue());
 
         Assert.assertEquals(8000, clientConfig.get(CommonClientConfigKey.Port).longValue());
-        assertEquals("abc", clientConfig.getProperties().get("customProperty"));
         System.out.println("AutoVipAddress:" + clientConfig.resolveDeploymentContextbasedVipAddresses());
         
         ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.EnableZoneAffinity", "true");
-        ConfigurationManager.getConfigInstance().setProperty("testRestClient.ribbon.customProperty", "xyz");
         assertEquals(true, clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
-        assertEquals("xyz", clientConfig.getProperties().get("customProperty"));        
     }
     
     @Test
     public void testresolveDeploymentContextbasedVipAddresses() throws Exception {
+        final String restClientName = "testRestClient2";
+
     	DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
     	clientConfig.loadDefaultValues();
+
         Properties props = new Properties();
-        
-        final String restClientName = "testRestClient2";
-        
-        clientConfig.setProperty(props, restClientName,CommonClientConfigKey.AppName.key(), "movieservice");
-        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(),
-                "${<appname>}-${netflix.appinfo.stack}-${netflix.environment}:${<port>},${<appname>}--${netflix.environment}:${<port>}");
-        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.Port.key(), "7001");
-        clientConfig.setProperty(props, restClientName, CommonClientConfigKey.EnableZoneAffinity.key(), "true");        
+        props.setProperty(restClientName + ".ribbon." + CommonClientConfigKey.AppName.key(), "movieservice");
+        props.setProperty(restClientName + ".ribbon." + CommonClientConfigKey.DeploymentContextBasedVipAddresses.key(), "${<appname>}-${netflix.appinfo.stack}-${netflix.environment}:${<port>},${<appname>}--${netflix.environment}:${<port>}");
+        props.setProperty(restClientName + ".ribbon." + CommonClientConfigKey.Port.key(), "7001");
+        props.setProperty(restClientName + ".ribbon." + CommonClientConfigKey.EnableZoneAffinity.key(), "true");
+
         ConfigurationManager.loadProperties(props);
-        
+
         clientConfig.loadProperties(restClientName);
-        
+
         Assert.assertEquals("movieservice", clientConfig.get(CommonClientConfigKey.AppName));
         Assert.assertEquals(true, clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
         
@@ -127,7 +121,7 @@ public class ClientConfigTest {
         assertEquals("movieservice-xbox-test:7001", clientConfig.get(CommonClientConfigKey.DeploymentContextBasedVipAddresses));
         
         ConfigurationManager.getConfigInstance().clearProperty("testRestClient2.ribbon.EnableZoneAffinity");
-        assertNull(clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
+        assertFalse(clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
     }
 
     @Test

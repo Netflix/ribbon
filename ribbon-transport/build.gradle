@@ -10,6 +10,7 @@ dependencies {
     compile "org.slf4j:slf4j-api:${slf4j_version}"
     compile "com.google.guava:guava:${guava_version}"
     testCompile 'junit:junit:4.11'
+    testCompile "org.slf4j:slf4j-log4j12:${slf4j_version}"
     testCompile "com.sun.jersey:jersey-server:${jersey_version}"
     testCompile 'com.google.mockwebserver:mockwebserver:20130706'
     testCompile project(':ribbon-eureka')

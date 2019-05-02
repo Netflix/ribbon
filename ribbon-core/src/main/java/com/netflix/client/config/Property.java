@@ -15,10 +15,13 @@ public interface Property<T> {
     void onChange(Consumer<T> consumer);
 
     /**
-     * @return Get the current value or default value
+     * @return Get the current value.  Can be null if no default value was defined
      */
     T get();
 
+    /**
+     * @return Return the value only if not set.  Will return Optional.empty() instead of default value if not set
+     */
     default Optional<T> getOptional() { return Optional.ofNullable(get()); }
 
     default Property<T> fallbackWith(Property<T> fallback) {
@@ -29,12 +32,17 @@ public interface Property<T> {
         return new Property<T>() {
             @Override
             public void onChange(Consumer<T> consumer) {
-
+                // It's a static property so no need to track the consumer
             }
 
             @Override
             public T get() {
                 return value;
+            }
+
+            @Override
+            public String toString( ){
+                return String.valueOf(value);
             }
         };
     }

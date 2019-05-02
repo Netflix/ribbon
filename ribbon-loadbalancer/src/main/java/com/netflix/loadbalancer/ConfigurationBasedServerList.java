@@ -64,4 +64,9 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 		}
         return list;
 	}
+
+	@Override
+	public String toString() {
+		return "ConfigurationBasedServerList:" + getUpdatedListOfServers();
+	}
 }

@@ -36,10 +36,12 @@ import com.netflix.ribbon.transport.netty.RibbonTransport;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
+import org.junit.Ignore;
 import org.junit.Test;
 import rx.functions.Action1;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -54,9 +56,13 @@ public class ListenerTest {
 
     @Test
     public void testFailedExecution() {
-        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues().withProperty(CommonClientConfigKey.ConnectTimeout, "100")
-                                            .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
-                                            .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
+        IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues()
+                .withProperty(CommonClientConfigKey.ConnectTimeout, "100")
+                .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
+                .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
+
+        System.out.println(config);
+
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
         Server badServer  = new Server("localhost:12345");
         Server badServer2 = new Server("localhost:34567");
@@ -128,7 +134,9 @@ public class ListenerTest {
     public void testSuccessExecution() throws IOException {
         MockWebServer server = new MockWebServer();
         String content = "OK";
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-type", "application/json")
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-type", "application/json")
                 .setBody(content));
         server.play();
 
@@ -137,21 +145,30 @@ public class ListenerTest {
                 .withProperty(CommonClientConfigKey.ConnectTimeout, "2000")
                 .withProperty(CommonClientConfigKey.MaxAutoRetries, 1)
                 .withProperty(CommonClientConfigKey.MaxAutoRetriesNextServer, 1);
-        
+
+        System.out.println(config);
+
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/person");
         Server badServer  = new Server("localhost:12345");
         Server goodServer = new Server("localhost:" + server.getPort());
         List<Server> servers = Lists.newArrayList(goodServer, badServer);
 
-        BaseLoadBalancer lb = LoadBalancerBuilder.<Server>newBuilder()
+        BaseLoadBalancer lb = LoadBalancerBuilder.newBuilder()
                 .withRule(new AvailabilityFilteringRule())
                 .withPing(new DummyPing())
                 .buildFixedServerListLoadBalancer(servers);
-        IClientConfig overrideConfig = DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.ConnectTimeout, 500);
-        TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<ByteBuf, ByteBuf>(request, overrideConfig);
-        List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>>newArrayList(listener);
+
+        IClientConfig overrideConfig = DefaultClientConfigImpl
+                .getEmptyConfig()
+                .set(CommonClientConfigKey.ConnectTimeout, 500);
+
+        TestExecutionListener<ByteBuf, ByteBuf> listener = new TestExecutionListener<>(request, overrideConfig);
+        List<ExecutionListener<HttpClientRequest<ByteBuf>, HttpClientResponse<ByteBuf>>> listeners = Lists.newArrayList(listener);
         LoadBalancingHttpClient<ByteBuf, ByteBuf> client = RibbonTransport.newHttpClient(lb, config, new NettyHttpLoadBalancerErrorHandler(config), listeners);
         HttpClientResponse<ByteBuf> response = client.submit(request, null, overrideConfig).toBlocking().last();
+
+        System.out.println(listener);
+
         assertEquals(200, response.getStatus().code());
         assertEquals(1, listener.executionStartCounter.get());
         assertEquals(3, listener.startWithServerCounter.get());
