@@ -28,19 +28,6 @@ public class DefaultClientConfigImplTest {
     }
 
     @Test
-    public void shouldThrowExceptionForIncorrectProperties() {
-        ConfigurationManager.getConfigInstance().setProperty("myclient.ribbon", "bar");
-        DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-        String message = "";
-        try {
-            config.loadProperties("myclient");
-        } catch (RuntimeException ex) {
-            message = ex.getMessage();
-        }
-        assertEquals("Property ribbon is invalid", message);
-    }
-    
-    @Test
     public void testNewType() {
         CommonClientConfigKey<Date> key = new CommonClientConfigKey<Date>("date") {};
         assertEquals(Date.class, key.type());
