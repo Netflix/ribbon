@@ -18,6 +18,7 @@
 package com.netflix.client.config;
 
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * Defines the client configuration used by various APIs to initialize clients or load balancers
@@ -46,6 +47,22 @@ public interface IClientConfig {
 	void loadDefaultValues();
 
 	Map<String, Object> getProperties();
+
+    /**
+     * Iterate all properties and report the default value only to the consumer
+     * @param consumer
+     */
+    default void forEachDefault(BiConsumer<IClientConfigKey<?>, Object> consumer) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Iterate all properties and report the final.  Can be null if a default value is not specified.
+     * @param consumer
+     */
+    default void forEach(BiConsumer<IClientConfigKey<?>, Object> consumer) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * @deprecated use {@link #set(IClientConfigKey, Object)} 

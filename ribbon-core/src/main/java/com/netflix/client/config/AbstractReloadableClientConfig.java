@@ -15,6 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -113,6 +114,16 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
 
         LOG.info(result.toString());
         return result;
+    }
+
+    @Override
+    public void forEachDefault(BiConsumer<IClientConfigKey<?>, Object> consumer) {
+        dynamicProperties.forEach((key, value) -> consumer.accept(key, defaultProperties.get(key.key())));
+    }
+
+    @Override
+    public void forEach(BiConsumer<IClientConfigKey<?>, Object> consumer) {
+        dynamicProperties.forEach((key, value) -> consumer.accept(key, value.get()));
     }
 
     /**
