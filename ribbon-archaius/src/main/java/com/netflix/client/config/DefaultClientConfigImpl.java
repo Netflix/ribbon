@@ -75,7 +75,7 @@ myclient.foo.ReadTimeout=1000
 public class DefaultClientConfigImpl extends AbstractReloadableClientConfig {
 
     @Deprecated
-    public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = Boolean.TRUE;
+    public static final Boolean DEFAULT_PRIORITIZE_VIP_ADDRESS_BASED_SERVERS = CommonClientConfigKey.PrioritizeVipAddressBasedServers.defaultValue();
 
     @Deprecated
     public static final String DEFAULT_NFLOADBALANCER_PING_CLASSNAME = CommonClientConfigKey.NFLoadBalancerPingClassName.defaultValue();
@@ -174,10 +174,10 @@ public class DefaultClientConfigImpl extends AbstractReloadableClientConfig {
     public static final String DEFAULT_SERVER_LIST_UPDATER_CLASS = CommonClientConfigKey.ServerListUpdaterClassName.defaultValue();
 
     @Deprecated
-    public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = 30000; // every half minute (30 secs)
+    public static final int DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS = CommonClientConfigKey.ConnectionCleanerRepeatInterval.defaultValue(); // every half minute (30 secs)
 
     @Deprecated
-    public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = 30000; // all connections idle for 30 secs
+    public static final int DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS = CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds.defaultValue(); // all connections idle for 30 secs
 
     private VipAddressResolver resolver = null;
 
@@ -186,16 +186,16 @@ public class DefaultClientConfigImpl extends AbstractReloadableClientConfig {
      * calls
      */
     @Deprecated
-    public static final int DEFAULT_POOL_MAX_THREADS = DEFAULT_MAX_TOTAL_HTTP_CONNECTIONS;
+    public static final int DEFAULT_POOL_MAX_THREADS = CommonClientConfigKey.MaxTotalHttpConnections.defaultValue();
 
     @Deprecated
-    public static final int DEFAULT_POOL_MIN_THREADS = 1;
+    public static final int DEFAULT_POOL_MIN_THREADS = CommonClientConfigKey.PoolMinThreads.defaultValue();
 
     @Deprecated
-    public static final long DEFAULT_POOL_KEEP_ALIVE_TIME = 15 * 60L;
+    public static final long DEFAULT_POOL_KEEP_ALIVE_TIME = CommonClientConfigKey.PoolKeepAliveTime.defaultValue();
 
     @Deprecated
-    public static final TimeUnit DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS = TimeUnit.SECONDS;
+    public static final TimeUnit DEFAULT_POOL_KEEP_ALIVE_TIME_UNITS = TimeUnit.valueOf(CommonClientConfigKey.PoolKeepAliveTimeUnits.defaultValue());
 
     @Deprecated
     public static final Boolean DEFAULT_ENABLE_ZONE_AFFINITY = CommonClientConfigKey.EnableZoneAffinity.defaultValue();
