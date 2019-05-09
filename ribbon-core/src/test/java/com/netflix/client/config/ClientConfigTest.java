@@ -154,5 +154,42 @@ public class ClientConfigTest {
 
         Assert.assertEquals(200, prop.get().intValue());
     }
+
+    static class CustomValueOf {
+        private final String value;
+
+        public static CustomValueOf valueOf(String value) {
+            return new CustomValueOf(value);
+        }
+
+        public CustomValueOf(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    public static IClientConfigKey<CustomValueOf> CUSTOM_KEY = new CommonClientConfigKey<CustomValueOf>("CustomValueOf", new CustomValueOf("default")) {};
+
+    @Test
+    public void testValueOfWithDefault() {
+        DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+
+        CustomValueOf prop = clientConfig.getOrDefault(CUSTOM_KEY);
+        Assert.assertEquals("default", prop.getValue());
+    }
+
+    @Test
+    public void testValueOf() {
+        ConfigurationManager.getConfigInstance().setProperty("testValueOf.ribbon.CustomValueOf", "value");
+
+        DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+        clientConfig.setClientName("testValueOf");
+
+        Property<CustomValueOf> prop = clientConfig.getDynamicProperty(CUSTOM_KEY);
+        Assert.assertEquals("value", prop.get().getValue());
+    }
 }
 

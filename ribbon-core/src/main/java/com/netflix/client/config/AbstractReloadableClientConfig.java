@@ -6,6 +6,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -250,15 +251,38 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
     /**
      * Returns the internal property to the desiredn type
      */
+    private static Map<Class<?>, Optional<Method>> valueOfMethods = new ConcurrentHashMap<>();
+
+    public static <T> Optional<T> resolveWithValueOf(Class<T> type, String value) {
+        return valueOfMethods.computeIfAbsent(type, ignore -> {
+            try {
+                return Optional.of(type.getDeclaredMethod("valueOf", String.class));
+            } catch (NoSuchMethodException e) {
+                return Optional.empty();
+            } catch (Exception e) {
+                LOG.warn("Unable to determine if type " + type + " has a valueOf() static method", e);
+                return Optional.empty();
+            }
+        }).map(method -> {
+            try {
+                return (T)method.invoke(null, value);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     protected <T> Optional<T> resolveDefaultProperty(IClientConfigKey<T> key) {
         return Optional.ofNullable(defaultProperties.get(key.key()))
                 .map(value -> {
-                    final Class type = key.type();
+                    final Class<T> type = key.type();
                     // Unfortunately there's some legacy code setting string values for typed keys.  Here are do our best to parse
                     // and store the typed value
                     if (!value.getClass().equals(type)) {
                         try {
-                            if (value.getClass().equals(String.class)) {
+                            if (type.equals(String.class)) {
+                                return (T) value.toString();
+                            } else if (value.getClass().equals(String.class)) {
                                 final String strValue = (String) value;
                                 if (Integer.class.equals(type)) {
                                     return (T) Integer.valueOf(strValue);
@@ -273,7 +297,8 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
                                 } else if (TimeUnit.class.equals(type)) {
                                     return (T) TimeUnit.valueOf(strValue);
                                 } else {
-                                    throw new IllegalArgumentException("Unsupported value type `" + type + "'");
+                                    return resolveWithValueOf(type, strValue)
+                                        .orElseThrow(() -> new IllegalArgumentException("Unsupported value type `" + type + "'"));
                                 }
                             } else {
                                 throw new IllegalArgumentException("Incompatible value type `" + value.getClass() + "` while expecting '" + type + "`");
