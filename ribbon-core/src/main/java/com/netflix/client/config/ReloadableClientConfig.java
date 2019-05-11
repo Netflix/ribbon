@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
  * Internally the config tracks two maps, one for dynamic properties and one for code settable default values to use
  * when a property is not defined in the underlying property source.
  */
-public abstract class AbstractReloadableClientConfig implements IClientConfig {
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractReloadableClientConfig.class);
+public abstract class ReloadableClientConfig implements IClientConfig {
+    private static final Logger LOG = LoggerFactory.getLogger(ReloadableClientConfig.class);
 
     private static final String DEFAULT_CLIENT_NAME = "";
     private static final String DEFAULT_NAMESPACE = "ribbon";
@@ -51,20 +51,25 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
 
     private final AtomicLong refreshCounter = new AtomicLong();
 
+    private final PropertyResolver resolver;
+
     private String clientName;
 
     private String namespace = DEFAULT_NAMESPACE;
 
     private boolean isDynamic;
 
-    public AbstractReloadableClientConfig() {
-        this(DEFAULT_CLIENT_NAME);
+    protected ReloadableClientConfig(PropertyResolver resolver) {
+        this(resolver, DEFAULT_CLIENT_NAME);
         this.isDynamic = false;
     }
 
-    public AbstractReloadableClientConfig(String clientName) {
+    protected ReloadableClientConfig(PropertyResolver resolver, String clientName) {
         this.clientName = clientName;
         this.isDynamic = true;
+        this.resolver = resolver;
+
+        resolver.onChange(this::reload);
     }
 
     /**
@@ -126,15 +131,6 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
     public void forEach(BiConsumer<IClientConfigKey<?>, Object> consumer) {
         dynamicProperties.forEach((key, value) -> consumer.accept(key, value.get()));
     }
-
-    /**
-     * Get a typed property value from the underlying storage mechanism.
-     * @param key
-     * @param type
-     * @param <T>
-     * @return Property value or null if not found
-     */
-    protected abstract <T> Optional<T> loadProperty(String key, Class<T> type);
 
     private <T> ReloadableProperty<T> createProperty(final Supplier<Optional<T>> valueSupplier, final Supplier<T> defaultValue, final boolean isDynamic) {
         Preconditions.checkNotNull(valueSupplier, "defaultValueSupplier cannot be null");
@@ -198,7 +194,7 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
         LOG.debug("Get global property {} default {}", key.key(), key.defaultValue());
 
         return createProperty(
-                () -> loadProperty(key.key(), key.type()),
+                () -> resolver.get(key.key(), key.type()),
                 key::defaultValue,
                 true);
     }
@@ -229,13 +225,13 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
     private <T> Optional<T> resolveFinalProperty(IClientConfigKey<T> key) {
         Optional<T> value;
         if (!StringUtils.isEmpty(clientName)) {
-            value = loadProperty(clientName + "." + getNameSpace() + "." + key.key(), key.type());
+            value = resolver.get(clientName + "." + getNameSpace() + "." + key.key(), key.type());
             if (value.isPresent()) {
                 return value;
             }
         }
 
-        value = loadProperty(getNameSpace() + "." + key.key(), key.type());
+        value = resolver.get(getNameSpace() + "." + key.key(), key.type());
         if (value.isPresent()) {
             return value;
         }
@@ -246,30 +242,6 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
         }
 
         return Optional.empty();
-    }
-
-    /**
-     * Returns the internal property to the desiredn type
-     */
-    private static Map<Class<?>, Optional<Method>> valueOfMethods = new ConcurrentHashMap<>();
-
-    public static <T> Optional<T> resolveWithValueOf(Class<T> type, String value) {
-        return valueOfMethods.computeIfAbsent(type, ignore -> {
-            try {
-                return Optional.of(type.getDeclaredMethod("valueOf", String.class));
-            } catch (NoSuchMethodException e) {
-                return Optional.empty();
-            } catch (Exception e) {
-                LOG.warn("Unable to determine if type " + type + " has a valueOf() static method", e);
-                return Optional.empty();
-            }
-        }).map(method -> {
-            try {
-                return (T)method.invoke(null, value);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
     }
 
     protected <T> Optional<T> resolveDefaultProperty(IClientConfigKey<T> key) {
@@ -297,7 +269,7 @@ public abstract class AbstractReloadableClientConfig implements IClientConfig {
                                 } else if (TimeUnit.class.equals(type)) {
                                     return (T) TimeUnit.valueOf(strValue);
                                 } else {
-                                    return resolveWithValueOf(type, strValue)
+                                    return PropertyResolver.resolveWithValueOf(type, strValue)
                                         .orElseThrow(() -> new IllegalArgumentException("Unsupported value type `" + type + "'"));
                                 }
                             } else {
