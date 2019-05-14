@@ -72,6 +72,10 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         resolver.onChange(this::reload);
     }
 
+    protected PropertyResolver getPropertyResolver() {
+        return this.resolver;
+    }
+
     /**
      * Refresh all seen properties from the underlying property storage
      */
