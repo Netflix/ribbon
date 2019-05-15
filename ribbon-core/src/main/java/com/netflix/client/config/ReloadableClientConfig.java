@@ -119,7 +119,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         Map<String, Object> result = new HashMap<>(dynamicProperties.size());
 
         dynamicProperties.forEach((key, prop) ->
-            prop.getOptional().ifPresent(value -> result.put(key.key(), value.toString()))
+            prop.get().ifPresent(value -> result.put(key.key(), String.valueOf(value)))
         );
 
         LOG.info(result.toString());
@@ -136,7 +136,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         dynamicProperties.forEach((key, value) -> consumer.accept(key, value.get()));
     }
 
-    private <T> ReloadableProperty<T> createProperty(final Supplier<Optional<T>> valueSupplier, final Supplier<T> defaultValue, final boolean isDynamic) {
+    private <T> ReloadableProperty<T> createProperty(final Supplier<Optional<T>> valueSupplier, final Supplier<T> defaultSupplier, final boolean isDynamic) {
         Preconditions.checkNotNull(valueSupplier, "defaultValueSupplier cannot be null");
 
         return new ReloadableProperty<T>() {
@@ -151,24 +151,24 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
             @Override
             public void onChange(Consumer<T> consumer) {
-                final AtomicReference<Optional<T>> previous = new AtomicReference<>(getOptional());
+                final AtomicReference<Optional<T>> previous = new AtomicReference<>(get());
                 changeActions.add(() -> {
-                    Optional<T> current = getOptional();
+                    Optional<T> current = get();
                     if (!current.equals(Optional.ofNullable(previous.get()))) {
                         previous.set(current);
-                        consumer.accept(current.orElseGet(defaultValue));
+                        consumer.accept(current.orElseGet(defaultSupplier::get));
                     }
                 });
             }
 
             @Override
-            public T get() {
-                return value.orElseGet(defaultValue);
+            public Optional<T> get() {
+                return value;
             }
 
             @Override
-            public Optional<T> getOptional() {
-                return value;
+            public T getOrDefault() {
+                return value.orElse(defaultSupplier.get());
             }
 
             @Override
@@ -186,7 +186,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> T get(IClientConfigKey<T> key) {
-        return (T)Optional.ofNullable(getInternal(key)).flatMap(Property::getOptional).orElse(null);
+        return getInternal(key).get().orElse(null);
     }
 
     public final <T> ReloadableProperty<T> getInternal(IClientConfigKey<T> key) {
@@ -277,7 +277,8 @@ public abstract class ReloadableClientConfig implements IClientConfig {
                                         .orElseThrow(() -> new IllegalArgumentException("Unsupported value type `" + type + "'"));
                                 }
                             } else {
-                                throw new IllegalArgumentException("Incompatible value type `" + value.getClass() + "` while expecting '" + type + "`");
+                                return PropertyResolver.resolveWithValueOf(type, value.toString())
+                                        .orElseThrow(() -> new IllegalArgumentException("Incompatible value type `" + value.getClass() + "` while expecting '" + type + "`"));
                             }
                         } catch (Exception e) {
                             throw new IllegalArgumentException("Error parsing value '" + value + "' for '" + key.key() + "'", e);
@@ -330,7 +331,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     @Override
     @Deprecated
     public Object getProperty(IClientConfigKey key, Object defaultVal) {
-        return Optional.ofNullable(getInternal(key).get()).orElse(defaultVal);
+        return getInternal(key).get().orElse(defaultVal);
     }
 
     @Override
@@ -388,13 +389,13 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     private String generateToString() {
         return "ClientConfig:" + dynamicProperties.entrySet().stream()
-                    .map((t) -> {
+                    .map(t -> {
                         if (t.getKey().key().endsWith("Password")) {
                             return t.getKey() + ":***";
                         }
-                        Object value = t.getValue().get();
+                        Optional value = t.getValue().get();
                         Object defaultValue = t.getKey().defaultValue();
-                        return t.getKey() + ":" + MoreObjects.firstNonNull(value, defaultValue);
+                        return t.getKey() + ":" + value.orElse(defaultValue);
                     })
                 .collect(Collectors.joining(", "));
     }

@@ -1,5 +1,6 @@
 package com.netflix.client.config;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public final class FallbackProperty<T> implements Property<T> {
@@ -13,13 +14,22 @@ public final class FallbackProperty<T> implements Property<T> {
 
     @Override
     public void onChange(Consumer<T> consumer) {
-        primary.onChange(ignore -> consumer.accept(get()));
-        fallback.onChange(ignore -> consumer.accept(get()));
+        primary.onChange(ignore -> consumer.accept(getOrDefault()));
+        fallback.onChange(ignore -> consumer.accept(getOrDefault()));
     }
 
     @Override
-    public T get() {
-        return primary.getOptional().orElseGet(fallback::get);
+    public Optional<T> get() {
+        Optional<T> value = primary.get();
+        if (value.isPresent()) {
+            return value;
+        }
+        return fallback.get();
+    }
+
+    @Override
+    public T getOrDefault() {
+        return primary.get().orElseGet(fallback::getOrDefault);
     }
 
     @Override

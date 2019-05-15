@@ -79,7 +79,7 @@ public class ZoneAffinityServerListFilter<T extends Server> extends
     public void initWithNiwsConfig(IClientConfig niwsClientConfig) {
         zoneAffinity = niwsClientConfig.getOrDefault(CommonClientConfigKey.EnableZoneAffinity);
         zoneExclusive = niwsClientConfig.getOrDefault(CommonClientConfigKey.EnableZoneExclusivity);
-        zone = niwsClientConfig.getGlobalProperty(ZONE).get();
+        zone = niwsClientConfig.getGlobalProperty(ZONE).getOrDefault();
         zoneAffinityPredicate = new ZoneAffinityPredicate(zone);
 
         activeReqeustsPerServerThreshold = niwsClientConfig.getDynamicProperty(MAX_LOAD_PER_SERVER);
@@ -107,9 +107,9 @@ public class ZoneAffinityServerListFilter<T extends Server> extends
             double loadPerServer = snapshot.getLoadPerServer();
             int instanceCount = snapshot.getInstanceCount();            
             int circuitBreakerTrippedCount = snapshot.getCircuitTrippedCount();
-            if (((double) circuitBreakerTrippedCount) / instanceCount >= blackOutServerPercentageThreshold.get() 
-                    || loadPerServer >= activeReqeustsPerServerThreshold.get()
-                    || (instanceCount - circuitBreakerTrippedCount) < availableServersThreshold.get()) {
+            if (((double) circuitBreakerTrippedCount) / instanceCount >= blackOutServerPercentageThreshold.getOrDefault()
+                    || loadPerServer >= activeReqeustsPerServerThreshold.getOrDefault()
+                    || (instanceCount - circuitBreakerTrippedCount) < availableServersThreshold.getOrDefault()) {
                 logger.debug("zoneAffinity is overriden. blackOutServerPercentage: {}, activeReqeustsPerServer: {}, availableServers: {}", 
                         new Object[] {(double) circuitBreakerTrippedCount / instanceCount,  loadPerServer, instanceCount - circuitBreakerTrippedCount});
                 return false;

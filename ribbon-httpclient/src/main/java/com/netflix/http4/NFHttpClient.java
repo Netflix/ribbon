@@ -158,8 +158,8 @@ public class NFHttpClient extends DefaultHttpClient {
 
 		this.sleepTimeFactorMsProperty = config.getGlobalProperty(SLEEP_TIME_FACTOR_MS.format(name));
 		setHttpRequestRetryHandler(
-				new NFHttpMethodRetryHandler(this.name, this.retriesProperty.get(), false,
-						this.sleepTimeFactorMsProperty.get()));
+				new NFHttpMethodRetryHandler(this.name, this.retriesProperty.getOrDefault(), false,
+						this.sleepTimeFactorMsProperty.getOrDefault()));
 	    tracer = Monitors.newTimer(EXECUTE_TRACER + "-" + name, TimeUnit.MILLISECONDS);
 	    if (registerMonitor) {
             Monitors.registerObject(name, this);
@@ -233,7 +233,7 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	@Monitor(name = "HttpClient-NumRetries", type = DataSourceType.INFORMATIONAL)
 	public int getNumRetries() {
-		return this.retriesProperty.get();
+		return this.retriesProperty.getOrDefault();
 	}
 
 	public void setConnIdleEvictTimeMilliSeconds(Property<Integer> connIdleEvictTimeMilliSeconds) {
@@ -242,7 +242,7 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	@Monitor(name = "HttpClient-SleepTimeFactorMs", type = DataSourceType.INFORMATIONAL)
 	public int getSleepTimeFactorMs() {
-		return this.sleepTimeFactorMsProperty.get();
+		return this.sleepTimeFactorMsProperty.getOrDefault();
 	}
 
 	// copied from httpclient source code

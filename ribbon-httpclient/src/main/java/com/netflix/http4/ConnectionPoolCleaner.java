@@ -110,7 +110,7 @@ public class ConnectionPoolCleaner {
     
     void cleanupConnections(){
         connMgr.closeExpiredConnections();
-        connMgr.closeIdleConnections(connIdleEvictTimeMilliSeconds.get(), TimeUnit.MILLISECONDS);       
+        connMgr.closeIdleConnections(connIdleEvictTimeMilliSeconds.getOrDefault(), TimeUnit.MILLISECONDS);
     }
     
     public void shutdown() {

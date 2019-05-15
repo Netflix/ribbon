@@ -139,7 +139,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         
     @Override
     public Server chooseServer(Object key) {
-        if (!enabled.get() || getLoadBalancerStats().getAvailableZones().size() <= 1) {
+        if (!enabled.getOrDefault() || getLoadBalancerStats().getAvailableZones().size() <= 1) {
             logger.debug("Zone aware logic disabled or there is only one zone");
             return super.chooseServer(key);
         }
@@ -148,7 +148,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
             LoadBalancerStats lbStats = getLoadBalancerStats();
             Map<String, ZoneSnapshot> zoneSnapshot = ZoneAvoidanceRule.createSnapshot(lbStats);
             logger.debug("Zone snapshots: {}", zoneSnapshot);
-            Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.get(), triggeringBlackoutPercentage.get());
+            Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.getOrDefault(), triggeringBlackoutPercentage.getOrDefault());
             logger.debug("Available zones: {}", availableZones);
             if (availableZones != null &&  availableZones.size() < zoneSnapshot.keySet().size()) {
                 String zone = ZoneAvoidanceRule.randomChooseZone(zoneSnapshot, availableZones);
