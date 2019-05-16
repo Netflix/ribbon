@@ -4,7 +4,7 @@ public class UnboxedIntProperty {
     private volatile int value;
 
     public UnboxedIntProperty(Property<Integer> delegate) {
-        this.value = delegate.get();
+        this.value = delegate.getOrDefault();
 
         delegate.onChange(newValue -> this.value = newValue);
     }

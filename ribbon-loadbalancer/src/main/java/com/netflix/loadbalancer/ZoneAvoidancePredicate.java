@@ -78,7 +78,7 @@ public class ZoneAvoidancePredicate extends AbstractServerPredicate {
 
     @Override
     public boolean apply(@Nullable PredicateKey input) {
-        if (!enabled.get()) {
+        if (!enabled.getOrDefault()) {
             return true;
         }
         String serverZone = input.getServer().getZone();
@@ -102,7 +102,7 @@ public class ZoneAvoidancePredicate extends AbstractServerPredicate {
             return true;
         }
         logger.debug("Zone snapshots: {}", zoneSnapshot);
-        Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.get(), triggeringBlackoutPercentage.get());
+        Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.getOrDefault(), triggeringBlackoutPercentage.getOrDefault());
         logger.debug("Available zones: {}", availableZones);
         if (availableZones != null) {
             return availableZones.contains(input.getServer().getZone());

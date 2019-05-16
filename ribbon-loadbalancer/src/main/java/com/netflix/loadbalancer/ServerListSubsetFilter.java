@@ -111,17 +111,17 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
             } else {
                 ServerStats stats = lbStats.getSingleServerStat(server);
                 // remove the servers that do not meet health criteria
-                if (stats.getActiveRequestsCount() > eliminationConnectionCountThreshold.get()
-                        || stats.getFailureCount() > eliminationFailureCountThreshold.get()) {
+                if (stats.getActiveRequestsCount() > eliminationConnectionCountThreshold.getOrDefault()
+                        || stats.getFailureCount() > eliminationFailureCountThreshold.getOrDefault()) {
                     newSubSet.remove(server);
                     // also remove from the general pool to avoid selecting them again
                     candidates.remove(server);
                 }
             }
         }
-        int targetedListSize = sizeProp.get();
+        int targetedListSize = sizeProp.getOrDefault();
         int numEliminated = currentSubset.size() - newSubSet.size();
-        int minElimination = (int) (targetedListSize * eliminationPercent.get());
+        int minElimination = (int) (targetedListSize * eliminationPercent.getOrDefault());
         int numToForceEliminate = 0;
         if (targetedListSize < newSubSet.size()) {
             // size is shrinking

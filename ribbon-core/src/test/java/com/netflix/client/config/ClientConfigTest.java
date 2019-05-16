@@ -130,7 +130,7 @@ public class ClientConfigTest {
         Property<Integer> prop = clientConfig.getGlobalProperty(INTEGER_PROPERTY.format(testName.getMethodName()))
                 .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_INTEGER_PROPERTY));
 
-        Assert.assertEquals(30, prop.get().intValue());
+        Assert.assertEquals(30, prop.getOrDefault().intValue());
     }
 
     @Test
@@ -140,7 +140,7 @@ public class ClientConfigTest {
         Property<Integer> prop = clientConfig.getGlobalProperty(INTEGER_PROPERTY.format(testName.getMethodName()))
                 .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_INTEGER_PROPERTY));
 
-        Assert.assertEquals(100, prop.get().intValue());
+        Assert.assertEquals(100, prop.getOrDefault().intValue());
     }
 
     @Test
@@ -152,7 +152,7 @@ public class ClientConfigTest {
         Property<Integer> prop = clientConfig.getGlobalProperty(INTEGER_PROPERTY.format(testName.getMethodName()))
                 .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_INTEGER_PROPERTY));
 
-        Assert.assertEquals(200, prop.get().intValue());
+        Assert.assertEquals(200, prop.getOrDefault().intValue());
     }
 
     static class CustomValueOf {
@@ -189,7 +189,7 @@ public class ClientConfigTest {
         clientConfig.setClientName("testValueOf");
 
         Property<CustomValueOf> prop = clientConfig.getDynamicProperty(CUSTOM_KEY);
-        Assert.assertEquals("value", prop.get().getValue());
+        Assert.assertEquals("value", prop.getOrDefault().getValue());
     }
 }
 

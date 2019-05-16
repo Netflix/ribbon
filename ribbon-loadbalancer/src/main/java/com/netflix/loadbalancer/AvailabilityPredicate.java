@@ -70,9 +70,9 @@ public class AvailabilityPredicate extends  AbstractServerPredicate {
     }
 
     private int getActiveConnectionsLimit() {
-        Integer limit = activeConnectionsLimit.get();
+        Integer limit = activeConnectionsLimit.getOrDefault();
         if (limit == -1) {
-            limit = defaultActiveConnectionsLimit.get();
+            limit = defaultActiveConnectionsLimit.getOrDefault();
             if (limit == -1) {
                 limit = Integer.MAX_VALUE;
             }
@@ -90,7 +90,7 @@ public class AvailabilityPredicate extends  AbstractServerPredicate {
     }
     
     private boolean shouldSkipServer(ServerStats stats) {
-        if ((circuitBreakerFiltering.get() && stats.isCircuitBreakerTripped())
+        if ((circuitBreakerFiltering.getOrDefault() && stats.isCircuitBreakerTripped())
                 || stats.getActiveRequestsCount() >= getActiveConnectionsLimit()) {
             return true;
         }
