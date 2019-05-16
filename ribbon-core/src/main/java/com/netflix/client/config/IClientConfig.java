@@ -18,6 +18,7 @@
 package com.netflix.client.config;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 /**
@@ -82,6 +83,9 @@ public interface IClientConfig {
     @Deprecated
 	Object getProperty(IClientConfigKey key, Object defaultVal);
 
+    /**
+     * @deprecated use {@link #getIfSet(IClientConfigKey)}
+     */
     @Deprecated
 	boolean containsProperty(IClientConfigKey key);
 	
@@ -128,6 +132,16 @@ public interface IClientConfig {
      */
     default <T> T getOrDefault(IClientConfigKey<T> key) {
         return get(key, key.defaultValue());
+    }
+
+    /**
+     * Return a typed property if and only if it was explicitly set, skipping configuration loading.
+     * @param key
+     * @param <T>
+     * @return
+     */
+    default <T> Optional<T> getIfSet(IClientConfigKey<T> key) {
+        return Optional.ofNullable(get(key));
     }
 
     /**
