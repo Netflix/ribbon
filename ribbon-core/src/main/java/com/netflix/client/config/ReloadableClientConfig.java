@@ -240,7 +240,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
             return value;
         }
 
-        value = resolveDefaultProperty(key);
+        value = getIfSet(key);
         if (value.isPresent()) {
             return value;
         }
@@ -248,7 +248,8 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         return Optional.empty();
     }
 
-    protected <T> Optional<T> resolveDefaultProperty(IClientConfigKey<T> key) {
+    @Override
+    public <T> Optional<T> getIfSet(IClientConfigKey<T> key) {
         return Optional.ofNullable(defaultProperties.get(key.key()))
                 .map(value -> {
                     final Class<T> type = key.type();
