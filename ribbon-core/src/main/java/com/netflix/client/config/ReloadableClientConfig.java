@@ -6,6 +6,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
@@ -292,6 +293,40 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     @Override
     public final <T> Property<T> getDynamicProperty(IClientConfigKey<T> key) {
         return getClientDynamicProperty(key, true);
+    }
+
+    @Override
+    public <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
+        return createProperty(
+                getPrefixedMapPropertySupplier(key),
+                key::defaultValue,
+                isDynamic);
+    }
+
+    private <T> Supplier<Optional<T>> getPrefixedMapPropertySupplier(IClientConfigKey<T> key) {
+        final Method method;
+        try {
+            method = key.type().getDeclaredMethod("valueOf", Map.class);
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOperationException("Class '" + key.type().getName() + "' must have static method valueOf(Map<String, String>)", e);
+        }
+
+        return () -> {
+            final Map<String, String> values = new HashMap<>();
+
+            resolver.forEach(getNameSpace() + "." + key.key(), values::put);
+
+            if (!StringUtils.isEmpty(clientName)) {
+                resolver.forEach(clientName + "." + getNameSpace() + "." + key.key(), values::put);
+            }
+
+            try {
+                return Optional.ofNullable((T)method.invoke(null, values));
+            } catch (Exception e) {
+                LOG.warn("Unable to map value for '{}'", key.key(), e);
+                return Optional.empty();
+            }
+        };
     }
 
     @Override
