@@ -58,7 +58,7 @@ public interface IClientConfig {
     }
 
     /**
-     * Iterate all properties and report the final.  Can be null if a default value is not specified.
+     * Iterate all properties and report the final value.  Can be null if a default value is not specified.
      * @param consumer
      */
     default void forEach(BiConsumer<IClientConfigKey<?>, Object> consumer) {
@@ -154,6 +154,14 @@ public interface IClientConfig {
      * @return Return a dynamic property scoped to the client name or namespace.
      */
     <T> Property<T> getDynamicProperty(IClientConfigKey<T> key);
+
+    /**
+     * @return Return a dynamically updated property that is a mapping of all properties prefixed by the key name to an
+     * object with static method valueOf(Map{@literal <}String, String{@literal >})
+     */
+    default <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Returns a typed property. If the property of IClientConfigKey is not set, 

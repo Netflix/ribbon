@@ -1,6 +1,7 @@
 package com.netflix.client.config;
 
 import com.netflix.config.ConfigurationManager;
+import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.event.ConfigurationEvent;
 import org.apache.commons.configuration.event.ConfigurationListener;
 import org.slf4j.Logger;
@@ -9,31 +10,37 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class ArchaiusPropertyResolver implements PropertyResolver {
     private static final Logger LOG = LoggerFactory.getLogger(ArchaiusPropertyResolver.class);
 
     public static final ArchaiusPropertyResolver INSTANCE = new ArchaiusPropertyResolver();
+    private final AbstractConfiguration config;
+
+    private ArchaiusPropertyResolver() {
+        this.config = ConfigurationManager.getConfigInstance();
+    }
 
     @Override
     public <T> Optional<T> get(String key, Class<T> type) {
         LOG.debug("Loading property {}", key);
 
         if (Integer.class.equals(type)) {
-            return Optional.ofNullable((T) ConfigurationManager.getConfigInstance().getInteger(key, null));
+            return Optional.ofNullable((T) config.getInteger(key, null));
         } else if (Boolean.class.equals(type)) {
-            return Optional.ofNullable((T) ConfigurationManager.getConfigInstance().getBoolean(key, null));
+            return Optional.ofNullable((T) config.getBoolean(key, null));
         } else if (Float.class.equals(type)) {
-            return Optional.ofNullable((T) ConfigurationManager.getConfigInstance().getFloat(key, null));
+            return Optional.ofNullable((T) config.getFloat(key, null));
         } else if (Long.class.equals(type)) {
-            return Optional.ofNullable((T) ConfigurationManager.getConfigInstance().getLong(key, null));
+            return Optional.ofNullable((T) config.getLong(key, null));
         } else if (Double.class.equals(type)) {
-            return Optional.ofNullable((T) ConfigurationManager.getConfigInstance().getDouble(key, null));
+            return Optional.ofNullable((T) config.getDouble(key, null));
         } else if (TimeUnit.class.equals(type)) {
-            return Optional.ofNullable((T) TimeUnit.valueOf(ConfigurationManager.getConfigInstance().getString(key, null)));
+            return Optional.ofNullable((T) TimeUnit.valueOf(config.getString(key, null)));
         } else {
-            return Optional.ofNullable(ConfigurationManager.getConfigInstance().getStringArray(key))
+            return Optional.ofNullable(config.getStringArray(key))
                     .filter(ar -> ar.length > 0)
                     .map(ar -> Arrays.stream(ar).collect(Collectors.joining(",")))
                     .map(value -> {
@@ -45,6 +52,17 @@ public class ArchaiusPropertyResolver implements PropertyResolver {
                         }
                     });
         }    }
+
+    @Override
+    public void forEach(String prefix, BiConsumer<String, String> consumer) {
+        Optional.ofNullable(config.subset(prefix))
+                .ifPresent(subconfig -> {
+                    subconfig.getKeys().forEachRemaining(key -> {
+                        String value = config.getString(prefix + "." + key);
+                        consumer.accept(key, value);
+                    });
+                });
+    }
 
     @Override
     public void onChange(Runnable action) {
