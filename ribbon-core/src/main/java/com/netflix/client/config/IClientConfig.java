@@ -156,6 +156,13 @@ public interface IClientConfig {
     <T> Property<T> getDynamicProperty(IClientConfigKey<T> key);
 
     /**
+     * @return Get a property that is only scoped to this client.
+     */
+    default <T> Property<T> getScopedProperty(IClientConfigKey<T> key) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * @return Return a dynamically updated property that is a mapping of all properties prefixed by the key name to an
      * object with static method valueOf(Map{@literal <}String, String{@literal >})
      */

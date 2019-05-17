@@ -198,10 +198,10 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     public final <T> Property<T> getGlobalProperty(IClientConfigKey<T> key) {
         LOG.debug("Get global property {} default {}", key.key(), key.defaultValue());
 
-        return createProperty(
+        return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
                 () -> resolver.get(key.key(), key.type()),
                 key::defaultValue,
-                true);
+                true));
     }
 
     interface ReloadableProperty<T> extends Property<T> {
@@ -241,12 +241,16 @@ public abstract class ReloadableClientConfig implements IClientConfig {
             return value;
         }
 
-        value = getIfSet(key);
+        return getIfSet(key);
+    }
+
+    private <T> Optional<T> resolverScopedProperty(IClientConfigKey<T> key) {
+        Optional<T> value = resolver.get(clientName + "." + getNameSpace() + "." + key.key(), key.type());
         if (value.isPresent()) {
             return value;
         }
 
-        return Optional.empty();
+        return getIfSet(key);
     }
 
     @Override
@@ -297,11 +301,19 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     }
 
     @Override
+    public <T> Property<T> getScopedProperty(IClientConfigKey<T> key) {
+        return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
+                () -> resolverScopedProperty(key),
+                key::defaultValue,
+                isDynamic));
+    }
+
+    @Override
     public <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
-        return createProperty(
+        return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
                 getPrefixedMapPropertySupplier(key),
                 key::defaultValue,
-                isDynamic);
+                isDynamic));
     }
 
     private <T> Supplier<Optional<T>> getPrefixedMapPropertySupplier(IClientConfigKey<T> key) {

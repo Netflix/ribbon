@@ -191,5 +191,17 @@ public class ClientConfigTest {
         Property<CustomValueOf> prop = clientConfig.getDynamicProperty(CUSTOM_KEY);
         Assert.assertEquals("value", prop.getOrDefault().getValue());
     }
+
+    @Test
+    public void testScopedProperty() {
+        ConfigurationManager.getConfigInstance().setProperty("ribbon.foo.ScopePropertyTimeout", "2000");
+        ConfigurationManager.getConfigInstance().setProperty("testScopedProperty.ribbon.foo.ScopePropertyTimeout", "1000");
+
+        DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+        clientConfig.setClientName("testScopedProperty");
+
+        Property<Integer> prop = clientConfig.getScopedProperty(new CommonClientConfigKey<Integer>("foo.ScopePropertyTimeout", 0) {});
+        Assert.assertEquals(1000, prop.get().get().intValue());
+    }
 }
 
