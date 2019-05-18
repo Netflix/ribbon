@@ -158,16 +158,6 @@ public abstract class AbstractDefaultClientConfigImpl extends ReloadableClientCo
         super(resolver, clientName);
     }
 
-    /**
-     * Load properties for a given client. It first loads the default values for all properties,
-     * and any properties already defined with Archaius ConfigurationManager.
-     */
-    @Override
-    public void loadProperties(String restClientName) {
-        setClientName(restClientName);
-        loadDefaultValues();
-    }
-
     public void setVipAddressResolver(VipAddressResolver resolver) {
         this.vipResolver = resolver;
     }
