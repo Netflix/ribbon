@@ -108,11 +108,13 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     public void loadProperties(String clientName) {
         this.isDynamic = true;
         this.clientName = clientName;
+        loadDefaultValues();
     }
 
     @Override
     public void loadDefaultValues() {
-        isDynamic = true;
+        this.isDynamic = true;
+        reload();
     }
 
     @Override
@@ -134,7 +136,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public void forEach(BiConsumer<IClientConfigKey<?>, Object> consumer) {
-        dynamicProperties.forEach((key, value) -> consumer.accept(key, value.get()));
+        dynamicProperties.forEach((key, value) -> consumer.accept(key, value.get().orElse(null)));
     }
 
     private <T> ReloadableProperty<T> createProperty(final Supplier<Optional<T>> valueSupplier, final Supplier<T> defaultSupplier, final boolean isDynamic) {
@@ -373,7 +375,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     @Override
     @Deprecated
     public Object getProperty(IClientConfigKey key) {
-        return getInternal(key).get();
+        return getInternal(key).get().orElse(null);
     }
 
     @Override
