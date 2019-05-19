@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -18,9 +19,27 @@ public class ArchaiusPropertyResolver implements PropertyResolver {
 
     public static final ArchaiusPropertyResolver INSTANCE = new ArchaiusPropertyResolver();
     private final AbstractConfiguration config;
+    private final CopyOnWriteArrayList<Runnable> actions = new CopyOnWriteArrayList<>();
 
     private ArchaiusPropertyResolver() {
         this.config = ConfigurationManager.getConfigInstance();
+
+        ConfigurationManager.getConfigInstance().addConfigurationListener(new ConfigurationListener() {
+            @Override
+            public void configurationChanged(ConfigurationEvent event) {
+                if (!event.isBeforeUpdate()) {
+                    actions.forEach(ArchaiusPropertyResolver::invokeAction);
+                }
+            }
+        });
+    }
+
+    private static void invokeAction(Runnable action) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            LOG.info("Failed to invoke action", e);
+        }
     }
 
     @Override
@@ -66,13 +85,10 @@ public class ArchaiusPropertyResolver implements PropertyResolver {
 
     @Override
     public void onChange(Runnable action) {
-        ConfigurationManager.getConfigInstance().addConfigurationListener(new ConfigurationListener() {
-            @Override
-            public void configurationChanged(ConfigurationEvent event) {
-                if (!event.isBeforeUpdate()) {
-                    action.run();
-                }
-            }
-        });
+        actions.add(action);
+    }
+
+    public int getActionCount() {
+        return actions.size();
     }
 }
