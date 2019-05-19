@@ -1,13 +1,12 @@
 package com.netflix.client.config;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     private static final String DEFAULT_NAMESPACE = "ribbon";
 
     // Map of raw property names (without namespace or client) to values set via code
-    private final Map<String, Object> defaultProperties = new HashMap<>();
+    private final Map<String, Object> internalProperties = new HashMap<>();
 
     // Map of all seen dynamic properties.  This map will hold on properties requested with the exception of
     // those returned from getGlobalProperty().
@@ -60,17 +59,18 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     private boolean isDynamic;
 
+    private boolean isLoaded = false;
+
     protected ReloadableClientConfig(PropertyResolver resolver) {
-        this(resolver, DEFAULT_CLIENT_NAME);
+        this.clientName = DEFAULT_CLIENT_NAME;
         this.isDynamic = false;
+        this.resolver = resolver;
     }
 
     protected ReloadableClientConfig(PropertyResolver resolver, String clientName) {
         this.clientName = clientName;
         this.isDynamic = true;
         this.resolver = resolver;
-
-        resolver.onChange(this::reload);
     }
 
     protected PropertyResolver getPropertyResolver() {
@@ -85,6 +85,10 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         cachedToString = null;
     }
 
+    /**
+     * @deprecated Use {@link #loadProperties(String)}
+     */
+    @Deprecated
     public void setClientName(String clientName){
         this.clientName  = clientName;
     }
@@ -106,6 +110,12 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public void loadProperties(String clientName) {
+        Preconditions.checkState(isLoaded == false, "Config '{}' can only be loaded once", clientName);
+        if (!isLoaded) {
+            this.isLoaded = true;
+            resolver.onChange(this::reload);
+        }
+
         this.isDynamic = true;
         this.clientName = clientName;
         loadDefaultValues();
@@ -119,19 +129,12 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final Map<String, Object> getProperties() {
-        Map<String, Object> result = new HashMap<>(dynamicProperties.size());
-
-        dynamicProperties.forEach((key, prop) ->
-            prop.get().ifPresent(value -> result.put(key.key(), String.valueOf(value)))
-        );
-
-        LOG.info(result.toString());
-        return result;
+        return Collections.unmodifiableMap(internalProperties);
     }
 
     @Override
     public void forEachDefault(BiConsumer<IClientConfigKey<?>, Object> consumer) {
-        dynamicProperties.forEach((key, value) -> consumer.accept(key, defaultProperties.get(key.key())));
+        dynamicProperties.forEach((key, value) -> consumer.accept(key, internalProperties.get(key.key())));
     }
 
     @Override
@@ -139,7 +142,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         dynamicProperties.forEach((key, value) -> consumer.accept(key, value.get().orElse(null)));
     }
 
-    private <T> ReloadableProperty<T> createProperty(final Supplier<Optional<T>> valueSupplier, final Supplier<T> defaultSupplier, final boolean isDynamic) {
+    private <T> ReloadableProperty<T> createProperty(final Supplier<Optional<T>> valueSupplier, final Supplier<T> defaultSupplier) {
         Preconditions.checkNotNull(valueSupplier, "defaultValueSupplier cannot be null");
 
         return new ReloadableProperty<T>() {
@@ -189,11 +192,15 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> T get(IClientConfigKey<T> key) {
-        return getInternal(key).get().orElse(null);
+        if (isLoaded) {
+            return getOrCreateProperty(key).get().orElse(null);
+        } else {
+            return getIfSet(key).orElse(null);
+        }
     }
 
-    public final <T> ReloadableProperty<T> getInternal(IClientConfigKey<T> key) {
-        return (ReloadableProperty<T>)dynamicProperties.computeIfAbsent(key, ignore -> getClientDynamicProperty(key, isDynamic));
+    private final <T> ReloadableProperty<T> getOrCreateProperty(IClientConfigKey<T> key) {
+        return (ReloadableProperty<T>) dynamicProperties.computeIfAbsent(key, ignore -> getClientDynamicProperty(key));
     }
 
     @Override
@@ -202,21 +209,19 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
         return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
                 () -> resolver.get(key.key(), key.type()),
-                key::defaultValue,
-                true));
+                key::defaultValue));
     }
 
     interface ReloadableProperty<T> extends Property<T> {
         void refresh();
     }
 
-    private <T> ReloadableProperty<T> getClientDynamicProperty(IClientConfigKey<T> key, boolean isDynamic) {
+    private <T> ReloadableProperty<T> getClientDynamicProperty(IClientConfigKey<T> key) {
         LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
 
         return createProperty(
                 () -> resolveFinalProperty(key),
-                key::defaultValue,
-                isDynamic);
+                key::defaultValue);
     }
 
     /**
@@ -257,7 +262,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public <T> Optional<T> getIfSet(IClientConfigKey<T> key) {
-        return Optional.ofNullable(defaultProperties.get(key.key()))
+        return Optional.ofNullable(internalProperties.get(key.key()))
                 .map(value -> {
                     final Class<T> type = key.type();
                     // Unfortunately there's some legacy code setting string values for typed keys.  Here are do our best to parse
@@ -299,23 +304,21 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> Property<T> getDynamicProperty(IClientConfigKey<T> key) {
-        return getClientDynamicProperty(key, true);
+        return getClientDynamicProperty(key);
     }
 
     @Override
     public <T> Property<T> getScopedProperty(IClientConfigKey<T> key) {
         return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
                 () -> resolverScopedProperty(key),
-                key::defaultValue,
-                isDynamic));
+                key::defaultValue));
     }
 
     @Override
     public <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
         return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
                 getPrefixedMapPropertySupplier(key),
-                key::defaultValue,
-                isDynamic));
+                key::defaultValue));
     }
 
     private <T> Supplier<Optional<T>> getPrefixedMapPropertySupplier(IClientConfigKey<T> key) {
@@ -354,12 +357,14 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         Preconditions.checkArgument(key != null, "key cannot be null");
         // Treat nulls as deletes
         if (value == null) {
-            defaultProperties.remove(key.key());
+            internalProperties.remove(key.key());
         } else {
-            defaultProperties.put(key.key(), value);
+            internalProperties.put(key.key(), value);
         }
 
-        getInternal(key).refresh();
+        if (isLoaded) {
+            getOrCreateProperty(key).refresh();
+        }
         cachedToString = null;
 
         return this;
@@ -375,13 +380,13 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     @Override
     @Deprecated
     public Object getProperty(IClientConfigKey key) {
-        return getInternal(key).get().orElse(null);
+        return get(key);
     }
 
     @Override
     @Deprecated
     public Object getProperty(IClientConfigKey key, Object defaultVal) {
-        return getInternal(key).get().orElse(defaultVal);
+        return getOrCreateProperty(key).get().orElse(defaultVal);
     }
 
     @Override
@@ -413,7 +418,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
             return this;
         }
 
-        this.defaultProperties.putAll(override.getProperties());
+        this.internalProperties.putAll(override.getProperties());
         reload();
         return this;
     }
