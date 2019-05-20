@@ -84,7 +84,7 @@ public class SubsetFilterTest {
     @Test
     public void testFiltering() {
         DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-        config.setClientName("SubsetFilerTest");
+        config.loadProperties("SubsetFilerTest");
 
         ServerListSubsetFilter<Server> filter = new ServerListSubsetFilter<Server>(config);
         LoadBalancerStats stats = new LoadBalancerStats("default");

@@ -39,7 +39,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     private static final String DEFAULT_NAMESPACE = "ribbon";
 
     // Map of raw property names (without namespace or client) to values set via code
-    private final Map<String, Object> internalProperties = new HashMap<>();
+    private final Map<IClientConfigKey, Object> internalProperties = new HashMap<>();
 
     // Map of all seen dynamic properties.  This map will hold on properties requested with the exception of
     // those returned from getGlobalProperty().
@@ -57,19 +57,15 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     private String namespace = DEFAULT_NAMESPACE;
 
-    private boolean isDynamic;
-
     private boolean isLoaded = false;
 
     protected ReloadableClientConfig(PropertyResolver resolver) {
         this.clientName = DEFAULT_CLIENT_NAME;
-        this.isDynamic = false;
         this.resolver = resolver;
     }
 
     protected ReloadableClientConfig(PropertyResolver resolver, String clientName) {
         this.clientName = clientName;
-        this.isDynamic = true;
         this.resolver = resolver;
     }
 
@@ -112,29 +108,24 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     public void loadProperties(String clientName) {
         Preconditions.checkState(isLoaded == false, "Config '{}' can only be loaded once", clientName);
         if (!isLoaded) {
+            loadDefaultValues();
             this.isLoaded = true;
             resolver.onChange(this::reload);
         }
 
-        this.isDynamic = true;
         this.clientName = clientName;
-        loadDefaultValues();
-    }
-
-    @Override
-    public void loadDefaultValues() {
-        this.isDynamic = true;
-        reload();
     }
 
     @Override
     public final Map<String, Object> getProperties() {
-        return Collections.unmodifiableMap(internalProperties);
-    }
-
-    @Override
-    public void forEachDefault(BiConsumer<IClientConfigKey<?>, Object> consumer) {
-        dynamicProperties.forEach((key, value) -> consumer.accept(key, internalProperties.get(key.key())));
+        final Map<String, Object> result = new HashMap<>(dynamicProperties.size());
+        dynamicProperties.forEach((key, value) -> {
+            Object v = value.get().orElse(null);
+            if (v != null) {
+                result.put(key.key(), String.valueOf(v));
+            }
+        });
+        return result;
     }
 
     @Override
@@ -150,9 +141,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
             {
                 refresh();
-                if (isDynamic) {
-                    changeActions.add(this::refresh);
-                }
+                changeActions.add(this::refresh);
             }
 
             @Override
@@ -192,11 +181,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> T get(IClientConfigKey<T> key) {
-        if (isLoaded) {
-            return getOrCreateProperty(key).get().orElse(null);
-        } else {
-            return getIfSet(key).orElse(null);
-        }
+        return getOrCreateProperty(key).get().orElse(null);
     }
 
     private final <T> ReloadableProperty<T> getOrCreateProperty(IClientConfigKey<T> key) {
@@ -251,6 +236,12 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         return getIfSet(key);
     }
 
+    /**
+     * Resolve a p
+     * @param key
+     * @param <T>
+     * @return
+     */
     private <T> Optional<T> resolverScopedProperty(IClientConfigKey<T> key) {
         Optional<T> value = resolver.get(clientName + "." + getNameSpace() + "." + key.key(), key.type());
         if (value.isPresent()) {
@@ -262,7 +253,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public <T> Optional<T> getIfSet(IClientConfigKey<T> key) {
-        return Optional.ofNullable(internalProperties.get(key.key()))
+        return Optional.ofNullable(internalProperties.get(key))
                 .map(value -> {
                     final Class<T> type = key.type();
                     // Unfortunately there's some legacy code setting string values for typed keys.  Here are do our best to parse
@@ -359,7 +350,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         if (value == null) {
             internalProperties.remove(key.key());
         } else {
-            internalProperties.put(key.key(), value);
+            internalProperties.put(key, value);
         }
 
         if (isLoaded) {
@@ -418,8 +409,16 @@ public abstract class ReloadableClientConfig implements IClientConfig {
             return this;
         }
 
-        this.internalProperties.putAll(override.getProperties());
-        reload();
+        // When overriding we only really care of picking up properties that were explicitly set in code.  This is a
+        // bit of an optimization to avoid excessive memory allocation as requests are made and overrides are applied
+        if (override instanceof ReloadableClientConfig) {
+            ((ReloadableClientConfig)override).internalProperties.forEach((key, value) -> {
+                if (value != null) {
+                    setProperty(key, value);
+                }
+            });
+        }
+
         return this;
     }
 
