@@ -50,14 +50,6 @@ public interface IClientConfig {
 	Map<String, Object> getProperties();
 
     /**
-     * Iterate all properties and report the default value only to the consumer
-     * @param consumer
-     */
-    default void forEachDefault(BiConsumer<IClientConfigKey<?>, Object> consumer) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
      * Iterate all properties and report the final value.  Can be null if a default value is not specified.
      * @param consumer
      */

@@ -30,6 +30,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.runners.MethodSorters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
@@ -41,6 +43,8 @@ import java.util.Properties;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClientConfigTest {
+    private static final Logger LOG = LoggerFactory.getLogger(ClientConfigTest.class);
+
     @Rule
     public TestName testName = new TestName();
 
@@ -186,7 +190,7 @@ public class ClientConfigTest {
         ConfigurationManager.getConfigInstance().setProperty("testValueOf.ribbon.CustomValueOf", "value");
 
         DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
-        clientConfig.setClientName("testValueOf");
+        clientConfig.loadProperties("testValueOf");
 
         Property<CustomValueOf> prop = clientConfig.getDynamicProperty(CUSTOM_KEY);
         Assert.assertEquals("value", prop.getOrDefault().getValue());
@@ -198,7 +202,7 @@ public class ClientConfigTest {
         ConfigurationManager.getConfigInstance().setProperty("testScopedProperty.ribbon.foo.ScopePropertyTimeout", "1000");
 
         DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
-        clientConfig.setClientName("testScopedProperty");
+        clientConfig.loadProperties("testScopedProperty");
 
         Property<Integer> prop = clientConfig.getScopedProperty(new CommonClientConfigKey<Integer>("foo.ScopePropertyTimeout", 0) {});
         Assert.assertEquals(1000, prop.get().get().intValue());

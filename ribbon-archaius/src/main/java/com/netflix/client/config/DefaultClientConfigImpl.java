@@ -17,7 +17,6 @@
  */
 package com.netflix.client.config;
 
-import com.netflix.config.ConfigurationManager;
 
 import java.util.concurrent.TimeUnit;
 
@@ -302,7 +301,6 @@ public class DefaultClientConfigImpl extends AbstractDefaultClientConfigImpl {
     }
 
     public void loadDefaultValues() {
-        super.loadDefaultValues();
         set(CommonClientConfigKey.MaxHttpConnectionsPerHost, getDefaultMaxHttpConnectionsPerHost());
         set(CommonClientConfigKey.MaxTotalHttpConnections, getDefaultMaxTotalHttpConnections());
         set(CommonClientConfigKey.EnableConnectionPool, getDefaultEnableConnectionPool());
@@ -319,18 +317,8 @@ public class DefaultClientConfigImpl extends AbstractDefaultClientConfigImpl {
         set(CommonClientConfigKey.ConnIdleEvictTimeMilliSeconds, getDefaultConnectionidleTimeInMsecs());
         set(CommonClientConfigKey.ConnectionCleanerRepeatInterval, getDefaultConnectionIdleTimertaskRepeatInMsecs());
         set(CommonClientConfigKey.EnableGZIPContentEncodingFilter, getDefaultEnableGzipContentEncodingFilter());
-        String proxyHost = ConfigurationManager.getConfigInstance().getString(getDefaultPropName(CommonClientConfigKey.ProxyHost.key()));
-        if (proxyHost != null && proxyHost.length() > 0) {
-            set(CommonClientConfigKey.ProxyHost, proxyHost);
-        }
-        Integer proxyPort = ConfigurationManager
-                .getConfigInstance()
-                .getInteger(
-                        getDefaultPropName(CommonClientConfigKey.ProxyPort),
-                        (Integer.MIN_VALUE + 1)); // + 1 just to avoid potential clash with user setting
-        if (proxyPort != (Integer.MIN_VALUE + 1)) {
-            set(CommonClientConfigKey.ProxyPort, proxyPort);
-        }
+        set(CommonClientConfigKey.ProxyHost, null);
+        set(CommonClientConfigKey.ProxyPort, null);
         set(CommonClientConfigKey.Port, getDefaultPort());
         set(CommonClientConfigKey.EnablePrimeConnections, getDefaultEnablePrimeConnections());
         set(CommonClientConfigKey.MaxRetriesPerServerPrimeConnection, getDefaultMaxRetriesPerServerPrimeConnection());

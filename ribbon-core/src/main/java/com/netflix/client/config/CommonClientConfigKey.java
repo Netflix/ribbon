@@ -24,6 +24,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -285,4 +286,16 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     @Override
     public T defaultValue() { return defaultValue; }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CommonClientConfigKey<?> that = (CommonClientConfigKey<?>) o;
+        return Objects.equals(configKey, that.configKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(configKey);
+    }
 }

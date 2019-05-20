@@ -74,7 +74,7 @@ public class ZoneAwareLoadBalancerTest {
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 10);
 
         DefaultClientConfigImpl config = new DefaultClientConfigImpl();
-        config.setClientName("testChooseZone");
+        config.loadProperties("testChooseZone");
         ZoneAwareLoadBalancer<Server> balancer = new ZoneAwareLoadBalancer<Server>();
         balancer.init();
         IRule globalRule = new RoundRobinRule();
