@@ -44,8 +44,6 @@ public class ArchaiusPropertyResolver implements PropertyResolver {
 
     @Override
     public <T> Optional<T> get(String key, Class<T> type) {
-        LOG.debug("Loading property {}", key);
-
         if (Integer.class.equals(type)) {
             return Optional.ofNullable((T) config.getInteger(key, null));
         } else if (Boolean.class.equals(type)) {
@@ -70,7 +68,8 @@ public class ArchaiusPropertyResolver implements PropertyResolver {
                                     .orElseThrow(() -> new IllegalArgumentException("Unable to convert value to desired type " + type));
                         }
                     });
-        }    }
+        }
+    }
 
     @Override
     public void forEach(String prefix, BiConsumer<String, String> consumer) {

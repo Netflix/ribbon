@@ -59,12 +59,24 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     private boolean isLoaded = false;
 
+    /**
+     * @deprecated Use {@link #ReloadableClientConfig(PropertyResolver, String, String)}
+     */
+    @Deprecated
     protected ReloadableClientConfig(PropertyResolver resolver) {
-        this.clientName = DEFAULT_CLIENT_NAME;
-        this.resolver = resolver;
+        this(resolver, DEFAULT_CLIENT_NAME);
     }
 
+    /**
+     * @deprecated Use {@link #ReloadableClientConfig(PropertyResolver, String, String)}
+     */
+    @Deprecated
     protected ReloadableClientConfig(PropertyResolver resolver, String clientName) {
+        this(resolver, DEFAULT_NAMESPACE, DEFAULT_CLIENT_NAME);
+    }
+
+    protected ReloadableClientConfig(PropertyResolver resolver, String namespace, String clientName) {
+        this.namespace = namespace;
         this.clientName = clientName;
         this.resolver = resolver;
     }
@@ -106,14 +118,11 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public void loadProperties(String clientName) {
-        Preconditions.checkState(isLoaded == false, "Config '{}' can only be loaded once", clientName);
-        if (!isLoaded) {
-            loadDefaultValues();
-            this.isLoaded = true;
-            resolver.onChange(this::reload);
-        }
-
+        Preconditions.checkState(!isLoaded, "Config '{}' can only be loaded once", clientName);
         this.clientName = clientName;
+        this.isLoaded = true;
+        loadDefaultValues();
+        resolver.onChange(this::reload);
     }
 
     @Override
@@ -202,8 +211,6 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     }
 
     private <T> ReloadableProperty<T> getClientDynamicProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
-
         return createProperty(
                 () -> resolveFinalProperty(key),
                 key::defaultValue);
@@ -295,11 +302,15 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> Property<T> getDynamicProperty(IClientConfigKey<T> key) {
+        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
+
         return getClientDynamicProperty(key);
     }
 
     @Override
     public <T> Property<T> getScopedProperty(IClientConfigKey<T> key) {
+        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
+
         return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
                 () -> resolverScopedProperty(key),
                 key::defaultValue));
@@ -307,6 +318,8 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
+        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
+
         return (Property<T>) dynamicProperties.computeIfAbsent(key, ignore -> createProperty(
                 getPrefixedMapPropertySupplier(key),
                 key::defaultValue));
