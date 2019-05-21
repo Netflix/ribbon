@@ -309,7 +309,11 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public <T> Optional<T> getIfSet(IClientConfigKey<T> key) {
-        return Optional.ofNullable((T)internalProperties.get(key));
+        Optional<T> value = (Optional<T>)internalProperties.get(key);
+        if (value == null) {
+            return Optional.empty();
+        }
+        return value;
     }
 
     private <T> T resolveValueToType(IClientConfigKey<T> key, Object value) {
