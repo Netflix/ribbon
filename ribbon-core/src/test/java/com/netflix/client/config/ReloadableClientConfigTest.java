@@ -15,7 +15,7 @@ public class ReloadableClientConfigTest {
 
     @Before
     public void before() {
-        this.testKey = new CommonClientConfigKey<Integer>(testName.getMethodName(), -1) {};
+        this.testKey = new CommonClientConfigKey<Integer>(getClass().getName() + "." + testName.getMethodName(), -1) {};
     }
 
     @Test
@@ -32,12 +32,25 @@ public class ReloadableClientConfigTest {
 
     @Test
     public void setBeforeLoading() {
+        // Ensure property is set before config is created
         ConfigurationManager.getConfigInstance().setProperty("ribbon." + testKey.key(), "123");
 
+        // Load config and attempt to set value to 0
         final DefaultClientConfigImpl config = new DefaultClientConfigImpl();
         config.loadProperties("foo");
+        config.set(testKey, 0);
 
+        // Value should be 123 because of fast property
         Assert.assertEquals(123, config.get(testKey).intValue());
+
+        // Clearing property should make it null
+        ConfigurationManager.getConfigInstance().clearProperty("ribbon." + testKey.key());
+
+        Assert.assertNull(config.get(testKey));
+
+        // Setting property again should give new value
+        ConfigurationManager.getConfigInstance().setProperty("ribbon." + testKey.key(), "124");
+        Assert.assertEquals(124, config.get(testKey).intValue());
     }
 
     @Test

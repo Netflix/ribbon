@@ -33,6 +33,7 @@ import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -123,9 +124,10 @@ public class ClientConfigTest {
         
         ConfigurationManager.getConfigInstance().setProperty("testRestClient2.ribbon.DeploymentContextBasedVipAddresses", "movieservice-xbox-test:7001");
         assertEquals("movieservice-xbox-test:7001", clientConfig.get(CommonClientConfigKey.DeploymentContextBasedVipAddresses));
-        
+
         ConfigurationManager.getConfigInstance().clearProperty("testRestClient2.ribbon.EnableZoneAffinity");
-        assertFalse(clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
+        assertNull(clientConfig.get(CommonClientConfigKey.EnableZoneAffinity));
+        assertFalse(clientConfig.getOrDefault(CommonClientConfigKey.EnableZoneAffinity));
     }
 
     @Test
@@ -173,6 +175,24 @@ public class ClientConfigTest {
         public String getValue() {
             return value;
         }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            CustomValueOf that = (CustomValueOf) o;
+            return Objects.equals(value, that.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
     }
 
     public static IClientConfigKey<CustomValueOf> CUSTOM_KEY = new CommonClientConfigKey<CustomValueOf>("CustomValueOf", new CustomValueOf("default")) {};
@@ -194,6 +214,9 @@ public class ClientConfigTest {
 
         Property<CustomValueOf> prop = clientConfig.getDynamicProperty(CUSTOM_KEY);
         Assert.assertEquals("value", prop.getOrDefault().getValue());
+
+        ConfigurationManager.getConfigInstance().setProperty("testValueOf.ribbon.CustomValueOf", "value2");
+        Assert.assertEquals("value2", prop.getOrDefault().getValue());
     }
 
     @Test
@@ -206,6 +229,22 @@ public class ClientConfigTest {
 
         Property<Integer> prop = clientConfig.getScopedProperty(new CommonClientConfigKey<Integer>("foo.ScopePropertyTimeout", 0) {});
         Assert.assertEquals(1000, prop.get().get().intValue());
+    }
+
+    @Test
+    public void testDynamicConfig() {
+        ConfigurationManager.getConfigInstance().setProperty("testValueOf.ribbon.CustomValueOf", "value");
+
+        DefaultClientConfigImpl clientConfig = new DefaultClientConfigImpl();
+        clientConfig.loadProperties("testValueOf");
+
+        Assert.assertEquals("value", clientConfig.get(CUSTOM_KEY).getValue());
+
+        ConfigurationManager.getConfigInstance().setProperty("testValueOf.ribbon.CustomValueOf", "value2");
+        Assert.assertEquals("value2", clientConfig.get(CUSTOM_KEY).getValue());
+
+        ConfigurationManager.getConfigInstance().clearProperty("testValueOf.ribbon.CustomValueOf");
+        Assert.assertNull(clientConfig.get(CUSTOM_KEY));
     }
 }
 
