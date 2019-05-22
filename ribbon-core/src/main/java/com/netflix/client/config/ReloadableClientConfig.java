@@ -389,15 +389,13 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     public final <T> IClientConfig set(IClientConfigKey<T> key, T value) {
         Preconditions.checkArgument(key != null, "key cannot be null");
 
-        // Make sure the value is property typed
+        // Make sure the value is property typed.
         value = resolveValueToType(key, value);
 
-        // If a client is already specified then check if there's a dynamic config override available
-        if (isLoaded) {
-            value = resolveFinalProperty(key).orElse(value);
-        }
+        // Check if there's a dynamic config override available
+        value = resolveFinalProperty(key).orElse(value);
 
-        // Cache this new state
+        // Cache the new value
         internalProperties.put(key, Optional.ofNullable(value));
 
         // If this is the first time a property is seen and a client name has been specified then make sure

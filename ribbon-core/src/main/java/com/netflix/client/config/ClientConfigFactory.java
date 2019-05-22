@@ -34,7 +34,8 @@ public interface ClientConfigFactory {
         return StreamSupport.stream(ServiceLoader.load(ClientConfigFactory.class).spliterator(), false)
                 .sorted(Comparator
                         .comparingInt(ClientConfigFactory::getPriority)
-                        .thenComparing(Comparator.comparing(f -> f.getClass().getCanonicalName())))
+                        .thenComparing(f -> f.getClass().getCanonicalName())
+                        .reversed())
                 .findFirst()
                 .orElseGet(() -> {
                     throw new IllegalStateException("Expecting at least one implementation of ClientConfigFactory discoverable via the ServiceLoader");
