@@ -27,13 +27,13 @@ public class DefaultClientConfigImplTest {
     
     @Test
     public void testTypedValue() {
-        ConfigurationManager.getConfigInstance().setProperty("myclient.ribbon." + CommonClientConfigKey.ConnectTimeout, "1000");    
+        ConfigurationManager.getConfigInstance().setProperty("myclient.ribbon." + CommonClientConfigKey.ConnectTimeout, "1500");
         DefaultClientConfigImpl config = new DefaultClientConfigImpl();
         config.loadProperties("myclient");
-        assertEquals(1000, config.get(CommonClientConfigKey.ConnectTimeout).intValue());
+        assertEquals(1500, config.get(CommonClientConfigKey.ConnectTimeout).intValue());
         config.set(CommonClientConfigKey.ConnectTimeout, 2000);
         // The archaius property should override code override
-        assertEquals(1000, config.get(CommonClientConfigKey.ConnectTimeout).intValue());
+        assertEquals(1500, config.get(CommonClientConfigKey.ConnectTimeout).intValue());
     }
 
     @Test

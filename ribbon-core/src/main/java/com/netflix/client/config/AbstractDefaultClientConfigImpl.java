@@ -154,10 +154,6 @@ public abstract class AbstractDefaultClientConfigImpl extends ReloadableClientCo
         super(resolver);
     }
 
-    protected AbstractDefaultClientConfigImpl(PropertyResolver resolver, String clientName) {
-        super(resolver, clientName);
-    }
-
     public void setVipAddressResolver(VipAddressResolver resolver) {
         this.vipResolver = resolver;
     }
