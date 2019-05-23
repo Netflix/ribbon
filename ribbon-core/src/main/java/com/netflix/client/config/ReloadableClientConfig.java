@@ -55,7 +55,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     private String namespace = DEFAULT_NAMESPACE;
 
-    private boolean isLoaded = false;
+    private boolean isDynamic = false;
 
     protected ReloadableClientConfig(PropertyResolver resolver) {
         this.resolver = resolver;
@@ -99,15 +99,13 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public void loadProperties(String clientName) {
-        Preconditions.checkState(!isLoaded, "Config '{}' can only be loaded once", clientName);
-
-        LOG.info("Loading config for `{}`", clientName);
+        LOG.info("[{}] loading config", clientName);
         this.clientName = clientName;
-        this.isLoaded = true;
+        this.isDynamic = true;
         loadDefaultValues();
         resolver.onChange(this::reload);
 
-        internalProperties.forEach((key, value) -> LOG.info("{} : {} -> {}", clientName, key, value.orElse(null)));
+        internalProperties.forEach((key, value) -> LOG.info("[{}] {}={}", clientName, key, value.orElse(null)));
     }
 
     /**
@@ -148,8 +146,8 @@ public abstract class ReloadableClientConfig implements IClientConfig {
             return () -> {
                 final Optional<T> next = valueSupplier.get();
                 if (!next.equals(previous.get())) {
-                    LOG.info("New value {}: {} -> {}", key.key(), previous.get(), next);
-                    previous.set(next);
+                    LOG.info("[{}] new value for {}: {} -> {}", clientName, key.key(), previous.get(), next);
+                    previous.set(next); 
                     internalProperties.put(key, next);
                 }
             };
@@ -208,7 +206,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     public final <T> T get(IClientConfigKey<T> key) {
         Optional<T> value = (Optional<T>)internalProperties.get(key);
         if (value == null) {
-            if (!isLoaded) {
+            if (!isDynamic) {
                 return null;
             } else {
                 set(key, null);
@@ -221,7 +219,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> Property<T> getGlobalProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get global property {} default {}", key.key(), key.defaultValue());
+        LOG.debug("[{}] get global property '{}' with default '{}'", clientName, key.key(), key.defaultValue());
 
         return getOrCreateProperty(
                 key,
@@ -231,11 +229,9 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> Property<T> getDynamicProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
+        LOG.debug("[{}] get dynamic property key={} ns={}", clientName, key.key(), getNameSpace());
 
-        if (isLoaded) {
-            autoRefreshFromPropertyResolver(key);
-        }
+        get(key);
 
         return getOrCreateProperty(
                 key,
@@ -245,7 +241,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
+        LOG.debug("[{}] get dynamic property key={} ns={} client={}", clientName, key.key(), getNameSpace());
 
         return getOrCreateProperty(
                 key,
@@ -254,14 +250,9 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     }
 
     /**
-     * Resolve a properties final value in the following order or precedence
+     * Resolve a property's final value from the property value.
      * - client scope
      * - default scope
-     * - internally set default
-     * - IClientConfigKey defaultValue
-     * @param key
-     * @param <T>
-     * @return
      */
     private <T> Optional<T> resolveFromPropertyResolver(IClientConfigKey<T> key) {
         Optional<T> value;
@@ -353,12 +344,33 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         return Optional.ofNullable(get(key)).orElse(defaultValue);
     }
 
+    /**
+     * Store the implicit default value for key while giving precedence to default values in the property resolver
+     */
+    protected final <T> void setDefault(IClientConfigKey<T> key) {
+        setDefault(key, key.defaultValue());
+    }
+
+    /**
+     * Store the default value for key while giving precedence to default values in the property resolver
+     */
+    protected final <T> void setDefault(IClientConfigKey<T> key, T value) {
+        Preconditions.checkArgument(key != null, "key cannot be null");
+
+        value = resolveFromPropertyResolver(key).orElse(value);
+        internalProperties.put(key, Optional.ofNullable(value));
+        if (isDynamic) {
+            autoRefreshFromPropertyResolver(key);
+        }
+        cachedToString = null;
+    }
+
     @Override
     public <T> IClientConfig set(IClientConfigKey<T> key, T value) {
         Preconditions.checkArgument(key != null, "key cannot be null");
 
         value = resolveValueToType(key, value);
-        if (isLoaded) {
+        if (isDynamic) {
             internalProperties.put(key, Optional.ofNullable(resolveFromPropertyResolver(key).orElse(value)));
             autoRefreshFromPropertyResolver(key);
         } else {
