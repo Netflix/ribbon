@@ -147,7 +147,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
                 final Optional<T> next = valueSupplier.get();
                 if (!next.equals(previous.get())) {
                     LOG.info("[{}] new value for {}: {} -> {}", clientName, key.key(), previous.get(), next);
-                    previous.set(next);
+                    previous.set(next); 
                     internalProperties.put(key, next);
                 }
             };
