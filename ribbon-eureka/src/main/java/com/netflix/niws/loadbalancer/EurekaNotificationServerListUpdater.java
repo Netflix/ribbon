@@ -83,10 +83,7 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
 
         private int getCorePoolSize() {
             int propSize = poolSizeProp.get();
-            if (propSize > 0) {
-                return propSize;
-            }
-            return 2; // default
+            return (propSize > 0)?propSize:2 // 2 = default;
         }        
     }
 
