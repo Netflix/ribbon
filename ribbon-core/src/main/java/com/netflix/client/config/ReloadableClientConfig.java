@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     // Map of raw property names (without namespace or client name) to values. All values are non-null and properly
     // typed to match the key type
-    private final Map<IClientConfigKey, Optional<Object>> internalProperties = new ConcurrentHashMap<>();
+    private final Map<IClientConfigKey, Optional<?>> internalProperties = new ConcurrentHashMap<>();
 
     private final Map<IClientConfigKey, ReloadableProperty<?>> dynamicProperties = new ConcurrentHashMap<>();
 
@@ -52,31 +51,13 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     private final PropertyResolver resolver;
 
-    private String clientName;
+    private String clientName = DEFAULT_CLIENT_NAME;
 
     private String namespace = DEFAULT_NAMESPACE;
 
-    private boolean isLoaded = false;
+    private boolean isDynamic = false;
 
-    /**
-     * @deprecated Use {@link #ReloadableClientConfig(PropertyResolver, String, String)}
-     */
-    @Deprecated
     protected ReloadableClientConfig(PropertyResolver resolver) {
-        this(resolver, DEFAULT_CLIENT_NAME);
-    }
-
-    /**
-     * @deprecated Use {@link #ReloadableClientConfig(PropertyResolver, String, String)}
-     */
-    @Deprecated
-    protected ReloadableClientConfig(PropertyResolver resolver, String clientName) {
-        this(resolver, DEFAULT_NAMESPACE, DEFAULT_CLIENT_NAME);
-    }
-
-    protected ReloadableClientConfig(PropertyResolver resolver, String namespace, String clientName) {
-        this.namespace = namespace;
-        this.clientName = clientName;
         this.resolver = resolver;
     }
 
@@ -118,11 +99,13 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public void loadProperties(String clientName) {
-        Preconditions.checkState(!isLoaded, "Config '{}' can only be loaded once", clientName);
+        LOG.info("[{}] loading config", clientName);
         this.clientName = clientName;
-        this.isLoaded = true;
+        this.isDynamic = true;
         loadDefaultValues();
         resolver.onChange(this::reload);
+
+        internalProperties.forEach((key, value) -> LOG.info("[{}] {}={}", clientName, key, value.orElse(null)));
     }
 
     /**
@@ -146,27 +129,29 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     }
 
     /**
-     * Create an action that will refresh the cached value for key. Uses the current value as a reference and will
+     * Register an action that will refresh the cached value for key. Uses the current value as a reference and will
      * update from the dynamic property source to either delete or set a new value.
      *
      * @param key - Property key without client name or namespace
-     * @param valueSupplier - Strategy for generating the value.  Could potentially ready multiple property names, such
-     *                      as default and client specific
      */
-    private <T> Runnable createAutoRefreshAction(final IClientConfigKey<T> key, final Supplier<Optional<T>> valueSupplier) {
-        final AtomicReference<Optional<T>> current = new AtomicReference<>(valueSupplier.get());
-        return () -> {
-            final Optional<T> next = valueSupplier.get();
-            if (!next.equals(current.get())) {
-                LOG.debug("New value {}: {} -> {}", key.key(), current.get(), next);
-                current.set(next);
-                if (next.isPresent()) {
-                    internalProperties.put(key, (Optional<Object>) next);
-                } else {
-                    internalProperties.put(key, Optional.empty());
-                }
+    private <T> void autoRefreshFromPropertyResolver(final IClientConfigKey<T> key) {
+        changeActions.computeIfAbsent(key, ignore -> {
+            final Supplier<Optional<T>> valueSupplier = () -> resolveFromPropertyResolver(key);
+            final Optional<T> current = valueSupplier.get();
+            if (current.isPresent()) {
+                internalProperties.put(key, current);
             }
-        };
+
+            final AtomicReference<Optional<T>> previous = new AtomicReference<>(current);
+            return () -> {
+                final Optional<T> next = valueSupplier.get();
+                if (!next.equals(previous.get())) {
+                    LOG.info("[{}] new value for {}: {} -> {}", clientName, key.key(), previous.get(), next);
+                    previous.set(next);
+                    internalProperties.put(key, next);
+                }
+            };
+        });
     }
 
     interface ReloadableProperty<T> extends Property<T> {
@@ -221,8 +206,12 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     public final <T> T get(IClientConfigKey<T> key) {
         Optional<T> value = (Optional<T>)internalProperties.get(key);
         if (value == null) {
-            set(key, null);
-            value = (Optional<T>)internalProperties.get(key);
+            if (!isDynamic) {
+                return null;
+            } else {
+                set(key, null);
+                value = (Optional<T>) internalProperties.get(key);
+            }
         }
 
         return value.orElse(null);
@@ -230,7 +219,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> Property<T> getGlobalProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get global property {} default {}", key.key(), key.defaultValue());
+        LOG.debug("[{}] get global property '{}' with default '{}'", clientName, key.key(), key.defaultValue());
 
         return getOrCreateProperty(
                 key,
@@ -240,29 +229,19 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public final <T> Property<T> getDynamicProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
+        LOG.debug("[{}] get dynamic property key={} ns={}", clientName, key.key(), getNameSpace());
 
         get(key);
 
         return getOrCreateProperty(
                 key,
-                () -> (Optional<T>)internalProperties.get(key),
-                key::defaultValue);
-    }
-
-    @Override
-    public <T> Property<T> getScopedProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
-
-        return getOrCreateProperty(
-                key,
-                () -> resolverScopedProperty(key),
+                () -> (Optional<T>)internalProperties.getOrDefault(key, Optional.empty()),
                 key::defaultValue);
     }
 
     @Override
     public <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
-        LOG.debug("Get dynamic property key={} ns={} client={}", key.key(), getNameSpace(), clientName);
+        LOG.debug("[{}] get dynamic property key={} ns={} client={}", clientName, key.key(), getNameSpace());
 
         return getOrCreateProperty(
                 key,
@@ -271,16 +250,11 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     }
 
     /**
-     * Resolve a properties final value in the following order or precedence
+     * Resolve a property's final value from the property value.
      * - client scope
      * - default scope
-     * - internally set default
-     * - IClientConfigKey defaultValue
-     * @param key
-     * @param <T>
-     * @return
      */
-    private <T> Optional<T> resolveFinalProperty(IClientConfigKey<T> key) {
+    private <T> Optional<T> resolveFromPropertyResolver(IClientConfigKey<T> key) {
         Optional<T> value;
         if (!StringUtils.isEmpty(clientName)) {
             value = resolver.get(clientName + "." + getNameSpace() + "." + key.key(), key.type());
@@ -292,28 +266,9 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         return resolver.get(getNameSpace() + "." + key.key(), key.type());
     }
 
-    /**
-     * Resolve a p
-     * @param key
-     * @param <T>
-     * @return
-     */
-    private <T> Optional<T> resolverScopedProperty(IClientConfigKey<T> key) {
-        Optional<T> value = resolver.get(clientName + "." + getNameSpace() + "." + key.key(), key.type());
-        if (value.isPresent()) {
-            return value;
-        }
-
-        return getIfSet(key);
-    }
-
     @Override
     public <T> Optional<T> getIfSet(IClientConfigKey<T> key) {
-        Optional<T> value = (Optional<T>)internalProperties.get(key);
-        if (value == null) {
-            return Optional.empty();
-        }
-        return value;
+        return (Optional<T>)internalProperties.getOrDefault(key, Optional.empty());
     }
 
     private <T> T resolveValueToType(IClientConfigKey<T> key, Object value) {
@@ -343,11 +298,11 @@ public abstract class ReloadableClientConfig implements IClientConfig {
                     } else if (TimeUnit.class.equals(type)) {
                         return (T) TimeUnit.valueOf(strValue);
                     } else {
-                        return PropertyResolver.resolveWithValueOf(type, strValue)
+                        return PropertyUtils.resolveWithValueOf(type, strValue)
                                 .orElseThrow(() -> new IllegalArgumentException("Unsupported value type `" + type + "'"));
                     }
                 } else {
-                    return PropertyResolver.resolveWithValueOf(type, value.toString())
+                    return PropertyUtils.resolveWithValueOf(type, value.toString())
                             .orElseThrow(() -> new IllegalArgumentException("Incompatible value type `" + value.getClass() + "` while expecting '" + type + "`"));
                 }
             } catch (Exception e) {
@@ -389,24 +344,37 @@ public abstract class ReloadableClientConfig implements IClientConfig {
         return Optional.ofNullable(get(key)).orElse(defaultValue);
     }
 
-    @Override
-    public final <T> IClientConfig set(IClientConfigKey<T> key, T value) {
+    /**
+     * Store the implicit default value for key while giving precedence to default values in the property resolver
+     */
+    protected final <T> void setDefault(IClientConfigKey<T> key) {
+        setDefault(key, key.defaultValue());
+    }
+
+    /**
+     * Store the default value for key while giving precedence to default values in the property resolver
+     */
+    protected final <T> void setDefault(IClientConfigKey<T> key, T value) {
         Preconditions.checkArgument(key != null, "key cannot be null");
 
-        // Make sure the value is property typed.
-        value = resolveValueToType(key, value);
-
-        // Check if there's a dynamic config override available
-        value = resolveFinalProperty(key).orElse(value);
-
-        // Cache the new value
+        value = resolveFromPropertyResolver(key).orElse(value);
         internalProperties.put(key, Optional.ofNullable(value));
+        if (isDynamic) {
+            autoRefreshFromPropertyResolver(key);
+        }
+        cachedToString = null;
+    }
 
-        // If this is the first time a property is seen and a client name has been specified then make sure
-        // we have the necessary refresh to pick up new values from dynamic config
-        if (isLoaded) {
-            changeActions.computeIfAbsent(key, ignore -> createAutoRefreshAction(key, () -> resolveFinalProperty(key)))
-                    .run();
+    @Override
+    public <T> IClientConfig set(IClientConfigKey<T> key, T value) {
+        Preconditions.checkArgument(key != null, "key cannot be null");
+
+        value = resolveValueToType(key, value);
+        if (isDynamic) {
+            internalProperties.put(key, Optional.ofNullable(resolveFromPropertyResolver(key).orElse(value)));
+            autoRefreshFromPropertyResolver(key);
+        } else {
+            internalProperties.put(key, Optional.ofNullable(value));
         }
         cachedToString = null;
 

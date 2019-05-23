@@ -64,7 +64,7 @@ public class ArchaiusPropertyResolver implements PropertyResolver {
                         if (type.equals(String.class)) {
                             return (T)value;
                         } else {
-                            return PropertyResolver.resolveWithValueOf(type, value)
+                            return PropertyUtils.resolveWithValueOf(type, value)
                                     .orElseThrow(() -> new IllegalArgumentException("Unable to convert value to desired type " + type));
                         }
                     });
