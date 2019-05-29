@@ -181,7 +181,6 @@ public class DiscoveryEnabledLoadBalancerSupportsPortOverrideTest {
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.SecurePort", "6002");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.TargetRegion", "region");
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.NIWSServerListClassName", DiscoveryEnabledNIWSServerList.class.getName());
-
         ConfigurationManager.getConfigInstance().setProperty("DiscoveryEnabled.testSecureVipPortCanBeOverriden.ribbon.ForceClientPortConfiguration", "true");
 
         DiscoveryEnabledNIWSServerList deList = new DiscoveryEnabledNIWSServerList();

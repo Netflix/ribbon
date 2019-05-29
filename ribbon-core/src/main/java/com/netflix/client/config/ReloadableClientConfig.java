@@ -456,10 +456,10 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     private String generateToString() {
         return "ClientConfig:" + internalProperties.entrySet().stream()
                     .map(t -> {
-                        if (t.getKey().key().endsWith("Password")) {
+                        if (t.getKey().key().endsWith("Password") && t.getValue().isPresent()) {
                             return t.getKey() + ":***";
                         }
-                        return t.getKey() + ":" + t.getValue();
+                        return t.getKey() + ":" + t.getValue().orElse(null);
                     })
                 .collect(Collectors.joining(", "));
     }
