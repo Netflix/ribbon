@@ -35,10 +35,10 @@ public class RequestSpecificRetryHandler implements RetryHandler {
         this.okToRetryOnAllErrors = okToRetryOnAllErrors;
         this.fallback = baseRetryHandler;
         if (requestConfig != null) {
-            Optional.ofNullable(requestConfig.get(CommonClientConfigKey.MaxAutoRetries)).ifPresent(
+            requestConfig.getIfSet(CommonClientConfigKey.MaxAutoRetries).ifPresent(
                     value -> retrySameServer = value
             );
-            Optional.ofNullable(requestConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer)).ifPresent(
+            requestConfig.getIfSet(CommonClientConfigKey.MaxAutoRetriesNextServer).ifPresent(
                     value -> retryNextServer = value
             );
         }

@@ -456,7 +456,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         }
         int port = uri.getPort();
         if (port < 0) {
-            if (Optional.ofNullable(clientConfig.get(IClientConfigKey.Keys.IsSecure)).orElse(false)) {
+            if (clientConfig.get(IClientConfigKey.Keys.IsSecure, false)) {
                 port = 443;
             } else {
                 port = 80;

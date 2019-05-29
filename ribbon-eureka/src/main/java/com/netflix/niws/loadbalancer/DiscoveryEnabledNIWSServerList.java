@@ -117,7 +117,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
         shouldUseIpAddr = clientConfig.getOrDefault(CommonClientConfigKey.UseIPAddrForServer);
 
         // override client configuration and use client-defined port
-        if (clientConfig.get(CommonClientConfigKey.ForceClientPortConfiguration, false)){
+        if (clientConfig.get(CommonClientConfigKey.ForceClientPortConfiguration, false)) {
             if (isSecure) {
                 final Integer port = clientConfig.get(CommonClientConfigKey.SecurePort);
                 if (port != null) {

@@ -147,19 +147,19 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         super.initWithNiwsConfig(clientConfig);
         this.ncc = clientConfig;
         this.restClientName = ncc.getClientName();
-        this.isSecure = getBooleanFromConfig(ncc, CommonClientConfigKey.IsSecure, this.isSecure);
-        this.isHostnameValidationRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsHostnameValidationRequired, this.isHostnameValidationRequired);
-        this.isClientAuthRequired = getBooleanFromConfig(ncc, CommonClientConfigKey.IsClientAuthRequired, this.isClientAuthRequired);
-        this.bFollowRedirects = getBooleanFromConfig(ncc, CommonClientConfigKey.FollowRedirects, true);
-        this.ignoreUserToken = getBooleanFromConfig(ncc, CommonClientConfigKey.IgnoreUserTokenInConnectionPoolForSecureClient, this.ignoreUserToken);
+        this.isSecure = ncc.get(CommonClientConfigKey.IsSecure, this.isSecure);
+        this.isHostnameValidationRequired = ncc.get(CommonClientConfigKey.IsHostnameValidationRequired, this.isHostnameValidationRequired);
+        this.isClientAuthRequired = ncc.get(CommonClientConfigKey.IsClientAuthRequired, this.isClientAuthRequired);
+        this.bFollowRedirects = ncc.get(CommonClientConfigKey.FollowRedirects, true);
+        this.ignoreUserToken = ncc.get(CommonClientConfigKey.IgnoreUserTokenInConnectionPoolForSecureClient, this.ignoreUserToken);
 
         this.config = new DefaultApacheHttpClient4Config();
         this.config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_CONNECT_TIMEOUT,
-                ncc.getOrDefault(CommonClientConfigKey.ConnectTimeout));
+                ncc.get(CommonClientConfigKey.ConnectTimeout));
         this.config.getProperties().put(
                 ApacheHttpClient4Config.PROPERTY_READ_TIMEOUT,
-                ncc.getOrDefault(CommonClientConfigKey.ReadTimeout));
+                ncc.get(CommonClientConfigKey.ReadTimeout));
 
         this.restClient = apacheHttpClientSpecificInitialization();
         this.setRetryHandler(new HttpClientLoadBalancerErrorHandler(ncc));
@@ -470,13 +470,6 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                 task.getHeaders(), task.getQueryParams(), config, task.getEntity());
     }
 
-
-    private boolean getBooleanFromConfig(IClientConfig overriddenClientConfig, IClientConfigKey<Boolean> key, boolean defaultValue) {
-        return Optional.ofNullable(overriddenClientConfig)
-                .map(config -> config.get(key))
-                .orElse(defaultValue);
-    }
-
     @Override
     protected int getDefaultPortFromScheme(String scheme) {
         int port = super.getDefaultPortFromScheme(scheme);
@@ -489,7 +482,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
 
     @Override
     protected Pair<String, Integer> deriveSchemeAndPortFromPartialUri(URI uri) {
-        boolean isSecure = getBooleanFromConfig(ncc, CommonClientConfigKey.IsSecure, this.isSecure);
+        boolean isSecure = ncc.get(CommonClientConfigKey.IsSecure, this.isSecure);
         String scheme = uri.getScheme();
         if (scheme != null) {
             isSecure = 	scheme.equalsIgnoreCase("https");
@@ -507,7 +500,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
                 scheme = "http";
             }
         }
-        return new Pair<String, Integer>(scheme, port);
+        return new Pair<>(scheme, port);
     }
 
     private HttpResponse execute(HttpRequest.Verb verb, URI uri,
@@ -516,7 +509,7 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         HttpClientResponse thisResponse = null;
 
         final boolean bbFollowRedirects = Optional.ofNullable(overriddenClientConfig)
-                .map(config -> config.get(CommonClientConfigKey.FollowRedirects, bFollowRedirects))
+                .flatMap(config -> config.getIfSet(CommonClientConfigKey.FollowRedirects))
                 .orElse(bFollowRedirects);
 
         restClient.setFollowRedirects(bbFollowRedirects);
