@@ -137,4 +137,26 @@ public class TestExecutionListener<I, O> implements ExecutionListener<HttpClient
     public ExecutionContext<HttpClientRequest<I>> getContext() {
         return this.context;
     }
+
+    @Override
+    public String toString() {
+        return "TestExecutionListener{" +
+                "executionStartCounter=" + executionStartCounter +
+                ", startWithServerCounter=" + startWithServerCounter +
+                ", exceptionWithServerCounter=" + exceptionWithServerCounter +
+                ", executionFailedCounter=" + executionFailedCounter +
+                ", executionSuccessCounter=" + executionSuccessCounter +
+                ", expectedRequest=" + expectedRequest +
+                ", requestConfig=" + requestConfig +
+                ", checkContext=" + checkContext +
+                ", checkExecutionInfo=" + checkExecutionInfo +
+                ", finalThrowable=" + finalThrowable +
+                ", response=" + response +
+                ", errors=" + errors +
+                ", numAttemptsOnServer=" + numAttemptsOnServer +
+                ", numServers=" + numServers +
+                ", lastServer=" + lastServer +
+                ", context=" + context +
+                '}';
+    }
 }

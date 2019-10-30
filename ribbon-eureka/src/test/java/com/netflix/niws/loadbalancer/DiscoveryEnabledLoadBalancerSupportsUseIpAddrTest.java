@@ -25,7 +25,6 @@ import static org.powermock.api.easymock.PowerMock.verify;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -65,21 +64,19 @@ public class DiscoveryEnabledLoadBalancerSupportsUseIpAddrTest {
     @Before
     public void setupMock(){
 
-        List<InstanceInfo> servers = DiscoveryEnabledLoadBalancerSupportsPortOverrideTest.getDummyInstanceInfo("dummy", HOST1, IP1, 8080);
-        List<InstanceInfo> servers2 = DiscoveryEnabledLoadBalancerSupportsPortOverrideTest.getDummyInstanceInfo("dummy", HOST2, IP2, 8080);
+        List<InstanceInfo> servers = LoadBalancerTestUtils.getDummyInstanceInfo("dummy", HOST1, IP1, 8080);
+        List<InstanceInfo> servers2 = LoadBalancerTestUtils.getDummyInstanceInfo("dummy", HOST2, IP2, 8080);
         servers.addAll(servers2);
 
 
         PowerMock.mockStatic(DiscoveryManager.class);
         PowerMock.mockStatic(DiscoveryClient.class);
 
-        DiscoveryClient mockedDiscoveryClient = createMock(DiscoveryClient.class);
+        DiscoveryClient mockedDiscoveryClient = LoadBalancerTestUtils.mockDiscoveryClient();
         DiscoveryManager mockedDiscoveryManager = createMock(DiscoveryManager.class);
 
-        expect(DiscoveryClient.getZone((InstanceInfo) EasyMock.anyObject())).andReturn("dummyZone").anyTimes();
         expect(DiscoveryManager.getInstance()).andReturn(mockedDiscoveryManager).anyTimes();
         expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
-
 
         expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy", false, "region")).andReturn(servers).anyTimes();
 

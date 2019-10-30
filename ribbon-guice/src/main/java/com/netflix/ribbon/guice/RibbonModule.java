@@ -18,7 +18,6 @@ package com.netflix.ribbon.guice;
 import com.google.inject.AbstractModule;
 import com.google.inject.Scopes;
 import com.netflix.client.config.ClientConfigFactory;
-import com.netflix.client.config.ClientConfigFactory.DefaultClientConfigFactory;
 import com.netflix.ribbon.DefaultResourceFactory;
 import com.netflix.ribbon.RibbonResourceFactory;
 import com.netflix.ribbon.RibbonTransportFactory;
@@ -35,7 +34,7 @@ import com.netflix.ribbon.proxy.processor.AnnotationProcessorsProvider.DefaultAn
 public class RibbonModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(ClientConfigFactory.class).to(DefaultClientConfigFactory.class).in(Scopes.SINGLETON);
+        bind(ClientConfigFactory.class).toInstance(ClientConfigFactory.DEFAULT);
         bind(RibbonTransportFactory.class).to(DefaultRibbonTransportFactory.class).in(Scopes.SINGLETON);
         bind(AnnotationProcessorsProvider.class).to(DefaultAnnotationProcessorsProvider.class).in(Scopes.SINGLETON);
         bind(RibbonResourceFactory.class).to(DefaultResourceFactory.class).in(Scopes.SINGLETON);

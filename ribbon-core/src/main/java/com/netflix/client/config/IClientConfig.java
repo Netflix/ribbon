@@ -18,70 +18,86 @@
 package com.netflix.client.config;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiConsumer;
 
 /**
  * Defines the client configuration used by various APIs to initialize clients or load balancers
- * and for method execution. The default implementation is {@link DefaultClientConfigImpl}.
+ * and for method execution.
  * 
  * @author awang
- *
  */
 
 public interface IClientConfig {
 	
-	public String getClientName();
+	String getClientName();
 		
-	public String getNameSpace();
+	String getNameSpace();
+
+	void setNameSpace(String nameSpace);
 
 	/**
 	 * Load the properties for a given client and/or load balancer. 
 	 * @param clientName
 	 */
-	public void loadProperties(String clientName);
+	void loadProperties(String clientName);
 	
 	/**
 	 * load default values for this configuration
 	 */
-	public void loadDefaultValues();
+	void loadDefaultValues();
 
-	public Map<String, Object> getProperties();
+	Map<String, Object> getProperties();
+
+    /**
+     * Iterate all properties and report the final value.  Can be null if a default value is not specified.
+     * @param consumer
+     */
+    default void forEach(BiConsumer<IClientConfigKey<?>, Object> consumer) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * @deprecated use {@link #set(IClientConfigKey, Object)} 
      */
 	@Deprecated
-	public void setProperty(IClientConfigKey key, Object value);
+	void setProperty(IClientConfigKey key, Object value);
 
     /**
      * @deprecated use {@link #get(IClientConfigKey)}
      */
     @Deprecated
-	public Object getProperty(IClientConfigKey key);
+	Object getProperty(IClientConfigKey key);
 
     /**
      * @deprecated use {@link #get(IClientConfigKey, Object)} 
      */
     @Deprecated
-	public Object getProperty(IClientConfigKey key, Object defaultVal);
+	Object getProperty(IClientConfigKey key, Object defaultVal);
 
-	public boolean containsProperty(IClientConfigKey key);
+    /**
+     * @deprecated use {@link #getIfSet(IClientConfigKey)}
+     */
+    @Deprecated
+	boolean containsProperty(IClientConfigKey key);
 	
 	/**
 	 * Returns the applicable virtual addresses ("vip") used by this client configuration.
 	 */
-	public String resolveDeploymentContextbasedVipAddresses();
-	
-	public int getPropertyAsInteger(IClientConfigKey key, int defaultValue);
+	String resolveDeploymentContextbasedVipAddresses();
 
-    public String getPropertyAsString(IClientConfigKey key, String defaultValue);
-    
-    public boolean getPropertyAsBoolean(IClientConfigKey key, boolean defaultValue);
+    @Deprecated
+	int getPropertyAsInteger(IClientConfigKey key, int defaultValue);
+
+    @Deprecated
+    String getPropertyAsString(IClientConfigKey key, String defaultValue);
+
+    @Deprecated
+    boolean getPropertyAsBoolean(IClientConfigKey key, boolean defaultValue);
     
     /**
      * Returns a typed property. If the property of IClientConfigKey is not set, it returns null.
      * <p>
-     * For {@link DefaultClientConfigImpl}, if the value of the property is String, 
-     * it will do basic type conversion from String to the following type:
      * <ul>
      * <li>Integer</li>
      * <li>Boolean</li>
@@ -91,20 +107,67 @@ public interface IClientConfig {
      * </ul>
      * <br><br>
      */
-    public <T> T get(IClientConfigKey<T> key);
-    
+    <T> T get(IClientConfigKey<T> key);
+
+    /**
+     * Returns a typed property. If the property of IClientConfigKey is not set, it returns the default value, which
+     * could be null.
+     * <p>
+     * <ul>
+     * <li>Integer</li>
+     * <li>Boolean</li>
+     * <li>Float</li>
+     * <li>Long</li>
+     * <li>Double</li>
+     * </ul>
+     * <br><br>
+     */
+    default <T> T getOrDefault(IClientConfigKey<T> key) {
+        return get(key, key.defaultValue());
+    }
+
+    /**
+     * Return a typed property if and only if it was explicitly set, skipping configuration loading.
+     * @param key
+     * @param <T>
+     * @return
+     */
+    default <T> Optional<T> getIfSet(IClientConfigKey<T> key) {
+        return Optional.ofNullable(get(key));
+    }
+
+    /**
+     * @return Return a global dynamic property not scoped to the specific client.  The property will be looked up as is using the
+     * key without any client name or namespace prefix
+     */
+    <T> Property<T> getGlobalProperty(IClientConfigKey<T> key);
+
+    /**
+     * @return Return a dynamic property scoped to the client name or namespace.
+     */
+    <T> Property<T> getDynamicProperty(IClientConfigKey<T> key);
+
+    /**
+     * @return Return a dynamically updated property that is a mapping of all properties prefixed by the key name to an
+     * object with static method valueOf(Map{@literal <}String, String{@literal >})
+     */
+    default <T> Property<T> getPrefixMappedProperty(IClientConfigKey<T> key) {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Returns a typed property. If the property of IClientConfigKey is not set, 
      * it returns the default value passed in as the parameter.
      */
-    public <T> T get(IClientConfigKey<T> key, T defaultValue);
+    <T> T get(IClientConfigKey<T> key, T defaultValue);
 
     /**
      * Set the typed property with the given value. 
      */
-    public <T> IClientConfig set(IClientConfigKey<T> key, T value);
-    
-    public static class Builder {
+    <T> IClientConfig set(IClientConfigKey<T> key, T value);
+
+    @Deprecated
+    class Builder {
         
         private IClientConfig config;
         
@@ -112,12 +175,11 @@ public interface IClientConfig {
         }
         
         /**
-         * Create a builder with no initial property and value for the configuration to be built. The configuration object
-         * that will be built is an instance of {@link DefaultClientConfigImpl}
+         * Create a builder with no initial property and value for the configuration to be built.
          */
         public static Builder newBuilder() {
             Builder builder = new Builder();
-            builder.config = new DefaultClientConfigImpl();
+            builder.config = ClientConfigFactory.findDefaultConfigFactory().newConfig();
             return builder;
         }
         
@@ -130,7 +192,7 @@ public interface IClientConfig {
          */
         public static Builder newBuilder(String clientName) {
             Builder builder = new Builder();
-            builder.config = new DefaultClientConfigImpl();
+            builder.config = ClientConfigFactory.findDefaultConfigFactory().newConfig();
             builder.config.loadProperties(clientName);
             return builder;
         }
@@ -144,7 +206,8 @@ public interface IClientConfig {
          */
         public static Builder newBuilder(String clientName, String propertyNameSpace) {
             Builder builder = new Builder();
-            builder.config = new DefaultClientConfigImpl(propertyNameSpace);
+            builder.config = ClientConfigFactory.findDefaultConfigFactory().newConfig();
+            builder.config.setNameSpace(propertyNameSpace);
             builder.config.loadProperties(clientName);
             return builder;
         }

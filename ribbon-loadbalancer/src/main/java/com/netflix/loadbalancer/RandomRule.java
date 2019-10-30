@@ -17,10 +17,10 @@
  */
 package com.netflix.loadbalancer;
 
-import java.util.List;
-import java.util.Random;
-
 import com.netflix.client.config.IClientConfig;
+
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A loadbalacing strategy that randomly distributes traffic amongst existing
@@ -30,11 +30,6 @@ import com.netflix.client.config.IClientConfig;
  * 
  */
 public class RandomRule extends AbstractLoadBalancerRule {
-    Random rand;
-
-    public RandomRule() {
-        rand = new Random();
-    }
 
     /**
      * Randomly choose from all living servers
@@ -62,7 +57,7 @@ public class RandomRule extends AbstractLoadBalancerRule {
                 return null;
             }
 
-            int index = rand.nextInt(serverCount);
+            int index = chooseRandomInt(serverCount);
             server = upList.get(index);
 
             if (server == null) {
@@ -88,14 +83,12 @@ public class RandomRule extends AbstractLoadBalancerRule {
 
     }
 
+    protected int chooseRandomInt(int serverCount) {
+        return ThreadLocalRandom.current().nextInt(serverCount);
+    }
+
 	@Override
 	public Server choose(Object key) {
 		return choose(getLoadBalancer(), key);
-	}
-
-	@Override
-	public void initWithNiwsConfig(IClientConfig clientConfig) {
-		// TODO Auto-generated method stub
-		
 	}
 }

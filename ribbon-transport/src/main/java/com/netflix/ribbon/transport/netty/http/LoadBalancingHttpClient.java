@@ -22,7 +22,6 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.netty.client.ClientMetricsEvent;
 import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
@@ -43,6 +42,7 @@ import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +56,6 @@ import rx.functions.Func2;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.netflix.client.ClientException;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -186,7 +185,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 backoffStrategy = new Func1<Integer, Integer>() {
                     @Override
                     public Integer call(Integer backoffCount) {
-                        int interval = config.getPropertyAsInteger(IClientConfigKey.Keys.BackoffInterval, DefaultClientConfigImpl.DEFAULT_BACKOFF_INTERVAL);
+                        int interval = config.getOrDefault(IClientConfigKey.Keys.BackoffInterval);
                         if (backoffCount < 0) {
                             backoffCount = 0;
                         }
@@ -457,7 +456,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         }
         int port = uri.getPort();
         if (port < 0) {
-            if (clientConfig.getPropertyAsBoolean(IClientConfigKey.Keys.IsSecure, false)) {
+            if (clientConfig.get(IClientConfigKey.Keys.IsSecure, false)) {
                 port = 443;
             } else {
                 port = 80;

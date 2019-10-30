@@ -17,8 +17,8 @@
 */
 package com.netflix.client;
 
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.servo.monitor.Monitors;
@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * A factory that creates client, load balancer and client configuration instances from properties. It also keeps mappings of client names to 
@@ -44,11 +45,11 @@ public class ClientFactory {
     private static ConcurrentHashMap<String, IClientConfig> namedConfig = new ConcurrentHashMap<String, IClientConfig>();
     
     private static Logger logger = LoggerFactory.getLogger(ClientFactory.class);
-    
+
     /**
-     * Utility method to create client and load balancer (if enabled in client config) given the name and client config. 
+     * Utility method to create client and load balancer (if enabled in client config) given the name and client config.
      * Instances are created using reflection (see {@link #instantiateInstanceWithClientConfig(String, IClientConfig)}
-     * 
+     *
      * @param restClientName
      * @param clientConfig
      * @throws ClientException if any errors occurs in the process, or if the client with the same name already exists
@@ -62,12 +63,11 @@ public class ClientFactory {
     				"A Rest Client with this name is already registered. Please use a different name");
     	}
     	try {
-    		String clientClassName = (String) clientConfig.getProperty(CommonClientConfigKey.ClientClassName);
+    		String clientClassName = clientConfig.getOrDefault(CommonClientConfigKey.ClientClassName);
     		client = (IClient<?, ?>) instantiateInstanceWithClientConfig(clientClassName, clientConfig);
-    		boolean initializeNFLoadBalancer = Boolean.parseBoolean(clientConfig.getProperty(
-    				CommonClientConfigKey.InitializeNFLoadBalancer, DefaultClientConfigImpl.DEFAULT_ENABLE_LOADBALANCER).toString());
+    		boolean initializeNFLoadBalancer = clientConfig.getOrDefault(CommonClientConfigKey.InitializeNFLoadBalancer);
     		if (initializeNFLoadBalancer) {
-    			loadBalancer  = registerNamedLoadBalancerFromclientConfig(restClientName, clientConfig);
+    			loadBalancer = registerNamedLoadBalancerFromclientConfig(restClientName, clientConfig);
     		}
     		if (client instanceof AbstractLoadBalancerAwareClient) {
     			((AbstractLoadBalancerAwareClient) client).setLoadBalancer(loadBalancer);
@@ -93,7 +93,14 @@ public class ClientFactory {
      * @throws RuntimeException if an error occurs in creating the client.
      */
     public static synchronized IClient getNamedClient(String name) {
-        return getNamedClient(name, DefaultClientConfigImpl.class);
+        if (simpleClientMap.get(name) != null) {
+            return simpleClientMap.get(name);
+        }
+        try {
+            return registerClientFromProperties(name, getNamedConfig(name));
+        } catch (ClientException e) {
+            throw new RuntimeException("Unable to create client", e);
+        }
     }
 
     /**
@@ -111,7 +118,7 @@ public class ClientFactory {
             throw new RuntimeException("Unable to create client", e);
         }
     }
-    
+
     /**
      * Creates a named client using a IClientConfig instance created off the configClass class object passed in as the parameter.
      *  
@@ -123,12 +130,23 @@ public class ClientFactory {
     }
     
     /**
-     * Get the load balancer associated with the name, or create one with an instance {@link DefaultClientConfigImpl} if does not exist
+     * Get the load balancer associated with the name, or create one with the default {@link ClientConfigFactory} if does not exist
      * 
      * @throws RuntimeException if any error occurs
      */
     public static synchronized ILoadBalancer getNamedLoadBalancer(String name) {
-    	return getNamedLoadBalancer(name, DefaultClientConfigImpl.class);
+        ILoadBalancer lb = namedLBMap.get(name);
+        if (lb != null) {
+            return lb;
+        } else {
+            try {
+                lb = registerNamedLoadBalancerFromclientConfig(name, getNamedConfig(name));
+            } catch (ClientException e) {
+                throw new RuntimeException("Unable to create load balancer", e);
+            }
+            namedLBMap.put(name, lb);
+            return lb;
+        }
     }
     
     /**
@@ -163,7 +181,7 @@ public class ClientFactory {
         }
     	ILoadBalancer lb = null;
         try {
-            String loadBalancerClassName = (String) clientConfig.getProperty(CommonClientConfigKey.NFLoadBalancerClassName);
+            String loadBalancerClassName = clientConfig.getOrDefault(CommonClientConfigKey.NFLoadBalancerClassName);
             lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, clientConfig);                                    
             namedLBMap.put(name, lb);            
             logger.info("Client: {} instantiated a LoadBalancer: {}", name, lb);
@@ -218,14 +236,14 @@ public class ClientFactory {
     	logger.warn("Class " + className + " neither implements IClientConfigAware nor provides a constructor with IClientConfig as the parameter. Only default constructor will be used.");
     	return clazz.newInstance();
     }
-    
+
     /**
-     * Get the client configuration given the name or create one with {@link DefaultClientConfigImpl} if it does not exist.
+     * Get the client configuration given the name or create one with the resolved {@link ClientConfigFactory} if it does not exist.
      * 
      * @see #getNamedConfig(String, Class)
      */
     public static IClientConfig getNamedConfig(String name) {
-        return 	getNamedConfig(name, DefaultClientConfigImpl.class);
+        return getNamedConfig(name, ClientConfigFactory.DEFAULT::newConfig);
     }
     
     /**
@@ -233,24 +251,29 @@ public class ClientFactory {
      * is created and {@link IClientConfig#loadProperties(String)} will be called.
      */
     public static IClientConfig getNamedConfig(String name, Class<? extends IClientConfig> clientConfigClass) {
-        IClientConfig config = namedConfig.get(name);
-        if (config != null) {
-            return config;
-        } else {
+        return getNamedConfig(name, factoryFromConfigType(clientConfigClass));
+    }
+
+    public static IClientConfig getNamedConfig(String name, Supplier<IClientConfig> factory) {
+        return namedConfig.computeIfAbsent(name, ignore -> {
             try {
-                config = (IClientConfig) clientConfigClass.newInstance();
+                IClientConfig config = factory.get();
                 config.loadProperties(name);
-            } catch (InstantiationException | IllegalAccessException e) {
-                logger.error("Unable to create named client config '{}' instance for config class {}", name,
-                        clientConfigClass, e);
+                return config;
+            } catch (Exception e) {
+                logger.error("Unable to create named client config '{}' instance for config factory {}", name, factory, e);
                 return null;
             }
-            config.loadProperties(name);
-            IClientConfig old = namedConfig.putIfAbsent(name, config);
-            if (old != null) {
-                config = old;
-            }
-            return config;
-        }
+        });
+    }
+
+    private static Supplier<IClientConfig> factoryFromConfigType(Class<? extends IClientConfig> clientConfigClass) {
+        return () -> {
+                try {
+                    return (IClientConfig) clientConfigClass.newInstance();
+                } catch (Exception e) {
+                    throw new RuntimeException(String.format("Failed to create config for class '%s'", clientConfigClass));
+                }
+            };
     }
 }

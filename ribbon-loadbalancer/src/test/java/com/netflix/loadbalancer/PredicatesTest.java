@@ -19,6 +19,7 @@ package com.netflix.loadbalancer;
 
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -98,6 +99,30 @@ public class PredicatesTest {
         }
         assertEquals(7, chosen.size());
     }
+
+    @Test
+    public void testAvalabilityPredicateAfterFailure() {
+        LoadBalancerStats lbStats = new LoadBalancerStats("default");
+        AvailabilityPredicate predicate = new AvailabilityPredicate(lbStats, null);
+
+        Server server1 = new Server("good2bad:0");
+        Server server2 = new Server("good:1");
+        List<Server> servers = Arrays.asList(server1, server2);
+
+        setServerStats(lbStats, new Object[][] {
+                new Object[]{server1, false, 0},
+                new Object[]{server2, false, 0}});
+
+        Server first = predicate.chooseRoundRobinAfterFiltering(servers).get();
+        assertEquals("good2bad:0", first.getId());
+
+        setServerStats(lbStats, new Object[][] {
+                new Object[]{server1, true, 0},
+                new Object[]{server2, false, 0}});
+
+        Server second = predicate.chooseRoundRobinAfterFiltering(servers).get();
+        assertEquals("good:1", second.getId());
+    }
     
     @Test
     public void testZoneAvoidancePredicate() {
@@ -143,9 +168,11 @@ public class PredicatesTest {
         assertTrue(predicate.apply(new PredicateKey((Server) stats[0][0])));
         assertTrue(predicate.apply(new PredicateKey((Server) stats[9][0])));
     }
-    
+
     @Test
     public void testCompositePredicate() {
+        ConfigurationManager.getConfigInstance().setProperty(ContextKey.zone.getKey(), "0");
+
         Object[][] stats = new Object[10][3];
         Map<String, List<Server>> zoneMap = Maps.newHashMap();
         List<Server> expectedFiltered = Lists.newArrayList();
@@ -180,9 +207,9 @@ public class PredicatesTest {
         LoadBalancerStats lbStats = new LoadBalancerStats("default");
         setServerStats(lbStats, stats);
         lbStats.updateZoneServerMapping(zoneMap);
-        ConfigurationManager.getDeploymentContext().setValue(ContextKey.zone, "0");
+
         AvailabilityPredicate p1 = new AvailabilityPredicate(lbStats, null);
-        ZoneAffinityPredicate p2 = new ZoneAffinityPredicate();
+        ZoneAffinityPredicate p2 = new ZoneAffinityPredicate("0");
         CompositePredicate c = CompositePredicate.withPredicates(p2, p1).build();
         assertFalse(c.apply(new PredicateKey((Server) stats[5][0])));
         assertTrue(c.apply(new PredicateKey((Server) stats[0][0])));

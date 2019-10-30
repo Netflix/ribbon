@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.netflix.client.ClientFactory;
@@ -70,11 +72,15 @@ public class ZoneAwareLoadBalancerTest {
     @Test
     public void testChooseZone() throws Exception {
         ConfigurationManager.getConfigInstance().setProperty("niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 10);
+
+        DefaultClientConfigImpl config = new DefaultClientConfigImpl();
+        config.loadProperties("testChooseZone");
         ZoneAwareLoadBalancer<Server> balancer = new ZoneAwareLoadBalancer<Server>();
         balancer.init();
         IRule globalRule = new RoundRobinRule();
         balancer.setRule(globalRule);        
         LoadBalancerStats loadBalancerStats = balancer.getLoadBalancerStats();
+        loadBalancerStats.initWithNiwsConfig(config);
         assertNotNull(loadBalancerStats);
         List<Server> servers = new ArrayList<Server>();
         

@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.Server;
 import com.netflix.servo.monitor.Counter;
@@ -126,26 +125,21 @@ public class PrimeConnections {
     }
 
     public PrimeConnections(String name, IClientConfig niwsClientConfig) {
-        int maxRetriesPerServerPrimeConnection = Integer.valueOf(DefaultClientConfigImpl.DEFAULT_MAX_RETRIES_PER_SERVER_PRIME_CONNECTION);
-        long maxTotalTimeToPrimeConnections = Long.valueOf(DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_TIME_TO_PRIME_CONNECTIONS);
-        String primeConnectionsURI = DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_URI;  
-        String className = DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_CLASS;
+        int maxRetriesPerServerPrimeConnection = CommonClientConfigKey.MaxRetriesPerServerPrimeConnection.defaultValue();
+        int maxTotalTimeToPrimeConnections =  CommonClientConfigKey.MaxTotalTimeToPrimeConnections.defaultValue();
         try {
-            maxRetriesPerServerPrimeConnection = Integer.parseInt(String.valueOf(niwsClientConfig.getProperty(
-                    CommonClientConfigKey.MaxRetriesPerServerPrimeConnection, maxRetriesPerServerPrimeConnection)));
+            maxRetriesPerServerPrimeConnection = niwsClientConfig.getOrDefault(CommonClientConfigKey.MaxRetriesPerServerPrimeConnection);
         } catch (Exception e) {
             logger.warn("Invalid maxRetriesPerServerPrimeConnection");
         }
         try {
-            maxTotalTimeToPrimeConnections = Long.parseLong(String.valueOf(niwsClientConfig.getProperty(
-                    CommonClientConfigKey.MaxTotalTimeToPrimeConnections,maxTotalTimeToPrimeConnections)));
+            maxTotalTimeToPrimeConnections = niwsClientConfig.getOrDefault(CommonClientConfigKey.MaxTotalTimeToPrimeConnections);
         } catch (Exception e) {
             logger.warn("Invalid maxTotalTimeToPrimeConnections");
         }
-        primeConnectionsURI = String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.PrimeConnectionsURI, primeConnectionsURI));
-        float primeRatio = Float.parseFloat(String.valueOf(niwsClientConfig.getProperty(CommonClientConfigKey.MinPrimeConnectionsRatio)));
-        className = niwsClientConfig.getPropertyAsString(CommonClientConfigKey.PrimeConnectionsClassName,
-                DefaultClientConfigImpl.DEFAULT_PRIME_CONNECTIONS_CLASS);
+        final String primeConnectionsURI = niwsClientConfig.getOrDefault(CommonClientConfigKey.PrimeConnectionsURI);
+        float primeRatio = niwsClientConfig.getOrDefault(CommonClientConfigKey.MinPrimeConnectionsRatio);
+        final String className = niwsClientConfig.getOrDefault(CommonClientConfigKey.PrimeConnectionsClassName);
         try {
             connector = (IPrimeConnection) Class.forName(className).newInstance();
             connector.initWithNiwsConfig(niwsClientConfig);
@@ -158,7 +152,7 @@ public class PrimeConnections {
         
     public PrimeConnections(String name, int maxRetries, 
             long maxTotalTimeToPrimeConnections, String primeConnectionsURI) {
-        setUp(name, maxRetries, maxTotalTimeToPrimeConnections, primeConnectionsURI, DefaultClientConfigImpl.DEFAULT_MIN_PRIME_CONNECTIONS_RATIO);
+        setUp(name, maxRetries, maxTotalTimeToPrimeConnections, primeConnectionsURI, CommonClientConfigKey.MinPrimeConnectionsRatio.defaultValue());
     }
 
     public PrimeConnections(String name, int maxRetries, 

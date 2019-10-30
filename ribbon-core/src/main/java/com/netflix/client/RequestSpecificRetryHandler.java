@@ -1,20 +1,18 @@
 package com.netflix.client;
 
-import java.net.SocketException;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 
+import javax.annotation.Nullable;
+import java.net.SocketException;
+import java.util.List;
+import java.util.Optional;
+
 /**
  * Implementation of RetryHandler created for each request which allows for request
  * specific override
- * @author elandau
- *
  */
 public class RequestSpecificRetryHandler implements RetryHandler {
 
@@ -37,12 +35,12 @@ public class RequestSpecificRetryHandler implements RetryHandler {
         this.okToRetryOnAllErrors = okToRetryOnAllErrors;
         this.fallback = baseRetryHandler;
         if (requestConfig != null) {
-            if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetries)) {
-                retrySameServer = requestConfig.get(CommonClientConfigKey.MaxAutoRetries); 
-            }
-            if (requestConfig.containsProperty(CommonClientConfigKey.MaxAutoRetriesNextServer)) {
-                retryNextServer = requestConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer); 
-            } 
+            requestConfig.getIfSet(CommonClientConfigKey.MaxAutoRetries).ifPresent(
+                    value -> retrySameServer = value
+            );
+            requestConfig.getIfSet(CommonClientConfigKey.MaxAutoRetriesNextServer).ifPresent(
+                    value -> retryNextServer = value
+            );
         }
     }
     

@@ -61,8 +61,8 @@ public class ExecutionContext<T> {
         this.request = request;
         this.requestConfig = requestConfig;
         this.clientConfig = clientConfig;
-        this.context = new ConcurrentHashMap<String, Object>();
-        this.subContexts = new ConcurrentHashMap<Object, ChildContext<T>>();
+        this.context = new ConcurrentHashMap<>();
+        this.subContexts = new ConcurrentHashMap<>();
         this.retryHandler = retryHandler;
     }
 
@@ -70,7 +70,7 @@ public class ExecutionContext<T> {
         this.request = request;
         this.requestConfig = requestConfig;
         this.clientConfig = clientConfig;
-        this.context = new ConcurrentHashMap<String, Object>();
+        this.context = new ConcurrentHashMap<>();
         this.subContexts = subContexts;
         this.retryHandler = retryHandler;
     }

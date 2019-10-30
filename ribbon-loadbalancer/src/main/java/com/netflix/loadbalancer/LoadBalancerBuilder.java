@@ -1,8 +1,9 @@
 package com.netflix.loadbalancer;
 
 import com.netflix.client.ClientFactory;
+import com.netflix.client.IClientConfigAware;
+import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 
@@ -10,13 +11,13 @@ import java.util.List;
 
 public class LoadBalancerBuilder<T extends Server> {
     
-    private IClientConfig config = DefaultClientConfigImpl.getClientConfigWithDefaultValues();
+    private IClientConfig config = ClientConfigFactory.findDefaultConfigFactory().newConfig();
     private ServerListFilter serverListFilter;
     private IRule rule;
     private IPing ping = new DummyPing();
     private ServerList serverListImpl;
     private ServerListUpdater serverListUpdater;
-    
+    private IClientConfigAware.Factory factory = ClientFactory::instantiateInstanceWithClientConfig;
     
     private LoadBalancerBuilder() {
     }
@@ -24,7 +25,12 @@ public class LoadBalancerBuilder<T extends Server> {
     public static <T extends Server> LoadBalancerBuilder<T> newBuilder() {
         return new LoadBalancerBuilder<T>();
     }
-    
+
+    public LoadBalancerBuilder<T> withFactory(IClientConfigAware.Factory factory) {
+        this.factory = factory;
+        return this;
+    }
+
     public LoadBalancerBuilder<T> withClientConfig(IClientConfig config) {
         this.config = config;
         return this;
@@ -57,49 +63,49 @@ public class LoadBalancerBuilder<T extends Server> {
 
     public BaseLoadBalancer buildFixedServerListLoadBalancer(List<T> servers) {
         if (rule == null) {
-            rule = createRuleFromConfig(config);
+            rule = createRuleFromConfig(config, factory);
         }
         BaseLoadBalancer lb = new BaseLoadBalancer(config, rule, ping);
         lb.setServersList(servers);
         return lb;
     }
     
-    private static IRule createRuleFromConfig(IClientConfig config) {
-        String ruleClassName = config.get(IClientConfigKey.Keys.NFLoadBalancerRuleClassName);
+    private static IRule createRuleFromConfig(IClientConfig config, IClientConfigAware.Factory factory) {
+        String ruleClassName = config.getOrDefault(IClientConfigKey.Keys.NFLoadBalancerRuleClassName);
         if (ruleClassName == null) {
             throw new IllegalArgumentException("NFLoadBalancerRuleClassName is not specified in the config");
         }
         IRule rule;
         try {
-            rule = (IRule) ClientFactory.instantiateInstanceWithClientConfig(ruleClassName, config);
+            rule = (IRule) factory.create(ruleClassName, config);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return rule;
     }
 
-    private static ServerListUpdater createServerListUpdaterFromConfig(IClientConfig config) {
-        String serverListUpdaterClassName = config.get(IClientConfigKey.Keys.ServerListUpdaterClassName);
+    private static ServerListUpdater createServerListUpdaterFromConfig(IClientConfig config, IClientConfigAware.Factory factory) {
+        String serverListUpdaterClassName = config.getOrDefault(IClientConfigKey.Keys.ServerListUpdaterClassName);
         if (serverListUpdaterClassName == null) {
             throw new IllegalArgumentException("NIWSServerListClassName is not specified in the config");
         }
         ServerListUpdater updater;
         try {
-            updater = (ServerListUpdater) ClientFactory.instantiateInstanceWithClientConfig(serverListUpdaterClassName, config);
+            updater = (ServerListUpdater) factory.create(serverListUpdaterClassName, config);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return updater;
     }
     
-    private static ServerList<Server> createServerListFromConfig(IClientConfig config) {
+    private static ServerList<Server> createServerListFromConfig(IClientConfig config, IClientConfigAware.Factory factory) {
         String serverListClassName = config.get(IClientConfigKey.Keys.NIWSServerListClassName);
         if (serverListClassName == null) {
             throw new IllegalArgumentException("NIWSServerListClassName is not specified in the config");
         }
         ServerList<Server> list;
         try {
-            list = (ServerList<Server>) ClientFactory.instantiateInstanceWithClientConfig(serverListClassName, config);
+            list = (ServerList<Server>) factory.create(serverListClassName, config);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -114,10 +120,10 @@ public class LoadBalancerBuilder<T extends Server> {
      */
     public ZoneAwareLoadBalancer<T> buildDynamicServerListLoadBalancer() {
         if (serverListImpl == null) {
-            serverListImpl = createServerListFromConfig(config);
+            serverListImpl = createServerListFromConfig(config, factory);
         }
         if (rule == null) {
-            rule = createRuleFromConfig(config);
+            rule = createRuleFromConfig(config, factory);
         }
         return new ZoneAwareLoadBalancer<T>(config, rule, ping, serverListImpl, serverListFilter);
     }
@@ -134,13 +140,13 @@ public class LoadBalancerBuilder<T extends Server> {
      */
     public ZoneAwareLoadBalancer<T> buildDynamicServerListLoadBalancerWithUpdater() {
         if (serverListImpl == null) {
-            serverListImpl = createServerListFromConfig(config);
+            serverListImpl = createServerListFromConfig(config, factory);
         }
         if (rule == null) {
-            rule = createRuleFromConfig(config);
+            rule = createRuleFromConfig(config, factory);
         }
         if (serverListUpdater == null) {
-            serverListUpdater = createServerListUpdaterFromConfig(config);
+            serverListUpdater = createServerListUpdaterFromConfig(config, factory);
         }
         return new ZoneAwareLoadBalancer<T>(config, rule, ping, serverListImpl, serverListFilter, serverListUpdater);
     }
@@ -156,7 +162,7 @@ public class LoadBalancerBuilder<T extends Server> {
         }
         ILoadBalancer lb;
         try {
-            lb = (ILoadBalancer) ClientFactory.instantiateInstanceWithClientConfig(loadBalancerClassName, config);
+            lb = (ILoadBalancer) factory.create(loadBalancerClassName, config);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

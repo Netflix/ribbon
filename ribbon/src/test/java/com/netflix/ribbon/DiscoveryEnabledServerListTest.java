@@ -28,6 +28,7 @@ import io.netty.buffer.ByteBuf;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -39,6 +40,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by awang on 7/15/14.
  */
+@PowerMockIgnore("com.google.*")
 public class DiscoveryEnabledServerListTest extends MockedDiscoveryServerListTest {
 
     static MockWebServer server;

@@ -146,7 +146,7 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
             boolean retryOkayOnOperation = okToRetryOnAllOperations;
             IClientConfig overriddenClientConfig = request.getOverrideConfig();
             if (overriddenClientConfig != null) {
-                retryOkayOnOperation = overriddenClientConfig.getPropertyAsBoolean(CommonClientConfigKey.RequestSpecificRetryOn, okToRetryOnAllOperations);
+                retryOkayOnOperation = overriddenClientConfig.get(CommonClientConfigKey.RequestSpecificRetryOn, okToRetryOnAllOperations);
             }
             return retryOkayOnOperation;
         }

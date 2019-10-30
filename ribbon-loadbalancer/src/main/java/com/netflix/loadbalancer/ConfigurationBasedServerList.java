@@ -17,17 +17,12 @@
 */
 package com.netflix.loadbalancer;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.config.DynamicStringProperty;
 
 /**
  * Utility class that can load the List of Servers from a Configuration (i.e
@@ -68,5 +63,10 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 			}
 		}
         return list;
+	}
+
+	@Override
+	public String toString() {
+		return "ConfigurationBasedServerList:" + getUpdatedListOfServers();
 	}
 }

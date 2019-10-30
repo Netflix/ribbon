@@ -16,19 +16,29 @@
 package com.netflix.client.config;
 
 
+import java.util.Comparator;
+import java.util.ServiceLoader;
+import java.util.stream.StreamSupport;
+
 /**
  * Created by awang on 7/18/14.
  */
 public interface ClientConfigFactory {
     IClientConfig newConfig();
 
-    public static class DefaultClientConfigFactory implements ClientConfigFactory {
-        @Override
-        public IClientConfig newConfig() {
-            IClientConfig config = new DefaultClientConfigImpl();
-            return config;
-        }
+    ClientConfigFactory DEFAULT = findDefaultConfigFactory();
+
+    default int getPriority() { return 0; }
+
+    static ClientConfigFactory findDefaultConfigFactory() {
+        return StreamSupport.stream(ServiceLoader.load(ClientConfigFactory.class).spliterator(), false)
+                .sorted(Comparator
+                        .comparingInt(ClientConfigFactory::getPriority)
+                        .thenComparing(f -> f.getClass().getCanonicalName())
+                        .reversed())
+                .findFirst()
+                .orElseGet(() -> {
+                    throw new IllegalStateException("Expecting at least one implementation of ClientConfigFactory discoverable via the ServiceLoader");
+                });
     }
-    
-    public static final ClientConfigFactory DEFAULT = new DefaultClientConfigFactory();
 }

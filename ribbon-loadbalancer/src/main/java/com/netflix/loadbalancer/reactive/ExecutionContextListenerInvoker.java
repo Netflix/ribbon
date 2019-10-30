@@ -182,7 +182,7 @@ public class ExecutionContextListenerInvoker<I, O> {
                     key = old;
                 }
             }
-            return clientConfig.getPropertyAsBoolean(key, false);
+            return clientConfig.get(key, false);
         }
     }
 }

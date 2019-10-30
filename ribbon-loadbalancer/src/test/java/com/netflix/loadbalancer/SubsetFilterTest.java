@@ -20,9 +20,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.commons.configuration.Configuration;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -35,17 +38,7 @@ public class SubsetFilterTest {
     @BeforeClass
     public static void init() {
         Configuration config = ConfigurationManager.getConfigInstance();
-        config.setProperty(
-                DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.forceEliminatePercent", "0.6");
-        config.setProperty(
-                DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.eliminationFailureThresold", 2);
-        config.setProperty(
-                DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.eliminationConnectionThresold", 2);
-        config.setProperty(
-                DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + ".ServerListSubsetFilter.size", "5");
-        
-        config.setProperty("SubsetFilerTest.ribbon.NFLoadBalancerClassName", 
-                com.netflix.loadbalancer.DynamicServerListLoadBalancer.class.getName());
+        config.setProperty("SubsetFilerTest.ribbon.NFLoadBalancerClassName", com.netflix.loadbalancer.DynamicServerListLoadBalancer.class.getName());
         config.setProperty("SubsetFilerTest.ribbon.NIWSServerListClassName", MockServerList.class.getName());
         config.setProperty("SubsetFilerTest.ribbon.NIWSServerListFilterClassName", ServerListSubsetFilter.class.getName());
         // turn off auto refresh
@@ -90,8 +83,12 @@ public class SubsetFilterTest {
     
     @Test
     public void testFiltering() {
-        ServerListSubsetFilter<Server> filter = new ServerListSubsetFilter<Server>();
+        DefaultClientConfigImpl config = new DefaultClientConfigImpl();
+        config.loadProperties("SubsetFilerTest");
+
+        ServerListSubsetFilter<Server> filter = new ServerListSubsetFilter<Server>(config);
         LoadBalancerStats stats = new LoadBalancerStats("default");
+        stats.initWithNiwsConfig(config);
         filter.setLoadBalancerStats(stats);
         Object[][] serverStats = { 
                 {"server0", 0, 0},
@@ -167,12 +164,9 @@ public class SubsetFilterTest {
         LoadBalancerStats stats = lb.getLoadBalancerStats();
         List<Server> list = getServersAndStats(stats, serverStats);
         serverList.setServerList(list);
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+
+        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+
         lb.updateListOfServers();
         List<Server> filtered = lb.getAllServers();
         // first filtering, should get 5 servers 

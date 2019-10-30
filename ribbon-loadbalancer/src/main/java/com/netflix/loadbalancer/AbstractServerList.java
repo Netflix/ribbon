@@ -38,13 +38,12 @@ public abstract class AbstractServerList<T extends Server> implements ServerList
      * The filter class name is determined by the value of {@link CommonClientConfigKey#NIWSServerListFilterClassName}
      * in the {@link IClientConfig}. The default implementation is {@link ZoneAffinityServerListFilter}.
      */
-    public AbstractServerListFilter<T> getFilterImpl(IClientConfig niwsClientConfig) throws ClientException{
+    public AbstractServerListFilter<T> getFilterImpl(IClientConfig niwsClientConfig) throws ClientException {
+        String niwsServerListFilterClassName = null;
         try {
-            String niwsServerListFilterClassName = niwsClientConfig
-                    .getProperty(
+            niwsServerListFilterClassName = niwsClientConfig.get(
                             CommonClientConfigKey.NIWSServerListFilterClassName,
-                            ZoneAffinityServerListFilter.class.getName())
-                    .toString();
+                            ZoneAffinityServerListFilter.class.getName());
 
             AbstractServerListFilter<T> abstractNIWSServerListFilter = 
                     (AbstractServerListFilter<T>) ClientFactory.instantiateInstanceWithClientConfig(niwsServerListFilterClassName, niwsClientConfig);
@@ -53,8 +52,7 @@ public abstract class AbstractServerList<T extends Server> implements ServerList
             throw new ClientException(
                     ClientException.ErrorType.CONFIGURATION,
                     "Unable to get an instance of CommonClientConfigKey.NIWSServerListFilterClassName. Configured class:"
-                            + niwsClientConfig
-                                    .getProperty(CommonClientConfigKey.NIWSServerListFilterClassName), e);
+                            + niwsServerListFilterClassName, e);
         }
     }
 }

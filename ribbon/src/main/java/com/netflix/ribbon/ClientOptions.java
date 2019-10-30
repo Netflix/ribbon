@@ -32,7 +32,7 @@ public final class ClientOptions {
     private Map<IClientConfigKey<?>, Object> options;
     
     private ClientOptions() {
-        options = new ConcurrentHashMap<IClientConfigKey<?>, Object>();
+        options = new ConcurrentHashMap<>();
     }
     
     public static ClientOptions create() {

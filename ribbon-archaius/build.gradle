@@ -1,0 +1,12 @@
+dependencies {
+    compile "org.slf4j:slf4j-api:${slf4j_version}"
+    compile 'com.google.code.findbugs:annotations:2.0.0'
+    compile "com.google.guava:guava:${guava_version}"
+    compile 'commons-configuration:commons-configuration:1.8'
+    compile 'commons-lang:commons-lang:2.6'
+    compile "com.netflix.archaius:archaius-core:${archaius_version}"
+
+    compile project(':ribbon-core')
+
+    testCompile 'junit:junit:4.11' 
+}

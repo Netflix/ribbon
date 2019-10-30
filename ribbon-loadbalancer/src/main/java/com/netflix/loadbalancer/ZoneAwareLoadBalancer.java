@@ -17,21 +17,23 @@
 */
 package com.netflix.loadbalancer;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.netflix.client.ClientFactory;
+import com.netflix.client.config.ClientConfigFactory;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.config.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.netflix.client.ClientFactory;
-import com.netflix.client.config.IClientConfig;
-import com.netflix.config.DynamicBooleanProperty;
-import com.netflix.config.DynamicDoubleProperty;
-import com.netflix.config.DynamicPropertyFactory;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Load balancer that can avoid a zone as a whole when choosing server. 
@@ -55,35 +57,64 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
     private ConcurrentHashMap<String, BaseLoadBalancer> balancers = new ConcurrentHashMap<String, BaseLoadBalancer>();
     
     private static final Logger logger = LoggerFactory.getLogger(ZoneAwareLoadBalancer.class);
-            
-    private volatile DynamicDoubleProperty triggeringLoad;
 
-    private volatile DynamicDoubleProperty triggeringBlackoutPercentage; 
+    private static final IClientConfigKey<Boolean> ENABLED = new CommonClientConfigKey<Boolean>(
+            "ZoneAwareNIWSDiscoveryLoadBalancer.enabled", true){};
 
-    private static final DynamicBooleanProperty ENABLED = DynamicPropertyFactory.getInstance().getBooleanProperty("ZoneAwareNIWSDiscoveryLoadBalancer.enabled", true);
-            
+    private static final IClientConfigKey<Double> TRIGGERING_LOAD_PER_SERVER_THRESHOLD = new CommonClientConfigKey<Double>(
+            "ZoneAwareNIWSDiscoveryLoadBalancer.%s.triggeringLoadPerServerThreshold", 0.2d){};
+
+    private static final IClientConfigKey<Double> AVOID_ZONE_WITH_BLACKOUT_PERCENTAGE = new CommonClientConfigKey<Double>(
+            "ZoneAwareNIWSDiscoveryLoadBalancer.%s.avoidZoneWithBlackoutPercetage", 0.99999d){};
+
+
+    private Property<Double> triggeringLoad = Property.of(TRIGGERING_LOAD_PER_SERVER_THRESHOLD.defaultValue());
+
+    private Property<Double> triggeringBlackoutPercentage = Property.of(AVOID_ZONE_WITH_BLACKOUT_PERCENTAGE.defaultValue());
+
+    private Property<Boolean> enabled = Property.of(ENABLED.defaultValue());
+
     void setUpServerList(List<Server> upServerList) {
         this.upServerList = upServerList;
-    }
-    
-    public ZoneAwareLoadBalancer() {
-        super();
     }
 
     @Deprecated
     public ZoneAwareLoadBalancer(IClientConfig clientConfig, IRule rule,
             IPing ping, ServerList<T> serverList, ServerListFilter<T> filter) {
         super(clientConfig, rule, ping, serverList, filter);
+
+        String name = Optional.ofNullable(getName()).orElse("default");
+
+        this.enabled = clientConfig.getGlobalProperty(ENABLED);
+        this.triggeringLoad = clientConfig.getGlobalProperty(TRIGGERING_LOAD_PER_SERVER_THRESHOLD.format(name));
+        this.triggeringBlackoutPercentage = clientConfig.getGlobalProperty(AVOID_ZONE_WITH_BLACKOUT_PERCENTAGE.format(name));
     }
 
     public ZoneAwareLoadBalancer(IClientConfig clientConfig, IRule rule,
                                  IPing ping, ServerList<T> serverList, ServerListFilter<T> filter,
                                  ServerListUpdater serverListUpdater) {
         super(clientConfig, rule, ping, serverList, filter, serverListUpdater);
+
+        String name = Optional.ofNullable(getName()).orElse("default");
+
+        this.enabled = clientConfig.getGlobalProperty(ENABLED);
+        this.triggeringLoad = clientConfig.getGlobalProperty(TRIGGERING_LOAD_PER_SERVER_THRESHOLD.format(name));
+        this.triggeringBlackoutPercentage = clientConfig.getGlobalProperty(AVOID_ZONE_WITH_BLACKOUT_PERCENTAGE.format(name));
     }
 
-    public ZoneAwareLoadBalancer(IClientConfig niwsClientConfig) {
-        super(niwsClientConfig);
+    public ZoneAwareLoadBalancer() {
+        super();
+    }
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+        super.initWithNiwsConfig(clientConfig);
+
+        String name = Optional.ofNullable(getName()).orElse("default");
+
+        this.enabled = clientConfig.getGlobalProperty(ENABLED);
+        this.triggeringLoad = clientConfig.getGlobalProperty(TRIGGERING_LOAD_PER_SERVER_THRESHOLD.format(name));
+        this.triggeringBlackoutPercentage = clientConfig.getGlobalProperty(AVOID_ZONE_WITH_BLACKOUT_PERCENTAGE.format(name));
     }
 
     @Override
@@ -108,7 +139,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         
     @Override
     public Server chooseServer(Object key) {
-        if (!ENABLED.get() || getLoadBalancerStats().getAvailableZones().size() <= 1) {
+        if (!enabled.getOrDefault() || getLoadBalancerStats().getAvailableZones().size() <= 1) {
             logger.debug("Zone aware logic disabled or there is only one zone");
             return super.chooseServer(key);
         }
@@ -117,16 +148,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
             LoadBalancerStats lbStats = getLoadBalancerStats();
             Map<String, ZoneSnapshot> zoneSnapshot = ZoneAvoidanceRule.createSnapshot(lbStats);
             logger.debug("Zone snapshots: {}", zoneSnapshot);
-            if (triggeringLoad == null) {
-                triggeringLoad = DynamicPropertyFactory.getInstance().getDoubleProperty(
-                        "ZoneAwareNIWSDiscoveryLoadBalancer." + this.getName() + ".triggeringLoadPerServerThreshold", 0.2d);
-            }
-
-            if (triggeringBlackoutPercentage == null) {
-                triggeringBlackoutPercentage = DynamicPropertyFactory.getInstance().getDoubleProperty(
-                        "ZoneAwareNIWSDiscoveryLoadBalancer." + this.getName() + ".avoidZoneWithBlackoutPercetage", 0.99999d);
-            }
-            Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.get(), triggeringBlackoutPercentage.get());
+            Set<String> availableZones = ZoneAvoidanceRule.getAvailableZones(zoneSnapshot, triggeringLoad.getOrDefault(), triggeringBlackoutPercentage.getOrDefault());
             logger.debug("Available zones: {}", availableZones);
             if (availableZones != null &&  availableZones.size() < zoneSnapshot.keySet().size()) {
                 String zone = ZoneAvoidanceRule.randomChooseZone(zoneSnapshot, availableZones);

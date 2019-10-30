@@ -17,6 +17,21 @@
 */
 package com.netflix.loadbalancer;
 
+import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.netflix.client.IClientConfigAware;
+import com.netflix.client.config.ClientConfigFactory;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.IClientConfig;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.client.config.UnboxedIntProperty;
+import com.netflix.servo.annotations.DataSourceType;
+import com.netflix.servo.annotations.Monitor;
+import com.netflix.servo.monitor.Monitors;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,17 +42,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
-import com.netflix.servo.monitor.Monitors;
 
 /**
  * Class that acts as a repository of operational charateristics and statistics
@@ -50,42 +54,54 @@ import com.netflix.servo.monitor.Monitors;
  * @author stonse
  * 
  */
-public class LoadBalancerStats {
+public class LoadBalancerStats implements IClientConfigAware {
     
     private static final String PREFIX = "LBStats_";
+
+    public static final IClientConfigKey<Integer> ACTIVE_REQUESTS_COUNT_TIMEOUT = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.serverStats.activeRequestsCount.effectiveWindowSeconds", 60 * 10) {};
+
+    public static final IClientConfigKey<Integer> CONNECTION_FAILURE_COUNT_THRESHOLD = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.%s.connectionFailureCountThreshold", 3) {};
+
+    public static final IClientConfigKey<Integer> CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.%s.circuitTripTimeoutFactorSeconds", 10) {};
+
+    public static final IClientConfigKey<Integer> CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.%s.circuitTripMaxTimeoutSeconds", 30) {};
+
+    public static final IClientConfigKey<Integer> DEFAULT_CONNECTION_FAILURE_COUNT_THRESHOLD = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.default.connectionFailureCountThreshold", 3) {};
+
+    public static final IClientConfigKey<Integer> DEFAULT_CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.default.circuitTripTimeoutFactorSeconds", 10) {};
+
+    public static final IClientConfigKey<Integer> DEFAULT_CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS = new CommonClientConfigKey<Integer>(
+            "niws.loadbalancer.default.circuitTripMaxTimeoutSeconds", 30) {};
+
+    private String name;
     
-    String name;
+    volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<>();
+    volatile Map<String, List<? extends Server>> upServerListZoneMap = new ConcurrentHashMap<>();
     
-    // Map<Server,ServerStats> serverStatsMap = new ConcurrentHashMap<Server,ServerStats>();
-    volatile Map<String, ZoneStats> zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();
-    volatile Map<String, List<? extends Server>> upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();
-    
-    private volatile DynamicIntProperty connectionFailureThreshold;
+    private UnboxedIntProperty connectionFailureThreshold = new UnboxedIntProperty(CONNECTION_FAILURE_COUNT_THRESHOLD.defaultValue());
         
-    private volatile DynamicIntProperty circuitTrippedTimeoutFactor;
+    private UnboxedIntProperty circuitTrippedTimeoutFactor = new UnboxedIntProperty(CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS.defaultValue());
 
-    private volatile DynamicIntProperty maxCircuitTrippedTimeout;
+    private UnboxedIntProperty maxCircuitTrippedTimeout = new UnboxedIntProperty(CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS.defaultValue());
 
-    private static final DynamicIntProperty SERVERSTATS_EXPIRE_MINUTES = 
-        DynamicPropertyFactory.getInstance().getIntProperty("niws.loadbalancer.serverStats.expire.minutes", 30);
-    
-    private final LoadingCache<Server, ServerStats> serverStatsCache = 
-        CacheBuilder.newBuilder()
-            .expireAfterAccess(SERVERSTATS_EXPIRE_MINUTES.get(), TimeUnit.MINUTES)
-            .removalListener(new RemovalListener<Server, ServerStats>() {
-                @Override
-                public void onRemoval(RemovalNotification<Server, ServerStats> notification) {
-                    notification.getValue().close();
+    private UnboxedIntProperty activeRequestsCountTimeout = new UnboxedIntProperty(ACTIVE_REQUESTS_COUNT_TIMEOUT.defaultValue());
+
+    private final LoadingCache<Server, ServerStats> serverStatsCache = CacheBuilder.newBuilder()
+            .expireAfterAccess(30, TimeUnit.MINUTES)
+            .removalListener((RemovalListener<Server, ServerStats>) notification -> notification.getValue().close())
+            .build(new CacheLoader<Server, ServerStats>() {
+                public ServerStats load(Server server) {
+                    return createServerStats(server);
                 }
-            })
-            .build(
-                new CacheLoader<Server, ServerStats>() {
-                    public ServerStats load(Server server) {
-                        return createServerStats(server);
-                    }
-                });
-        
-    private ServerStats createServerStats(Server server) {
+            });
+
+    protected ServerStats createServerStats(Server server) {
         ServerStats ss = new ServerStats(this);
         //configure custom settings
         ss.setBufferSize(1000);
@@ -93,18 +109,38 @@ public class LoadBalancerStats {
         ss.initialize(server);
         return ss;        
     }
-    
-    private LoadBalancerStats(){
-        zoneStatsMap = new ConcurrentHashMap<String, ZoneStats>();  
-        upServerListZoneMap = new ConcurrentHashMap<String, List<? extends Server>>();        
+
+    public LoadBalancerStats() {
+
     }
-    
-    public LoadBalancerStats(String name){
-        this();
+
+    public LoadBalancerStats(String name) {
         this.name = name;
-        Monitors.registerObject(name, this); 
+
+        Monitors.registerObject(name, this);
     }
-       
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig clientConfig) {
+        this.name = clientConfig.getClientName();
+        Preconditions.checkArgument(name != null, "IClientConfig#getCLientName() must not be null");
+        this.connectionFailureThreshold = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(CONNECTION_FAILURE_COUNT_THRESHOLD.format(name))
+                    .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_CONNECTION_FAILURE_COUNT_THRESHOLD))
+        );
+        this.circuitTrippedTimeoutFactor = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS.format(name))
+                        .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS))
+        );
+        this.maxCircuitTrippedTimeout = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS.format(name))
+                        .fallbackWith(clientConfig.getGlobalProperty(DEFAULT_CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS))
+        );
+        this.activeRequestsCountTimeout = new UnboxedIntProperty(
+                clientConfig.getGlobalProperty(ACTIVE_REQUESTS_COUNT_TIMEOUT));
+    }
+
+
     public String getName() {
         return name;
     }
@@ -113,31 +149,23 @@ public class LoadBalancerStats {
         this.name = name;
     }
 
-    DynamicIntProperty getConnectionFailureCountThreshold() {
-        if (connectionFailureThreshold == null) {
-            connectionFailureThreshold = DynamicPropertyFactory.getInstance().getIntProperty(
-                    "niws.loadbalancer." + name + ".connectionFailureCountThreshold", 3);
-        }
+    UnboxedIntProperty getConnectionFailureCountThreshold() {
         return connectionFailureThreshold;
 
     }
-    
-    DynamicIntProperty getCircuitTrippedTimeoutFactor() {
-        if (circuitTrippedTimeoutFactor == null) {
-            circuitTrippedTimeoutFactor = DynamicPropertyFactory.getInstance().getIntProperty(
-                    "niws.loadbalancer." + name + ".circuitTripTimeoutFactorSeconds", 10);
-        }
-        return circuitTrippedTimeoutFactor;        
+
+    UnboxedIntProperty getCircuitTrippedTimeoutFactor() {
+        return circuitTrippedTimeoutFactor;
     }
-    
-    DynamicIntProperty getCircuitTripMaxTimeoutSeconds() {
-        if (maxCircuitTrippedTimeout == null) {
-            maxCircuitTrippedTimeout = DynamicPropertyFactory.getInstance().getIntProperty(
-                    "niws.loadbalancer." + name + ".circuitTripMaxTimeoutSeconds", 30);
-        }
-        return maxCircuitTrippedTimeout;        
+
+    UnboxedIntProperty getCircuitTripMaxTimeoutSeconds() {
+        return maxCircuitTrippedTimeout;
     }
-    
+
+    UnboxedIntProperty getActiveRequestsCountTimeout() {
+        return activeRequestsCountTimeout;
+    }
+
     /**
      * The caller o this class is tasked to call this method every so often if
      * the servers participating in the LoadBalancer changes
@@ -151,11 +179,13 @@ public class LoadBalancerStats {
     
     
     public void addServer(Server server) {
-        try {
-            serverStatsCache.get(server);
-        } catch (ExecutionException e) {
-            ServerStats stats = createServerStats(server);
-            serverStatsCache.asMap().putIfAbsent(server, stats);
+        if (server != null) {
+            try {
+                serverStatsCache.get(server);
+            } catch (ExecutionException e) {
+                ServerStats stats = createServerStats(server);
+                serverStatsCache.asMap().putIfAbsent(server, stats);
+            }
         }
     } 
     
@@ -170,7 +200,11 @@ public class LoadBalancerStats {
         ss.noteResponseTime(msecs);
     }
     
-    private ServerStats getServerStats(Server server) {
+    protected ServerStats getServerStats(Server server) {
+        if (server == null) {
+            return null;
+        }
+
         try {
             return serverStatsCache.get(server);
         } catch (ExecutionException e) {

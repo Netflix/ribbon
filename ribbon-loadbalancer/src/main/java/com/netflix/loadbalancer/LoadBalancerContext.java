@@ -24,11 +24,11 @@ import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.monitor.Monitors;
 import com.netflix.servo.monitor.Timer;
 import com.netflix.util.Pair;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,13 +49,13 @@ public class LoadBalancerContext implements IClientConfigAware {
 
     protected String vipAddresses;
 
-    protected int maxAutoRetriesNextServer = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES_NEXT_SERVER;
-    protected int maxAutoRetries = DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES;
+    protected int maxAutoRetriesNextServer = CommonClientConfigKey.MaxAutoRetriesNextServer.defaultValue();
+    protected int maxAutoRetries = CommonClientConfigKey.MaxAutoRetries.defaultValue();
 
     protected RetryHandler defaultRetryHandler = new DefaultLoadBalancerRetryHandler();
 
 
-    protected boolean okToRetryOnAllOperations = DefaultClientConfigImpl.DEFAULT_OK_TO_RETRY_ON_ALL_OPERATIONS.booleanValue();
+    protected boolean okToRetryOnAllOperations = CommonClientConfigKey.OkToRetryOnAllOperations.defaultValue();
 
     private ILoadBalancer lb;
 
@@ -88,14 +88,13 @@ public class LoadBalancerContext implements IClientConfigAware {
             return;    
         }
         clientName = clientConfig.getClientName();
-        if (clientName == null) {
+        if (StringUtils.isEmpty(clientName)) {
             clientName = "default";
         }
         vipAddresses = clientConfig.resolveDeploymentContextbasedVipAddresses();
-        maxAutoRetries = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetries, DefaultClientConfigImpl.DEFAULT_MAX_AUTO_RETRIES);
-        maxAutoRetriesNextServer = clientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetriesNextServer,maxAutoRetriesNextServer);
-
-        okToRetryOnAllOperations = clientConfig.getPropertyAsBoolean(CommonClientConfigKey.OkToRetryOnAllOperations, okToRetryOnAllOperations);
+        maxAutoRetries = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetries);
+        maxAutoRetriesNextServer = clientConfig.getOrDefault(CommonClientConfigKey.MaxAutoRetriesNextServer);
+        okToRetryOnAllOperations = clientConfig.getOrDefault(CommonClientConfigKey.OkToRetryOnAllOperations);
         defaultRetryHandler = new DefaultLoadBalancerRetryHandler(clientConfig);
         
         tracer = getExecuteTracer();
@@ -610,25 +609,10 @@ public class LoadBalancerContext implements IClientConfigAware {
         }
     }
 
-    /*
-    protected boolean isRetriable(T request) {
-        if (request.isRetriable()) {
-            return true;            
-        } else {
-            boolean retryOkayOnOperation = okToRetryOnAllOperations;
-            IClientConfig overriddenClientConfig = request.getOverrideConfig();
-            if (overriddenClientConfig != null) {
-                retryOkayOnOperation = overriddenClientConfig.getPropertyAsBoolean(CommonClientConfigKey.RequestSpecificRetryOn, okToRetryOnAllOperations);
-            }
-            return retryOkayOnOperation;
-        }
-    }
-     */
-
     protected int getRetriesNextServer(IClientConfig overriddenClientConfig) {
         int numRetries = maxAutoRetriesNextServer;
         if (overriddenClientConfig != null) {
-            numRetries = overriddenClientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetriesNextServer, maxAutoRetriesNextServer);
+            numRetries = overriddenClientConfig.get(CommonClientConfigKey.MaxAutoRetriesNextServer, maxAutoRetriesNextServer);
         }
         return numRetries;
     }
@@ -648,7 +632,7 @@ public class LoadBalancerContext implements IClientConfigAware {
         int numRetries =  maxAutoRetries;
         if (overriddenClientConfig!=null){
             try {
-                numRetries = overriddenClientConfig.getPropertyAsInteger(CommonClientConfigKey.MaxAutoRetries, maxAutoRetries);
+                numRetries = overriddenClientConfig.get(CommonClientConfigKey.MaxAutoRetries, maxAutoRetries);
             } catch (Exception e) {
                 logger.warn("Invalid maxRetries requested for RestClient:" + this.clientName);
             }

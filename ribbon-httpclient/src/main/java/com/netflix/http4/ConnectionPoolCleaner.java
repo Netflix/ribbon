@@ -17,16 +17,14 @@
 */
 package com.netflix.http4;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
+import com.netflix.client.config.Property;
 import org.apache.http.conn.ClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.config.DynamicIntProperty;
-import com.netflix.config.DynamicPropertyFactory;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class that is responsible to cleanup connections based on a policy
@@ -41,14 +39,12 @@ public class ConnectionPoolCleaner {
     String name = "default";    
     ClientConnectionManager connMgr;
     ScheduledExecutorService scheduler;
-    
-    private DynamicIntProperty connIdleEvictTimeMilliSeconds 
-        = DynamicPropertyFactory.getInstance().getIntProperty("default.nfhttpclient.connIdleEvictTimeMilliSeconds", 
-                NFHttpClientConstants.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
+
+    private Property<Integer> connIdleEvictTimeMilliSeconds = Property.of(30*1000);
     
     volatile boolean enableConnectionPoolCleanerTask = false;
     long connectionCleanerTimerDelay = 10;
-    long connectionCleanerRepeatInterval = NFHttpClientConstants.DEFAULT_CONNECTION_IDLE_TIMERTASK_REPEAT_IN_MSECS;
+    long connectionCleanerRepeatInterval = 30*1000;
     private volatile ScheduledFuture<?> scheduledFuture;
     
     public ConnectionPoolCleaner(String name, ClientConnectionManager connMgr, ScheduledExecutorService scheduler){
@@ -57,12 +53,11 @@ public class ConnectionPoolCleaner {
         this.scheduler = scheduler;
     }
     
-    public DynamicIntProperty getConnIdleEvictTimeMilliSeconds() {
+    public Property<Integer> getConnIdleEvictTimeMilliSeconds() {
         return connIdleEvictTimeMilliSeconds;
     }
 
-    public void setConnIdleEvictTimeMilliSeconds(
-            DynamicIntProperty connIdleEvictTimeMilliSeconds) {
+    public void setConnIdleEvictTimeMilliSeconds(Property<Integer> connIdleEvictTimeMilliSeconds) {
         this.connIdleEvictTimeMilliSeconds = connIdleEvictTimeMilliSeconds;
     }
 
@@ -115,7 +110,7 @@ public class ConnectionPoolCleaner {
     
     void cleanupConnections(){
         connMgr.closeExpiredConnections();
-        connMgr.closeIdleConnections(connIdleEvictTimeMilliSeconds.get(), TimeUnit.MILLISECONDS);       
+        connMgr.closeIdleConnections(connIdleEvictTimeMilliSeconds.getOrDefault(), TimeUnit.MILLISECONDS);
     }
     
     public void shutdown() {
