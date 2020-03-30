@@ -391,6 +391,18 @@ public class DefaultClientConfigImpl extends AbstractDefaultClientConfigImpl {
         return getDefaultPropName(propName.key());
     }
 
+    public String getInstancePropName(String restClientName,
+            IClientConfigKey configKey) {
+        return getInstancePropName(restClientName, configKey.key());
+    }
+
+    public String getInstancePropName(String restClientName, String key) {
+        if (getNameSpace() == null) {
+            throw new NullPointerException("getNameSpace() may not be null");
+        }
+        return restClientName + "." + getNameSpace() + "." + key;
+    }
+
     public DefaultClientConfigImpl withProperty(IClientConfigKey key, Object value) {
         setProperty(key, value);
         return this;
