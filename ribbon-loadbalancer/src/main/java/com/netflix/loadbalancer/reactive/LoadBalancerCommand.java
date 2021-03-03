@@ -49,7 +49,7 @@ import com.netflix.servo.monitor.Stopwatch;
  *
  * <ul>
  * <li>Choose a server</li>
- * <li>Invoke the {@link #call(com.netflix.loadbalancer.Server)} method</li>
+ * <li>Invoke the {@link com.netflix.loadbalancer.Server} onSubscribe call method</li>
  * <li>Invoke the {@link ExecutionListener} if any</li>
  * <li>Retry on exception, controlled by {@link com.netflix.client.RetryHandler}</li>
  * <li>Provide feedback to the {@link com.netflix.loadbalancer.LoadBalancerStats}</li>

@@ -15,6 +15,7 @@ dependencies {
     testCompile 'commons-io:commons-io:2.0.1'
     testCompile "com.sun.jersey:jersey-server:${jersey_version}"
     testCompile 'com.google.mockwebserver:mockwebserver:20130505'
+    testCompile 'com.fasterxml.jackson.core:jackson-databind:2.4.3'
     testCompile project(':ribbon-archaius')
     testCompile project(":ribbon-loadbalancer").sourceSets.test.output
 }

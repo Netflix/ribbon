@@ -6,6 +6,7 @@ dependencies {
     compile "io.reactivex:rxnetty:${rx_netty_version}"
     compile "io.reactivex:rxnetty-contexts:${rx_netty_version}"
     compile "io.reactivex:rxnetty-servo:${rx_netty_version}"
+    compile "io.netty:netty-codec-http:4.0.27.Final"
     compile 'javax.inject:javax.inject:1'
     compile "org.slf4j:slf4j-api:${slf4j_version}"
     compile "com.google.guava:guava:${guava_version}"
