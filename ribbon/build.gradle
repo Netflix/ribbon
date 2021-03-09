@@ -1,5 +1,4 @@
-apply plugin: 'nebula-test-jar'
-apply plugin: 'nebula-facet'
+apply plugin: 'nebula.facet'
 
 facets {
     examples {

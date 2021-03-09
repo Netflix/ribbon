@@ -219,8 +219,7 @@ public abstract class LoadBalancingRxClient<I, O, T extends RxClient<I, O>> impl
     
     /**
      * Look up the client associated with this Server.
-     * @param host
-     * @param port
+     * @param server
      * @return
      */
     protected T getOrCreateRxClient(Server server) {
