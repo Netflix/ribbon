@@ -15,7 +15,7 @@ subprojects {
     group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
 
     repositories {
-        jcenter()
+        mavenCentral()
     }
 
     if (project.hasProperty('useMavenLocal')) {
@@ -25,7 +25,7 @@ subprojects {
     }
     if (project.getProperty('status').equals("snapshot")) {
         repositories {
-            maven { url 'http://oss.jfrog.org/oss-snapshot-local' }
+            maven { url 'https://artifactory-oss.prod.netflix.net/artifactory/maven-oss-snapshots' }
         }
     }
 }
