@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.netflix.client.config.CommonClientConfigKey.PreserveCacheWhenUpdateWithEmptyServerList;
+
 /**
  * A LoadBalancer that has the capabilities to obtain the candidate list of
  * servers using a dynamic source. i.e. The list of servers can potentially be
@@ -245,6 +247,10 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
                 LOGGER.debug("Filtered List of Servers for {} obtained from Discovery client: {}",
                         getIdentifier(), servers);
             }
+        }
+
+        if (getClientConfig().get(PreserveCacheWhenUpdateWithEmptyServerList) && servers.size() == 0) {
+            return;
         }
         updateAllServerList(servers);
     }

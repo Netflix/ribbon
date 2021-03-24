@@ -196,6 +196,8 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<String> ListOfServers = new CommonClientConfigKey<String>("listOfServers", "") {};
 
+    public static final IClientConfigKey<Boolean> PreserveCacheWhenUpdateWithEmptyServerList = new CommonClientConfigKey<Boolean>("PreserveCacheWhenUpdateWithEmptyServerList", false) {};
+
     private static final Set<IClientConfigKey> keys = new HashSet<IClientConfigKey>();
         
     static {
