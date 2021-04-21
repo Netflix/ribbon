@@ -6,12 +6,12 @@ install: "./installViaTravis.sh"
 script: "./buildViaTravis.sh"
 env:
   global:
-  - secure: EKzKmfCI/HzvxH7f9Y2YllaKkTDs5rCJyyd0MZ30ZlwjeExF0SFOum9lyu6ujbZEJrW3ybfJ8YEmUJwawo857eSbjOfhJ0NB+mC5W7ItlOYHV3q2jGmAGdgWQQYij3YtFel+mA/BsxmvVh/fgLz4UJ40dFD0wbvX8wKQ7iNkkDQ=
-  - secure: ENxhFcR6dj3bSecQES9/Hf2hOo2uQP7BARIfQtaxd2+kUQLLKIE7Ik7ldds7bYWO4q/AOLbgQbbggLldCC48uv7e3G8XJY1L9NierSkdV0gxPK5gR1Wqt1OZQXdQVuaSNLTur560YN5qD+7hpeiO3IViD72uuhWNKB5D7HaQVHY=
-  - secure: qSuKX/JeiB2I6KXo8xuQsaerx9BrTfhQMuqpmhCVlhITH2TQYUf6iLDoh8/rIMfD1HT8Y3oTinVk6++mjEtMzxdqgrPrUtznXiOktx+8feClcymJ/T2FA0opHlfteauszc/PUE0ItNQm2Ci3rWf2T7r8MU7rQkVzC8nk3KHqySQ=
-  - secure: p4/UI+OCh02Vxavz3Jc24z9JS45uWh63JgAWRQobX2zw1qjFGHzoOnuC/N8TE+CXVwMK7cvWkykZUi8BCAlloiIfLtQ+xeTqtez+S/y0siyyCBANAVIE5m/tMyssni1zWqdYWFPh0lY87zp7A/yC7zo9L1uoeWEGZOiqIpVggdE=
-  - secure: HOC6j+YkpjGHhk4lE7/1q+tNmNLgksrpS8gx7ijfR/tcKagToznPG2RH6fjMJYQ8cw7Njp9oMCCAuaOxKLPioxb4fEGILnB+ZitvVDc3aqOSDN2pWIE2wZPzzvqyKPBd4BQFCJXNlo8kyJPGN78dm7e6I0rpYWB3QBTkjFJJA+E=
-  - secure: fP8b3J1LhxPEQrz7I1kLhW79Ax3LJmceuJkx2Cr/WjaV21jR2u+KVP3Fg9aVo5ECgJsenC28cYl7YitogHLl4bfpJVLnMtySzkMF2A7dHuR9semnliqCBcClgxwvX2k/1eUFSBdHkOucy6ZJelCzitvhJ9jQcQFSx6D5SoIUSZk=
+  - secure: gLAaHXH+BLg/CLIP4PalKp25eKy9k7+tG8kvVK3G4tFLYgbvdAFdHLJjkPG/RBSco7CGi2pK3ukzGoRnHl0evAtvIbYMORLINWcTKPImWz8Gimpx2PCuof8a0AIoq/pbvKo6RR7ktIJU8Ue1fvZDMG9lBbeek7QMJBZ80M4TIq0=
+  - secure: WOnqhv3TQmMwpAwzDvxgxndWL2S69vYaQg6tbZ4eSs/3COyYF+G2I8K1Bg6M79RR+TuFEwHS2jC+MpIFUp0G/s3I87m74T5R6KGKLM6Xu5Xx8TJ98r6kOrUI3MROM9u/Dv3zWKQNORmGxYXKErmc0RxZXBAWANswkxLkwGWJqdo=
+  - secure: Wd0+aKaCtmPCinqqCc0Bu3D2Z4S90nFKBIntvu/UCdTQgzvlStoUE1c+ykqKb+wJljouvwSiJk9wan33qkgQUcrW+rfc+AdM1olFZRbyYCM+LM/LsNn4EFOXrNDmskdLXMyPxO3WcKhf1ElWFPlARGMz/GoDgfxXLCY/+H23U+4=
+  - secure: DNc30Xyf352ihoDGt/CBO52mm4JhVaLANGVBk2+QcGFUk6rL6qbCtCY2yA+Gl91Gh0Nu2G9EWbQyu8RzuQ94XCaY17RckZgcQhpWEEgVer4sQrAnqYSoSHddLIgRHQ3yA2lcv+7mG5G8o2JauN8neC84QlaBdObi1YzR+IopXTQ=
+  - secure: FQCgSlx016pytfjdygI7P1dyckimMOvGIusruNZefnUjS8vJMDKE8G+WM1k4BLova+ner6cgAg6pckUk/zpckIMPFY6mxWdsNk+LE3/JQCNFdM2Q4vfh14bs7I2/0Ctyt6xf5/jfQJ6i9Qr0DisYtuIU96ZuwjqqFIufiAJQ48E=
+  - secure: U43cccZY9oipdJ3Wau2Lv3/o2p+vXfEi1p2Uiv6UmqoBnEag0GFJJYCXTSr5GeQh9wN0z41rEF506zJXu3NcgS+Cd/e8QdN0hlROZcbTIHAkWIRI8qNhUNL61OIppFDxDyqMJZfRUzoGfokFOGH7AU1mqI0hme2NB/0qbvi2isY=
 cache:
   directories:
   - "$HOME/.gradle/caches"
