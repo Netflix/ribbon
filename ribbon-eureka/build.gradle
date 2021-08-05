@@ -4,6 +4,9 @@ dependencies {
     compile "com.netflix.eureka:eureka-client:${eureka_version}"
     compile 'com.google.code.findbugs:annotations:2.0.0'
     compile "org.slf4j:slf4j-api:${slf4j_version}"
+    compile "com.netflix.archaius:archaius-core:0.7.5"
+    compile "commons-configuration:commons-configuration:1.8"
+    compile "javax.inject:javax.inject:1"
 
     testCompile project(":ribbon-archaius")
     testCompile "org.slf4j:slf4j-log4j12:${slf4j_version}"

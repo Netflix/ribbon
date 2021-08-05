@@ -73,23 +73,23 @@ import com.netflix.loadbalancer.reactive.ServerOperation;
 import com.netflix.ribbon.transport.netty.LoadBalancingRxClientWithPoolOptions;
 
 /**
- * A Netty HttpClient that can connect to different servers. Internally it caches the RxNetty's HttpClient, with each created with 
- * a connection pool governed by {@link CompositePoolLimitDeterminationStrategy} that has a global limit and per server limit. 
- *   
+ * A Netty HttpClient that can connect to different servers. Internally it caches the RxNetty's HttpClient, with each created with
+ * a connection pool governed by {@link CompositePoolLimitDeterminationStrategy} that has a global limit and per server limit.
+ *
  * @author awang
  */
 public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPoolOptions<HttpClientRequest<I>, HttpClientResponse<O>, HttpClient<I, O>>
         implements HttpClient<I, O> {
 
     private static final HttpClientConfig DEFAULT_RX_CONFIG = HttpClientConfig.Builder.newDefaultConfig();
-    
+
     private final String requestIdHeaderName;
     private final HttpRequestIdProvider requestIdProvider;
     private final List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners;
     private final LoadBalancerCommand<HttpClientResponse<O>> defaultCommandBuilder;
     private final Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>> responseToErrorPolicy;
     private final Func1<Integer, Integer> backoffStrategy;
-    
+
     public static class Builder<I, O> {
         ILoadBalancer lb;
         IClientConfig config;
@@ -100,73 +100,73 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>> responseToErrorPolicy;
         Func1<Integer, Integer> backoffStrategy;
         Func1<Builder<I, O>, LoadBalancingHttpClient<I, O>> build;
-        
+
         protected Builder(Func1<Builder<I, O>, LoadBalancingHttpClient<I, O>> build) {
             this.build = build;
         }
-        
+
         public Builder<I, O> withLoadBalancer(ILoadBalancer lb) {
             this.lb = lb;
             return this;
         }
-        
+
         public Builder<I, O> withClientConfig(IClientConfig config) {
             this.config = config;
             return this;
         }
-        
+
         public Builder<I, O> withRetryHandler(RetryHandler retryHandler) {
             this.retryHandler = retryHandler;
             return this;
         }
-        
+
         public Builder<I, O> withPipelineConfigurator(PipelineConfigurator<HttpClientResponse<O>, HttpClientRequest<I>> pipelineConfigurator) {
             this.pipelineConfigurator = pipelineConfigurator;
             return this;
         }
-        
+
         public Builder<I, O> withPoolCleanerScheduler(ScheduledExecutorService poolCleanerScheduler) {
             this.poolCleanerScheduler = poolCleanerScheduler;
             return this;
         }
-        
+
         public Builder<I, O> withExecutorListeners(List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners) {
             this.listeners = listeners;
             return this;
         }
-        
+
         /**
          * Policy for converting a response to an error if the status code indicates it as such.  This will only
          * be called for responses with status code 4xx or 5xx
-         * 
+         *
          * Parameters to the function are
-         * * HttpClientResponse<O> - The actual response
+         * * HttpClientResponse - The actual response
          * * Integer - Backoff to apply if this is a retryable error.  The backoff amount is in milliseconds
          *             and is based on the configured BackoffStrategy.  It is the responsibility of this function
          *             to implement the actual backoff mechanism.  This can be done as Observable.error(e).delay(backoff, TimeUnit.MILLISECONDS)
-         * The return Observable will either contain the HttpClientResponse if is it not an error or an 
+         * The return Observable will either contain the HttpClientResponse if is it not an error or an
          * Observable.error() with the translated exception.
-         * 
+         *
          * @param responseToErrorPolicy
          */
         public Builder<I, O> withResponseToErrorPolicy(Func2<HttpClientResponse<O>, Integer, Observable<HttpClientResponse<O>>> responseToErrorPolicy) {
             this.responseToErrorPolicy = responseToErrorPolicy;
             return this;
         }
-        
+
         /**
          * Strategy for calculating the backoff based on the number of reties.  Input is the number
          * of retries and output is the backoff amount in milliseconds.
          * The default implementation is non random exponential backoff with time interval configurable
          * via the property BackoffInterval (default 1000 msec)
-         * 
-         * @param BackoffStrategy
+         *
+         * @param backoffStrategy
          */
         public Builder<I, O> withBackoffStrategy(Func1<Integer, Integer> backoffStrategy) {
             this.backoffStrategy = backoffStrategy;
             return this;
         }
-        
+
         public LoadBalancingHttpClient<I, O> build() {
             if (retryHandler == null) {
                 retryHandler = new NettyHttpLoadBalancerErrorHandler();
@@ -201,7 +201,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
             return build.call(this);
         }
     }
-    
+
     public static <I, O> Builder<I, O> builder() {
         return new Builder<I, O>(new Func1<Builder<I, O>, LoadBalancingHttpClient<I, O>>() {
             @Override
@@ -210,11 +210,11 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
             }
         });
     }
-    
+
     protected LoadBalancingHttpClient(Builder<I, O> builder) {
         super(builder.lb, builder.config, new RequestSpecificRetryHandler(true, true, builder.retryHandler, null), builder.pipelineConfigurator, builder.poolCleanerScheduler);
         requestIdHeaderName = getProperty(IClientConfigKey.Keys.RequestIdHeaderName, null, null);
-        requestIdProvider = (requestIdHeaderName != null) 
+        requestIdProvider = (requestIdHeaderName != null)
                           ? new HttpRequestIdProvider(requestIdHeaderName, RxContexts.DEFAULT_CORRELATOR)
                           : null;
         this.listeners = new CopyOnWriteArrayList<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>>(builder.listeners);
@@ -230,9 +230,9 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
 
     private RetryHandler getRequestRetryHandler(HttpClientRequest<?> request, IClientConfig requestConfig) {
         return new RequestSpecificRetryHandler(
-                true, 
+                true,
                 request.getMethod().equals(HttpMethod.GET),     // Default only allows retrys for GET
-                defaultRetryHandler, 
+                defaultRetryHandler,
                 requestConfig);
     }
 
@@ -241,7 +241,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     }
 
     /**
-     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if 
+     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if
      * there is no server available from load balancer.
      */
     @Override
@@ -250,9 +250,9 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     }
 
     /**
-     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if 
+     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if
      * there is no server available from load balancer.
-     * 
+     *
      * @param config An {@link ClientConfig} to override the default configuration for the client. Can be null.
      * @return
      */
@@ -263,7 +263,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
 
     /**
      * Submit a request to run on a specific server
-     * 
+     *
      * @param server
      * @param request
      * @param requestConfig
@@ -274,9 +274,9 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     }
 
     /**
-     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if 
+     * Submit a request to server chosen by the load balancer to execute. An error will be emitted from the returned {@link Observable} if
      * there is no server available from load balancer.
-     * 
+     *
      * @param errorHandler A handler to determine the load balancer retry logic. If null, the default one will be used.
      * @param requestConfig An {@link IClientConfig} to override the default configuration for the client. Can be null.
      * @return
@@ -284,38 +284,37 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     public Observable<HttpClientResponse<O>> submit(final HttpClientRequest<I> request, final RetryHandler errorHandler, final IClientConfig requestConfig) {
         return submit(null, request, errorHandler, requestConfig, null);
     }
-    
+
     public Observable<HttpClientResponse<O>> submit(Server server, final HttpClientRequest<I> request) {
         return submit(server, request, null, null, getRxClientConfig(null));
     }
 
     /**
-     * Convert an HttpClientRequest to a ServerOperation 
-     * 
-     * @param server
+     * Convert an HttpClientRequest to a ServerOperation
+     *
      * @param request
      * @param rxClientConfig
      * @return
      */
     protected ServerOperation<HttpClientResponse<O>> requestToOperation(final HttpClientRequest<I> request, final ClientConfig rxClientConfig) {
         Preconditions.checkNotNull(request);
-        
+
         return new ServerOperation<HttpClientResponse<O>>() {
             final AtomicInteger count = new AtomicInteger(0);
-            
+
             @Override
             public Observable<HttpClientResponse<O>> call(Server server) {
                 HttpClient<I,O> rxClient = getOrCreateRxClient(server);
                 setHostHeader(request, server.getHost());
-                
+
                 Observable<HttpClientResponse<O>> o;
                 if (rxClientConfig != null) {
                     o = rxClient.submit(request, rxClientConfig);
-                } 
+                }
                 else {
                     o = rxClient.submit(request);
                 }
-                
+
                 return o.concatMap(new Func1<HttpClientResponse<O>, Observable<HttpClientResponse<O>>>() {
                     @Override
                     public Observable<HttpClientResponse<O>> call(HttpClientResponse<O> t1) {
@@ -328,10 +327,10 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
             }
         };
     }
-    
-    /** 
+
+    /**
      * Construct an RxClient.ClientConfig from an IClientConfig
-     * 
+     *
      * @param requestConfig
      * @return
      */
@@ -339,14 +338,14 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         if (requestConfig == null) {
             return DEFAULT_RX_CONFIG;
         }
-        int requestReadTimeout = getProperty(IClientConfigKey.Keys.ReadTimeout, requestConfig, 
+        int requestReadTimeout = getProperty(IClientConfigKey.Keys.ReadTimeout, requestConfig,
                                              DefaultClientConfigImpl.DEFAULT_READ_TIMEOUT);
         Boolean followRedirect = getProperty(IClientConfigKey.Keys.FollowRedirects, requestConfig, null);
         HttpClientConfig.Builder builder = new HttpClientConfig.Builder().readTimeout(requestReadTimeout, TimeUnit.MILLISECONDS);
         if (followRedirect != null) {
             builder.setFollowRedirect(followRedirect);
         }
-        return builder.build();        
+        return builder.build();
     }
 
     /**
@@ -355,7 +354,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     private RxClient.ClientConfig getRxClientConfig(IClientConfig ribbonClientConfig, ClientConfig rxClientConfig) {
         if (ribbonClientConfig == null) {
             return rxClientConfig;
-        } 
+        }
         else if (rxClientConfig == null) {
             return getRxClientConfig(ribbonClientConfig);
         }
@@ -367,7 +366,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 builder.readTimeout(readTimeoutFormRibbon, TimeUnit.MILLISECONDS);
             }
             return builder.build();
-        } 
+        }
         else {
             RxClient.ClientConfig.Builder builder = new RxClient.ClientConfig.Builder(rxClientConfig);
             if (readTimeoutFormRibbon >= 0) {
@@ -386,7 +385,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
 
     /**
      * Subject an operation to run in the load balancer
-     * 
+     *
      * @param request
      * @param errorHandler
      * @param requestConfig
@@ -398,10 +397,10 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         if (retryHandler == null) {
             retryHandler = getRequestRetryHandler(request, requestConfig);
         }
-        
+
         final IClientConfig config = requestConfig == null ? DefaultClientConfigImpl.getEmptyConfig() : requestConfig;
         final ExecutionContext<HttpClientRequest<I>> context = new ExecutionContext<HttpClientRequest<I>>(request, config, this.getClientConfig(), retryHandler);
-        
+
         Observable<HttpClientResponse<O>> result = submitToServerInURI(request, config, rxClientConfig, retryHandler, context);
         if (result == null) {
             LoadBalancerCommand<HttpClientResponse<O>> command;
@@ -419,7 +418,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
             else {
                 command = defaultCommandBuilder;
             }
-            
+
             result = command.submit(requestToOperation(request, getRxClientConfig(config, rxClientConfig)));
         }
         return result;
@@ -461,7 +460,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 port = 80;
             }
         }
-        
+
         return LoadBalancerCommand.<HttpClientResponse<O>>builder()
                 .withRetryHandler(errorHandler)
                 .withLoadBalancerContext(lbContext)
@@ -471,15 +470,15 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 .build()
                 .submit(this.requestToOperation(request, getRxClientConfig(requestConfig, config)));
     }
-    
+
     @Override
     protected HttpClient<I, O> createRxClient(Server server) {
         HttpClientBuilder<I, O> clientBuilder;
         if (requestIdProvider != null) {
-            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
+            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(),
                     requestIdProvider, RxContexts.DEFAULT_CORRELATOR, pipelineConfigurator);
         } else {
-            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(), 
+            clientBuilder = RxContexts.<I, O>newHttpClientBuilder(server.getHost(), server.getPort(),
                     RxContexts.DEFAULT_CORRELATOR, pipelineConfigurator);
         }
         Integer connectTimeout = getProperty(IClientConfigKey.Keys.ConnectTimeout,  null, DefaultClientConfigImpl.DEFAULT_CONNECT_TIMEOUT);
@@ -497,12 +496,12 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                 .withConnectionPoolLimitStrategy(poolStrategy)
                 .withIdleConnectionsTimeoutMillis(idleConnectionEvictionMills)
                 .withPoolIdleCleanupScheduler(poolCleanerScheduler);
-        } 
+        }
         else {
             clientBuilder
                 .withNoConnectionPooling();
         }
-        
+
         if (sslContextFactory != null) {
             try {
                 SSLEngineFactory myFactory = new DefaultFactories.SSLContextBasedFactory(sslContextFactory.getSSLContext()) {
@@ -521,7 +520,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         }
         return clientBuilder.build();
     }
-    
+
     @VisibleForTesting
     HttpClientListener getListener() {
         return (HttpClientListener) listener;
@@ -531,7 +530,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     Map<Server, HttpClient<I, O>> getRxClients() {
         return rxClientCache;
     }
-    
+
     @Override
     protected MetricEventsListener<? extends ClientMetricsEvent<?>> createListener(String name) {
         return HttpClientListener.newHttpListener(name);
