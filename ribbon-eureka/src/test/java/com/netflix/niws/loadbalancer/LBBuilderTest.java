@@ -69,7 +69,7 @@ public class LBBuilderTest {
         DiscoveryManager mockedDiscoveryManager = createMock(DiscoveryManager.class);
 
         expect(DiscoveryManager.getInstance()).andReturn(mockedDiscoveryManager).anyTimes();
-        expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
+        expect(mockedDiscoveryManager.getEurekaClient()).andReturn(mockedDiscoveryClient).anyTimes();
 
         expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy:7001", false, null)).andReturn(instances).anyTimes();
 

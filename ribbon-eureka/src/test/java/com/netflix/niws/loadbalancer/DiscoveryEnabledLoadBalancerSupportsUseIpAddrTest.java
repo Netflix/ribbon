@@ -76,7 +76,7 @@ public class DiscoveryEnabledLoadBalancerSupportsUseIpAddrTest {
         DiscoveryManager mockedDiscoveryManager = createMock(DiscoveryManager.class);
 
         expect(DiscoveryManager.getInstance()).andReturn(mockedDiscoveryManager).anyTimes();
-        expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
+        expect(mockedDiscoveryManager.getEurekaClient()).andReturn(mockedDiscoveryClient).anyTimes();
 
         expect(mockedDiscoveryClient.getInstancesByVipAddress("dummy", false, "region")).andReturn(servers).anyTimes();
 

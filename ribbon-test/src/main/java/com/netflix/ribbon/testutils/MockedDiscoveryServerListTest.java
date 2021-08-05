@@ -74,7 +74,7 @@ public abstract class MockedDiscoveryServerListTest {
 
         expect(mockedDiscoveryClient.getEurekaClientConfig()).andReturn(new DefaultEurekaClientConfig()).anyTimes();
         expect(DiscoveryManager.getInstance()).andReturn(mockedDiscoveryManager).anyTimes();
-        expect(mockedDiscoveryManager.getDiscoveryClient()).andReturn(mockedDiscoveryClient).anyTimes();
+        expect(mockedDiscoveryManager.getEurekaClient()).andReturn(mockedDiscoveryClient).anyTimes();
 
         expect(mockedDiscoveryClient.getInstancesByVipAddress(getVipAddress(), false, null)).andReturn(instances).anyTimes();
 
