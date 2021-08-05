@@ -49,7 +49,7 @@ import com.netflix.servo.monitor.Stopwatch;
  *
  * <ul>
  * <li>Choose a server</li>
- * <li>Invoke the {@link #call(com.netflix.loadbalancer.Server)} method</li>
+ * <li>Invoke the {@link com.netflix.loadbalancer.Server} onSubscribe call method</li>
  * <li>Invoke the {@link ExecutionListener} if any</li>
  * <li>Retry on exception, controlled by {@link com.netflix.client.RetryHandler}</li>
  * <li>Provide feedback to the {@link com.netflix.loadbalancer.LoadBalancerStats}</li>
@@ -71,19 +71,19 @@ public class LoadBalancerCommand<T> {
         private ExecutionContextListenerInvoker invoker;
         private URI                 loadBalancerURI;
         private Server              server;
-        
+
         private Builder() {}
-    
+
         public Builder<T> withLoadBalancer(ILoadBalancer loadBalancer) {
             this.loadBalancer = loadBalancer;
             return this;
         }
-    
+
         public Builder<T> withLoadBalancerURI(URI loadBalancerURI) {
             this.loadBalancerURI = loadBalancerURI;
             return this;
         }
-        
+
         public Builder<T> withListeners(List<? extends ExecutionListener<?, T>> listeners) {
             if (this.listeners == null) {
                 this.listeners = new LinkedList<ExecutionListener<?, T>>(listeners);
@@ -92,17 +92,17 @@ public class LoadBalancerCommand<T> {
             }
             return this;
         }
-    
+
         public Builder<T> withRetryHandler(RetryHandler retryHandler) {
             this.retryHandler = retryHandler;
             return this;
         }
-    
+
         public Builder<T> withClientConfig(IClientConfig config) {
             this.config = config;
             return this;
         }
-    
+
         /**
          * Pass in an optional key object to help the load balancer to choose a specific server among its
          * server list, depending on the load balancer implementation.
@@ -111,58 +111,58 @@ public class LoadBalancerCommand<T> {
             this.loadBalancerKey = key;
             return this;
         }
-    
+
         public Builder<T> withLoadBalancerContext(LoadBalancerContext loadBalancerContext) {
             this.loadBalancerContext = loadBalancerContext;
             return this;
         }
-    
+
         public Builder<T> withExecutionContext(ExecutionContext<?> executionContext) {
             this.executionContext = executionContext;
             return this;
         }
-        
+
         /**
          * Pin the operation to a specific server.  Otherwise run on any server returned by the load balancer
-         * 
+         *
          * @param server
          */
         public Builder<T> withServer(Server server) {
             this.server = server;
             return this;
         }
-        
+
         public LoadBalancerCommand<T> build() {
             if (loadBalancerContext == null && loadBalancer == null) {
                 throw new IllegalArgumentException("Either LoadBalancer or LoadBalancerContext needs to be set");
             }
-            
+
             if (listeners != null && listeners.size() > 0) {
                 this.invoker = new ExecutionContextListenerInvoker(executionContext, listeners, config);
             }
-            
+
             if (loadBalancerContext == null) {
                 loadBalancerContext = new LoadBalancerContext(loadBalancer, config);
             }
-            
+
             return new LoadBalancerCommand<T>(this);
         }
     }
-    
+
     public static <T> Builder<T> builder() {
         return new Builder<T>();
     }
 
     private final URI    loadBalancerURI;
     private final Object loadBalancerKey;
-    
+
     private final LoadBalancerContext loadBalancerContext;
     private final RetryHandler retryHandler;
     private volatile ExecutionInfo executionInfo;
     private final Server server;
 
     private final ExecutionContextListenerInvoker<?, T> listenerInvoker;
-    
+
     private LoadBalancerCommand(Builder<T> builder) {
         this.loadBalancerURI     = builder.loadBalancerURI;
         this.loadBalancerKey     = builder.loadBalancerKey;
@@ -171,7 +171,7 @@ public class LoadBalancerCommand<T> {
         this.listenerInvoker     = builder.invoker;
         this.server              = builder.server;
     }
-    
+
     /**
      * Return an Observable that either emits only the single requested server
      * or queries the load balancer for the next server on each subscription
@@ -181,7 +181,7 @@ public class LoadBalancerCommand<T> {
             @Override
             public void call(Subscriber<? super Server> next) {
                 try {
-                    Server server = loadBalancerContext.getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);   
+                    Server server = loadBalancerContext.getServerFromLoadBalancer(loadBalancerURI, loadBalancerKey);
                     next.onNext(server);
                     next.onCompleted();
                 } catch (Exception e) {
@@ -190,19 +190,19 @@ public class LoadBalancerCommand<T> {
             }
         });
     }
-    
+
     class ExecutionInfoContext {
         Server      server;
         int         serverAttemptCount = 0;
         int         attemptCount = 0;
-        
+
         public void setServer(Server server) {
             this.server = server;
             this.serverAttemptCount++;
-            
+
             this.attemptCount = 0;
         }
-        
+
         public void incAttemptCount() {
             this.attemptCount++;
         }
@@ -228,7 +228,7 @@ public class LoadBalancerCommand<T> {
         }
 
     }
-    
+
     private Func2<Integer, Throwable, Boolean> retryPolicy(final int maxRetrys, final boolean same) {
         return new Func2<Integer, Throwable, Boolean>() {
             @Override
@@ -240,11 +240,11 @@ public class LoadBalancerCommand<T> {
                 if (tryCount > maxRetrys) {
                     return false;
                 }
-                
+
                 if (e.getCause() != null && e instanceof RuntimeException) {
                     e = e.getCause();
                 }
-                
+
                 return retryHandler.isRetriableException(e, same);
             }
         };
@@ -259,7 +259,7 @@ public class LoadBalancerCommand<T> {
      */
     public Observable<T> submit(final ServerOperation<T> operation) {
         final ExecutionInfoContext context = new ExecutionInfoContext();
-        
+
         if (listenerInvoker != null) {
             try {
                 listenerInvoker.onExecutionStart();
@@ -272,7 +272,7 @@ public class LoadBalancerCommand<T> {
         final int maxRetrysNext = retryHandler.getMaxRetriesOnNextServer();
 
         // Use the load balancer
-        Observable<T> o = 
+        Observable<T> o =
                 (server == null ? selectServer() : Observable.just(server))
                 .concatMap(new Func1<Server, Observable<T>>() {
                     @Override
@@ -280,7 +280,7 @@ public class LoadBalancerCommand<T> {
                     public Observable<T> call(Server server) {
                         context.setServer(server);
                         final ServerStats stats = loadBalancerContext.getServerStats(server);
-                        
+
                         // Called for each attempt and retry
                         Observable<T> o = Observable
                                 .just(server)
@@ -289,7 +289,7 @@ public class LoadBalancerCommand<T> {
                                     public Observable<T> call(final Server server) {
                                         context.incAttemptCount();
                                         loadBalancerContext.noteOpenConnection(stats);
-                                        
+
                                         if (listenerInvoker != null) {
                                             try {
                                                 listenerInvoker.onStartWithServer(context.toExecutionInfo());
@@ -297,9 +297,9 @@ public class LoadBalancerCommand<T> {
                                                 return Observable.error(e);
                                             }
                                         }
-                                        
+
                                         final Stopwatch tracer = loadBalancerContext.getExecuteTracer().start();
-                                        
+
                                         return operation.call(server).doOnEach(new Observer<T>() {
                                             private T entity;
                                             @Override
@@ -323,8 +323,8 @@ public class LoadBalancerCommand<T> {
                                                 if (listenerInvoker != null) {
                                                     listenerInvoker.onExecutionSuccess(entity, context.toExecutionInfo());
                                                 }
-                                            }                            
-                                            
+                                            }
+
                                             private void recordStats(Stopwatch tracer, ServerStats stats, Object entity, Throwable exception) {
                                                 tracer.stop();
                                                 loadBalancerContext.noteRequestCompletion(stats, entity, exception, tracer.getDuration(TimeUnit.MILLISECONDS), retryHandler);
@@ -332,16 +332,16 @@ public class LoadBalancerCommand<T> {
                                         });
                                     }
                                 });
-                        
-                        if (maxRetrysSame > 0) 
+
+                        if (maxRetrysSame > 0)
                             o = o.retry(retryPolicy(maxRetrysSame, true));
                         return o;
                     }
                 });
-            
-        if (maxRetrysNext > 0 && server == null) 
+
+        if (maxRetrysNext > 0 && server == null)
             o = o.retry(retryPolicy(maxRetrysNext, false));
-        
+
         return o.onErrorResumeNext(new Func1<Throwable, Observable<T>>() {
             @Override
             public Observable<T> call(Throwable e) {

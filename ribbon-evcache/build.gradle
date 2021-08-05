@@ -4,7 +4,6 @@ dependencies {
     compile "io.reactivex:rxjava:${rx_java_version}"
     compile "org.slf4j:slf4j-api:${slf4j_version}"
     testCompile project(':ribbon-test')
-    testCompile project(path: ':ribbon', configuration: 'test')
     testCompile "junit:junit:${junit_version}"
     testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
     testCompile "org.easymock:easymock:${easymock_version}"
