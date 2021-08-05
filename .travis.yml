@@ -1,17 +1,17 @@
 language: java
 jdk:
-  - openjdk8
+- openjdk8
 sudo: false
 install: "./installViaTravis.sh"
 script: "./buildViaTravis.sh"
 env:
   global:
-    - secure: EKzKmfCI/HzvxH7f9Y2YllaKkTDs5rCJyyd0MZ30ZlwjeExF0SFOum9lyu6ujbZEJrW3ybfJ8YEmUJwawo857eSbjOfhJ0NB+mC5W7ItlOYHV3q2jGmAGdgWQQYij3YtFel+mA/BsxmvVh/fgLz4UJ40dFD0wbvX8wKQ7iNkkDQ=
-    - secure: ENxhFcR6dj3bSecQES9/Hf2hOo2uQP7BARIfQtaxd2+kUQLLKIE7Ik7ldds7bYWO4q/AOLbgQbbggLldCC48uv7e3G8XJY1L9NierSkdV0gxPK5gR1Wqt1OZQXdQVuaSNLTur560YN5qD+7hpeiO3IViD72uuhWNKB5D7HaQVHY=
-    - secure: qSuKX/JeiB2I6KXo8xuQsaerx9BrTfhQMuqpmhCVlhITH2TQYUf6iLDoh8/rIMfD1HT8Y3oTinVk6++mjEtMzxdqgrPrUtznXiOktx+8feClcymJ/T2FA0opHlfteauszc/PUE0ItNQm2Ci3rWf2T7r8MU7rQkVzC8nk3KHqySQ=
-    - secure: p4/UI+OCh02Vxavz3Jc24z9JS45uWh63JgAWRQobX2zw1qjFGHzoOnuC/N8TE+CXVwMK7cvWkykZUi8BCAlloiIfLtQ+xeTqtez+S/y0siyyCBANAVIE5m/tMyssni1zWqdYWFPh0lY87zp7A/yC7zo9L1uoeWEGZOiqIpVggdE=
-    - secure: HOC6j+YkpjGHhk4lE7/1q+tNmNLgksrpS8gx7ijfR/tcKagToznPG2RH6fjMJYQ8cw7Njp9oMCCAuaOxKLPioxb4fEGILnB+ZitvVDc3aqOSDN2pWIE2wZPzzvqyKPBd4BQFCJXNlo8kyJPGN78dm7e6I0rpYWB3QBTkjFJJA+E=
-    - secure: fP8b3J1LhxPEQrz7I1kLhW79Ax3LJmceuJkx2Cr/WjaV21jR2u+KVP3Fg9aVo5ECgJsenC28cYl7YitogHLl4bfpJVLnMtySzkMF2A7dHuR9semnliqCBcClgxwvX2k/1eUFSBdHkOucy6ZJelCzitvhJ9jQcQFSx6D5SoIUSZk=
+  - secure: n03qjQU2tBwKeFNw29R0Xfj1wUVB4/Lccchoha01eFdFTUDUjcjlHRk2hzDb2W+7mVJWjvgLTtPMq2nhu9AjXA1IYnK0CdU1mi5EQc9B4nRUl95ChOe7AQcG53JX+JDwQMaF+nVP/cejTS1BTbduB1AMEoyZp1nKGEf1bqaiAA8=
+  - secure: oib8WzNknT4A26RYKTPGuksyEnSPei0ww2uFFroMFJebInlVKxYxbH3Tua3XiSLcKE/oyiNIMOVVTIcb4WprdPYGOToFXNWFpE2c2koeo2acUldCrZUoX8dJ+qkoVC3y9h8c5ghNdTZxwy3jdZYIK6OqT2X5wMmEjBXZ01wDOo4=
+  - secure: FeZcG11GkkdB8EgALMzx1dJRx5GhEj9Ap0MHULUsYiczZmLwIlkQ92gzV9xHCRpIISigWnxNS9DqGekpxZQtUqw+O9cRAfuBUsiB4Q03IrmRSFc52DL3UgKULtRBds5VNC5JmrEKKAMNACVdPj17ZGRatuR2kh6NV4/NeFvGKGw=
+  - secure: m+IG6W8pjakNfXNyrTwqwOHkYkl3IL/OITgWDcz7OQXR91anrtObO2ujyRGb4abmUo76McTXY9nnQQ/fR9skrQCyt2dTP5gtQPm9kklI+Za2Pl/M3l+LYe3N2SY1JkDu86hiWGmYnSYqc8XgtsuBQAxESszBRIZPs29Yuoz8buE=
+  - secure: gxBi/yZu/DLPb4neAt7saSLXb308Tg1Ss3k1BXWukxwh9zGBp1eGZ5EWJG1hvnBHDQbVQYJBkaH7/hZdSP0GJrEKW4O6+E90bf0pG0mVVfMVUIlZDRdgyatMN6eVj+/7cmB6K71wuji5ZNn3vvtSwMnLdfkLCoVqgbgwdGecj0s=
+  - secure: Z1e3y/jp0t4iBwKACzJ/B3nizD5aVMUNhc/+zSx8J8jh+iM0PyjKbA1fqNbBi+UODiOSCqw/drZnHvXqvy5fecZ7EssD6ULQTKhhn21NsrrPJlVMPCnaZY/R1MeTNC9hG4Il9MzcNIlqSAf0ztnfGHEiFs9Idc2Q4bPJgH2RM5M=
 cache:
   directories:
-    - "$HOME/.gradle/caches"
+  - "$HOME/.gradle/caches"
