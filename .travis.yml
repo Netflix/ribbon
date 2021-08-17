@@ -4,14 +4,14 @@ jdk:
 sudo: false
 install: "./installViaTravis.sh"
 script: "./buildViaTravis.sh"
-env:
-  global:
-  - secure: gLAaHXH+BLg/CLIP4PalKp25eKy9k7+tG8kvVK3G4tFLYgbvdAFdHLJjkPG/RBSco7CGi2pK3ukzGoRnHl0evAtvIbYMORLINWcTKPImWz8Gimpx2PCuof8a0AIoq/pbvKo6RR7ktIJU8Ue1fvZDMG9lBbeek7QMJBZ80M4TIq0=
-  - secure: WOnqhv3TQmMwpAwzDvxgxndWL2S69vYaQg6tbZ4eSs/3COyYF+G2I8K1Bg6M79RR+TuFEwHS2jC+MpIFUp0G/s3I87m74T5R6KGKLM6Xu5Xx8TJ98r6kOrUI3MROM9u/Dv3zWKQNORmGxYXKErmc0RxZXBAWANswkxLkwGWJqdo=
-  - secure: Wd0+aKaCtmPCinqqCc0Bu3D2Z4S90nFKBIntvu/UCdTQgzvlStoUE1c+ykqKb+wJljouvwSiJk9wan33qkgQUcrW+rfc+AdM1olFZRbyYCM+LM/LsNn4EFOXrNDmskdLXMyPxO3WcKhf1ElWFPlARGMz/GoDgfxXLCY/+H23U+4=
-  - secure: DNc30Xyf352ihoDGt/CBO52mm4JhVaLANGVBk2+QcGFUk6rL6qbCtCY2yA+Gl91Gh0Nu2G9EWbQyu8RzuQ94XCaY17RckZgcQhpWEEgVer4sQrAnqYSoSHddLIgRHQ3yA2lcv+7mG5G8o2JauN8neC84QlaBdObi1YzR+IopXTQ=
-  - secure: FQCgSlx016pytfjdygI7P1dyckimMOvGIusruNZefnUjS8vJMDKE8G+WM1k4BLova+ner6cgAg6pckUk/zpckIMPFY6mxWdsNk+LE3/JQCNFdM2Q4vfh14bs7I2/0Ctyt6xf5/jfQJ6i9Qr0DisYtuIU96ZuwjqqFIufiAJQ48E=
-  - secure: U43cccZY9oipdJ3Wau2Lv3/o2p+vXfEi1p2Uiv6UmqoBnEag0GFJJYCXTSr5GeQh9wN0z41rEF506zJXu3NcgS+Cd/e8QdN0hlROZcbTIHAkWIRI8qNhUNL61OIppFDxDyqMJZfRUzoGfokFOGH7AU1mqI0hme2NB/0qbvi2isY=
 cache:
   directories:
   - "$HOME/.gradle/caches"
+env:
+  global:
+  - secure: Ae6S9GxUD7WaCwQn9XxnVUoqGFL6PikceeImL9XNH7b2tP9Y3sjQZiCSxHGYzYX4atg+Dy4ywVQaiGTlo4XdLZHHLBa33q4oKzuas0IhqACWWselwWcYlNhcWx/DNZUx3x+agkDBGvf9MC+medGsESRdIUCRnG4Ljvg4m3O+EDs=
+  - secure: gPbwhkrptO9OW4yWovIaVTlQkUnrBfGw7d7LwCwJmJcOze9+o/nhH/HKsm9/WO9k3wqmHCvuDBlDFxr6seBagrPj6iXBCB4mEokC9pxv0HYE1HNhnBTKoNs6vfn+UuZxIYKuFMRnftdupBF36NS0A+wxL3MI17+A9xs62c3Ry1k=
+  - secure: WHvLiiFINJi735SNqY5MFRkGz+BnQGoUEbTiVXtl9Imao+uNTS2SOVXHKSaYJRG6vKO9rKQRtjrkQUgnEqDXtZ+gPeEauh7d4hEmbQAuOM+m6aX1Ubw0wUs9RzrQ/V0pEENx/Rp3WHANy4N1fwfFS2g3TURIAcuOhHqOKzw2AtU=
+  - secure: Nzx8h7j3J6Cfccy9GE50O7z2o+6lgr46FJjaRkWwzq5QNL73ghlKso7TiLYJPbp0eEGUbMBJPKTR54dghb4eWkgRWF5Y7W4uMJqBPi4Uz39PX0kcXba+z1wriHxyyvALG5R4aHSQJwa2x79vmi5+TZ6E85KJTh6trL8ZXD32hyQ=
+  - secure: EKPPr2zDL66aOZOpZHLu/irdFtEjs9pjOLFEM5oGjL9pVduakLIvqcx2eG+5CH871HQOko75B6MKypwnFZ+oiKsByvuyCIFFr6DWCffU4Bht32+9RrgVvvT969Z3gSaQ41YzZIHTrXSTgkrVGB2d1i3VfJ66n1V6nVxp84aamHg=
+  - secure: Sa8csXV0v8/FNR3snKafI3bYg2L7qJ2tqkNDW5SYOAVfxHs48J0rBCWO0B2vaJ+TCSkGlF5YHb/CAdI/83uitIsNh7GH2kyqaz/VlZXZ23eo6rUBUsdr+9zOLyXup/ls5I8XS7u0hekStgvgM0Lb6fy9lnTJgpP9/+jJrMSM0hM=
