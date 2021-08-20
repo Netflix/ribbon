@@ -33,7 +33,7 @@ import io.reactivex.netty.contexts.RxContexts;
 import io.reactivex.netty.protocol.http.client.HttpClient.HttpClientConfig;
 import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
-import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import io.reactivex.netty.protocol.http.sse.ServerSentEvent;
 import io.reactivex.netty.servo.http.HttpClientListener;
 
 import java.io.IOException;
@@ -635,7 +635,7 @@ public class NettyClientTest {
         Iterator<Person> iterator = events.map(new Func1<ServerSentEvent, Person>() {
             @Override
             public Person call(ServerSentEvent t1) {
-                String content = t1.getEventData();
+                String content = t1.contentAsString();
                 try {
                     return SerializationUtils.deserializeFromString(JacksonCodec.<Person>getInstance(), content, TypeDef.fromClass(Person.class));
                 } catch (IOException e) {

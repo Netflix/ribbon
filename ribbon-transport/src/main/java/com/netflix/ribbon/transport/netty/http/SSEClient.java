@@ -21,7 +21,7 @@ import io.netty.channel.ChannelOption;
 import io.reactivex.netty.client.RxClient;
 import io.reactivex.netty.protocol.http.client.HttpClient;
 import io.reactivex.netty.protocol.http.client.HttpClientBuilder;
-import io.reactivex.netty.protocol.text.sse.ServerSentEvent;
+import io.reactivex.netty.protocol.http.sse.ServerSentEvent;
 import rx.functions.Func1;
 
 import com.netflix.client.config.DefaultClientConfigImpl;
