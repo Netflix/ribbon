@@ -1,6 +1,7 @@
 package com.netflix.client;
 
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -25,7 +26,7 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     private final boolean okToRetryOnAllErrors;
     
     protected List<Class<? extends Throwable>> connectionRelated = 
-            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class);
+            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class);
 
     public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors) {
         this(okToRetryOnConnectErrors, okToRetryOnAllErrors, RetryHandler.DEFAULT, null);    
