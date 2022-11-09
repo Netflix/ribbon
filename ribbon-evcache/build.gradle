@@ -1,10 +1,10 @@
 dependencies {
-    compile project(':ribbon')
-    compile 'com.netflix.evcache:evcache-client:1.0.5'
-    compile "io.reactivex:rxjava:${rx_java_version}"
-    compile "org.slf4j:slf4j-api:${slf4j_version}"
-    testCompile project(':ribbon-test')
-    testCompile "junit:junit:${junit_version}"
-    testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
-    testCompile "org.easymock:easymock:${easymock_version}"
+    api project(':ribbon')
+    api 'com.netflix.evcache:evcache-client:1.0.5'
+    api "io.reactivex:rxjava:${rx_java_version}"
+    api "org.slf4j:slf4j-api:${slf4j_version}"
+    testImplementation project(':ribbon-test')
+    testImplementation "junit:junit:${junit_version}"
+    testImplementation "org.powermock:powermock-easymock-release-full:${powermock_version}"
+    testImplementation "org.easymock:easymock:${easymock_version}"
 }

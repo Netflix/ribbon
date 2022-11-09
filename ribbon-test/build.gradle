@@ -1,13 +1,13 @@
 dependencies {
-    compile project(':ribbon-core')
-    compile project(':ribbon-loadbalancer')
-    compile project(':ribbon-eureka')
-    compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.11'
-    compile "com.netflix.eureka:eureka-client:${eureka_version}"
-    compile "io.reactivex:rxjava:${rx_java_version}"
-    compile 'javax.ws.rs:jsr311-api:1.1.1'  
-    compile "com.google.guava:guava:${guava_version}"
-    compile "junit:junit:${junit_version}"
-    compile "org.powermock:powermock-easymock-release-full:${powermock_version}"
-    compile "org.easymock:easymock:${easymock_version}"
+    api project(':ribbon-core')
+    api project(':ribbon-loadbalancer')
+    api project(':ribbon-eureka')
+    api 'org.codehaus.jackson:jackson-mapper-asl:1.9.11'
+    api "com.netflix.eureka:eureka-client:${eureka_version}"
+    api "io.reactivex:rxjava:${rx_java_version}"
+    api 'javax.ws.rs:jsr311-api:1.1.1'  
+    api "com.google.guava:guava:${guava_version}"
+    api "junit:junit:${junit_version}"
+    api "org.powermock:powermock-easymock-release-full:${powermock_version}"
+    api "org.easymock:easymock:${easymock_version}"
 }
