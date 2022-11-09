@@ -1,4 +1,4 @@
-apply plugin: 'nebula.facet'
+apply plugin: 'com.netflix.nebula.facet'
 
 facets {
     examples {
@@ -9,20 +9,20 @@ facets {
 build.dependsOn(examplesClasses)
 
 dependencies {
-    compile project(':ribbon-core')
-    compile project(':ribbon-transport')
-    compile "com.netflix.hystrix:hystrix-core:${hystrix_version}"
-    compile 'javax.inject:javax.inject:1'
-    compile "io.reactivex:rxjava:${rx_java_version}"
-    compile "io.reactivex:rxnetty:${rx_netty_version}"
-    compile 'commons-configuration:commons-configuration:1.8'
-    compile "com.google.guava:guava:${guava_version}"
-    compile "com.netflix.archaius:archaius-core:${archaius_version}"
-    testCompile "junit:junit:${junit_version}"
-    testCompile "org.powermock:powermock-easymock-release-full:${powermock_version}"
-    testCompile "org.easymock:easymock:${easymock_version}"
-    testCompile "org.slf4j:slf4j-log4j12:${slf4j_version}"
-    testCompile project(':ribbon-eureka')
-    testCompile project(':ribbon-test')
-    testCompile 'com.google.mockwebserver:mockwebserver:20130706'
+    api project(':ribbon-core')
+    api project(':ribbon-transport')
+    api "com.netflix.hystrix:hystrix-core:${hystrix_version}"
+    api 'javax.inject:javax.inject:1'
+    api "io.reactivex:rxjava:${rx_java_version}"
+    api "io.reactivex:rxnetty:${rx_netty_version}"
+    api 'commons-configuration:commons-configuration:1.8'
+    api "com.google.guava:guava:${guava_version}"
+    api "com.netflix.archaius:archaius-core:${archaius_version}"
+    testImplementation "junit:junit:${junit_version}"
+    testImplementation "org.powermock:powermock-easymock-release-full:${powermock_version}"
+    testImplementation "org.easymock:easymock:${easymock_version}"
+    testImplementation "org.slf4j:slf4j-log4j12:${slf4j_version}"
+    testImplementation project(':ribbon-eureka')
+    testImplementation project(':ribbon-test')
+    testImplementation 'com.google.mockwebserver:mockwebserver:20130706'
 }
