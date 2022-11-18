@@ -44,7 +44,8 @@ public class ClientException extends Exception{
         CLIENT_THROTTLED,
         SERVER_THROTTLED,
         NO_ROUTE_TO_HOST_EXCEPTION,
-        CACHE_MISSING;
+        CACHE_MISSING,
+        SERVICE_UNAVAILABLE;
         
         static String getName(int errorCode){
             if (ErrorType.values().length >= errorCode){

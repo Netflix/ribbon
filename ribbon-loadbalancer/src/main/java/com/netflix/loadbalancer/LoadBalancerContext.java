@@ -479,7 +479,7 @@ public class LoadBalancerContext implements IClientConfigAware {
             if (lb != null){
                 Server svc = lb.chooseServer(loadBalancerKey);
                 if (svc == null){
-                    throw new ClientException(ClientException.ErrorType.GENERAL,
+                    throw new ClientException(ClientException.ErrorType.SERVICE_UNAVAILABLE,
                             "Load balancer does not have available server for client: "
                                     + clientName);
                 }
