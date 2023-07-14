@@ -94,7 +94,7 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
             if (propSize > 0) {
                 return propSize;
             }
-            return getCorePoolSize(); // default to a single refresher thread
+            return getCorePoolSize(); // default to a fixed size thread pool
         }
     }
 
