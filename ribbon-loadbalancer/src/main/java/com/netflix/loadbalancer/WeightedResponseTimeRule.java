@@ -194,7 +194,7 @@ public class WeightedResponseTimeRule extends RoundRobinRule {
                 // pick the server index based on the randomIndex
                 int n = 0;
                 for (Double d : currentWeights) {
-                    if (d >= randomWeight) {
+                    if (d > randomWeight) {
                         serverIndex = n;
                         break;
                     } else {
