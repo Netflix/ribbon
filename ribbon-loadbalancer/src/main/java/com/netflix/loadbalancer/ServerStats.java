@@ -21,8 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 
 import com.netflix.client.config.Property;
 import com.netflix.client.config.UnboxedIntProperty;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Spectator;
 import com.netflix.spectator.api.patterns.PolledMeter;
