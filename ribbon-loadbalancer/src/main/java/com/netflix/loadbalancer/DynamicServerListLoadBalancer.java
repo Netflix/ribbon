@@ -21,8 +21,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +70,8 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     }
 
     @Deprecated
-    public DynamicServerListLoadBalancer(IClientConfig clientConfig, IRule rule, IPing ping, 
-            ServerList<T> serverList, ServerListFilter<T> filter) {
+    public DynamicServerListLoadBalancer(IClientConfig clientConfig, IRule rule, IPing ping,
+                                         ServerList<T> serverList, ServerListFilter<T> filter) {
         this(
                 clientConfig,
                 rule,
@@ -84,6 +85,14 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     public DynamicServerListLoadBalancer(IClientConfig clientConfig, IRule rule, IPing ping,
                                          ServerList<T> serverList, ServerListFilter<T> filter,
                                          ServerListUpdater serverListUpdater) {
+
+        this(clientConfig, rule, ping, serverList, filter, serverListUpdater, Spectator.globalRegistry());
+    }
+
+    public DynamicServerListLoadBalancer(IClientConfig clientConfig, IRule rule, IPing ping,
+                                         ServerList<T> serverList, ServerListFilter<T> filter,
+                                         ServerListUpdater serverListUpdater,
+                                         Registry registry) {
         super(clientConfig, rule, ping);
         this.serverListImpl = serverList;
         this.filter = filter;
@@ -91,6 +100,11 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
         if (filter instanceof AbstractServerListFilter) {
             ((AbstractServerListFilter) filter).setLoadBalancerStats(getLoadBalancerStats());
         }
+
+        PolledMeter.using(registry).withName("DurationSinceLastUpdateMs").monitorValue(this, DynamicServerListLoadBalancer::getDurationSinceLastUpdateMs);
+        PolledMeter.using(registry).withName("NumUpdateCyclesMissed").monitorValue(this, DynamicServerListLoadBalancer::getNumberMissedCycles);
+        PolledMeter.using(registry).withName("NumThreads").monitorValue(this, DynamicServerListLoadBalancer::getCoreThreads);
+
         restOfInit(clientConfig);
     }
 
@@ -290,17 +304,14 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
         return serverListUpdater.getLastUpdate();
     }
 
-    @Monitor(name="DurationSinceLastUpdateMs", type= DataSourceType.GAUGE)
     public long getDurationSinceLastUpdateMs() {
         return serverListUpdater.getDurationSinceLastUpdateMs();
     }
 
-    @Monitor(name="NumUpdateCyclesMissed", type=DataSourceType.GAUGE)
     public int getNumberMissedCycles() {
         return serverListUpdater.getNumberMissedCycles();
     }
 
-    @Monitor(name="NumThreads", type=DataSourceType.GAUGE)
     public int getCoreThreads() {
         return serverListUpdater.getCoreThreads();
     }
