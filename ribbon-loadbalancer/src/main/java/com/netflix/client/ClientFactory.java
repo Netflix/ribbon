@@ -21,7 +21,6 @@ import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.servo.monitor.Monitors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,8 +79,6 @@ public class ClientFactory {
     				message, e);
     	}
     	simpleClientMap.put(restClientName, client);
-
-    	Monitors.registerObject("Client_" + restClientName, client);
 
     	logger.info("Client Registered:" + client.toString());
     	return client;
