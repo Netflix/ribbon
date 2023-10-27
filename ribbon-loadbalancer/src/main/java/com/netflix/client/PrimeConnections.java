@@ -31,16 +31,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
+import com.netflix.spectator.api.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.loadbalancer.Server;
-import com.netflix.servo.monitor.Counter;
-import com.netflix.servo.monitor.Monitors;
-import com.netflix.servo.monitor.Stopwatch;
-import com.netflix.servo.monitor.Timer;
 
 /**
  * Prime the connections for a given Client (For those Client that
@@ -180,11 +180,11 @@ public class PrimeConnections {
                                                               * our Thread a
                                                               * name
                                                               */
-        );        
-        totalCounter = Monitors.newCounter(name + "_PrimeConnection_TotalCounter");
-        successCounter = Monitors.newCounter(name + "_PrimeConnection_SuccessCounter");
-        initialPrimeTimer = Monitors.newTimer(name + "_initialPrimeConnectionsTimer", TimeUnit.MILLISECONDS);
-        Monitors.registerObject(name + "_PrimeConnection", this);
+        );
+        Registry registry = Spectator.globalRegistry();
+        totalCounter = registry.counter(name + "_PrimeConnection_TotalCounter");
+        successCounter = registry.counter(name + "_PrimeConnection_SuccessCounter");
+        initialPrimeTimer = registry.timer(name + "_initialPrimeConnectionsTimer");
     }
     
     /**
@@ -218,18 +218,26 @@ public class PrimeConnections {
                 }
                 latch.countDown();
             }
-        }); 
-                
-        Stopwatch stopWatch = initialPrimeTimer.start();
+        });
+
+        long start = System.currentTimeMillis();
+        long totalTime = 0;
         try {
-            latch.await(maxTotalTimeToPrimeConnections, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Priming connection interrupted", e);
+            initialPrimeTimer.recordCallable(() -> {
+                try {
+                    return latch.await(maxTotalTimeToPrimeConnections, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    logger.error("Priming connection interrupted", e);
+                    return false;
+                }
+            });
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         } finally {
-            stopWatch.stop();
+            totalTime = System.currentTimeMillis() - start;
         }
 
-        stats = new PrimeConnectionEndStats(totalCount, successCount.get(), failureCount.get(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+        stats = new PrimeConnectionEndStats(totalCount, successCount.get(), failureCount.get(), totalTime);
 
         printStats(stats);
     }
@@ -328,7 +336,6 @@ public class PrimeConnections {
 
     public void shutdown() {
         executorService.shutdown();
-        Monitors.unregisterObject(name + "_PrimeConnection", this);
     }
 
     private Boolean connectToServer(final Server s, final PrimeConnectionListener listener) {

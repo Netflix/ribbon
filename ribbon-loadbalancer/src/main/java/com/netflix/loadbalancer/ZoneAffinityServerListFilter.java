@@ -25,8 +25,9 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.Property;
-import com.netflix.servo.monitor.Counter;
-import com.netflix.servo.monitor.Monitors;
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +73,12 @@ public class ZoneAffinityServerListFilter<T extends Server> extends
     }
 
     public ZoneAffinityServerListFilter(IClientConfig niwsClientConfig) {
+        this(niwsClientConfig, Spectator.globalRegistry());
+    }
+
+    public ZoneAffinityServerListFilter(IClientConfig niwsClientConfig, Registry registry) {
         initWithNiwsConfig(niwsClientConfig);
+        overrideCounter = registry.counter("ZoneAffinity_OverrideCounter");
     }
 
     @Override
@@ -85,10 +91,6 @@ public class ZoneAffinityServerListFilter<T extends Server> extends
         activeReqeustsPerServerThreshold = niwsClientConfig.getDynamicProperty(MAX_LOAD_PER_SERVER);
         blackOutServerPercentageThreshold = niwsClientConfig.getDynamicProperty(MAX_BLACKOUT_SERVER_PERCENTAGE);
         availableServersThreshold = niwsClientConfig.getDynamicProperty(MIN_AVAILABLE_SERVERS);
-
-        overrideCounter = Monitors.newCounter("ZoneAffinity_OverrideCounter");
-
-        Monitors.registerObject("NIWSServerListFilter_" + niwsClientConfig.getClientName());
     }
     
     private boolean shouldEnableZoneAffinity(List<T> filtered) {    

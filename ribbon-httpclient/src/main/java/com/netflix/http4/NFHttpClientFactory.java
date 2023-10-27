@@ -24,7 +24,6 @@ import com.netflix.client.config.ClientConfigFactory;
 import org.apache.commons.collections.keyvalue.MultiKey;
 
 import com.netflix.client.config.IClientConfig;
-import com.netflix.servo.monitor.Monitors;
 
 /**
  * Factory class to get an instance of NFHttpClient
@@ -96,7 +95,6 @@ public class NFHttpClientFactory {
 	    if (c != null) {
 	        c.shutdown();
 	        namedClientMap.remove(name);
-	        Monitors.unregisterObject(name, c);
 	    }
 	}
 }

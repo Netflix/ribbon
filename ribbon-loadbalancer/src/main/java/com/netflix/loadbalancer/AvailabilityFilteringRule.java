@@ -21,8 +21,9 @@ import java.util.List;
 
 import com.google.common.collect.Collections2;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
+import com.netflix.spectator.api.patterns.PolledMeter;
 
 /**
  * A load balancer rule that filters out servers that:
@@ -46,12 +47,17 @@ import com.netflix.servo.annotations.Monitor;
 public class AvailabilityFilteringRule extends PredicateBasedRule {    
 
     private AbstractServerPredicate predicate;
-    
+
     public AvailabilityFilteringRule() {
+        this(Spectator.globalRegistry());
+    }
+
+    public AvailabilityFilteringRule(Registry registry) {
     	super();
         predicate = CompositePredicate.withPredicate(new AvailabilityPredicate(this, null))
                 .addFallbackPredicate(AbstractServerPredicate.alwaysTrue())
                 .build();
+        PolledMeter.using(registry).withName("AvailableServersCount").monitorValue(this, AvailabilityFilteringRule::getAvailableServersCount);
     }
     
     
@@ -62,7 +68,6 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
     	            .build();
     }
 
-    @Monitor(name="AvailableServersCount", type = DataSourceType.GAUGE)
     public int getAvailableServersCount() {
     	ILoadBalancer lb = getLoadBalancer();
     	List<Server> servers = lb.getAllServers();

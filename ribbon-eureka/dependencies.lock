@@ -1,0 +1,358 @@
+{
+    "compileClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "19.0"
+        },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5"
+        },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.7.2"
+        },
+        "com.netflix.netflix-commons:netflix-commons-util": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.netflix-commons:netflix-statistics": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.ribbon:ribbon-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-loadbalancer": {
+            "project": true
+        },
+        "com.netflix.spectator:spectator-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.0"
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8"
+        },
+        "commons-lang:commons-lang": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.6"
+        },
+        "io.reactivex:rxjava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.0.9"
+        },
+        "javax.inject:javax.inject": {
+            "locked": "1"
+        },
+        "org.slf4j:slf4j-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.2"
+        }
+    },
+    "runtimeClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "19.0"
+        },
+        "com.netflix.archaius:archaius-core": {
+            "locked": "0.7.5"
+        },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.7.2"
+        },
+        "com.netflix.netflix-commons:netflix-commons-util": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.netflix-commons:netflix-statistics": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.ribbon:ribbon-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-loadbalancer": {
+            "project": true
+        },
+        "com.netflix.spectator:spectator-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.0"
+        },
+        "commons-configuration:commons-configuration": {
+            "locked": "1.8"
+        },
+        "commons-lang:commons-lang": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.6"
+        },
+        "io.reactivex:rxjava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.0.9"
+        },
+        "javax.inject:javax.inject": {
+            "locked": "1"
+        },
+        "org.slf4j:slf4j-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.36"
+        }
+    },
+    "testCompileClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "19.0"
+        },
+        "com.netflix.archaius:archaius-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "0.7.6"
+        },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.7.2"
+        },
+        "com.netflix.eureka:eureka-test-utils": {
+            "locked": "1.7.2"
+        },
+        "com.netflix.netflix-commons:netflix-commons-util": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.netflix-commons:netflix-statistics": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.ribbon:ribbon-archaius": {
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-loadbalancer": {
+            "project": true
+        },
+        "com.netflix.spectator:spectator-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.0"
+        },
+        "commons-configuration:commons-configuration": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "1.8"
+        },
+        "commons-lang:commons-lang": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.6"
+        },
+        "io.reactivex:rxjava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.0.9"
+        },
+        "javax.inject:javax.inject": {
+            "locked": "1"
+        },
+        "junit:junit": {
+            "locked": "4.12"
+        },
+        "org.easymock:easymock": {
+            "locked": "3.2"
+        },
+        "org.powermock:powermock-easymock-release-full": {
+            "locked": "1.6.2"
+        },
+        "org.powermock:powermock-mockito-release-full": {
+            "locked": "1.6.2"
+        },
+        "org.slf4j:slf4j-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.2"
+        },
+        "org.slf4j:slf4j-log4j12": {
+            "locked": "1.7.2"
+        }
+    },
+    "testRuntimeClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "19.0"
+        },
+        "com.netflix.archaius:archaius-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "0.7.6"
+        },
+        "com.netflix.eureka:eureka-client": {
+            "locked": "1.7.2"
+        },
+        "com.netflix.eureka:eureka-test-utils": {
+            "locked": "1.7.2"
+        },
+        "com.netflix.netflix-commons:netflix-commons-util": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.netflix-commons:netflix-statistics": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "0.1.1"
+        },
+        "com.netflix.ribbon:ribbon-archaius": {
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-loadbalancer": {
+            "project": true
+        },
+        "com.netflix.spectator:spectator-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.0"
+        },
+        "commons-configuration:commons-configuration": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "1.8"
+        },
+        "commons-lang:commons-lang": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.6"
+        },
+        "io.reactivex:rxjava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.0.9"
+        },
+        "javax.inject:javax.inject": {
+            "locked": "1"
+        },
+        "junit:junit": {
+            "locked": "4.12"
+        },
+        "org.easymock:easymock": {
+            "locked": "3.2"
+        },
+        "org.powermock:powermock-easymock-release-full": {
+            "locked": "1.6.2"
+        },
+        "org.powermock:powermock-mockito-release-full": {
+            "locked": "1.6.2"
+        },
+        "org.slf4j:slf4j-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core",
+                "com.netflix.ribbon:ribbon-loadbalancer"
+            ],
+            "locked": "1.7.36"
+        },
+        "org.slf4j:slf4j-log4j12": {
+            "locked": "1.7.2"
+        }
+    }
+}

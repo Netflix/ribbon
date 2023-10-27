@@ -19,19 +19,17 @@ package com.netflix.loadbalancer;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.Property;
 import com.netflix.client.config.UnboxedIntProperty;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.stats.distribution.DataDistribution;
 import com.netflix.stats.distribution.DataPublisher;
 import com.netflix.stats.distribution.Distribution;
 import com.netflix.util.MeasuredRate;
 
 import java.util.Date;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -89,15 +87,36 @@ public class ServerStats {
         circuitTrippedTimeoutFactor = new UnboxedIntProperty(LoadBalancerStats.CIRCUIT_TRIP_TIMEOUT_FACTOR_SECONDS.defaultValue());
         maxCircuitTrippedTimeout = new UnboxedIntProperty(LoadBalancerStats.CIRCUIT_TRIP_MAX_TIMEOUT_SECONDS.defaultValue());
         activeRequestsCountTimeout = new UnboxedIntProperty(LoadBalancerStats.ACTIVE_REQUESTS_COUNT_TIMEOUT.defaultValue());
+        initMetrics(Spectator.globalRegistry());
     }
 
     public ServerStats(LoadBalancerStats lbStats) {
+        this(lbStats, Spectator.globalRegistry());
+    }
+
+    public ServerStats(LoadBalancerStats lbStats, Registry registry) {
         maxCircuitTrippedTimeout = lbStats.getCircuitTripMaxTimeoutSeconds();
         circuitTrippedTimeoutFactor = lbStats.getCircuitTrippedTimeoutFactor();
         connectionFailureThreshold = lbStats.getConnectionFailureCountThreshold();
         activeRequestsCountTimeout = lbStats.getActiveRequestsCountTimeout();
+
+        initMetrics(registry);
     }
-    
+
+    private void initMetrics(final Registry registry) {
+        PolledMeter.using(registry).withName("ActiveRequestsCount").monitorValue(this, ServerStats::getActiveRequestsCount);
+        PolledMeter.using(registry).withName("SuccessiveConnectionFailureCount").monitorValue(this, ServerStats::getSuccessiveConnectionFailureCount);
+        PolledMeter.using(registry).withName("ResponseTimePercentileNumValues").monitorValue(this, ServerStats::getResponseTimePercentileNumValues);
+        PolledMeter.using(registry).withName("ResponseTimeMillisAvg").monitorValue(this, ServerStats::getResponseTimeAvg);
+        PolledMeter.using(registry).withName("ResponseTimeMillis95Percentile").monitorValue(this, ServerStats::getResponseTime95thPercentile);
+        PolledMeter.using(registry).withName("ResponseTimeMillis99Percentile").monitorValue(this, ServerStats::getResponseTime99thPercentile);
+        PolledMeter.using(registry).withName("ResponseTimeMillis99_5Percentile").monitorValue(this, ServerStats::getResponseTime99point5thPercentile);
+
+        // TODO : Servo @Monitor with type DataSourceType.COUNTER
+        // @Monitor(name = "ResponseTimePercentileWhenMillis", type = DataSourceType.COUNTER,
+        //      description = "The time the percentile values were computed in milliseconds since the epoch")
+    }
+
     /**
      * Initializes the object, starting data collection and reporting.
      */
@@ -257,12 +276,10 @@ public class ServerStats {
         return requestCountInWindow.getCount();
     }
 
-    @Monitor(name="ActiveRequestsCount", type = DataSourceType.GAUGE)    
     public int getMonitoredActiveRequestsCount() {
         return activeRequestsCount.get();
     }
     
-    @Monitor(name="CircuitBreakerTripped", type = DataSourceType.INFORMATIONAL)    
     public boolean isCircuitBreakerTripped() {
         return isCircuitBreakerTripped(System.currentTimeMillis());
     }
@@ -307,7 +324,6 @@ public class ServerStats {
         successiveConnectionFailureCount.set(0);
     }
     
-    @Monitor(name="SuccessiveConnectionFailureCount", type = DataSourceType.GAUGE)
     public int getSuccessiveConnectionFailureCount() {
         return successiveConnectionFailureCount.get();
     }
@@ -319,8 +335,6 @@ public class ServerStats {
     /**
      * Gets the average total amount of time to handle a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisAvg", type = DataSourceType.INFORMATIONAL,
-             description = "Average total time for a request, in milliseconds")
     public double getResponseTimeAvg() {
         return responseTimeDist.getMean();
     }
@@ -328,8 +342,6 @@ public class ServerStats {
     /**
      * Gets the maximum amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisMax", type = DataSourceType.INFORMATIONAL,
-             description = "Max total time for a request, in milliseconds")
     public double getResponseTimeMax() {
         return responseTimeDist.getMaximum();
     }
@@ -337,8 +349,6 @@ public class ServerStats {
     /**
      * Gets the minimum amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisMin", type = DataSourceType.INFORMATIONAL,
-             description = "Min total time for a request, in milliseconds")
     public double getResponseTimeMin() {
         return responseTimeDist.getMinimum();
     }
@@ -346,8 +356,6 @@ public class ServerStats {
     /**
      * Gets the standard deviation in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisStdDev", type = DataSourceType.INFORMATIONAL,
-             description = "Standard Deviation in total time to handle a request, in milliseconds")
     public double getResponseTimeStdDev() {
         return responseTimeDist.getStdDev();
     }
@@ -359,8 +367,6 @@ public class ServerStats {
     /**
      * Gets the number of samples used to compute the various response-time percentiles.
      */
-    @Monitor(name = "ResponseTimePercentileNumValues", type = DataSourceType.GAUGE,
-             description = "The number of data points used to compute the currently reported percentile values")
     public int getResponseTimePercentileNumValues() {
         return dataDist.getSampleSize();
     }
@@ -368,18 +374,14 @@ public class ServerStats {
     /**
      * Gets the time when the varios percentile data was last updated.
      */
-    @Monitor(name = "ResponseTimePercentileWhen", type = DataSourceType.INFORMATIONAL,
-             description = "The time the percentile values were computed")
     public String getResponseTimePercentileTime() {
         return dataDist.getTimestamp();
     }
 
     /**
-     * Gets the time when the varios percentile data was last updated,
+     * Gets the time when the various percentile data was last updated,
      * in milliseconds since the epoch.
      */
-    @Monitor(name = "ResponseTimePercentileWhenMillis", type = DataSourceType.COUNTER,
-             description = "The time the percentile values were computed in milliseconds since the epoch")
     public long getResponseTimePercentileTimeMillis() {
         return dataDist.getTimestampMillis();
     }
@@ -388,8 +390,6 @@ public class ServerStats {
      * Gets the average total amount of time to handle a request
      * in the recent time-slice, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillisAvg", type = DataSourceType.GAUGE,
-             description = "Average total time for a request in the recent time slice, in milliseconds")
     public double getResponseTimeAvgRecent() {
         return dataDist.getMean();
     }
@@ -397,8 +397,6 @@ public class ServerStats {
     /**
      * Gets the 10-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis10Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "10th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime10thPercentile() {
         return getResponseTimePercentile(Percent.TEN);
     }
@@ -406,8 +404,6 @@ public class ServerStats {
     /**
      * Gets the 25-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis25Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "25th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime25thPercentile() {
         return getResponseTimePercentile(Percent.TWENTY_FIVE);
     }
@@ -415,8 +411,6 @@ public class ServerStats {
     /**
      * Gets the 50-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis50Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "50th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime50thPercentile() {
         return getResponseTimePercentile(Percent.FIFTY);
     }
@@ -424,8 +418,6 @@ public class ServerStats {
     /**
      * Gets the 75-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis75Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "75th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime75thPercentile() {
         return getResponseTimePercentile(Percent.SEVENTY_FIVE);
     }
@@ -433,8 +425,6 @@ public class ServerStats {
     /**
      * Gets the 90-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis90Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "90th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime90thPercentile() {
         return getResponseTimePercentile(Percent.NINETY);
     }
@@ -442,8 +432,6 @@ public class ServerStats {
     /**
      * Gets the 95-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis95Percentile", type = DataSourceType.GAUGE,
-             description = "95th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime95thPercentile() {
         return getResponseTimePercentile(Percent.NINETY_FIVE);
     }
@@ -451,8 +439,6 @@ public class ServerStats {
     /**
      * Gets the 98-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis98Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "98th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime98thPercentile() {
         return getResponseTimePercentile(Percent.NINETY_EIGHT);
     }
@@ -460,8 +446,6 @@ public class ServerStats {
     /**
      * Gets the 99-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis99Percentile", type = DataSourceType.GAUGE,
-             description = "99th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime99thPercentile() {
         return getResponseTimePercentile(Percent.NINETY_NINE);
     }
@@ -469,8 +453,6 @@ public class ServerStats {
     /**
      * Gets the 99.5-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis99_5Percentile", type = DataSourceType.GAUGE,
-             description = "99.5th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime99point5thPercentile() {
         return getResponseTimePercentile(Percent.NINETY_NINE_POINT_FIVE);
     }
