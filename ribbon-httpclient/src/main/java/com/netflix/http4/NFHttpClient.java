@@ -188,12 +188,10 @@ public class NFHttpClient extends DefaultHttpClient {
 
 	}
 
-	@Monitor(name = "HttpClient-ConnPoolCleaner", type = DataSourceType.INFORMATIONAL)
 	public ConnectionPoolCleaner getConnPoolCleaner() {
 		return connPoolCleaner;
 	}
 
-	@Monitor(name = "HttpClient-ConnIdleEvictTimeMilliSeconds", type = DataSourceType.INFORMATIONAL)
 	public Property<Integer> getConnIdleEvictTimeMilliSeconds() {
 		return connIdleEvictTimeMilliSeconds;
 	}
@@ -208,7 +206,6 @@ public class NFHttpClient extends DefaultHttpClient {
 		}
 	}
 
-	@Monitor(name = "HttpClient-MaxTotalConnections", type = DataSourceType.INFORMATIONAL)
 	public int getMaxTotalConnnections() {
 		ClientConnectionManager connectionManager = this.getConnectionManager();
 		if (connectionManager != null) {
@@ -218,7 +215,6 @@ public class NFHttpClient extends DefaultHttpClient {
 		}
 	}
 
-	@Monitor(name = "HttpClient-MaxConnectionsPerHost", type = DataSourceType.INFORMATIONAL)
 	public int getMaxConnectionsPerHost() {
 		ClientConnectionManager connectionManager = this.getConnectionManager();
 		if (connectionManager != null) {
@@ -231,7 +227,6 @@ public class NFHttpClient extends DefaultHttpClient {
 		}
 	}
 
-	@Monitor(name = "HttpClient-NumRetries", type = DataSourceType.INFORMATIONAL)
 	public int getNumRetries() {
 		return this.retriesProperty.getOrDefault();
 	}
@@ -240,7 +235,6 @@ public class NFHttpClient extends DefaultHttpClient {
 		this.connIdleEvictTimeMilliSeconds = connIdleEvictTimeMilliSeconds;
 	}
 
-	@Monitor(name = "HttpClient-SleepTimeFactorMs", type = DataSourceType.INFORMATIONAL)
 	public int getSleepTimeFactorMs() {
 		return this.sleepTimeFactorMsProperty.getOrDefault();
 	}

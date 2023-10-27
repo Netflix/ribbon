@@ -262,7 +262,6 @@ public class ServerStats {
         return activeRequestsCount.get();
     }
     
-    @Monitor(name="CircuitBreakerTripped", type = DataSourceType.INFORMATIONAL)    
     public boolean isCircuitBreakerTripped() {
         return isCircuitBreakerTripped(System.currentTimeMillis());
     }
@@ -319,8 +318,6 @@ public class ServerStats {
     /**
      * Gets the average total amount of time to handle a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisAvg", type = DataSourceType.INFORMATIONAL,
-             description = "Average total time for a request, in milliseconds")
     public double getResponseTimeAvg() {
         return responseTimeDist.getMean();
     }
@@ -328,8 +325,6 @@ public class ServerStats {
     /**
      * Gets the maximum amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisMax", type = DataSourceType.INFORMATIONAL,
-             description = "Max total time for a request, in milliseconds")
     public double getResponseTimeMax() {
         return responseTimeDist.getMaximum();
     }
@@ -337,8 +332,6 @@ public class ServerStats {
     /**
      * Gets the minimum amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisMin", type = DataSourceType.INFORMATIONAL,
-             description = "Min total time for a request, in milliseconds")
     public double getResponseTimeMin() {
         return responseTimeDist.getMinimum();
     }
@@ -346,8 +339,6 @@ public class ServerStats {
     /**
      * Gets the standard deviation in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "OverallResponseTimeMillisStdDev", type = DataSourceType.INFORMATIONAL,
-             description = "Standard Deviation in total time to handle a request, in milliseconds")
     public double getResponseTimeStdDev() {
         return responseTimeDist.getStdDev();
     }
@@ -368,8 +359,6 @@ public class ServerStats {
     /**
      * Gets the time when the varios percentile data was last updated.
      */
-    @Monitor(name = "ResponseTimePercentileWhen", type = DataSourceType.INFORMATIONAL,
-             description = "The time the percentile values were computed")
     public String getResponseTimePercentileTime() {
         return dataDist.getTimestamp();
     }
@@ -397,8 +386,6 @@ public class ServerStats {
     /**
      * Gets the 10-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis10Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "10th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime10thPercentile() {
         return getResponseTimePercentile(Percent.TEN);
     }
@@ -406,8 +393,6 @@ public class ServerStats {
     /**
      * Gets the 25-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis25Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "25th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime25thPercentile() {
         return getResponseTimePercentile(Percent.TWENTY_FIVE);
     }
@@ -415,8 +400,6 @@ public class ServerStats {
     /**
      * Gets the 50-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis50Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "50th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime50thPercentile() {
         return getResponseTimePercentile(Percent.FIFTY);
     }
@@ -424,8 +407,6 @@ public class ServerStats {
     /**
      * Gets the 75-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis75Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "75th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime75thPercentile() {
         return getResponseTimePercentile(Percent.SEVENTY_FIVE);
     }
@@ -433,8 +414,6 @@ public class ServerStats {
     /**
      * Gets the 90-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis90Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "90th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime90thPercentile() {
         return getResponseTimePercentile(Percent.NINETY);
     }
@@ -451,8 +430,6 @@ public class ServerStats {
     /**
      * Gets the 98-th percentile in the total amount of time spent handling a request, in milliseconds.
      */
-    @Monitor(name = "ResponseTimeMillis98Percentile", type = DataSourceType.INFORMATIONAL,
-             description = "98th percentile in total time to handle a request, in milliseconds")
     public double getResponseTime98thPercentile() {
         return getResponseTimePercentile(Percent.NINETY_EIGHT);
     }

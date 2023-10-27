@@ -23,7 +23,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
@@ -387,7 +386,6 @@ public class LoadBalancerStats implements IClientConfigAware {
         return (int) ((activeConnectionsCount + circuitBreakerTrippedCount) * 100L / serverCount); 
     }
     
-    @Monitor(name=PREFIX + "AvailableZones", type = DataSourceType.INFORMATIONAL)   
     public Set<String> getAvailableZones() {
         return upServerListZoneMap.keySet();
     }

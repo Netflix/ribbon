@@ -72,10 +72,8 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
     protected IPing ping = null;
 
-    @Monitor(name = PREFIX + "AllServerList", type = DataSourceType.INFORMATIONAL)
     protected volatile List<Server> allServerList = Collections
             .synchronizedList(new ArrayList<Server>());
-    @Monitor(name = PREFIX + "UpServerList", type = DataSourceType.INFORMATIONAL)
     protected volatile List<Server> upServerList = Collections
             .synchronizedList(new ArrayList<Server>());
 

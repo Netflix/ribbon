@@ -286,7 +286,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
     }
 
 
-    @Monitor(name="LastUpdated", type=DataSourceType.INFORMATIONAL)
     public String getLastUpdate() {
         return serverListUpdater.getLastUpdate();
     }
