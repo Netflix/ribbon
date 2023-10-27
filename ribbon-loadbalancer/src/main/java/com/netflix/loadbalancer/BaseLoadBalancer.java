@@ -25,10 +25,9 @@ import com.netflix.client.IClientConfigAware;
 import com.netflix.client.PrimeConnections;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
-import com.netflix.servo.monitor.Counter;
-import com.netflix.servo.monitor.Monitors;
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
 import com.netflix.util.concurrent.ShutdownEnabledTimer;
 
 import org.slf4j.Logger;
@@ -91,7 +90,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
 
     protected LoadBalancerStats lbStats;
 
-    private volatile Counter counter = Monitors.newCounter("LoadBalancer_ChooseServer");
+    private volatile Counter counter;
 
     private PrimeConnections primeConnections;
 
@@ -102,6 +101,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     private List<ServerListChangeListener> changeListeners = new CopyOnWriteArrayList<ServerListChangeListener>();
 
     private List<ServerStatusChangeListener> serverStatusListeners = new CopyOnWriteArrayList<ServerStatusChangeListener>();
+    private Registry registry;
 
     /**
      * Default constructor which sets name as "default", sets null ping, and
@@ -119,6 +119,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         setRule(DEFAULT_RULE);
         setupPingTask();
         lbStats = new LoadBalancerStats(DEFAULT_NAME);
+        this.registry = Spectator.globalRegistry();
     }
 
     public BaseLoadBalancer(String lbName, IRule rule, LoadBalancerStats lbStats) {
@@ -146,6 +147,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         this.name = name;
         this.ping = ping;
         this.pingStrategy = pingStrategy;
+        this.registry = Spectator.globalRegistry();
         setRule(rule);
         setupPingTask();
         lbStats = stats;
@@ -724,7 +726,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     }
 
     private final Counter createCounter() {
-        return Monitors.newCounter("LoadBalancer_ChooseServer");
+        return registry.counter("LoadBalancer_ChooseServer");
     }
 
     /*
@@ -835,12 +837,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
     }
 
     /**
-     * Register with monitors and start priming connections if it is set.
+     * start priming connections if it is set.
      */
     protected void init() {
-        Monitors.registerObject("LoadBalancer_" + name, this);
-        // register the rule as it contains metric for available servers count
-        Monitors.registerObject("Rule_" + name, this.getRule());
         if (enablePrimingConnections && primeConnections != null) {
             primeConnections.primeConnections(getReachableServers());
         }
@@ -873,8 +872,6 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
         if (primeConnections != null) {
             primeConnections.shutdown();
         }
-        Monitors.unregisterObject("LoadBalancer_" + name, this);
-        Monitors.unregisterObject("Rule_" + name, this.getRule());
     }
 
     /**
