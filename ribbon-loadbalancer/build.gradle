@@ -3,7 +3,7 @@ dependencies {
     api 'com.netflix.netflix-commons:netflix-statistics:0.1.1'
     api "io.reactivex:rxjava:${rx_java_version}"
     api "org.slf4j:slf4j-api:${slf4j_version}"
-    api "com.netflix.spector:spectator-api:${spectator_version}"
+    api "com.netflix.spectator:spectator-api:${spectator_version}"
     api "com.google.guava:guava:${guava_version}"
     api 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
 
