@@ -17,10 +17,10 @@
 */
 package com.netflix.loadbalancer;
 
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
-import com.netflix.servo.monitor.Counter;
-import com.netflix.servo.monitor.Monitors;
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
+import com.netflix.spectator.api.patterns.PolledMeter;
 
 /**
  * Class that stores Statistics per Zone (where Zone is typically a Amazon
@@ -38,43 +38,46 @@ public class ZoneStats<T extends Server> {
     private final Counter counter;
     
     final String monitorId;
-    
+
     public ZoneStats(String name, String zone, LoadBalancerStats loadBalancerStats) {
+        this(name, zone, loadBalancerStats, Spectator.globalRegistry());
+    }
+
+    public ZoneStats(String name, String zone, LoadBalancerStats loadBalancerStats, Registry registry) {
         this.zone = zone;
         this.loadBalancerStats = loadBalancerStats;
         monitorId = name + ":" + zone;  
-        counter = Monitors.newCounter(PREFIX + name + "_" + zone + "_Counter");
-        Monitors.registerObject(monitorId, this);
+        counter = registry.counter(PREFIX + name + "_" + zone + "_Counter");
+
+        PolledMeter.using(registry).withName(PREFIX + "InstanceCount").monitorValue(this, ZoneStats::getInstanceCount);
+        PolledMeter.using(registry).withName(PREFIX + "CircuitBreakerTrippedCount").monitorValue(this, ZoneStats::getCircuitBreakerTrippedCount);
+        PolledMeter.using(registry).withName(PREFIX + "ActiveRequestsPerServer").monitorValue(this, ZoneStats::getActiveRequestsPerServer);
     }
     
     public final String getZone() {
         return zone;
     }
-            
+
     public int getActiveRequestsCount() {
         return loadBalancerStats.getActiveRequestsCount(zone);
     }
-    
-    @Monitor(name=PREFIX + "InstanceCount", type = DataSourceType.GAUGE)    
+
     public int getInstanceCount() {
         return loadBalancerStats.getInstanceCount(zone);
     }
         
-    @Monitor(name=PREFIX + "CircuitBreakerTrippedCount", type = DataSourceType.GAUGE)    
     public int getCircuitBreakerTrippedCount() {
         return loadBalancerStats.getCircuitBreakerTrippedCount(zone);
     }
-        
-    @Monitor(name=PREFIX + "ActiveRequestsPerServer", type = DataSourceType.GAUGE)    
+
     public double getActiveRequestsPerServer() {
         return loadBalancerStats.getActiveRequestsPerServer(zone);
     }
-    
-    // @Monitor(name=PREFIX + "RequestsMadeLast5Minutes", type = DataSourceType.GAUGE)    
+
     public long getMeasuredZoneHits() {
         return loadBalancerStats.getMeasuredZoneHits(zone);
     }
-    
+
     public double getCircuitBreakerTrippedPercentage() {
         ZoneSnapshot snapShot = loadBalancerStats.getZoneSnapshot(zone);
         int totalCount = snapShot.getInstanceCount();
