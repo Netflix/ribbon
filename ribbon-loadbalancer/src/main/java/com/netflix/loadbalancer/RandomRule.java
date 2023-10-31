@@ -18,6 +18,8 @@
 package com.netflix.loadbalancer;
 
 import com.netflix.client.config.IClientConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -30,6 +32,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * 
  */
 public class RandomRule extends AbstractLoadBalancerRule {
+
+    private static Logger log = LoggerFactory.getLogger(RoundRobinRule.class);
 
     /**
      * Randomly choose from all living servers
@@ -48,16 +52,19 @@ public class RandomRule extends AbstractLoadBalancerRule {
             List<Server> upList = lb.getReachableServers();
             List<Server> allList = lb.getAllServers();
 
+            int upCount = upList.size();
             int serverCount = allList.size();
-            if (serverCount == 0) {
+
+            if ((upCount == 0) || (serverCount == 0)) {
                 /*
                  * No servers. End regardless of pass, because subsequent passes
                  * only get more restrictive.
                  */
+                log.warn("No up servers available from load balancer: " + lb);
                 return null;
             }
 
-            int index = chooseRandomInt(serverCount);
+            int index = chooseRandomInt(upCount);
             server = upList.get(index);
 
             if (server == null) {
