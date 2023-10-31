@@ -8,13 +8,13 @@ Ribbon is a client side IPC library that is battle-tested in cloud. It provides 
 * Multiple protocol (HTTP, TCP, UDP) support in an asynchronous and reactive model
 * Caching and batching
 
-To get ribbon binaries, go to [maven central](http://search.maven.org/#search%7Cga%7C1%7Cribbon). Here is an example to add dependency in Maven:
+To get ribbon binaries, go to [maven central](https://search.maven.org/search?q=g:com.netflix.ribbon%20AND%20a:ribbon). Here is an example to add the dependency in Maven:
 
 ```xml
 <dependency>
     <groupId>com.netflix.ribbon</groupId>
     <artifactId>ribbon</artifactId>
-    <version>2.2.2</version>
+    <version>2.7.17</version>
 </dependency>
 ```
 
