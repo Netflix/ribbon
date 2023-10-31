@@ -196,7 +196,7 @@ public class DiscoveryEnabledNIWSServerList extends AbstractServerList<Discovery
     protected DiscoveryEnabledServer createServer(final InstanceInfo instanceInfo, boolean useSecurePort, boolean useIpAddr) {
         DiscoveryEnabledServer server = new DiscoveryEnabledServer(instanceInfo, useSecurePort, useIpAddr);
 
-        // Get availabilty zone for this instance.
+        // Get availability zone for this instance.
         EurekaClientConfig clientConfig = eurekaClientProvider.get().getEurekaClientConfig();
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
         String instanceZone = InstanceInfo.getZone(availZones, instanceInfo);

@@ -30,7 +30,7 @@ public interface IRule{
      * choose one alive server from lb.allServers or
      * lb.upServers according to key
      * 
-     * @return choosen Server object. NULL is returned if none
+     * @return chosen Server object. NULL is returned if none
      *  server is available 
      */
 
