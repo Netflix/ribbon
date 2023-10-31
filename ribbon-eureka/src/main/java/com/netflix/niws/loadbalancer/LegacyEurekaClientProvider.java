@@ -14,10 +14,6 @@ class LegacyEurekaClientProvider implements Provider<EurekaClient> {
 
     @Override
     public synchronized EurekaClient get() {
-        if (eurekaClient == null) {
-            eurekaClient = DiscoveryManager.getInstance().getDiscoveryClient();
-        }
-
-        return eurekaClient;
+        return (eurekaClient == null)?DiscoveryManager.getInstance().getDiscoveryClient():eurekaClient;
     }
 }
