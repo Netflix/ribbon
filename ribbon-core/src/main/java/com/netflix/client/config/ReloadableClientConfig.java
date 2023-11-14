@@ -1,6 +1,6 @@
 package com.netflix.client.config;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,7 +159,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     }
 
     private synchronized <T> Property<T> getOrCreateProperty(final IClientConfigKey<T> key, final Supplier<Optional<T>> valueSupplier, final Supplier<T> defaultSupplier) {
-        Preconditions.checkNotNull(valueSupplier, "defaultValueSupplier cannot be null");
+        Objects.requireNonNull(valueSupplier, "defaultValueSupplier cannot be null");
 
         return (Property<T>)dynamicProperties.computeIfAbsent(key, ignore -> new ReloadableProperty<T>() {
                 private volatile Optional<T> current = Optional.empty();
@@ -355,7 +355,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
      * Store the default value for key while giving precedence to default values in the property resolver
      */
     protected final <T> void setDefault(IClientConfigKey<T> key, T value) {
-        Preconditions.checkArgument(key != null, "key cannot be null");
+        Objects.requireNonNull(key, "key cannot be null");
 
         value = resolveFromPropertyResolver(key).orElse(value);
         internalProperties.put(key, Optional.ofNullable(value));
@@ -367,7 +367,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
 
     @Override
     public <T> IClientConfig set(IClientConfigKey<T> key, T value) {
-        Preconditions.checkArgument(key != null, "key cannot be null");
+        Objects.requireNonNull(key, "key cannot be null");
 
         value = resolveValueToType(key, value);
         if (isDynamic) {
@@ -384,7 +384,7 @@ public abstract class ReloadableClientConfig implements IClientConfig {
     @Override
     @Deprecated
     public void setProperty(IClientConfigKey key, Object value) {
-        Preconditions.checkArgument(value != null, "Value may not be null");
+        Objects.requireNonNull(value, "Value may not be null");
         set(key, value);
     }
 

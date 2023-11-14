@@ -17,13 +17,10 @@
 */
 package com.netflix.loadbalancer;
 
-import com.google.common.base.Preconditions;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
@@ -32,6 +29,7 @@ import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Monitors;
 
+import com.netflix.servo.util.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -92,14 +89,14 @@ public class LoadBalancerStats implements IClientConfigAware {
 
     private UnboxedIntProperty activeRequestsCountTimeout = new UnboxedIntProperty(ACTIVE_REQUESTS_COUNT_TIMEOUT.defaultValue());
 
-    private final LoadingCache<Server, ServerStats> serverStatsCache = CacheBuilder.newBuilder()
-            .expireAfterAccess(30, TimeUnit.MINUTES)
-            .removalListener((RemovalListener<Server, ServerStats>) notification -> notification.getValue().close())
-            .build(new CacheLoader<Server, ServerStats>() {
-                public ServerStats load(Server server) {
-                    return createServerStats(server);
-                }
-            });
+    private final LoadingCache<Server, ServerStats> serverStatsCache = Caffeine.newBuilder()
+        .expireAfterAccess(30, TimeUnit.MINUTES)
+        .removalListener((RemovalListener<Server, ServerStats>) (key, value, cause) -> {
+            if (value != null) {
+                value.close();
+            }
+        })
+            .build(this::createServerStats);
 
     protected ServerStats createServerStats(Server server) {
         ServerStats ss = new ServerStats(this);
@@ -180,12 +177,7 @@ public class LoadBalancerStats implements IClientConfigAware {
     
     public void addServer(Server server) {
         if (server != null) {
-            try {
-                serverStatsCache.get(server);
-            } catch (ExecutionException e) {
-                ServerStats stats = createServerStats(server);
-                serverStatsCache.asMap().putIfAbsent(server, stats);
-            }
+            serverStatsCache.get(server);
         }
     } 
     
@@ -205,13 +197,7 @@ public class LoadBalancerStats implements IClientConfigAware {
             return null;
         }
 
-        try {
-            return serverStatsCache.get(server);
-        } catch (ExecutionException e) {
-            ServerStats stats = createServerStats(server);
-            serverStatsCache.asMap().putIfAbsent(server, stats);
-            return serverStatsCache.asMap().get(server);
-        }
+        return serverStatsCache.get(server);
     }
     
     public void incrementActiveRequestsCount(Server server) {

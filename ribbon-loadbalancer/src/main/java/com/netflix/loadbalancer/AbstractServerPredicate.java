@@ -17,17 +17,17 @@
  */
 package com.netflix.loadbalancer;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.netflix.client.config.IClientConfig;
 
 /**
@@ -50,15 +50,15 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
 
     private final Predicate<Server> serverOnlyPredicate =  new Predicate<Server>() {
         @Override
-        public boolean apply(@Nullable Server input) {                    
-            return AbstractServerPredicate.this.apply(new PredicateKey(input));
+        public boolean test(@Nullable Server input) {
+            return AbstractServerPredicate.this.test(new PredicateKey(input));
         }
     };
 
     public static AbstractServerPredicate alwaysTrue() {
         return new AbstractServerPredicate() {        
             @Override
-            public boolean apply(@Nullable PredicateKey input) {
+            public boolean test(@Nullable PredicateKey input) {
                 return true;
             }
         };
@@ -131,11 +131,12 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
      */
     public List<Server> getEligibleServers(List<Server> servers, Object loadBalancerKey) {
         if (loadBalancerKey == null) {
-            return ImmutableList.copyOf(Iterables.filter(servers, this.getServerOnlyPredicate()));            
+            return servers.stream().filter(this.getServerOnlyPredicate())
+                    .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
         } else {
-            List<Server> results = Lists.newArrayList();
+            List<Server> results = new ArrayList<>();
             for (Server server: servers) {
-                if (this.apply(new PredicateKey(loadBalancerKey, server))) {
+                if (this.test(new PredicateKey(loadBalancerKey, server))) {
                     results.add(server);
                 }
             }
@@ -167,7 +168,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
     public Optional<Server> chooseRandomlyAfterFiltering(List<Server> servers) {
         List<Server> eligible = getEligibleServers(servers);
         if (eligible.size() == 0) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(eligible.get(random.nextInt(eligible.size())));
     }
@@ -179,7 +180,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
     public Optional<Server> chooseRoundRobinAfterFiltering(List<Server> servers) {
         List<Server> eligible = getEligibleServers(servers);
         if (eligible.size() == 0) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(eligible.get(incrementAndGetModulo(eligible.size())));
     }
@@ -192,7 +193,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
     public Optional<Server> chooseRandomlyAfterFiltering(List<Server> servers, Object loadBalancerKey) {
         List<Server> eligible = getEligibleServers(servers, loadBalancerKey);
         if (eligible.size() == 0) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(eligible.get(random.nextInt(eligible.size())));
     }
@@ -203,7 +204,7 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
     public Optional<Server> chooseRoundRobinAfterFiltering(List<Server> servers, Object loadBalancerKey) {
         List<Server> eligible = getEligibleServers(servers, loadBalancerKey);
         if (eligible.size() == 0) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(eligible.get(incrementAndGetModulo(eligible.size())));
     }
@@ -215,8 +216,8 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
         return new AbstractServerPredicate() {
             @Override
             @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "NP")
-            public boolean apply(PredicateKey input) {
-                return p.apply(input);
+            public boolean test(PredicateKey input) {
+                return p.test(input);
             }            
         };        
     }
@@ -228,8 +229,8 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
         return new AbstractServerPredicate() {
             @Override
             @edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "NP")
-            public boolean apply(PredicateKey input) {
-                return p.apply(input.getServer());
+            public boolean test(PredicateKey input) {
+                return p.test(input.getServer());
             }            
         };        
     }

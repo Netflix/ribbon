@@ -15,19 +15,13 @@
  */
 package com.netflix.loadbalancer;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.Property;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A server list filter that limits the number of the servers used by the load balancer to be the subset of all servers.
@@ -42,7 +36,7 @@ import java.util.Set;
 public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServerListFilter<T> implements IClientConfigAware, Comparator<T>{
 
     private Random random = new Random();
-    private volatile Set<T> currentSubset = Sets.newHashSet(); 
+    private volatile Set<T> currentSubset = new HashSet<>(); 
     private Property<Integer> sizeProp;
     private Property<Float> eliminationPercent;
     private Property<Integer> eliminationFailureCountThreshold;
@@ -101,8 +95,8 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
     @Override
     public List<T> getFilteredListOfServers(List<T> servers) {
         List<T> zoneAffinityFiltered = super.getFilteredListOfServers(servers);
-        Set<T> candidates = Sets.newHashSet(zoneAffinityFiltered);
-        Set<T> newSubSet = Sets.newHashSet(currentSubset);
+        Set<T> candidates = new HashSet<>(zoneAffinityFiltered);
+        Set<T> newSubSet = new HashSet<>(currentSubset);
         LoadBalancerStats lbStats = getLoadBalancerStats();
         for (T server: currentSubset) {
             // this server is either down or out of service
@@ -135,7 +129,7 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
         }
 
         if (numToForceEliminate > 0) {
-            List<T> sortedSubSet = Lists.newArrayList(newSubSet);           
+            List<T> sortedSubSet = new ArrayList<>(newSubSet);           
             Collections.sort(sortedSubSet, this);
             List<T> forceEliminated = sortedSubSet.subList(0, numToForceEliminate);
             newSubSet.removeAll(forceEliminated);
@@ -151,16 +145,16 @@ public class ServerListSubsetFilter<T extends Server> extends ZoneAffinityServer
             if (numToChoose > candidates.size()) {
                 // Not enough healthy instances to choose, fallback to use the
                 // total server pool
-                candidates = Sets.newHashSet(zoneAffinityFiltered);
+                candidates = new HashSet<>(zoneAffinityFiltered);
                 candidates.removeAll(newSubSet);
             }
-            List<T> chosen = randomChoose(Lists.newArrayList(candidates), numToChoose);
+            List<T> chosen = randomChoose(new ArrayList<>(candidates), numToChoose);
             for (T server: chosen) {
                 newSubSet.add(server);
             }
         }
         currentSubset = newSubSet;       
-        return Lists.newArrayList(newSubSet);            
+        return new ArrayList<>(newSubSet);            
     }
 
     /**

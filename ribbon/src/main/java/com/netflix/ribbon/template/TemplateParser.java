@@ -16,10 +16,9 @@
 package com.netflix.ribbon.template;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.collect.Maps;
 
 /**
  * Created by mcohen on 5/1/14.
@@ -102,7 +101,7 @@ public class TemplateParser {
     
     public static void main(String[] args) throws TemplateParsingException {
         String template = "/abc/{id}?name={name}";
-        Map<String, Object> vars = Maps.newHashMap();
+        Map<String, Object> vars = new HashMap<>();
         vars.put("id", "5");
         vars.put("name", "netflix");
         List<Object> list = parseTemplate(template);

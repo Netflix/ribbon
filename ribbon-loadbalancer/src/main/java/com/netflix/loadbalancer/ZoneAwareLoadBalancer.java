@@ -17,10 +17,7 @@
 */
 package com.netflix.loadbalancer;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.netflix.client.ClientFactory;
-import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
@@ -168,8 +165,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
             return super.chooseServer(key);
         }
     }
-     
-    @VisibleForTesting
+
     BaseLoadBalancer getLoadBalancer(String zone) {
         zone = zone.toLowerCase();
         BaseLoadBalancer loadBalancer = balancers.get(zone);

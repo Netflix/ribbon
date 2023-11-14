@@ -2,9 +2,11 @@ package com.netflix.client.config;
 
 import static org.junit.Assert.*;
 
+
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
+import java.util.Arrays;
+import java.util.HashSet;
 
 public class CommonClientConfigKeyTest {
     
@@ -12,7 +14,7 @@ public class CommonClientConfigKeyTest {
     public void testCommonKeys() {
         IClientConfigKey[] keys = CommonClientConfigKey.values();
         assertTrue(keys.length > 30);
-        assertEquals(Sets.newHashSet(keys), CommonClientConfigKey.keys());
+        assertEquals(new HashSet<>(Arrays.asList(keys)), CommonClientConfigKey.keys());
         assertTrue(CommonClientConfigKey.keys().contains(CommonClientConfigKey.ConnectTimeout));
     }
 }

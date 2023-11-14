@@ -8,7 +8,6 @@ dependencies {
     api "com.sun.jersey.contribs:jersey-apache-client4:${jersey_version}"
     api "org.slf4j:slf4j-api:${slf4j_version}"
     api "com.netflix.servo:servo-core:${servo_version}"
-    api "com.google.guava:guava:${guava_version}"
     api 'com.netflix.netflix-commons:netflix-commons-util:0.1.1'
     testImplementation 'junit:junit:4.11'
     testImplementation "org.slf4j:slf4j-log4j12:${slf4j_version}"
@@ -17,5 +16,6 @@ dependencies {
     testImplementation 'com.google.mockwebserver:mockwebserver:20130505'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.4.3'
     testImplementation project(':ribbon-archaius')
+    testImplementation "com.google.guava:guava:32.1.3-jre"
     testImplementation project(":ribbon-loadbalancer").sourceSets.test.output
 }

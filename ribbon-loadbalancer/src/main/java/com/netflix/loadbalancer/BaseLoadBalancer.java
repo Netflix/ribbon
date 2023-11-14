@@ -19,7 +19,6 @@ package com.netflix.loadbalancer;
 
 import static java.util.Collections.singleton;
 
-import com.google.common.collect.ImmutableList;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.PrimeConnections;
@@ -507,9 +506,9 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             boolean listChanged = false;
             if (!allServerList.equals(allServers)) {
                 listChanged = true;
-                if (changeListeners != null && changeListeners.size() > 0) {
-                   List<Server> oldList = ImmutableList.copyOf(allServerList);
-                   List<Server> newList = ImmutableList.copyOf(allServers);                   
+                if (changeListeners != null && !changeListeners.isEmpty()) {
+                   List<Server> oldList = Collections.unmodifiableList(new ArrayList<>(allServerList));
+                   List<Server> newList = Collections.unmodifiableList(new ArrayList<>(allServers));
                    for (ServerListChangeListener l: changeListeners) {
                        try {
                            l.serverListChanged(oldList, newList);

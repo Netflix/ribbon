@@ -17,7 +17,7 @@
  */
 package com.netflix.loadbalancer;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * A rule which delegates the server filtering logic to an instance of {@link AbstractServerPredicate}.

@@ -18,7 +18,6 @@
 package com.netflix.ribbon.transport.netty.http;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
 import com.netflix.ribbon.transport.netty.RibbonTransport;
@@ -29,6 +28,8 @@ import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -71,11 +72,11 @@ public class ServerListRefreshTest {
             HttpClientRequest<ByteBuf> request2 = HttpClientRequest.createGet("http://localhost:" + server3.getPort());
             client.submit(request2).toBlocking().last();
             Set<Server> cachedServers = client.getRxClients().keySet();
-            assertEquals(Sets.newHashSet(new Server("localhost", server1.getPort()), new Server("localhost", server2.getPort()), new Server("localhost", server3.getPort())), cachedServers);
+            assertEquals(new HashSet<>(Arrays.asList(new Server("localhost", server1.getPort()), new Server("localhost", server2.getPort()), new Server("localhost", server3.getPort()))), cachedServers);
             List<Server> newList = Lists.newArrayList(new Server("localhost", server1.getPort()), new Server("localhost", 99999));
             lb.setServersList(newList);
             cachedServers = client.getRxClients().keySet();
-            assertEquals(Sets.newHashSet(new Server("localhost", server1.getPort()), new Server("localhost", server3.getPort())), cachedServers);
+            assertEquals(new HashSet<>(Arrays.asList(new Server("localhost", server1.getPort()), new Server("localhost", server3.getPort()))), cachedServers);
         } finally {
             server1.shutdown();
             server2.shutdown();

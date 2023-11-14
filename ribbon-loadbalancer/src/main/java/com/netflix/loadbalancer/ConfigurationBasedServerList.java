@@ -17,10 +17,10 @@
 */
 package com.netflix.loadbalancer;
 
+import com.netflix.servo.util.Strings;
+import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 
@@ -56,7 +56,7 @@ public class ConfigurationBasedServerList extends AbstractServerList<Server>  {
 	}
 	
 	protected List<Server> derive(String value) {
-	    List<Server> list = Lists.newArrayList();
+	    List<Server> list = new ArrayList<>();
 		if (!Strings.isNullOrEmpty(value)) {
 			for (String s: value.split(",")) {
 				list.add(new Server(s.trim()));

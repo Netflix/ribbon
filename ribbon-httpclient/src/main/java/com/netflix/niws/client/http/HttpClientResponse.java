@@ -17,10 +17,8 @@
 */
 package com.netflix.niws.client.http;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.reflect.TypeToken;
+import static com.netflix.utils.MultiMapUtil.getStringCollectionMap;
+
 import com.netflix.client.ClientException;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.http.HttpHeaders;
@@ -28,15 +26,12 @@ import com.netflix.client.http.HttpResponse;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.GenericType;
 
+import java.util.Map.Entry;
 import javax.ws.rs.core.MultivaluedMap;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.net.URI;
-import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.*;
 
 /**
  * A NIWS   Client Response
@@ -48,7 +43,7 @@ class HttpClientResponse implements HttpResponse {
     
     private final ClientResponse bcr;
             
-    private final Multimap<String, String> headers = ArrayListMultimap.<String, String>create();
+    private final MultivaluedMap<String, String> headers;
     private final HttpHeaders httpHeaders;
     private final URI requestedURI;
     private final IClientConfig overrideConfig;
@@ -57,11 +52,7 @@ class HttpClientResponse implements HttpResponse {
         bcr = cr;
         this.requestedURI = requestedURI;
         this.overrideConfig = config;
-        for (Map.Entry<String, List<String>> entry: bcr.getHeaders().entrySet()) {
-            if (entry.getKey() != null && entry.getValue() != null) {
-                headers.putAll(entry.getKey(), entry.getValue());
-            }
-        }
+        headers = bcr.getHeaders();
         httpHeaders =  new HttpHeaders() {
             @Override
             public String getFirstValue(String headerName) {
@@ -74,7 +65,7 @@ class HttpClientResponse implements HttpResponse {
             @Override
             public List<Entry<String, String>> getAllHeaders() {
                 MultivaluedMap<String, String> map = bcr.getHeaders();
-                List<Entry<String, String>> result = Lists.newArrayList();
+                List<Entry<String, String>> result = new ArrayList<>();
                 for (Map.Entry<String, List<String>> header: map.entrySet()) {
                     String name = header.getKey();
                     for (String value: header.getValue()) {
@@ -108,7 +99,7 @@ class HttpClientResponse implements HttpResponse {
 
     @Override
     public Map<String, Collection<String>> getHeaders() {
-        return headers.asMap();
+        return getStringCollectionMap(headers);
     }
 
     @Override
@@ -170,11 +161,6 @@ class HttpClientResponse implements HttpResponse {
     @Override
     public HttpHeaders getHttpHeaders() {
         return httpHeaders;
-    }
-
-    @Override
-    public <T> T getEntity(TypeToken<T> type) throws Exception {
-        return bcr.getEntity(new GenericType<T>(type.getType()));
     }
 
     @Override
