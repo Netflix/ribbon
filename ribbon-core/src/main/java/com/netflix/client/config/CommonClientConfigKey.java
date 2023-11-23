@@ -17,8 +17,6 @@
 */
 package com.netflix.client.config;
 
-import com.google.common.reflect.TypeToken;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -27,8 +25,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
 
@@ -248,20 +244,20 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     private final String configKey;
     private final Class<T> type;
-    private T defaultValue;
+    private final T defaultValue;
 
-    @SuppressWarnings("unchecked")
     protected CommonClientConfigKey(String configKey) {
         this(configKey, null);
     }
 
+    @SuppressWarnings("unchecked")
     protected CommonClientConfigKey(String configKey, T defaultValue) {
         this.configKey = configKey;
         Type superclass = getClass().getGenericSuperclass();
-        checkArgument(superclass instanceof ParameterizedType,
-                "%s isn't parameterized", superclass);
-        Type runtimeType = ((ParameterizedType) superclass).getActualTypeArguments()[0];
-        type = (Class<T>) TypeToken.of(runtimeType).getRawType();
+        if (!(superclass instanceof ParameterizedType)) {
+                throw new IllegalArgumentException(superclass + " isn't parameterized");
+        }
+        this.type = (Class<T>) ((ParameterizedType) superclass).getActualTypeArguments()[0];
         this.defaultValue = defaultValue;
     }
 

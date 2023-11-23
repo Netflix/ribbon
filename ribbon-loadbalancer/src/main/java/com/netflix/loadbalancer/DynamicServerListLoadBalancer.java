@@ -17,7 +17,6 @@
  */
 package com.netflix.loadbalancer;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
@@ -232,7 +231,6 @@ public class DynamicServerListLoadBalancer<T extends Server> extends BaseLoadBal
         }
     }
 
-    @VisibleForTesting
     public void updateListOfServers() {
         List<T> servers = new ArrayList<T>();
         if (serverListImpl != null) {

@@ -4,20 +4,21 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import com.google.common.base.Preconditions;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 public class SerializationUtils {
 
     public static <T> T deserializeFromString(Deserializer<T> deserializer, String content, TypeDef<T> typeDef) 
             throws IOException {
-        Preconditions.checkNotNull(deserializer);
-        ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes("UTF-8"));
+        Objects.requireNonNull(deserializer);
+        ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
         return deserializer.deserialize(in, typeDef);
     }
     
     public static <T> String serializeToString(Serializer<T> serializer, T obj, TypeDef<?> typeDef) 
             throws IOException {
-        return new String(serializeToBytes(serializer, obj, typeDef), "UTF-8");
+        return new String(serializeToBytes(serializer, obj, typeDef), StandardCharsets.UTF_8);
     }
     
     public static <T> byte[] serializeToBytes(Serializer<T> serializer, T obj, TypeDef<?> typeDef) 

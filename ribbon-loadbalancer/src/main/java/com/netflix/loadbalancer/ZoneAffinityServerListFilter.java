@@ -18,8 +18,6 @@ package com.netflix.loadbalancer;
 *
 */
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.netflix.client.IClientConfigAware;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
@@ -27,6 +25,7 @@ import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.Property;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,8 +122,9 @@ public class ZoneAffinityServerListFilter<T extends Server> extends
     @Override
     public List<T> getFilteredListOfServers(List<T> servers) {
         if (zone != null && (zoneAffinity || zoneExclusive) && servers !=null && servers.size() > 0){
-            List<T> filteredServers = Lists.newArrayList(Iterables.filter(
-                    servers, this.zoneAffinityPredicate.getServerOnlyPredicate()));
+            List<T> filteredServers =
+                    servers.stream().filter(this.zoneAffinityPredicate.getServerOnlyPredicate()).collect(
+                        Collectors.toList());
             if (shouldEnableZoneAffinity(filteredServers)) {
                 return filteredServers;
             } else if (zoneAffinity) {

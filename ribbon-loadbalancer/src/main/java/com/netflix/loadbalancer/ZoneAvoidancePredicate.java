@@ -77,7 +77,7 @@ public class ZoneAvoidancePredicate extends AbstractServerPredicate {
     }
 
     @Override
-    public boolean apply(@Nullable PredicateKey input) {
+    public boolean test(@Nullable PredicateKey input) {
         if (!enabled.getOrDefault()) {
             return true;
         }

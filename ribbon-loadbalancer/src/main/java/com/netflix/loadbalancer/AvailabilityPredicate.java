@@ -17,7 +17,6 @@
  */
 package com.netflix.loadbalancer;
 
-import com.google.common.base.Preconditions;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
@@ -81,7 +80,7 @@ public class AvailabilityPredicate extends  AbstractServerPredicate {
     }
 
     @Override
-    public boolean apply(@Nullable PredicateKey input) {
+    public boolean test(@Nullable PredicateKey input) {
         LoadBalancerStats stats = getLBStats();
         if (stats == null) {
             return true;

@@ -1,6 +1,7 @@
 package com.netflix.niws.loadbalancer;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import static com.netflix.client.util.ThreadUtils.threadFactory;
+
 import com.netflix.config.DynamicIntProperty;
 import com.netflix.discovery.CacheRefreshedEvent;
 import com.netflix.discovery.EurekaClient;
@@ -45,16 +46,12 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
         private LazyHolder() {
             int corePoolSize = getCorePoolSize();
             defaultServerListUpdateExecutor = new ThreadPoolExecutor(
-                    corePoolSize,
-                    corePoolSize * 5,
-                    0,
-                    TimeUnit.NANOSECONDS,
-                    new ArrayBlockingQueue<Runnable>(queueSizeProp.get()),
-                    new ThreadFactoryBuilder()
-                            .setNameFormat("EurekaNotificationServerListUpdater-%d")
-                            .setDaemon(true)
-                            .build()
-            );
+                corePoolSize,
+                corePoolSize * 5,
+                0,
+                TimeUnit.NANOSECONDS,
+                new ArrayBlockingQueue<Runnable>(queueSizeProp.get()),
+                    threadFactory("EurekaNotificationServerListUpdater-%d"));
 
             poolSizeProp.addCallback(new Runnable() {
                 @Override

@@ -1,6 +1,5 @@
 package com.netflix.niws.loadbalancer;
 
-import com.google.common.collect.Lists;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfig;
@@ -23,6 +22,9 @@ import com.netflix.loadbalancer.ServerListFilter;
 import com.netflix.loadbalancer.ServerListUpdater;
 import com.netflix.loadbalancer.ZoneAffinityServerListFilter;
 import com.netflix.loadbalancer.ZoneAwareLoadBalancer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import org.apache.commons.configuration.Configuration;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -90,7 +92,7 @@ public class LBBuilderTest {
                 .withServerListFilter(filter)
                 .buildDynamicServerListLoadBalancer();
         assertNotNull(lb);
-        assertEquals(Lists.newArrayList(expected), lb.getAllServers());
+        assertEquals(Collections.singletonList(expected), lb.getAllServers());
         assertSame(filter, lb.getFilter());
         assertSame(list, lb.getServerListImpl());
         Server server = lb.chooseServer();
@@ -111,7 +113,7 @@ public class LBBuilderTest {
                 .withServerListUpdater(updater)
                 .buildDynamicServerListLoadBalancerWithUpdater();
         assertNotNull(lb);
-        assertEquals(Lists.newArrayList(expected), lb.getAllServers());
+        assertEquals(Collections.singletonList(expected), lb.getAllServers());
         assertSame(filter, lb.getFilter());
         assertSame(list, lb.getServerListImpl());
         assertSame(updater, lb.getServerListUpdater());
@@ -139,12 +141,12 @@ public class LBBuilderTest {
         assertTrue(dynamicLB.getFilter() instanceof ZoneAffinityServerListFilter);
         assertTrue(dynamicLB.getRule() instanceof RoundRobinRule);
         assertTrue(dynamicLB.getPing() instanceof DummyPing);
-        assertEquals(Lists.newArrayList(expected), lb.getAllServers());
+        assertEquals(Collections.singletonList(expected), lb.getAllServers());
     }
 
     @Test
     public void testBuildStaticServerListLoadBalancer() {
-        List<Server> list = Lists.newArrayList(expected, expected);
+        List<Server> list = new ArrayList<>(Arrays.asList(expected, expected));
         IRule rule = new AvailabilityFilteringRule();
         IClientConfig clientConfig = IClientConfig.Builder.newBuilder()
                 .withDefaultValues()

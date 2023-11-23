@@ -17,8 +17,8 @@
  */
 package com.netflix.ribbon.transport.netty;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
+import com.netflix.client.util.ThreadUtils;
 import com.netflix.loadbalancer.reactive.ExecutionListener;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.DefaultClientConfigImpl;
@@ -57,9 +57,7 @@ public final class RibbonTransport {
     public static final ScheduledExecutorService poolCleanerScheduler;
 
     static {
-        ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true)
-                .setNameFormat("RxClient_Connection_Pool_Clean_Up")
-                .build();
+        ThreadFactory factory = ThreadUtils.threadFactory("RxClient_Connection_Pool_Clean_Up");
         poolCleanerScheduler = new ScheduledThreadPoolExectuorWithDynamicSize(POOL_CLEANER_CORE_SIZE, factory);
     }
 

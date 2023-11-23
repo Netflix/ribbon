@@ -19,17 +19,11 @@ package com.netflix.loadbalancer;
 
 import static org.junit.Assert.*;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.netflix.config.ConfigurationManager;
 import com.netflix.config.DeploymentContext.ContextKey;
 
@@ -66,7 +60,7 @@ public class PredicatesTest {
     @Test
     public void testAvalabilityPredicate() {
         Object[][] stats = new Object[10][3];
-        List<Server> expectedFiltered = Lists.newArrayList();
+        List<Server> expectedFiltered = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
             stats[i] = new Object[3];
             stats[i][0] = new Server("good:" + i);
@@ -83,15 +77,15 @@ public class PredicatesTest {
         LoadBalancerStats lbStats = new LoadBalancerStats("default");
         setServerStats(lbStats, stats);
         AvailabilityPredicate predicate = new AvailabilityPredicate(lbStats, null);
-        assertFalse(predicate.apply(new PredicateKey((Server) stats[8][0])));
-        assertTrue(predicate.apply(new PredicateKey((Server) stats[0][0])));
-        List<Server> servers = Lists.newArrayList();
+        assertFalse(predicate.test(new PredicateKey((Server) stats[8][0])));
+        assertTrue(predicate.test(new PredicateKey((Server) stats[0][0])));
+        List<Server> servers = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             servers.add((Server) stats[i][0]);
         }
         List<Server> filtered = predicate.getEligibleServers(servers);
         assertEquals(expectedFiltered, filtered);
-        Set<Server> chosen = Sets.newHashSet();
+        Set<Server> chosen = new HashSet<>();
         for (int i = 0; i < 20; i++) {
             Server s = predicate.chooseRoundRobinAfterFiltering(servers).get();
             assertEquals("good:" + (i % 7), s.getId());
@@ -127,9 +121,9 @@ public class PredicatesTest {
     @Test
     public void testZoneAvoidancePredicate() {
         Object[][] stats = new Object[10][3];
-        Map<String, List<Server>> zoneMap = Maps.newHashMap();
-        List<Server> expectedFiltered = Lists.newArrayList();
-        List<Server> list0 = Lists.newArrayList();
+        Map<String, List<Server>> zoneMap = new HashMap<>();
+        List<Server> expectedFiltered = new ArrayList<>();
+        List<Server> list0 = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             stats[i] = new Object[3];
             stats[i][0] = new Server("good:" + i);
@@ -140,7 +134,7 @@ public class PredicatesTest {
             expectedFiltered.add((Server) stats[i][0]);
         }        
         zoneMap.put("0", list0);
-        List<Server> list1 = Lists.newArrayList();
+        List<Server> list1 = new ArrayList<>();
         for (int i = 3; i < 7; i++) {
             stats[i] = new Object[3];
             stats[i][0] = new Server("bad:" + i);
@@ -150,7 +144,7 @@ public class PredicatesTest {
             stats[i][2] = 2;
         }
         zoneMap.put("1", list1);
-        List<Server> list2 = Lists.newArrayList();
+        List<Server> list2 = new ArrayList<>();
         for (int i = 7; i < 10; i++) {
             stats[i] = new Object[3];
             stats[i][0] = new Server("good:" + i);
@@ -164,9 +158,9 @@ public class PredicatesTest {
         setServerStats(lbStats, stats);
         lbStats.updateZoneServerMapping(zoneMap);
         ZoneAvoidancePredicate predicate = new ZoneAvoidancePredicate(lbStats, null);
-        assertFalse(predicate.apply(new PredicateKey((Server) stats[5][0])));
-        assertTrue(predicate.apply(new PredicateKey((Server) stats[0][0])));
-        assertTrue(predicate.apply(new PredicateKey((Server) stats[9][0])));
+        assertFalse(predicate.test(new PredicateKey((Server) stats[5][0])));
+        assertTrue(predicate.test(new PredicateKey((Server) stats[0][0])));
+        assertTrue(predicate.test(new PredicateKey((Server) stats[9][0])));
     }
 
     @Test
@@ -174,8 +168,8 @@ public class PredicatesTest {
         ConfigurationManager.getConfigInstance().setProperty(ContextKey.zone.getKey(), "0");
 
         Object[][] stats = new Object[10][3];
-        Map<String, List<Server>> zoneMap = Maps.newHashMap();
-        List<Server> expectedFiltered = Lists.newArrayList();
+        Map<String, List<Server>> zoneMap = new HashMap<>();
+        List<Server> expectedFiltered = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             stats[i] = new Object[3];
             stats[i][0] = new Server("good:" + i);
@@ -184,7 +178,7 @@ public class PredicatesTest {
             stats[i][2] = 0;
             expectedFiltered.add((Server) stats[i][0]);
         }        
-        List<Server> list1 = Lists.newArrayList();
+        List<Server> list1 = new ArrayList<>();
         for (int i = 3; i < 7; i++) {
             stats[i] = new Object[3];
             stats[i][0] = new Server("bad:" + i);
@@ -194,7 +188,7 @@ public class PredicatesTest {
             stats[i][2] = 0;
         }
         zoneMap.put("1", list1);
-        List<Server> list2 = Lists.newArrayList();
+        List<Server> list2 = new ArrayList<>();
         for (int i = 7; i < 10; i++) {
             stats[i] = new Object[3];
             stats[i][0] = new Server("good:" + i);
@@ -211,10 +205,10 @@ public class PredicatesTest {
         AvailabilityPredicate p1 = new AvailabilityPredicate(lbStats, null);
         ZoneAffinityPredicate p2 = new ZoneAffinityPredicate("0");
         CompositePredicate c = CompositePredicate.withPredicates(p2, p1).build();
-        assertFalse(c.apply(new PredicateKey((Server) stats[5][0])));
-        assertTrue(c.apply(new PredicateKey((Server) stats[0][0])));
-        assertFalse(c.apply(new PredicateKey((Server) stats[9][0])));
-        List<Server> servers = Lists.newArrayList();
+        assertFalse(c.test(new PredicateKey((Server) stats[5][0])));
+        assertTrue(c.test(new PredicateKey((Server) stats[0][0])));
+        assertFalse(c.test(new PredicateKey((Server) stats[9][0])));
+        List<Server> servers = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             servers.add((Server) stats[i][0]);
         }

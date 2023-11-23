@@ -29,9 +29,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-
 /**
  * Secure socket factory that is used the NIWS code if a non-standard key store or trust store
  * is specified.
@@ -100,8 +97,11 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
     	if(storeFile == null){
     		return null;
     	}
-    	
-    	Preconditions.checkArgument(StringUtils.isNotEmpty(password), "Null keystore should have empty password, defined keystore must have password");
+
+			if (StringUtils.isEmpty(password)) {
+				throw new IllegalArgumentException(
+						"Null keystore should have empty password, defined keystore must have password");
+			}
     	
     	KeyStore keyStore = null;
     	
@@ -139,13 +139,17 @@ public class URLSslContextFactory extends AbstractSslContextFactory{
 
         builder.append("ClientSslSocketFactory [trustStoreUrl=").append(trustStoreUrl);
         if (trustStoreUrl != null) {
-            builder.append(", trustStorePassword=");
-            builder.append(Strings.repeat("*", this.getTrustStorePasswordLength()));
+						builder.append(", trustStorePassword=");
+						for (int i = 0; i < this.getTrustStorePasswordLength(); i++) {
+								builder.append("*");
+						}
         }
         builder.append(", keyStoreUrl=").append(keyStoreUrl);
         if (keyStoreUrl != null) {
             builder.append(", keystorePassword = ");
-            builder.append(Strings.repeat("*", this.getKeyStorePasswordLength()));
+						for (int i = 0; i < this.getKeyStorePasswordLength(); i++) {
+								builder.append("*");
+						}
         }
         builder.append(']');
 

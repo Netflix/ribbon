@@ -1,5 +1,8 @@
 package com.netflix.client.testutil;
 
+import static com.netflix.client.util.ThreadUtils.threadFactory;
+
+import com.netflix.client.util.ThreadUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -370,8 +373,7 @@ public class MockHttpServer implements TestRule {
     
     public void before(final Description description) throws Exception {
         this.service = Executors.newFixedThreadPool(
-                threadCount, 
-                new ThreadFactoryBuilder().setDaemon(true).setNameFormat("TestHttpServer-%d").build());
+                threadCount, threadFactory("TestHttpServer-%d"));
         
         InetSocketAddress inetSocketAddress = new InetSocketAddress("localhost", 0);
         if (hasSsl) {
