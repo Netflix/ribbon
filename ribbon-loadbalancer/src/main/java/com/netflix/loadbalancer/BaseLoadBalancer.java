@@ -29,7 +29,7 @@ import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
 import com.netflix.servo.monitor.Monitors;
-import com.netflix.util.concurrent.ShutdownEnabledTimer;
+import internal.com.netflix.util.concurrent.ShutdownEnabledTimer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
