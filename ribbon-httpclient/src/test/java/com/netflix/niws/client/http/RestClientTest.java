@@ -20,6 +20,7 @@ package com.netflix.niws.client.http;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -135,6 +136,33 @@ public class RestClientTest {
         request = HttpRequest.newBuilder().uri(server.getServerURI()).verb(HttpRequest.Verb.DELETE).entity("").build();
         response = client.execute(request);
         assertStatusIsOk(response.getStatus());
+    }
+
+    @Test
+    public void testExecuteWithSetLBKey() throws Exception {
+        final String srcKey = "66666";
+        RestClient client = (RestClient) ClientFactory.getNamedClient("allservices");
+        BaseLoadBalancer lb = new BaseLoadBalancer() {
+            public Server chooseServer(Object key) {
+                if (key != null) {
+                    assertEquals(srcKey, key.toString());
+                }
+                return super.chooseServer(key);
+            }
+        };
+        final Server[] servers = new Server[]{new Server("localhost", server.getServerPort())};
+        lb.addServers(Arrays.asList(servers));
+        client.setLoadBalancer(lb);
+        assertEquals(200, client.executeWithLoadBalancer(HttpRequest.newBuilder().uri(new URI("/")).build()).getStatus());
+        assertEquals(200, client.executeWithLoadBalancer(HttpRequest.newBuilder().uri(new URI("/")).loadBalancerKey(srcKey).build()).getStatus());
+        client.setLoadBalancer(new BaseLoadBalancer() {
+            public Server chooseServer(Object key) {
+                assertNotEquals(srcKey, key.toString());
+                addServers(Arrays.asList(servers));
+                return super.chooseServer(key);
+            }
+        });
+        assertEquals(200, client.executeWithLoadBalancer(HttpRequest.newBuilder().uri(new URI("/")).loadBalancerKey("77777").build()).getStatus());
     }
 
     private void assertStatusIsOk(int status) {
