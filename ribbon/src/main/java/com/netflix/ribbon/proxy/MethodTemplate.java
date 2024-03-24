@@ -20,6 +20,7 @@ import com.netflix.ribbon.proxy.annotation.Content;
 import com.netflix.ribbon.proxy.annotation.ContentTransformerClass;
 import com.netflix.ribbon.proxy.annotation.TemplateName;
 import com.netflix.ribbon.proxy.annotation.Var;
+import com.netflix.ribbon.proxy.annotation.VarHeader;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.netty.channel.ContentTransformer;
 import rx.Observable;
@@ -48,6 +49,8 @@ class MethodTemplate {
     private final String templateName;
     private final String[] paramNames;
     private final int[] valueIdxs;
+    private final String[] headersNames;
+    private final int[] headersIdxs;
     private final int contentArgPosition;
     private final Class<? extends ContentTransformer<?>> contentTansformerClass;
     private final Class<?> resultType;
@@ -59,6 +62,8 @@ class MethodTemplate {
         templateName = values.templateName;
         paramNames = values.paramNames;
         valueIdxs = values.valueIdxs;
+        headersNames = values.headerNames;
+        headersIdxs = values.headerIdxs;
         contentArgPosition = values.contentArgPosition;
         contentTansformerClass = values.contentTansformerClass;
         resultType = values.resultType;
@@ -83,6 +88,18 @@ class MethodTemplate {
 
     public int getParamSize() {
         return paramNames.length;
+    }
+
+    public String getHeaderName(int idx) {
+        return headersNames[idx];
+    }
+
+    public int getHeaderPosition(int idx) {
+        return headersIdxs[idx];
+    }
+
+    public int getHeaderSize() {
+        return headersNames.length;
     }
 
     public int getContentArgPosition() {
@@ -133,6 +150,8 @@ class MethodTemplate {
         private String templateName;
         private String[] paramNames;
         private int[] valueIdxs;
+        private String[] headerNames;
+        private int[] headerIdxs;
         private int contentArgPosition;
         private Class<? extends ContentTransformer<?>> contentTansformerClass;
         private Class<?> resultType;
@@ -144,6 +163,7 @@ class MethodTemplate {
             extractParamNamesWithIndexes();
             extractContentArgPosition();
             extractContentTransformerClass();
+            extractHeaderNamesWithIndexes();
             extractResultType();
         }
 
@@ -166,6 +186,28 @@ class MethodTemplate {
             for (int i = 0; i < size; i++) {
                 paramNames[i] = nameList.get(i);
                 valueIdxs[i] = idxList.get(i);
+            }
+        }
+
+        private void extractHeaderNamesWithIndexes() {
+            List<String> nameList = new ArrayList<String>();
+            List<Integer> idxList = new ArrayList<Integer>();
+            Annotation[][] params = method.getParameterAnnotations();
+            for (int i = 0; i < params.length; i++) {
+                for (Annotation a : params[i]) {
+                    if (a.annotationType().equals(VarHeader.class)) {
+                        String name = ((VarHeader) a).value();
+                        nameList.add(name);
+                        idxList.add(i);
+                    }
+                }
+            }
+            int size = nameList.size();
+            headerNames = new String[size];
+            headerIdxs = new int[size];
+            for (int i = 0; i < size; i++) {
+                headerNames[i] = nameList.get(i);
+                headerIdxs[i] = idxList.get(i);
             }
         }
 

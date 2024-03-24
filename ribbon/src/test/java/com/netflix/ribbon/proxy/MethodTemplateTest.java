@@ -56,6 +56,17 @@ public class MethodTemplateTest {
     }
 
     @Test
+    public void testDeleteWithVariableHeader() throws Exception {
+        MethodTemplate template = new MethodTemplate(methodByName(SampleMovieService.class, "deleteMovie"));
+
+        assertEquals("deleteMovie", template.getTemplateName());
+        assertEquals("id", template.getParamName(0));
+        assertEquals(0, template.getParamPosition(0));
+        assertEquals("Token", template.getHeaderName(0));
+        assertEquals(1, template.getHeaderPosition(0));
+    }
+
+    @Test
     public void testTemplateNameCanBeDerivedFromMethodName() throws Exception {
         MethodTemplate template = new MethodTemplate(methodByName(TemplateNameDerivedFromMethodName.class, "myTemplateName"));
         assertEquals("myTemplateName", template.getTemplateName());

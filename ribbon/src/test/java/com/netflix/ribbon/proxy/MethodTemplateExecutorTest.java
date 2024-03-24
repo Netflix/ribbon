@@ -107,6 +107,7 @@ public class MethodTemplateExecutorTest {
 
         assertEquals(ribbonRequestMock, ribbonRequest);
     }
+
     @Test
     public void testGetQueryWithByteBufResult() throws Exception {
         expectUrlBase("GET", "/rawMovies/{id}");
@@ -142,6 +143,24 @@ public class MethodTemplateExecutorTest {
     @Test
     public void testPostWithByteArray() throws Exception {
         doTestPostWith("/binaries/byteArray", "registerByteArrayBinary", new byte[]{1});
+    }
+
+    @Test
+    public void testDeleteWithVariableHeader() throws Exception {
+        expectUrlBase("DELETE", "/movies/{id}");
+
+        expect(requestBuilderMock.withRequestProperty("id", "id123")).andReturn(requestBuilderMock);
+        expect(requestBuilderMock.withHeader("Token", "42")).andReturn(requestBuilderMock);
+        expect(httpResourceGroupMock.newTemplateBuilder("deleteMovie")).andReturn(httpRequestTemplateBuilderMock);
+
+        replayAll();
+
+        MethodTemplateExecutor executor = createExecutor(SampleMovieService.class, "deleteMovie");
+        RibbonRequest ribbonRequest = executor.executeFromTemplate(new Object[]{"id123", "42"});
+
+        verifyAll();
+
+        assertEquals(ribbonRequestMock, ribbonRequest);
     }
 
     private void doTestPostWith(String uriTemplate, String methodName, Object contentObject) {

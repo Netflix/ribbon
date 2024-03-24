@@ -13,6 +13,7 @@ import com.netflix.ribbon.proxy.annotation.Hystrix;
 import com.netflix.ribbon.proxy.annotation.ResourceGroup;
 import com.netflix.ribbon.proxy.annotation.TemplateName;
 import com.netflix.ribbon.proxy.annotation.Var;
+import com.netflix.ribbon.proxy.annotation.VarHeader;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.MovieFallbackHandler;
 import com.netflix.ribbon.proxy.sample.HystrixHandlers.SampleHttpResponseValidator;
 import io.netty.buffer.ByteBuf;
@@ -89,7 +90,7 @@ public class MovieServiceInterfaces {
 
         @TemplateName("deleteMovie")
         @Http(method = HttpMethod.DELETE, uri = "/movies/{id}")
-        RibbonRequest<ByteBuf> deleteMovie(@Var("id") String id);
+        RibbonRequest<ByteBuf> deleteMovie(@Var("id") String id, @VarHeader("Token") String token);
     }
 
     public static interface ShortMovieService {

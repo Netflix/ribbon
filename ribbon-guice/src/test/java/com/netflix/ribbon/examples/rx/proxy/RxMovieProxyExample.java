@@ -9,7 +9,6 @@ import rx.Observable;
 import com.google.inject.Singleton;
 import com.netflix.ribbon.examples.rx.AbstractRxMovieClient;
 import com.netflix.ribbon.examples.rx.common.Movie;
-import com.netflix.ribbon.examples.rx.proxy.MovieService;
 import com.netflix.ribbon.proxy.ProxyLifeCycle;
 
 @Singleton
@@ -26,9 +25,9 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
     @Override
     protected Observable<ByteBuf>[] triggerMoviesRegistration() {
         return new Observable[]{
-                movieService.registerMovie(Movie.ORANGE_IS_THE_NEW_BLACK).toObservable(),
-                movieService.registerMovie(Movie.BREAKING_BAD).toObservable(),
-                movieService.registerMovie(Movie.HOUSE_OF_CARDS).toObservable()
+                movieService.registerMovie(Movie.ORANGE_IS_THE_NEW_BLACK, TEST_TOKEN).toObservable(),
+                movieService.registerMovie(Movie.BREAKING_BAD, TEST_TOKEN).toObservable(),
+                movieService.registerMovie(Movie.HOUSE_OF_CARDS, TEST_TOKEN).toObservable()
         };
     }
 
@@ -36,8 +35,8 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
     @Override
     protected Observable<ByteBuf>[] triggerRecommendationsUpdate() {
         return new Observable[]{
-                movieService.updateRecommendations(TEST_USER, Movie.ORANGE_IS_THE_NEW_BLACK.getId()).toObservable(),
-                movieService.updateRecommendations(TEST_USER, Movie.BREAKING_BAD.getId()).toObservable()
+                movieService.updateRecommendations(TEST_USER, Movie.ORANGE_IS_THE_NEW_BLACK.getId(), TEST_TOKEN).toObservable(),
+                movieService.updateRecommendations(TEST_USER, Movie.BREAKING_BAD.getId(), TEST_TOKEN).toObservable()
         };
     }
 
@@ -45,8 +44,8 @@ public class RxMovieProxyExample extends AbstractRxMovieClient {
     @Override
     protected Observable<ByteBuf>[] triggerRecommendationsSearch() {
         return new Observable[]{
-                movieService.recommendationsByUserId(TEST_USER).toObservable(),
-                movieService.recommendationsBy("Drama", "Adults").toObservable()
+                movieService.recommendationsByUserId(TEST_USER, TEST_TOKEN).toObservable(),
+                movieService.recommendationsBy("Drama", "Adults", TEST_TOKEN).toObservable()
         };
     }
 
