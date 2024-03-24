@@ -17,7 +17,6 @@
  */
 package com.netflix.ribbon.transport.netty;
 
-import io.reactivex.netty.client.CompositePoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.MaxConnectionsBasedStrategy;
 import io.reactivex.netty.client.PoolLimitDeterminationStrategy;
 import io.reactivex.netty.client.RxClient;
@@ -35,7 +34,6 @@ import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.LoadBalancerBuilder;
 
 public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxClient<I, O>> extends LoadBalancingRxClient<I, O, T>{
-    protected CompositePoolLimitDeterminationStrategy poolStrategy;
     protected MaxConnectionsBasedStrategy globalStrategy;
     protected int idleConnectionEvictionMills;
     protected ScheduledExecutorService poolCleanerScheduler;
@@ -61,12 +59,8 @@ public abstract class LoadBalancingRxClientWithPoolOptions<I, O, T extends RxCli
             this.poolCleanerScheduler = poolCleanerScheduler;
             int maxTotalConnections = config.get(IClientConfigKey.Keys.MaxTotalConnections,
                     DefaultClientConfigImpl.DEFAULT_MAX_TOTAL_CONNECTIONS);
-            int maxConnections = config.get(Keys.MaxConnectionsPerHost, DefaultClientConfigImpl.DEFAULT_MAX_CONNECTIONS_PER_HOST);
-            MaxConnectionsBasedStrategy perHostStrategy = new DynamicPropertyBasedPoolStrategy(maxConnections,
-                    config.getClientName() + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxConnectionsPerHost);
-            globalStrategy = new DynamicPropertyBasedPoolStrategy(maxTotalConnections, 
+            globalStrategy = new DynamicPropertyBasedPoolStrategy(maxTotalConnections,
                     config.getClientName() + "." + config.getNameSpace() + "." + CommonClientConfigKey.MaxTotalConnections);
-            poolStrategy = new CompositePoolLimitDeterminationStrategy(perHostStrategy, globalStrategy);
             idleConnectionEvictionMills = config.get(Keys.ConnIdleEvictTimeMilliSeconds, DefaultClientConfigImpl.DEFAULT_CONNECTIONIDLE_TIME_IN_MSECS);
         }
     }
