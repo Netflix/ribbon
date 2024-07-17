@@ -131,7 +131,7 @@ public class ZoneAwareLoadBalancer<T extends Server> extends DynamicServerListLo
         // and set the list to empty so that the zone related metrics does not
         // contain stale data
         for (Map.Entry<String, BaseLoadBalancer> existingLBEntry: balancers.entrySet()) {
-            if (!zoneServersMap.keySet().contains(existingLBEntry.getKey())) {
+            if (!zoneServersMap.containsKey(existingLBEntry.getKey())) {
                 existingLBEntry.getValue().setServersList(Collections.emptyList());
             }
         }

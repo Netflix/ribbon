@@ -97,7 +97,7 @@ public class ZoneAvoidancePredicate extends AbstractServerPredicate {
             return true;
         }
         Map<String, ZoneSnapshot> zoneSnapshot = ZoneAvoidanceRule.createSnapshot(lbStats);
-        if (!zoneSnapshot.keySet().contains(serverZone)) {
+        if (!zoneSnapshot.containsKey(serverZone)) {
             // The server zone is unknown to the load balancer, do not filter it out 
             return true;
         }
