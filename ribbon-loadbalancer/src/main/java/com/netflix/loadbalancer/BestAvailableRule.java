@@ -41,13 +41,13 @@ public class BestAvailableRule extends ClientConfigEnabledRoundRobinRule {
         if (loadBalancerStats == null) {
             return super.choose(key);
         }
-        List<Server> serverList = getLoadBalancer().getAllServers();
+        List<Server> serverList = getLoadBalancer().getReachableServers();
         int minimalConcurrentConnections = Integer.MAX_VALUE;
         long currentTime = System.currentTimeMillis();
         Server chosen = null;
         for (Server server: serverList) {
             ServerStats serverStats = loadBalancerStats.getSingleServerStat(server);
-            if (!serverStats.isCircuitBreakerTripped(currentTime)) {
+            if (!serverStats.isCircuitBreakerTripped(currentTime) && server.isReadyToServe()) {
                 int concurrentConnections = serverStats.getActiveRequestsCount(currentTime);
                 if (concurrentConnections < minimalConcurrentConnections) {
                     minimalConcurrentConnections = concurrentConnections;
