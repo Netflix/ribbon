@@ -37,8 +37,12 @@ import io.reactivex.netty.protocol.http.client.HttpClientRequest;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import io.reactivex.netty.servo.http.HttpClientListener;
 
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +52,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -83,7 +93,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         implements HttpClient<I, O> {
 
     private static final HttpClientConfig DEFAULT_RX_CONFIG = HttpClientConfig.Builder.newDefaultConfig();
-    
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalancingHttpClient.class);
     private final String requestIdHeaderName;
     private final HttpRequestIdProvider requestIdProvider;
     private final List<ExecutionListener<HttpClientRequest<I>, HttpClientResponse<O>>> listeners;
@@ -509,6 +519,23 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
                     @Override
                     public SSLEngine createSSLEngine(ByteBufAllocator allocator) {
                         SSLEngine myEngine = super.createSSLEngine(allocator);
+
+                        URL url = null;
+                        if(null!=getRxClients()) {
+                          try {
+                            SSLParameters sslParameters = new SSLParameters();
+                            List<SNIServerName> sniServerNames = new ArrayList<>();
+                            for(Server server: getRxClients().keySet()) {
+                              url = new URL(server.getScheme() + "://" + server.getHost());
+                              sniServerNames.add(new SNIHostName(url.getHost()));
+                            }
+                            sslParameters.setServerNames(sniServerNames);
+                            myEngine.setSSLParameters(sslParameters);
+                          } catch (MalformedURLException e) {
+                            logger.error("MalformedURL: " + url.toString());
+                          }
+                        }
+
                         myEngine.setUseClientMode(true);
                         return myEngine;
                     }
