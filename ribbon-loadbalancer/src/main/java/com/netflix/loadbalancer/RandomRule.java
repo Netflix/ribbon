@@ -48,17 +48,18 @@ public class RandomRule extends AbstractLoadBalancerRule {
             List<Server> upList = lb.getReachableServers();
             List<Server> allList = lb.getAllServers();
 
+            int upCount = upList.size();
             int serverCount = allList.size();
-            if (serverCount == 0) {
+            if (serverCount == 0 || upCount == 0) {
                 /*
-                 * No servers. End regardless of pass, because subsequent passes
+                 * No servers or No servers available. End regardless of pass, because subsequent passes
                  * only get more restrictive.
                  */
                 return null;
             }
 
             int index = chooseRandomInt(serverCount);
-            server = upList.get(index);
+            server = allList.get(index);
 
             if (server == null) {
                 /*
