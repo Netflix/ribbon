@@ -1,0 +1,144 @@
+{
+    "compileClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "locked": "19.0"
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6"
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.2"
+        }
+    },
+    "runtimeClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "locked": "19.0"
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6"
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.2"
+        }
+    },
+    "testCompileClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "19.0"
+        },
+        "com.netflix.archaius:archaius-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "0.7.6"
+        },
+        "com.netflix.ribbon:ribbon-archaius": {
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "project": true
+        },
+        "commons-configuration:commons-configuration": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "1.8"
+        },
+        "commons-lang:commons-lang": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.6"
+        },
+        "junit:junit": {
+            "locked": "4.11"
+        },
+        "org.slf4j:slf4j-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "1.7.2"
+        },
+        "org.slf4j:slf4j-log4j12": {
+            "locked": "1.7.2"
+        }
+    },
+    "testRuntimeClasspath": {
+        "com.google.code.findbugs:annotations": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.0.0"
+        },
+        "com.google.guava:guava": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "19.0"
+        },
+        "com.netflix.archaius:archaius-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "0.7.6"
+        },
+        "com.netflix.ribbon:ribbon-archaius": {
+            "project": true
+        },
+        "com.netflix.ribbon:ribbon-core": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "project": true
+        },
+        "commons-configuration:commons-configuration": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius"
+            ],
+            "locked": "1.8"
+        },
+        "commons-lang:commons-lang": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "2.6"
+        },
+        "junit:junit": {
+            "locked": "4.11"
+        },
+        "org.slf4j:slf4j-api": {
+            "firstLevelTransitive": [
+                "com.netflix.ribbon:ribbon-archaius",
+                "com.netflix.ribbon:ribbon-core"
+            ],
+            "locked": "1.7.2"
+        },
+        "org.slf4j:slf4j-log4j12": {
+            "locked": "1.7.2"
+        }
+    }
+}

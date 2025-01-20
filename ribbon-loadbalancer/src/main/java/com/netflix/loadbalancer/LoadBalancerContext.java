@@ -25,8 +25,9 @@ import com.netflix.client.IClientConfigAware;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
-import com.netflix.servo.monitor.Monitors;
-import com.netflix.servo.monitor.Timer;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
+import com.netflix.spectator.api.Timer;
 import com.netflix.util.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -35,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A class contains APIs intended to be used be load balancing client which is subclass of this class.
@@ -58,6 +58,8 @@ public class LoadBalancerContext implements IClientConfigAware {
     protected boolean okToRetryOnAllOperations = CommonClientConfigKey.OkToRetryOnAllOperations.defaultValue();
 
     private ILoadBalancer lb;
+
+    private Registry registry = Spectator.globalRegistry();
 
     private volatile Timer tracer;
 
@@ -99,14 +101,13 @@ public class LoadBalancerContext implements IClientConfigAware {
         
         tracer = getExecuteTracer();
 
-        Monitors.registerObject("Client_" + clientName, this);
     }
 
     public Timer getExecuteTracer() {
         if (tracer == null) {
             synchronized(this) {
                 if (tracer == null) {
-                    tracer = Monitors.newTimer(clientName + "_LoadBalancerExecutionTimer", TimeUnit.MILLISECONDS);                    
+                    tracer = registry.timer(clientName + "_LoadBalancerExecutionTimer");
                 }
             }
         } 

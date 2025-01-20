@@ -23,14 +23,13 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.netflix.client.IClientConfigAware;
-import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.UnboxedIntProperty;
-import com.netflix.servo.annotations.DataSourceType;
-import com.netflix.servo.annotations.Monitor;
-import com.netflix.servo.monitor.Monitors;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Spectator;
+import com.netflix.spectator.api.patterns.PolledMeter;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -115,9 +114,12 @@ public class LoadBalancerStats implements IClientConfigAware {
     }
 
     public LoadBalancerStats(String name) {
-        this.name = name;
+        this(name, Spectator.globalRegistry());
+    }
 
-        Monitors.registerObject(name, this);
+    public LoadBalancerStats(String name, Registry registry) {
+        this.name = name;
+        PolledMeter.using(registry).withName(PREFIX + "CircuitBreakerTrippedCount").monitorValue(this, stats -> stats.getCircuitBreakerTrippedCount());
     }
 
     @Override
@@ -339,7 +341,6 @@ public class LoadBalancerStats implements IClientConfigAware {
         return getZoneSnapshot(zone).getCircuitTrippedCount();
     }
 
-    @Monitor(name=PREFIX + "CircuitBreakerTrippedCount", type = DataSourceType.GAUGE)   
     public int getCircuitBreakerTrippedCount() {
         int count = 0;
         for (String zone: upServerListZoneMap.keySet()) {
@@ -387,7 +388,6 @@ public class LoadBalancerStats implements IClientConfigAware {
         return (int) ((activeConnectionsCount + circuitBreakerTrippedCount) * 100L / serverCount); 
     }
     
-    @Monitor(name=PREFIX + "AvailableZones", type = DataSourceType.INFORMATIONAL)   
     public Set<String> getAvailableZones() {
         return upServerListZoneMap.keySet();
     }
