@@ -196,6 +196,8 @@ public abstract class CommonClientConfigKey<T> implements IClientConfigKey<T> {
     
     public static final IClientConfigKey<String> ListOfServers = new CommonClientConfigKey<String>("listOfServers", "") {};
 
+    public static final IClientConfigKey<String> SNI = new CommonClientConfigKey<String>("SNI", "") {};
+
     private static final Set<IClientConfigKey> keys = new HashSet<IClientConfigKey>();
         
     static {
