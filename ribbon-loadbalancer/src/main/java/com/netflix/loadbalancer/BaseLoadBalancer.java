@@ -674,9 +674,13 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
                  * going on...
                  */
                 allLock = allServerLock.readLock();
+
                 allLock.lock();
-                allServers = allServerList.toArray(new Server[allServerList.size()]);
-                allLock.unlock();
+                try {
+                    allServers = allServerList.toArray(new Server[allServerList.size()]);
+                } finally {
+                    allLock.unlock();
+                }
 
                 int numCandidates = allServers.length;
                 results = pingerStrategy.pingServers(ping, allServers);
