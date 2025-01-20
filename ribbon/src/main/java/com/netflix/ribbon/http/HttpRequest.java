@@ -70,6 +70,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
     private final CacheProviderWithKey<T> cacheProvider;
     private final Map<String, Object> requestProperties;
     private final HttpClient<ByteBuf, ByteBuf> client;
+    private final boolean isByteBufResponse;
     /* package private for HttpMetaRequest */ final HttpRequestTemplate<T> template;
 
     HttpRequest(HttpRequestBuilder<T> requestBuilder) throws TemplateParsingException {
@@ -86,9 +87,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
             cacheProvider = null;
         }
         template = requestBuilder.template();
-        if (!ByteBuf.class.isAssignableFrom(template.getClassType())) {
-            throw new IllegalArgumentException("Return type other than ByteBuf is not currently supported as serialization functionality is still work in progress");
-        }
+        isByteBufResponse = isByteBufResponse();
     }
 
     HystrixObservableCommandChain<T> createHystrixCommandChain() {
@@ -98,7 +97,7 @@ class HttpRequest<T> implements RibbonRequest<T> {
                     requestProperties, template.cacheHystrixProperties()));
         }
         commands.add(new HttpResourceObservableCommand<T>(client, httpRequest, hystrixCacheKey, requestProperties, template.fallbackHandler(),
-                template.responseValidator(), template.getClassType(), template.hystrixProperties()));
+                template.responseValidator(), template.getClassType(), template.hystrixProperties(), isByteBufResponse));
 
         return new HystrixObservableCommandChain<T>(commands);
     }
