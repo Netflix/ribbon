@@ -43,7 +43,7 @@ import java.io.IOException;
  * Choose your Ping based on your needs.
  * 
  * @author stonse
- * 
+ *
  */
 public class PingUrl implements IPing {
     private static final Logger LOGGER = LoggerFactory.getLogger(PingUrl.class);
@@ -139,7 +139,7 @@ public class PingUrl implements IPing {
 						}
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.info("IOException ocured during ping. Going to return " + isAlive + " from isAlive(server) call for server " + server + ".", e);
 				}finally{
 					// Release the connection.
 					getRequest.abort();
