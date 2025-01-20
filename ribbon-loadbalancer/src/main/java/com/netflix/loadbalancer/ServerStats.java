@@ -17,10 +17,6 @@
 */
 package com.netflix.loadbalancer;
 
-import com.google.common.annotations.VisibleForTesting;
-
-import com.netflix.client.config.CommonClientConfigKey;
-import com.netflix.client.config.IClientConfigKey;
 import com.netflix.client.config.Property;
 import com.netflix.client.config.UnboxedIntProperty;
 import com.netflix.servo.annotations.DataSourceType;
@@ -31,7 +27,6 @@ import com.netflix.stats.distribution.Distribution;
 import com.netflix.util.MeasuredRate;
 
 import java.util.Date;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -68,14 +63,11 @@ public class ServerStats {
     Server server;
     
     AtomicLong totalRequests = new AtomicLong();
-    
-    @VisibleForTesting
+
     AtomicInteger successiveConnectionFailureCount = new AtomicInteger(0);
-    
-    @VisibleForTesting
+
     AtomicInteger activeRequestsCount = new AtomicInteger(0);
 
-    @VisibleForTesting
     AtomicInteger openConnectionsCount = new AtomicInteger(0);
     
     private volatile long lastConnectionFailedTimestamp;

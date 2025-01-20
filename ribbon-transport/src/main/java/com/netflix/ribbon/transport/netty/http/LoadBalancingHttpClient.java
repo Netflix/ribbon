@@ -42,6 +42,7 @@ import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,8 +55,6 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.netflix.client.RequestSpecificRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -298,7 +297,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
      * @return
      */
     protected ServerOperation<HttpClientResponse<O>> requestToOperation(final HttpClientRequest<I> request, final ClientConfig rxClientConfig) {
-        Preconditions.checkNotNull(request);
+        Objects.requireNonNull(request);
         
         return new ServerOperation<HttpClientResponse<O>>() {
             final AtomicInteger count = new AtomicInteger(0);
@@ -425,7 +424,6 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         return result;
     }
 
-    @VisibleForTesting
     ServerStats getServerStats(Server server) {
         return lbContext.getServerStats(server);
     }
@@ -521,13 +519,11 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
         }
         return clientBuilder.build();
     }
-    
-    @VisibleForTesting
+
     HttpClientListener getListener() {
         return (HttpClientListener) listener;
     }
 
-    @VisibleForTesting
     Map<Server, HttpClient<I, O>> getRxClients() {
         return rxClientCache;
     }

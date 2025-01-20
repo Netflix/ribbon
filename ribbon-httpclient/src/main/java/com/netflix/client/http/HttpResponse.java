@@ -17,7 +17,6 @@
  */
 package com.netflix.client.http;
 
-import com.google.common.reflect.TypeToken;
 import com.netflix.client.IResponse;
 
 import java.io.Closeable;
@@ -61,10 +60,4 @@ public interface HttpResponse extends IResponse, Closeable {
     public <T> T getEntity(Class<T> type) throws Exception;
 
     public <T> T getEntity(Type type) throws Exception;
-
-    /**
-     * @deprecated use {@link #getEntity(Type)}  
-     */
-    @Deprecated
-    public <T> T getEntity(TypeToken<T> type) throws Exception;
 }

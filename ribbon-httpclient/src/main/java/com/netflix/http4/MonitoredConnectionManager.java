@@ -27,8 +27,6 @@ import org.apache.http.impl.conn.tsccm.ConnPoolByRoute;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.HttpParams;
 
-import com.google.common.annotations.VisibleForTesting;
-
 /**
  * A connection manager that uses {@link NamedConnectionPool}, which provides
  * connection reuse statistics, as its underlying connection pool.
@@ -72,7 +70,6 @@ public class MonitoredConnectionManager extends ThreadSafeClientConnManager {
         return new NamedConnectionPool(connOperator, connPerRoute, 20, connTTL, connTTLTimeUnit);
     }
 
-    @VisibleForTesting
     ConnPoolByRoute getConnectionPool() {
         return this.pool;
     }

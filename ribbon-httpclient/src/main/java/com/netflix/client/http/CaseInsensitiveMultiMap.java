@@ -1,44 +1,45 @@
 package com.netflix.client.http;
 
+import static com.netflix.utils.MultiMapUtil.getStringCollectionMap;
+
+import com.sun.jersey.core.util.StringKeyStringValueIgnoreCaseMultivaluedMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.AbstractMap.SimpleEntry;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import java.util.Set;
 
 public class CaseInsensitiveMultiMap implements HttpHeaders {
-    Multimap<String, Entry<String, String>> map = ArrayListMultimap.create();
+    private final StringKeyStringValueIgnoreCaseMultivaluedMap map =
+        new StringKeyStringValueIgnoreCaseMultivaluedMap();
 
     @Override
     public String getFirstValue(String headerName) {
-        Collection<Entry<String, String>> entries = map.get(headerName.toLowerCase());
-        if (entries == null || entries.isEmpty()) {
+        final List<String> strings = map.get(headerName);
+        if (strings == null || strings.isEmpty()) {
             return null;
         } 
-        return entries.iterator().next().getValue();
+        return strings.get(0);
     }
 
     @Override
     public List<String> getAllValues(String headerName) {
-        Collection<Entry<String, String>> entries = map.get(headerName.toLowerCase());
-        List<String> values = Lists.newArrayList();
-        if (entries != null) {
-            for (Entry<String, String> entry: entries) {
-                values.add(entry.getValue());
-            }
-        }
-        return values;
+        return map.get(headerName);
     }
 
     @Override
     public List<Entry<String, String>> getAllHeaders() {
-        Collection<Entry<String, String>> all = map.values();
-        return new ArrayList<Entry<String, String>>(all);
+        final Set<Entry<String, List<String>>> entries = map.entrySet();
+        List<Entry<String, String>> list = new ArrayList<>();
+        for (Entry<String, List<String>> entry : entries) {
+            final List<String> values = entry.getValue();
+            for (String value : values) {
+                list.add(new SimpleEntry<>(entry.getKey(), value));
+            }
+        }
+        return list;
     }
 
     @Override
@@ -47,19 +48,10 @@ public class CaseInsensitiveMultiMap implements HttpHeaders {
     }
     
     public void addHeader(String name, String value) {
-        if (getAllValues(name).contains(value)) {
-            return;
-        }
-        SimpleEntry<String, String> entry = new SimpleEntry<String, String>(name, value);
-        map.put(name.toLowerCase(), entry);
+        map.add(name, value);
     }
     
     Map<String, Collection<String>> asMap() {
-        Multimap<String, String> result = ArrayListMultimap.create();
-        Collection<Entry<String, String>> all = map.values();
-        for (Entry<String, String> entry: all) {
-            result.put(entry.getKey(), entry.getValue());
-        }
-        return result.asMap();
+        return getStringCollectionMap(map);
     }
 }

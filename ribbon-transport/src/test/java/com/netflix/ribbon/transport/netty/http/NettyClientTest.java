@@ -38,6 +38,7 @@ import io.reactivex.netty.servo.http.HttpClientListener;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -631,7 +632,7 @@ public class NettyClientTest {
     }
     
     private static List<Person> getPersonList(Observable<ServerSentEvent> events) {
-        List<Person> result = Lists.newArrayList();
+        List<Person> result = new ArrayList<>();
         Iterator<Person> iterator = events.map(new Func1<ServerSentEvent, Person>() {
             @Override
             public Person call(ServerSentEvent t1) {
@@ -671,7 +672,7 @@ public class NettyClientTest {
         BaseLoadBalancer lb = new BaseLoadBalancer(new DummyPing(), new AvailabilityFilteringRule());
         LoadBalancingHttpClient<ByteBuf, ServerSentEvent> lbObservables = (LoadBalancingHttpClient<ByteBuf, ServerSentEvent>) RibbonTransport.newSSEClient(lb, config);
         HttpClientRequest<ByteBuf> request = HttpClientRequest.createGet("/testAsync/personStream");
-        List<Person> result = Lists.newArrayList();
+        List<Person> result = new ArrayList<>();
         Server goodServer = new Server("localhost:" + port);
         Server badServer = new Server("localhost:12245");
         List<Server> servers = Lists.newArrayList(badServer, badServer, badServer, goodServer);

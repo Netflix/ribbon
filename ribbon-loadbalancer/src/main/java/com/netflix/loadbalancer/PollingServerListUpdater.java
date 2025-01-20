@@ -1,8 +1,10 @@
 package com.netflix.loadbalancer;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import static com.netflix.client.util.ThreadUtils.threadFactory;
+
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
+import java.util.concurrent.ThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,10 +33,8 @@ public class PollingServerListUpdater implements ServerListUpdater {
         static ScheduledExecutorService _serverListRefreshExecutor = null;
 
         static {
-            _serverListRefreshExecutor = Executors.newScheduledThreadPool(POOL_SIZE, new ThreadFactoryBuilder()
-                    .setNameFormat("PollingServerListUpdater-%d")
-                    .setDaemon(true)
-                    .build());
+            _serverListRefreshExecutor = Executors.newScheduledThreadPool(POOL_SIZE,
+                threadFactory("PollingServerListUpdater-%d"));
         }
     }
 

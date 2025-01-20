@@ -9,7 +9,6 @@ dependencies {
     api "io.netty:netty-codec-http:4.0.27.Final"
     api 'javax.inject:javax.inject:1'
     api "org.slf4j:slf4j-api:${slf4j_version}"
-    api "com.google.guava:guava:${guava_version}"
     testImplementation 'junit:junit:4.11'
     testImplementation "org.slf4j:slf4j-log4j12:${slf4j_version}"
     testImplementation "com.sun.jersey:jersey-server:${jersey_version}"

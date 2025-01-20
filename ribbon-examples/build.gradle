@@ -12,7 +12,6 @@ dependencies {
     api 'org.codehaus.jackson:jackson-mapper-asl:1.9.11'
     api 'com.thoughtworks.xstream:xstream:1.4.5'
     api "com.sun.jersey:jersey-server:${jersey_version}"
-    api "com.google.guava:guava:${guava_version}"
     api "com.netflix.archaius:archaius-core:${archaius_version}"
     testImplementation 'junit:junit:4.11'
 }

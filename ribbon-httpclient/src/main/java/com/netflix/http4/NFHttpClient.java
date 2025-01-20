@@ -17,7 +17,8 @@
 */
 package com.netflix.http4;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import static com.netflix.client.util.ThreadUtils.threadFactory;
+
 import com.netflix.client.config.ClientConfigFactory;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
@@ -97,9 +98,7 @@ public class NFHttpClient extends DefaultHttpClient {
 	private Property<Integer> maxConnectionPerHostProperty;
 	
 	static {
-	    ThreadFactory factory = (new ThreadFactoryBuilder()).setDaemon(true)
-	            .setNameFormat("Connection pool clean up thread")
-	            .build();
+	    ThreadFactory factory = threadFactory("Connection pool clean up thread");
 	    connectionPoolCleanUpScheduler = Executors.newScheduledThreadPool(2, factory);
 	}
 

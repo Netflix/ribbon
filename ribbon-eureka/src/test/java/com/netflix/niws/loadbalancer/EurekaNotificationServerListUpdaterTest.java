@@ -1,10 +1,13 @@
 package com.netflix.niws.loadbalancer;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import static com.netflix.client.util.ThreadUtils.threadFactory;
+
 import com.netflix.discovery.CacheRefreshedEvent;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.EurekaEventListener;
 import com.netflix.loadbalancer.ServerListUpdater;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.junit.Assert;
@@ -12,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Provider;
-import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
@@ -42,11 +44,7 @@ public class EurekaNotificationServerListUpdaterTest {
                 0,
                 TimeUnit.NANOSECONDS,
                 new ArrayBlockingQueue<Runnable>(1000),
-                new ThreadFactoryBuilder()
-                        .setNameFormat("EurekaNotificationServerListUpdater-%d")
-                        .setDaemon(true)
-                        .build()
-        );
+                    threadFactory("EurekaNotificationServerListUpdater-%d"));
     }
 
     @Test
