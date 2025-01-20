@@ -128,7 +128,8 @@ public abstract class AbstractLoadBalancerAwareClient<S extends ClientRequest, T
 		LoadBalancerCommand.Builder<T> builder = LoadBalancerCommand.<T>builder()
 				.withLoadBalancerContext(this)
 				.withRetryHandler(handler)
-				.withLoadBalancerURI(request.getUri());
+				.withLoadBalancerURI(request.getUri())
+				.withServerLocator(request.getLoadBalancerKey());
 		customizeLoadBalancerCommandBuilder(request, config, builder);
 		return builder.build();
 	}
