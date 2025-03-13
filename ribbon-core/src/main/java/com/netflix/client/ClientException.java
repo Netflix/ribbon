@@ -45,10 +45,13 @@ public class ClientException extends Exception{
         SERVER_THROTTLED,
         NO_ROUTE_TO_HOST_EXCEPTION,
         CACHE_MISSING;
-        
+
+        // https://www.gamlor.info/wordpress/2017/08/javas-enum-values-hidden-allocations/
+        private static final ErrorType[] ERROR_TYPE_VALUES = values();
+
         static String getName(int errorCode){
-            if (ErrorType.values().length >= errorCode){
-                return ErrorType.values()[errorCode].name();
+            if (ERROR_TYPE_VALUES.length >= errorCode){
+                return ERROR_TYPE_VALUES[errorCode].name();
             }else{
                 return "UNKNOWN ERROR CODE";
             }

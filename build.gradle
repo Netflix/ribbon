@@ -1,21 +1,25 @@
 plugins {
-    id 'nebula.netflixoss' version '2.2.10'
+    id 'com.netflix.nebula.netflixoss' version '11.3.2'
 }
 
 // Establish version and status
 ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
 
 subprojects {
-    apply plugin: 'nebula.netflixoss'
-    apply plugin: 'java'
+    apply plugin: 'com.netflix.nebula.netflixoss'
+    apply plugin: 'java-library'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(8)
+        }
+    }
+
 
     group = "com.netflix.${githubProjectName}" // TEMPLATE: Set to organization of project
 
     repositories {
-        jcenter()
+        mavenCentral()
     }
 
     if (project.hasProperty('useMavenLocal')) {
@@ -25,7 +29,7 @@ subprojects {
     }
     if (project.getProperty('status').equals("snapshot")) {
         repositories {
-            maven { url 'http://oss.jfrog.org/oss-snapshot-local' }
+            maven { url 'https://artifactory-oss.prod.netflix.net/artifactory/maven-oss-snapshots' }
         }
     }
 }

@@ -141,7 +141,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
          * be called for responses with status code 4xx or 5xx
          * 
          * Parameters to the function are
-         * * HttpClientResponse<O> - The actual response
+         * * HttpClientResponse - The actual response
          * * Integer - Backoff to apply if this is a retryable error.  The backoff amount is in milliseconds
          *             and is based on the configured BackoffStrategy.  It is the responsibility of this function
          *             to implement the actual backoff mechanism.  This can be done as Observable.error(e).delay(backoff, TimeUnit.MILLISECONDS)
@@ -161,7 +161,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
          * The default implementation is non random exponential backoff with time interval configurable
          * via the property BackoffInterval (default 1000 msec)
          * 
-         * @param BackoffStrategy
+         * @param backoffStrategy
          */
         public Builder<I, O> withBackoffStrategy(Func1<Integer, Integer> backoffStrategy) {
             this.backoffStrategy = backoffStrategy;
@@ -293,7 +293,6 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
     /**
      * Convert an HttpClientRequest to a ServerOperation 
      * 
-     * @param server
      * @param request
      * @param rxClientConfig
      * @return
