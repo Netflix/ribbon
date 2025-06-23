@@ -1,5 +1,5 @@
 plugins {
-    id 'com.netflix.nebula.netflixoss' version '11.3.2'
+    id 'com.netflix.nebula.netflixoss' version '11.6.0'
 }
 
 // Establish version and status
