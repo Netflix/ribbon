@@ -33,11 +33,13 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
     private static final Logger logger = LoggerFactory.getLogger(EurekaNotificationServerListUpdater.class);
 
     private static class LazyHolder {
-        private final static String CORE_THREAD = "EurekaNotificationServerListUpdater.ThreadPoolSize";
+        private final static String CORE_THREADS = "EurekaNotificationServerListUpdater.ThreadPoolSize";
+        private final static String MAX_THREADS = "EurekaNotificationServerListUpdater.ThreadPoolSize.Max";
         private final static String QUEUE_SIZE = "EurekaNotificationServerListUpdater.queueSize";
         private final static LazyHolder SINGLETON = new LazyHolder();
 
-        private final DynamicIntProperty poolSizeProp = new DynamicIntProperty(CORE_THREAD, 2);
+        private final DynamicIntProperty poolSizeMin = new DynamicIntProperty(CORE_THREADS, 1);
+        private final DynamicIntProperty poolSizeMax = new DynamicIntProperty(MAX_THREADS, 1);
         private final DynamicIntProperty queueSizeProp = new DynamicIntProperty(QUEUE_SIZE, 1000);
         private final ThreadPoolExecutor defaultServerListUpdateExecutor;
         private final Thread shutdownThread;
@@ -46,7 +48,7 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
             int corePoolSize = getCorePoolSize();
             defaultServerListUpdateExecutor = new ThreadPoolExecutor(
                     corePoolSize,
-                    corePoolSize * 5,
+                    corePoolSize,
                     0,
                     TimeUnit.NANOSECONDS,
                     new ArrayBlockingQueue<Runnable>(queueSizeProp.get()),
@@ -56,12 +58,11 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
                             .build()
             );
 
-            poolSizeProp.addCallback(new Runnable() {
+            poolSizeMin.addCallback(new Runnable() {
                 @Override
                 public void run() {
-                    int corePoolSize = getCorePoolSize();
-                    defaultServerListUpdateExecutor.setCorePoolSize(corePoolSize);
-                    defaultServerListUpdateExecutor.setMaximumPoolSize(corePoolSize * 5);
+                    defaultServerListUpdateExecutor.setCorePoolSize(getCorePoolSize());
+                    defaultServerListUpdateExecutor.setMaximumPoolSize(getCorePoolSizeMax());
                 }
             });
 
@@ -82,12 +83,19 @@ public class EurekaNotificationServerListUpdater implements ServerListUpdater {
         }
 
         private int getCorePoolSize() {
-            int propSize = poolSizeProp.get();
+            int propSize = poolSizeMin.get();
             if (propSize > 0) {
                 return propSize;
             }
             return 2; // default
         }        
+        private int getCorePoolSizeMax() {
+            int propSize = poolSizeMax.get();
+            if (propSize > 0) {
+                return propSize;
+            }
+            return getCorePoolSize(); // default to a fixed size thread pool
+        }
     }
 
     public static ExecutorService getDefaultRefreshExecutor() {
