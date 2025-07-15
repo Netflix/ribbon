@@ -170,6 +170,24 @@ public class ClientFactory {
     }
 
     /**
+     * Get the load balancer associated with the name, or create one with the given clientConfig if does not exist
+     *
+     * @throws RuntimeException if any error occurs
+     * @see #registerNamedLoadBalancerFromclientConfig(String, IClientConfig)
+     */
+    public static synchronized ILoadBalancer getNamedLoadBalancer(String name, IClientConfig clientConfig) {
+        ILoadBalancer lb = namedLBMap.get(name);
+        if (lb == null) {
+            try {
+                lb = registerNamedLoadBalancerFromclientConfig(name, clientConfig);
+            } catch (ClientException e) {
+                throw new RuntimeException("Unable to create load balancer", e);
+            }
+        }
+        return lb;
+    }
+
+    /**
      * Create and register a load balancer with the name and given the class of configClass.
      *
      * @throws ClientException if load balancer with the same name already exists or any error occurs
