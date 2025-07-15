@@ -432,7 +432,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
      */
     @Override
     public void addServers(List<Server> newServers) {
-        if (newServers != null && newServers.size() > 0) {
+        if (newServers != null && !newServers.isEmpty()) {
             try {
                 ArrayList<Server> newList = new ArrayList<Server>();
                 newList.addAll(allServerList);
@@ -507,7 +507,7 @@ public class BaseLoadBalancer extends AbstractLoadBalancer implements
             boolean listChanged = false;
             if (!allServerList.equals(allServers)) {
                 listChanged = true;
-                if (changeListeners != null && changeListeners.size() > 0) {
+                if (changeListeners != null && !changeListeners.isEmpty()) {
                    List<Server> oldList = ImmutableList.copyOf(allServerList);
                    List<Server> newList = ImmutableList.copyOf(allServers);                   
                    for (ServerListChangeListener l: changeListeners) {
