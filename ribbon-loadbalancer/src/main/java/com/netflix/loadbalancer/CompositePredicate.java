@@ -18,14 +18,12 @@
  */
 package com.netflix.loadbalancer;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Lists;
 
 /**
  * A predicate that is composed from one or more predicates in "AND" relationship.
@@ -41,15 +39,15 @@ public class CompositePredicate extends AbstractServerPredicate {
 
     private AbstractServerPredicate delegate;
     
-    private List<AbstractServerPredicate> fallbacks = Lists.newArrayList();
+    private List<AbstractServerPredicate> fallbacks = new ArrayList<>();
         
     private int minimalFilteredServers = 1;
     
     private float minimalFilteredPercentage = 0;    
     
     @Override
-    public boolean apply(@Nullable PredicateKey input) {
-        return delegate.apply(input);
+    public boolean test(@Nullable PredicateKey input) {
+        return delegate.test(input);
     }
 
     
@@ -64,8 +62,11 @@ public class CompositePredicate extends AbstractServerPredicate {
 
         Builder(AbstractServerPredicate ...primaryPredicates) {
             toBuild = new CompositePredicate();
-            Predicate<PredicateKey> chain = Predicates.<PredicateKey>and(primaryPredicates);
-            toBuild.delegate =  AbstractServerPredicate.ofKeyPredicate(chain);                
+            Predicate<PredicateKey> chain = alwaysTrue();
+            for (AbstractServerPredicate primaryPredicate : primaryPredicates) {
+                chain = chain.and(primaryPredicate);
+            }
+            toBuild.delegate = AbstractServerPredicate.ofKeyPredicate(chain);
         }
 
         public Builder addFallbackPredicate(AbstractServerPredicate fallback) {

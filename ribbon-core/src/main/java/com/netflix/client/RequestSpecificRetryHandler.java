@@ -1,14 +1,13 @@
 package com.netflix.client;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 
-import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Objects;
 import java.net.SocketException;
 import java.util.List;
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * Implementation of RetryHandler created for each request which allows for request
@@ -22,15 +21,15 @@ public class RequestSpecificRetryHandler implements RetryHandler {
     private final boolean okToRetryOnConnectErrors;
     private final boolean okToRetryOnAllErrors;
     
-    protected List<Class<? extends Throwable>> connectionRelated = 
-            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class);
+    protected List<Class<? extends Throwable>> connectionRelated =
+        Collections.singletonList(SocketException.class);
 
     public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors) {
         this(okToRetryOnConnectErrors, okToRetryOnAllErrors, RetryHandler.DEFAULT, null);    
     }
     
     public RequestSpecificRetryHandler(boolean okToRetryOnConnectErrors, boolean okToRetryOnAllErrors, RetryHandler baseRetryHandler, @Nullable IClientConfig requestConfig) {
-        Preconditions.checkNotNull(baseRetryHandler);
+        Objects.requireNonNull(baseRetryHandler);
         this.okToRetryOnConnectErrors = okToRetryOnConnectErrors;
         this.okToRetryOnAllErrors = okToRetryOnAllErrors;
         this.fallback = baseRetryHandler;

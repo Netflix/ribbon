@@ -24,12 +24,14 @@ import static org.junit.Assert.fail;
 
 import java.net.URI;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
 import com.netflix.client.ClientException;
 import com.netflix.client.ClientFactory;
 import com.netflix.client.config.CommonClientConfigKey;
@@ -50,8 +52,7 @@ import com.netflix.loadbalancer.ServerStats;
 
 public class RetryTest {
     @ClassRule
-    public static MockHttpServer server = new MockHttpServer()
-    ;
+    public static MockHttpServer server = new MockHttpServer();
 
     private RestClient client;
     private BaseLoadBalancer lb;
@@ -77,7 +78,7 @@ public class RetryTest {
         client = (RestClient) ClientFactory.getNamedClient("RetryTest");
 
         lb = (BaseLoadBalancer) client.getLoadBalancer();
-        lb.setServersList(Lists.newArrayList(localServer));
+        lb.setServersList(Collections.singletonList(localServer));
         
         httpClient = NFHttpClientFactory.getNamedNFHttpClient("RetryTest");
         connectionPoolManager = (MonitoredConnectionManager) httpClient.getConnectionManager(); 
@@ -85,7 +86,7 @@ public class RetryTest {
         client.setMaxAutoRetries(0);
         client.setMaxAutoRetriesNextServer(0);
         client.setOkToRetryOnAllOperations(false);
-        lb.setServersList(Lists.newArrayList(localServer));
+        lb.setServersList(Collections.singletonList(localServer));
         // reset the server index
         lb.setRule(new AvailabilityFilteringRule());
         lb.getLoadBalancerStats().getSingleServerStat(localServer).clearSuccessiveConnectionFailureCount();
@@ -191,7 +192,7 @@ public class RetryTest {
     @Test
     public void testRetriesOnPostWithConnectException() throws Exception {
         URI localUrl = new URI("/status?code=503");
-        lb.setServersList(Lists.newArrayList(localServer));
+        lb.setServersList(Collections.singletonList(localServer));
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).verb(Verb.POST).setRetriable(true).build();
         try {
             HttpResponse response = client.executeWithLoadBalancer(request, DefaultClientConfigImpl.getEmptyConfig().set(CommonClientConfigKey.MaxAutoRetriesNextServer, 2));
@@ -205,7 +206,7 @@ public class RetryTest {
     
     @Test
     public void testSuccessfulRetries() throws Exception {
-        lb.setServersList(Lists.newArrayList(new Server("localhost:12987"), new Server("localhost:12987"), localServer));
+        lb.setServersList(new ArrayList<>(Arrays.asList(new Server("localhost:12987"), new Server("localhost:12987"), localServer)));
         URI localUrl = new URI("/ok");
         HttpRequest request = HttpRequest.newBuilder().uri(localUrl).queryParams("name", "ribbon").build();
         try {

@@ -19,7 +19,6 @@ package com.netflix.loadbalancer;
 
 import java.util.List;
 
-import com.google.common.collect.Collections2;
 import com.netflix.client.config.IClientConfig;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
@@ -69,7 +68,7 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
     	if (servers == null) {
     		return 0;
     	}
-    	return Collections2.filter(servers, predicate.getServerOnlyPredicate()).size();
+    	return (int) servers.stream().filter(predicate.getServerOnlyPredicate()).count();
     }
 
 
@@ -83,7 +82,7 @@ public class AvailabilityFilteringRule extends PredicateBasedRule {
         int count = 0;
         Server server = roundRobinRule.choose(key);
         while (count++ <= 10) {
-            if (server != null && predicate.apply(new PredicateKey(server))) {
+            if (server != null && predicate.test(new PredicateKey(server))) {
                 return server;
             }
             server = roundRobinRule.choose(key);

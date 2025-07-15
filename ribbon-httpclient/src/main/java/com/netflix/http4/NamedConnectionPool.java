@@ -17,6 +17,7 @@
  */
 package com.netflix.http4;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.conn.ClientConnectionOperator;
@@ -30,7 +31,6 @@ import org.apache.http.impl.conn.tsccm.RouteSpecificPool;
 import org.apache.http.impl.conn.tsccm.WaitingThreadAborter;
 import org.apache.http.params.HttpParams;
 
-import com.google.common.base.Preconditions;
 import com.netflix.servo.annotations.DataSourceType;
 import com.netflix.servo.annotations.Monitor;
 import com.netflix.servo.monitor.Counter;
@@ -93,7 +93,7 @@ public class NamedConnectionPool extends ConnPoolByRoute {
     }
     
     void initMonitors(String name) {
-        Preconditions.checkNotNull(name);
+        Objects.requireNonNull(name);
         freeEntryCounter = Monitors.newCounter(name + "_Reuse");
         createEntryCounter = Monitors.newCounter(name + "_CreateNew");
         requestCounter = Monitors.newCounter(name + "_Request");

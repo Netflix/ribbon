@@ -3,11 +3,12 @@ package com.netflix.ribbon.examples.loadbalancer;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import rx.Observable;
 
-import com.google.common.collect.Lists;
 import com.netflix.client.DefaultLoadBalancerRetryHandler;
 import com.netflix.client.RetryHandler;
 import com.netflix.loadbalancer.BaseLoadBalancer;
@@ -57,10 +58,11 @@ public class URLConnectionLoadBalancer {
     }
 
     public static void main(String[] args) throws Exception {
-        URLConnectionLoadBalancer urlLoadBalancer = new URLConnectionLoadBalancer(Lists.newArrayList(
+        URLConnectionLoadBalancer urlLoadBalancer = new URLConnectionLoadBalancer(new ArrayList<>(
+            Arrays.asList(
                 new Server("www.google.com", 80),
                 new Server("www.linkedin.com", 80),
-                new Server("www.yahoo.com", 80)));
+                new Server("www.yahoo.com", 80))));
         for (int i = 0; i < 6; i++) {
             System.out.println(urlLoadBalancer.call("/"));
         }

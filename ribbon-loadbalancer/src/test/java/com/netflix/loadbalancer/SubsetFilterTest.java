@@ -18,6 +18,7 @@ package com.netflix.loadbalancer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -50,7 +51,7 @@ public class SubsetFilterTest {
     }
 
     List<Server> getServersAndStats(LoadBalancerStats lbStats, Object[][] stats) {
-        List<Server> list = Lists.newArrayList();
+        List<Server> list = new ArrayList<>();
         for (Object[] serverStats: stats) {
             Server server = new Server((String) serverStats[0]);
             list.add(server);
@@ -140,7 +141,7 @@ public class SubsetFilterTest {
         assertTrue(filtered.contains(s5));
         
         // Not enough healthy servers, just get whatever is available
-        List<Server> lastFiltered = filter.getFilteredListOfServers(Lists.newArrayList(filtered));
+        List<Server> lastFiltered = filter.getFilteredListOfServers(new ArrayList<>(filtered));
         assertEquals(5, lastFiltered.size());
     }
     
@@ -207,7 +208,7 @@ public class SubsetFilterTest {
         assertTrue(filtered.contains(s5));
         
         // Not enough healthy servers, just get whatever is available
-        serverList.setServerList(Lists.newArrayList(filtered));
+        serverList.setServerList(new ArrayList<>(filtered));
         lb.updateListOfServers();
         List<Server> lastFiltered = lb.getAllServers();
         assertEquals(5, lastFiltered.size());

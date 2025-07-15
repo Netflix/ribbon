@@ -17,16 +17,17 @@
  */
 package com.netflix.client.http;
 
+import com.netflix.utils.MultiMapUtil;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import com.netflix.client.ClientRequest;
 import com.netflix.client.config.IClientConfig;
+import javax.ws.rs.core.MultivaluedMap;
 
 /**
  * Request for HTTP communication.
@@ -56,7 +57,7 @@ public class HttpRequest extends ClientRequest {
     }
 
     protected CaseInsensitiveMultiMap httpHeaders = new CaseInsensitiveMultiMap();
-    protected Multimap<String, String> queryParams = ArrayListMultimap.create();
+    protected MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
     private Object entity;
     protected Verb verb;
     
@@ -94,7 +95,7 @@ public class HttpRequest extends ClientRequest {
             return this;
         }
         
-        Builder queryParams(Multimap<String, String> queryParams) {
+        Builder queryParams(MultivaluedMap<String, String> queryParams) {
             request.queryParams = queryParams;
             return this;
         }
@@ -124,12 +125,12 @@ public class HttpRequest extends ClientRequest {
          */
         @Deprecated
         public Builder queryParams(String name, String value) {
-            request.queryParams.put(name, value);
+            request.queryParams.add(name, value);
             return this;
         }
         
         public Builder queryParam(String name, String value) {
-            request.queryParams.put(name, value);
+            request.queryParams.add(name, value);
             return this;
         }
 
@@ -155,7 +156,7 @@ public class HttpRequest extends ClientRequest {
     }
     
     public Map<String, Collection<String>> getQueryParams() {
-        return queryParams.asMap();
+        return MultiMapUtil.getStringCollectionMap(queryParams);
     }
     
     public Verb getVerb() {

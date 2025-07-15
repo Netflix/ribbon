@@ -20,17 +20,16 @@ package com.netflix.loadbalancer;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 public class BestAvailableRuleTest {
     
     @Test
     public void testRule() {
-        List<Server> servers = Lists.newArrayList();
+        List<Server> servers = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             servers.add(new Server(String.valueOf(i), 80));
         }

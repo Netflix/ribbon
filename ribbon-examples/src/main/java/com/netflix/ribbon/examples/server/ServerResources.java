@@ -19,6 +19,7 @@ package com.netflix.ribbon.examples.server;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -34,7 +35,6 @@ import javax.ws.rs.core.StreamingOutput;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.google.common.collect.Lists;
 import com.thoughtworks.xstream.XStream;
 
 @Path("/testAsync")
@@ -89,9 +89,9 @@ public class ServerResources {
     private static ObjectMapper mapper = new ObjectMapper();
     public static final Person defaultPerson = new Person("ribbon", 1);
     
-    public static final List<Person> persons = Lists.newArrayList();
+    public static final List<Person> persons = new ArrayList<>();
     
-    public static final List<String> streamContent = Lists.newArrayList();
+    public static final List<String> streamContent = new ArrayList<>();
     
     static {
         for (int i = 0; i < 1000; i++) {

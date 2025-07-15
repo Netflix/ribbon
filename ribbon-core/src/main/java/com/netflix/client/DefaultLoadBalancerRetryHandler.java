@@ -17,13 +17,14 @@
  */
 package com.netflix.client;
 
-import com.google.common.collect.Lists;
 import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.IClientConfig;
 
 import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -36,12 +37,12 @@ import java.util.List;
 public class DefaultLoadBalancerRetryHandler implements RetryHandler {
 
     @SuppressWarnings("unchecked")
-    private List<Class<? extends Throwable>> retriable = 
-            Lists.<Class<? extends Throwable>>newArrayList(ConnectException.class, SocketTimeoutException.class);
+    private List<Class<? extends Throwable>> retriable =
+        new ArrayList<>(Arrays.asList(ConnectException.class, SocketTimeoutException.class));
     
     @SuppressWarnings("unchecked")
     private List<Class<? extends Throwable>> circuitRelated = 
-            Lists.<Class<? extends Throwable>>newArrayList(SocketException.class, SocketTimeoutException.class);
+            new ArrayList<>(Arrays.asList(SocketException.class, SocketTimeoutException.class));
 
     protected final int retrySameServer;
     protected final int retryNextServer;
