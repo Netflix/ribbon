@@ -41,7 +41,6 @@ import com.netflix.loadbalancer.LoadBalancerContext;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerStats;
 import com.netflix.loadbalancer.reactive.ExecutionListener.AbortExecutionException;
-import com.netflix.servo.monitor.Stopwatch;
 
 /**
  * A command that is used to produce the Observable from the load balancer execution. The load balancer is responsible for
@@ -299,7 +298,7 @@ public class LoadBalancerCommand<T> {
                                         }
                                         
                                         final Stopwatch tracer = loadBalancerContext.getExecuteTracer().start();
-                                        
+
                                         return operation.call(server).doOnEach(new Observer<T>() {
                                             private T entity;
                                             @Override
