@@ -36,6 +36,7 @@ public class URLConnectionLoadBalancer {
     public String call(final String path) throws Exception {
         return LoadBalancerCommand.<String>builder()
                 .withLoadBalancer(loadBalancer)
+		.withRetryHandler(retryHandler)
                 .build()
                 .submit(new ServerOperation<String>() {
             @Override
