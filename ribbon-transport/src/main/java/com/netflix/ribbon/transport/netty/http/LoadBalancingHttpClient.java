@@ -306,7 +306,7 @@ public class LoadBalancingHttpClient<I, O> extends LoadBalancingRxClientWithPool
             @Override
             public Observable<HttpClientResponse<O>> call(Server server) {
                 HttpClient<I,O> rxClient = getOrCreateRxClient(server);
-                setHostHeader(request, server.getHost());
+                setHostHeader(request, server.getHostPort());
                 
                 Observable<HttpClientResponse<O>> o;
                 if (rxClientConfig != null) {
