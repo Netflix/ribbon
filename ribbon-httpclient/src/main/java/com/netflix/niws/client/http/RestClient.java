@@ -562,6 +562,9 @@ public class RestClient extends AbstractLoadBalancerAwareClient<HttpRequest, Htt
         case OPTIONS:
             jerseyResponse = b.options(ClientResponse.class);
             break;
+        case PATCH:
+            jerseyResponse = b.method("PATCH", ClientResponse.class, requestEntity);
+            break;
         default:
             throw new ClientException(
                     ClientException.ErrorType.GENERAL,
