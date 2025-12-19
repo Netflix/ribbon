@@ -17,7 +17,7 @@
  */
 package com.netflix.loadbalancer;
 
-import com.netflix.util.Pair;
+import internal.com.netflix.util.Pair;
 
 /**
  * Class that represents a typical Server (or an addressable Node) i.e. a
